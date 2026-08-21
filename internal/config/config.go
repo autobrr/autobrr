@@ -15,12 +15,12 @@ import (
 	"sync"
 	"text/template"
 
-	"github.com/autobrr/autobrr/internal/api"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
 
@@ -30,7 +30,7 @@ var configTemplate = `# config.toml
 
 # Hostname / IP
 #
-# Default: "localhost"
+# Default: "127.0.0.1"
 #
 host = "{{ .host }}"
 
@@ -58,43 +58,39 @@ baseUrlModeLegacy = true
 
 # autobrr logs file
 # If not defined, logs to stdout
-# Make sure to use forward slashes and include the filename with extension. eg: "log/autobrr.log", "C:/autobrr/log/autobrr.log"
+# Make sure to use forward slashes and include the filename with extension. eg: "/path/to/logs/autobrr.log", "C:/autobrr/logs/autobrr.log"
 #
 # Optional
 #
-#logPath = "log/autobrr.log"
+#logPath = "/path/to/logs/autobrr.log"
 
 # Log level
 #
-# Default: "DEBUG"
+# Default: "INFO"
 #
-# Options: "ERROR", "DEBUG", "INFO", "WARN", "TRACE"
+# Options: "ERROR", "WARN", "INFO", "DEBUG", "TRACE"
 #
-logLevel = "DEBUG"
+logLevel = "INFO"
 
 # Log Max Size
 #
-# Default: 50
+# Default: 10
 #
 # Max log size in megabytes
 #
-#logMaxSize = 50
+#logMaxSize = 10
 
 # Log Max Backups
 #
-# Default: 3
+# Default: 5
 #
 # Max amount of old log files
 #
-#logMaxBackups = 3
+#logMaxBackups = 5
 
 # Check for updates
 #
 checkForUpdates = true
-
-# Session secret
-#
-sessionSecret = "{{ .sessionSecret }}"
 
 # Database Max Backups
 #
@@ -223,8 +219,7 @@ func (c *AppConfig) writeConfig(configPath string, configFile string) error {
 		}
 
 		tmplVars := map[string]string{
-			"host":          host,
-			"sessionSecret": c.Config.SessionSecret,
+			"host": host,
 		}
 
 		var buffer bytes.Buffer
@@ -241,11 +236,6 @@ func (c *AppConfig) writeConfig(configPath string, configFile string) error {
 	}
 
 	return nil
-}
-
-type Config interface {
-	UpdateConfig() error
-	DynamicReload(log logger.Logger)
 }
 
 type AppConfig struct {
@@ -270,16 +260,15 @@ func New(configPath string, version string) *AppConfig {
 func (c *AppConfig) defaults() {
 	c.Config = &domain.Config{
 		Version:               "dev",
-		Host:                  "localhost",
+		Host:                  "127.0.0.1",
 		Port:                  7474,
 		CorsAllowedOrigins:    "*",
-		LogLevel:              "TRACE",
+		LogLevel:              "INFO",
 		LogPath:               "",
-		LogMaxSize:            50,
-		LogMaxBackups:         3,
+		LogMaxSize:            10,
+		LogMaxBackups:         5,
 		BaseURL:               "/",
 		BaseURLModeLegacy:     true,
-		SessionSecret:         api.GenerateSecureToken(16),
 		CustomDefinitions:     "",
 		CheckForUpdates:       true,
 		DatabaseType:          "sqlite",
@@ -287,7 +276,7 @@ func (c *AppConfig) defaults() {
 		DatabaseMaxBackups:    5,
 		DatabaseDSN:           "",
 		PostgresHost:          "",
-		PostgresPort:          0,
+		PostgresPort:          5432,
 		PostgresDatabase:      "",
 		PostgresUser:          "",
 		PostgresPass:          "",
@@ -325,6 +314,15 @@ func (c *AppConfig) loadFromEnv() {
 		c.Config.BaseURLModeLegacy = strings.EqualFold(strings.ToLower(v), "true")
 	}
 
+	if v := GetEnvStr("CUSTOM_DEFINITIONS"); v != "" {
+		c.Config.CustomDefinitions = v
+	}
+
+	if v := GetEnvStr("CHECK_FOR_UPDATES"); v != "" {
+		c.Config.CheckForUpdates = strings.EqualFold(strings.ToLower(v), "true")
+	}
+
+	// Logs configuration
 	if v := GetEnvStr("LOG_LEVEL"); v != "" {
 		c.Config.LogLevel = v
 	}
@@ -341,18 +339,7 @@ func (c *AppConfig) loadFromEnv() {
 		c.Config.LogMaxBackups = v
 	}
 
-	if v := GetEnvStr("SESSION_SECRET"); v != "" {
-		c.Config.SessionSecret = v
-	}
-
-	if v := GetEnvStr("CUSTOM_DEFINITIONS"); v != "" {
-		c.Config.CustomDefinitions = v
-	}
-
-	if v := GetEnvStr("CHECK_FOR_UPDATES"); v != "" {
-		c.Config.CheckForUpdates = strings.EqualFold(strings.ToLower(v), "true")
-	}
-
+	// Database configuration
 	if v := GetEnvStr("DATABASE_DSN"); v != "" {
 		c.Config.DatabaseDSN = v
 	}
@@ -407,6 +394,7 @@ func (c *AppConfig) loadFromEnv() {
 		c.Config.PostgresExtraParams = v
 	}
 
+	// Profiling configuration
 	if v := GetEnvStr("PROFILING_ENABLED"); v != "" {
 		c.Config.ProfilingEnabled = strings.EqualFold(strings.ToLower(v), "true")
 	}
@@ -419,7 +407,7 @@ func (c *AppConfig) loadFromEnv() {
 		c.Config.ProfilingPort = v
 	}
 
-	// OIDC Configuration
+	// OIDC configuration
 	if v := GetEnvStr("OIDC_ENABLED"); v != "" {
 		c.Config.OIDCEnabled = strings.EqualFold(strings.ToLower(v), "true")
 	}
@@ -444,6 +432,7 @@ func (c *AppConfig) loadFromEnv() {
 		c.Config.OIDCDisableBuiltInLogin = strings.EqualFold(strings.ToLower(v), "true")
 	}
 
+	// Metrics configuration
 	if v := GetEnvStr("METRICS_ENABLED"); v != "" {
 		c.Config.MetricsEnabled = strings.EqualFold(strings.ToLower(v), "true")
 	}
@@ -536,7 +525,7 @@ func (c *AppConfig) load(configPath string) {
 	}
 }
 
-func (c *AppConfig) DynamicReload(log logger.Logger) {
+func (c *AppConfig) DynamicReload(log zerolog.Logger) {
 	viper.WatchConfig()
 	viper.OnConfigChange(func(e fsnotify.Event) {
 		c.m.Lock()
@@ -544,7 +533,7 @@ func (c *AppConfig) DynamicReload(log logger.Logger) {
 
 		logLevel := viper.GetString("logLevel")
 		c.Config.LogLevel = logLevel
-		log.SetLogLevel(c.Config.LogLevel)
+		logger.SetLevel(c.Config.LogLevel)
 
 		logPath := viper.GetString("logPath")
 		c.Config.LogPath = logPath
@@ -619,9 +608,9 @@ func (c *AppConfig) processLines(lines []string) []string {
 	if !foundLineLogLevel {
 		lines = append(lines, "# Log level")
 		lines = append(lines, "#")
-		lines = append(lines, `# Default: "DEBUG"`)
+		lines = append(lines, `# Default: "INFO"`)
 		lines = append(lines, "#")
-		lines = append(lines, `# Options: "ERROR", "DEBUG", "INFO", "WARN", "TRACE"`)
+		lines = append(lines, `# Options: "ERROR", "WARN", "INFO", "DEBUG", "TRACE"`)
 		lines = append(lines, "#")
 		lines = append(lines, fmt.Sprintf(`logLevel = "%s"`, c.Config.LogLevel))
 	}

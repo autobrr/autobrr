@@ -9,45 +9,81 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/feed"
-	"github.com/autobrr/autobrr/internal/indexer"
-	"github.com/autobrr/autobrr/internal/irc"
-	"github.com/autobrr/autobrr/internal/list"
-	"github.com/autobrr/autobrr/internal/logger"
-	"github.com/autobrr/autobrr/internal/release"
-	"github.com/autobrr/autobrr/internal/scheduler"
-	"github.com/autobrr/autobrr/internal/update"
 
 	"github.com/rs/zerolog"
 )
+
+type serviceStarter interface {
+	Start() error
+}
+
+type serviceStopper interface {
+	Stop()
+}
+
+type schedulerService interface {
+	serviceStarter
+	serviceStopper
+}
+
+type feedService interface {
+	serviceStarter
+}
+
+type indexerService interface {
+	serviceStarter
+}
+
+type ircService interface {
+	StartHandlers()
+	StopHandlers()
+}
+
+type listService interface {
+	serviceStarter
+}
+
+type notificationService interface {
+	serviceStarter
+}
+
+type releaseService interface {
+	StartCleanupJobs() error
+}
+
+type updateService interface {
+	CheckUpdates(ctx context.Context)
+}
 
 type Server struct {
 	log    zerolog.Logger
 	config *domain.Config
 
-	indexerService indexer.Service
-	ircService     irc.Service
-	feedService    feed.Service
-	releaseService release.Service
-	scheduler      scheduler.Service
-	listService    list.Service
-	updateService  *update.Service
+	indexerService      indexerService
+	ircService          ircService
+	feedService         feedService
+	releaseService      releaseService
+	scheduler           schedulerService
+	listService         listService
+	notificationService notificationService
+	updateService       updateService
 
 	stopWG sync.WaitGroup
 	lock   sync.Mutex
 }
 
-func NewServer(log logger.Logger, config *domain.Config, ircSvc irc.Service, indexerSvc indexer.Service, feedSvc feed.Service, releaseSvc release.Service, listSvc list.Service, scheduler scheduler.Service, updateSvc *update.Service) *Server {
+func NewServer(log zerolog.Logger, config *domain.Config, ircSvc ircService, indexerSvc indexerService, feedSvc feedService, releaseSvc releaseService, listSvc listService, notifySvc notificationService, scheduler schedulerService, updateSvc updateService) *Server {
 	return &Server{
-		log:            log.With().Str("module", "server").Logger(),
-		config:         config,
-		indexerService: indexerSvc,
-		ircService:     ircSvc,
-		feedService:    feedSvc,
-		releaseService: releaseSvc,
-		listService:    listSvc,
-		scheduler:      scheduler,
-		updateService:  updateSvc,
+		log:                 log.With().Str("module", "server").Logger(),
+		config:              config,
+		indexerService:      indexerSvc,
+		ircService:          ircSvc,
+		feedService:         feedSvc,
+		releaseService:      releaseSvc,
+		listService:         listSvc,
+		notificationService: notifySvc,
+		scheduler:           scheduler,
+		updateService:       updateSvc,
 	}
 }
 
@@ -56,6 +92,10 @@ func (s *Server) Start() error {
 
 	// start cron scheduler
 	s.scheduler.Start()
+
+	if err := s.notificationService.Start(); err != nil {
+		s.log.Error().Err(err).Msg("failed to start notification service")
+	}
 
 	// instantiate indexers
 	if err := s.indexerService.Start(); err != nil {

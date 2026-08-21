@@ -1,0 +1,13 @@
+[
+  {
+    "title": "Formula.1.2026x10.Belgium.Race.SkyF1HD.1080p",
+    "indexer": "mock-indexer",
+    "protocol": "torrent",
+    "approved": false,
+    "rejected": false,
+    "temporarilyRejected": true,
+    "rejections": [
+      "Waiting for a better quality release"
+    ]
+  }
+]

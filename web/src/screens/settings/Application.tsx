@@ -127,6 +127,7 @@ function ApplicationSettings() {
         <RowItem label={t("settings:application.database")} value={data?.database} />
         <div className="py-0.5">
           <Checkbox
+            name="debug"
             label={t("settings:application.webuiDebugMode")}
             value={settings.debug}
             className="p-4 sm:px-6"
@@ -139,6 +140,7 @@ function ApplicationSettings() {
           />
         </div>
         <Checkbox
+          name="check_for_updates"
           label={t("settings:application.checkForUpdates")}
           description={t("settings:application.checkForUpdatesDescription")}
           value={data?.check_for_updates ?? true}
@@ -192,6 +194,7 @@ function ApplicationSettings() {
             <option value="en">{t("common:language.english")}</option>
             <option value="fr">{t("common:language.french")}</option>
             <option value="de">{t("common:language.german")}</option>
+            <option value="cs">{t("common:language.czech")}</option>
             <option value="no">{t("common:language.norwegian")}</option>
             <option value="ru">{t("common:language.russian")}</option>
             <option value="es">{t("common:language.spanish")}</option>

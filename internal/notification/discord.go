@@ -47,6 +47,48 @@ const (
 	GRAY       EmbedColors = 10070709 // 99aab5
 )
 
+// Per-field limits. Exceeding any of them makes Discord reject the whole
+// message with 400 rather than truncating it.
+// https://docs.discord.com/developers/resources/message#embed-object-embed-limits
+const (
+	discordEmbedTitleLimit       = 256
+	discordEmbedDescriptionLimit = 4096
+	discordEmbedFieldNameLimit   = 256
+	discordEmbedFieldValueLimit  = 1024
+)
+
+const discordTruncationMarker = " [...] "
+
+// truncateForDiscord shortens s to at most limit characters by dropping the
+// middle. A failed *arr push wraps its cause last, so keeping only the head
+// would discard the one part worth reading. Discord counts characters rather
+// than bytes.
+func truncateForDiscord(s string, limit int) string {
+	if limit <= 0 {
+		return ""
+	}
+
+	if len(s) <= limit {
+		return s
+	}
+
+	runes := []rune(s)
+	if len(runes) <= limit {
+		return s
+	}
+
+	marker := []rune(discordTruncationMarker)
+	if limit <= len(marker) {
+		return string(runes[:limit])
+	}
+
+	keep := limit - len(marker)
+	head := (keep + 1) / 2
+	tail := keep - head
+
+	return string(runes[:head]) + discordTruncationMarker + string(runes[len(runes)-tail:])
+}
+
 type discordSender struct {
 	log      zerolog.Logger
 	Settings *domain.Notification
@@ -58,7 +100,7 @@ func (s *discordSender) Name() string {
 	return "discord"
 }
 
-func NewDiscordSender(log zerolog.Logger, settings *domain.Notification) domain.NotificationSender {
+func NewDiscordSender(log zerolog.Logger, settings *domain.Notification) Sender {
 	return &discordSender{
 		log:      log.With().Str("sender", "discord").Str("name", settings.Name).Logger(),
 		Settings: settings,
@@ -97,7 +139,7 @@ func (s *discordSender) Send(event domain.NotificationEvent, payload domain.Noti
 
 	defer sharedhttp.DrainAndClose(res)
 
-	s.log.Trace().Msgf("discord response status: %d", res.StatusCode)
+	s.log.Trace().Int("status_code", res.StatusCode).Msg("response status")
 
 	// discord responds with 204, Notifiarr with 204 so lets take all 200 as ok
 	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusNoContent {
@@ -116,56 +158,8 @@ func (s *discordSender) Send(event domain.NotificationEvent, payload domain.Noti
 	return nil
 }
 
-func (s *discordSender) CanSend(event domain.NotificationEvent) bool {
-	if s.IsEnabled() && s.isEnabledEvent(event) {
-		return true
-	}
-	return false
-}
-
-func (s *discordSender) CanSendPayload(event domain.NotificationEvent, payload domain.NotificationPayload) bool {
-	if !s.IsEnabled() {
-		return false
-	}
-
-	if payload.FilterID > 0 {
-		if s.Settings.FilterMuted(payload.FilterID) {
-			s.log.Trace().Str("event", string(event)).Int("filter_id", payload.FilterID).Str("filter", payload.Filter).Msg("notification muted by filter")
-			return false
-		}
-
-		// Check if the filter has custom notifications configured
-		if s.Settings.FilterEventEnabled(payload.FilterID, event) {
-			return true
-		}
-
-		// If the filter has custom notifications but the event is not enabled, don't fall back to global
-		if s.Settings.HasFilterNotifications(payload.FilterID) {
-			return false
-		}
-	}
-
-	// Fall back to global events for non-filter events or filters without custom notifications
-	if s.isEnabledEvent(event) {
-		return true
-	}
-
-	return false
-}
-
-func (s *discordSender) HasFilterEvents(filterID int) bool {
-	if s.Settings.HasFilterNotifications(filterID) {
-		return true
-	}
-	return false
-}
-
 func (s *discordSender) IsEnabled() bool {
 	return s.Settings.IsEnabled()
-}
-
-func (s *discordSender) isEnabledEvent(event domain.NotificationEvent) bool {
-	return s.Settings.EventEnabled(string(event))
 }
 
 func (s *discordSender) buildEmbed(event domain.NotificationEvent, payload domain.NotificationPayload) DiscordEmbeds {
@@ -280,6 +274,12 @@ func (s *discordSender) buildEmbed(event domain.NotificationEvent, payload domai
 	if payload.Subject != "" && payload.Message != "" {
 		embed.Title = payload.Subject
 		embed.Description = payload.Message
+	}
+
+	embed.Title = truncateForDiscord(embed.Title, discordEmbedTitleLimit)
+	embed.Description = truncateForDiscord(embed.Description, discordEmbedDescriptionLimit)
+	for i := range embed.Fields {
+		embed.Fields[i].Value = truncateForDiscord(embed.Fields[i].Value, discordEmbedFieldValueLimit)
 	}
 
 	return embed

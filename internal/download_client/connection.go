@@ -11,16 +11,18 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/aria2"
 	"github.com/autobrr/autobrr/pkg/arr/lidarr"
 	"github.com/autobrr/autobrr/pkg/arr/radarr"
 	"github.com/autobrr/autobrr/pkg/arr/readarr"
 	"github.com/autobrr/autobrr/pkg/arr/sonarr"
+	"github.com/autobrr/autobrr/pkg/arr/sportarr"
+	"github.com/autobrr/autobrr/pkg/arr/whisparr"
 	"github.com/autobrr/autobrr/pkg/errors"
-	"github.com/autobrr/autobrr/pkg/porla"
 	"github.com/autobrr/autobrr/pkg/nzbget"
+	"github.com/autobrr/autobrr/pkg/porla"
 	"github.com/autobrr/autobrr/pkg/sabnzbd"
 	"github.com/autobrr/autobrr/pkg/transmission"
-	"github.com/autobrr/autobrr/pkg/whisparr"
 
 	"github.com/autobrr/go-deluge"
 	"github.com/autobrr/go-qbittorrent"
@@ -30,7 +32,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func (s *service) testConnection(ctx context.Context, client domain.DownloadClient) error {
+func (s *Service) testConnection(ctx context.Context, client domain.DownloadClient) error {
 	switch client.Type {
 	case domain.DownloadClientTypeQbittorrent:
 		return s.testQbittorrentConnection(ctx, client)
@@ -47,6 +49,9 @@ func (s *service) testConnection(ctx context.Context, client domain.DownloadClie
 	case domain.DownloadClientTypePorla:
 		return s.testPorlaConnection(client)
 
+	case domain.DownloadClientTypeAria2:
+		return s.testAria2Connection(ctx, client)
+
 	case domain.DownloadClientTypeRadarr:
 		return s.testRadarrConnection(ctx, client)
 
@@ -56,11 +61,14 @@ func (s *service) testConnection(ctx context.Context, client domain.DownloadClie
 	case domain.DownloadClientTypeLidarr:
 		return s.testLidarrConnection(ctx, client)
 
-	case domain.DownloadClientTypeWhisparr:
+	case domain.DownloadClientTypeWhisparr, domain.DownloadClientTypeWhisparrV3:
 		return s.testWhisparrConnection(ctx, client)
 
 	case domain.DownloadClientTypeReadarr:
 		return s.testReadarrConnection(ctx, client)
+
+	case domain.DownloadClientTypeSportarr:
+		return s.testSportarrConnection(ctx, client)
 
 	case domain.DownloadClientTypeSabnzbd:
 		return s.testSabnzbdConnection(ctx, client)
@@ -73,7 +81,7 @@ func (s *service) testConnection(ctx context.Context, client domain.DownloadClie
 	}
 }
 
-func (s *service) testQbittorrentConnection(ctx context.Context, client domain.DownloadClient) error {
+func (s *Service) testQbittorrentConnection(ctx context.Context, client domain.DownloadClient) error {
 	clientHost, err := client.BuildLegacyHost()
 	if err != nil {
 		return errors.Wrap(err, "error building qBittorrent host url: %s", client.Host)
@@ -84,6 +92,7 @@ func (s *service) testQbittorrentConnection(ctx context.Context, client domain.D
 		TLSSkipVerify: client.TLSSkipVerify,
 		Username:      client.Username,
 		Password:      client.Password,
+		APIKey:        client.Settings.APIKey,
 		Log:           s.subLogger,
 	}
 
@@ -103,12 +112,12 @@ func (s *service) testQbittorrentConnection(ctx context.Context, client domain.D
 		return errors.Wrap(err, "error getting torrents: %v", client.Host)
 	}
 
-	s.log.Debug().Msgf("test client connection for qBittorrent: success")
+	s.log.Debug().Msg("test client connection for qBittorrent: success")
 
 	return nil
 }
 
-func (s *service) testDelugeConnection(ctx context.Context, client domain.DownloadClient) error {
+func (s *Service) testDelugeConnection(ctx context.Context, client domain.DownloadClient) error {
 	settings := deluge.Settings{
 		Hostname:             client.Host,
 		Port:                 uint(client.Port),
@@ -160,12 +169,12 @@ func (s *service) testDelugeConnection(ctx context.Context, client domain.Downlo
 		return errors.New("unsupported deluge client version: %s", client.Type)
 	}
 
-	s.log.Debug().Msgf("test client connection for Deluge: success - daemon version: %v", version)
+	s.log.Debug().Str("version", version).Msg("test client connection for Deluge: success")
 
 	return nil
 }
 
-func (s *service) testRTorrentConnection(ctx context.Context, client domain.DownloadClient) error {
+func (s *Service) testRTorrentConnection(ctx context.Context, client domain.DownloadClient) error {
 	cfg := rtorrent.Config{
 		Addr:          client.Host,
 		TLSSkipVerify: client.TLSSkipVerify,
@@ -197,14 +206,12 @@ func (s *service) testRTorrentConnection(ctx context.Context, client domain.Down
 		return errors.Wrap(err, "error logging into client: %s", client.Host)
 	}
 
-	s.log.Trace().Msgf("test client connection for rTorrent: got client: %s", name)
-
-	s.log.Debug().Msg("test client connection for rTorrent: success")
+	s.log.Debug().Str("name", name).Msg("test client connection for rTorrent: success")
 
 	return nil
 }
 
-func (s *service) testTransmissionConnection(ctx context.Context, client domain.DownloadClient) error {
+func (s *Service) testTransmissionConnection(ctx context.Context, client domain.DownloadClient) error {
 	clientHost, err := client.BuildLegacyHost()
 	if err != nil {
 		return errors.Wrap(err, "error building Transmission host url: %v", client.Host)
@@ -234,14 +241,12 @@ func (s *service) testTransmissionConnection(ctx context.Context, client domain.
 		return errors.Wrap(err, "error getting rpc info: %v", client.Host)
 	}
 
-	s.log.Trace().Msgf("test client connection for Transmission: got version: %v", version)
-
-	s.log.Debug().Msgf("test client connection for Transmission: success")
+	s.log.Debug().Int64("version", version).Msg("test client connection for Transmission: success")
 
 	return nil
 }
 
-func (s *service) testRadarrConnection(ctx context.Context, client domain.DownloadClient) error {
+func (s *Service) testRadarrConnection(ctx context.Context, client domain.DownloadClient) error {
 	r := radarr.New(radarr.Config{
 		Hostname:      client.Host,
 		APIKey:        client.Settings.APIKey,
@@ -249,19 +254,47 @@ func (s *service) testRadarrConnection(ctx context.Context, client domain.Downlo
 		Username:      client.Settings.Auth.Username,
 		Password:      client.Settings.Auth.Password,
 		TLSSkipVerify: client.TLSSkipVerify,
-		Log:           s.subLogger,
+		Log:           s.log,
 	})
 
 	if _, err := r.Test(ctx); err != nil {
 		return errors.Wrap(err, "radarr: connection test failed: %v", client.Host)
 	}
 
-	s.log.Debug().Msgf("test client connection for Radarr: success")
+	s.log.Debug().Msg("test client connection for Radarr: success")
 
 	return nil
 }
 
-func (s *service) testSonarrConnection(ctx context.Context, client domain.DownloadClient) error {
+func (s *Service) testSportarrConnection(ctx context.Context, client domain.DownloadClient) error {
+	r := sportarr.New(sportarr.Config{
+		Hostname:      client.Host,
+		APIKey:        client.Settings.APIKey,
+		BasicAuth:     client.Settings.Auth.Enabled,
+		Username:      client.Settings.Auth.Username,
+		Password:      client.Settings.Auth.Password,
+		TLSSkipVerify: client.TLSSkipVerify,
+		Log:           s.log,
+	})
+
+	status, err := r.Test(ctx)
+	if err != nil {
+		return errors.Wrap(err, "sportarr: connection test failed: %v", client.Host)
+	}
+
+	// The native release/push route ships with 4.0.1024; older versions
+	// answer system/status fine but 404 the push, so fail the test early
+	// with an actionable message instead of failing on the first release.
+	if !status.SupportsNativeAPI() {
+		return errors.New("sportarr: version %s is too old, autobrr needs Sportarr %s or newer", status.Version, sportarr.MinimumVersion)
+	}
+
+	s.log.Debug().Str("version", status.Version).Msg("test client connection for Sportarr: success")
+
+	return nil
+}
+
+func (s *Service) testSonarrConnection(ctx context.Context, client domain.DownloadClient) error {
 	r := sonarr.New(sonarr.Config{
 		Hostname:      client.Host,
 		APIKey:        client.Settings.APIKey,
@@ -269,19 +302,19 @@ func (s *service) testSonarrConnection(ctx context.Context, client domain.Downlo
 		Username:      client.Settings.Auth.Username,
 		Password:      client.Settings.Auth.Password,
 		TLSSkipVerify: client.TLSSkipVerify,
-		Log:           s.subLogger,
+		Log:           s.log,
 	})
 
 	if _, err := r.Test(ctx); err != nil {
 		return errors.Wrap(err, "sonarr: connection test failed: %v", client.Host)
 	}
 
-	s.log.Debug().Msgf("test client connection for Sonarr: success")
+	s.log.Debug().Msg("test client connection for Sonarr: success")
 
 	return nil
 }
 
-func (s *service) testLidarrConnection(ctx context.Context, client domain.DownloadClient) error {
+func (s *Service) testLidarrConnection(ctx context.Context, client domain.DownloadClient) error {
 	r := lidarr.New(lidarr.Config{
 		Hostname:      client.Host,
 		APIKey:        client.Settings.APIKey,
@@ -289,39 +322,52 @@ func (s *service) testLidarrConnection(ctx context.Context, client domain.Downlo
 		Username:      client.Settings.Auth.Username,
 		Password:      client.Settings.Auth.Password,
 		TLSSkipVerify: client.TLSSkipVerify,
-		Log:           s.subLogger,
+		Log:           s.log,
 	})
 
 	if _, err := r.Test(ctx); err != nil {
 		return errors.Wrap(err, "lidarr: connection test failed: %v", client.Host)
 	}
 
-	s.log.Debug().Msgf("test client connection for Lidarr: success")
+	s.log.Debug().Msg("test client connection for Lidarr: success")
 
 	return nil
 }
 
-func (s *service) testWhisparrConnection(ctx context.Context, client domain.DownloadClient) error {
+// whisparrVersion maps the client type to the Whisparr major version it talks
+// to. v2 is Sonarr based and serves series, v3 is Radarr based and serves
+// movies, so the two are separate client types.
+func whisparrVersion(clientType domain.DownloadClientType) int {
+	if clientType == domain.DownloadClientTypeWhisparrV3 {
+		return whisparr.VersionV3
+	}
+
+	return whisparr.VersionV2
+}
+
+func (s *Service) testWhisparrConnection(ctx context.Context, client domain.DownloadClient) error {
 	r := whisparr.New(whisparr.Config{
 		Hostname:      client.Host,
 		APIKey:        client.Settings.APIKey,
+		Version:       whisparrVersion(client.Type),
 		BasicAuth:     client.Settings.Auth.Enabled,
 		Username:      client.Settings.Auth.Username,
 		Password:      client.Settings.Auth.Password,
 		TLSSkipVerify: client.TLSSkipVerify,
-		Log:           s.subLogger,
+		Log:           s.log,
 	})
 
-	if _, err := r.Test(ctx); err != nil {
+	status, err := r.Test(ctx)
+	if err != nil {
 		return errors.Wrap(err, "whisparr: connection test failed: %v", client.Host)
 	}
 
-	s.log.Debug().Msgf("test client connection for whisparr: success")
+	s.log.Debug().Str("version", status.Version).Msg("test client connection for whisparr: success")
 
 	return nil
 }
 
-func (s *service) testReadarrConnection(ctx context.Context, client domain.DownloadClient) error {
+func (s *Service) testReadarrConnection(ctx context.Context, client domain.DownloadClient) error {
 	r := readarr.New(readarr.Config{
 		Hostname:      client.Host,
 		APIKey:        client.Settings.APIKey,
@@ -329,26 +375,26 @@ func (s *service) testReadarrConnection(ctx context.Context, client domain.Downl
 		Username:      client.Settings.Auth.Username,
 		Password:      client.Settings.Auth.Password,
 		TLSSkipVerify: client.TLSSkipVerify,
-		Log:           s.subLogger,
+		Log:           s.log,
 	})
 
 	if _, err := r.Test(ctx); err != nil {
 		return errors.Wrap(err, "readarr: connection test failed: %v", client.Host)
 	}
 
-	s.log.Debug().Msgf("test client connection for readarr: success")
+	s.log.Debug().Msg("test client connection for readarr: success")
 
 	return nil
 }
 
-func (s *service) testPorlaConnection(client domain.DownloadClient) error {
+func (s *Service) testPorlaConnection(client domain.DownloadClient) error {
 	p := porla.NewClient(porla.Config{
 		Hostname:      client.Host,
 		TLSSkipVerify: client.TLSSkipVerify,
 		AuthToken:     client.Settings.APIKey,
 		BasicUser:     client.Settings.Auth.Username,
 		BasicPass:     client.Settings.Auth.Password,
-		Log:           s.subLogger,
+		Log:           s.log,
 	})
 
 	version, err := p.Version()
@@ -363,18 +409,41 @@ func (s *service) testPorlaConnection(client domain.DownloadClient) error {
 		commitHash = commitHash[:8]
 	}
 
-	s.log.Debug().Msgf("test client connection for porla: found version %s (commit %s)", version.Version, commitHash)
+	s.log.Debug().Str("version", version.Version).Msg("test client connection for porla: success")
 
 	return nil
 }
 
-func (s *service) testSabnzbdConnection(ctx context.Context, client domain.DownloadClient) error {
+func (s *Service) testAria2Connection(ctx context.Context, client domain.DownloadClient) error {
+	ar, err := aria2.NewClient(aria2.Config{
+		Host:          client.Host,
+		Secret:        client.Settings.APIKey,
+		TLSSkipVerify: client.TLSSkipVerify,
+		BasicUser:     client.Settings.Auth.Username,
+		BasicPass:     client.Settings.Auth.Password,
+		Log:           s.log,
+	})
+	if err != nil {
+		return errors.Wrap(err, "aria2: could not create client: %s", client.Host)
+	}
+
+	version, err := ar.GetVersion(ctx)
+	if err != nil {
+		return errors.Wrap(err, "aria2: failed to get version: %s", client.Host)
+	}
+
+	s.log.Debug().Str("version", version.Version).Msg("test client connection for aria2: success")
+
+	return nil
+}
+
+func (s *Service) testSabnzbdConnection(ctx context.Context, client domain.DownloadClient) error {
 	opts := sabnzbd.Options{
 		Addr:      client.Host,
 		ApiKey:    client.Settings.APIKey,
 		BasicUser: client.Settings.Auth.Username,
 		BasicPass: client.Settings.Auth.Password,
-		Log:       s.subLogger,
+		Log:       s.log,
 	}
 
 	sab := sabnzbd.New(opts)
@@ -383,17 +452,17 @@ func (s *service) testSabnzbdConnection(ctx context.Context, client domain.Downl
 		return errors.Wrap(err, "error getting version from sabnzbd")
 	}
 
-	s.log.Debug().Msgf("test client connection for sabnzbd: success got version: %s", version.Version)
+	s.log.Debug().Str("version", version.Version).Msg("test client connection for sabnzbd: success")
 
 	return nil
 }
 
-func (s *service) testNzbgetConnection(ctx context.Context, client domain.DownloadClient) error {
+func (s *Service) testNzbgetConnection(ctx context.Context, client domain.DownloadClient) error {
 	nzb := nzbget.New(nzbget.Options{
 		Host:     client.Host,
 		Username: client.Username,
 		Password: client.Password,
-		Log:      s.subLogger,
+		Log:      s.log,
 	})
 
 	version, err := nzb.Version(ctx)
@@ -401,7 +470,7 @@ func (s *service) testNzbgetConnection(ctx context.Context, client domain.Downlo
 		return errors.Wrap(err, "error getting version from nzbget")
 	}
 
-	s.log.Debug().Msgf("test client connection for nzbget: success - version: %s", version)
+	s.log.Debug().Str("version", version).Msg("test client connection for nzbget: success")
 
 	return nil
 }

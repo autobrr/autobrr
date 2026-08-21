@@ -17,15 +17,11 @@ import {
   useFormikContext
 } from "formik";
 import {
-  Dialog,
-  DialogPanel,
-  DialogTitle,
   Listbox,
   ListboxButton,
   ListboxOption,
   ListboxOptions,
-  Transition,
-  TransitionChild
+  Transition
 } from "@headlessui/react";
 import { CheckIcon, ChevronUpDownIcon, XMarkIcon } from "@heroicons/react/24/solid";
 
@@ -64,6 +60,7 @@ import { DocsTooltip } from "@components/tooltips/DocsTooltip";
 import { MultiSelect as RMSC } from "react-multi-select-component";
 import { useToggle } from "@hooks/hooks.ts";
 import { DeleteModal } from "@components/modals";
+import { SlideOverShell, SlideOverTitle } from "@components/panels";
 import {DocsLink} from "@components/ExternalLink.tsx";
 
 interface ListAddFormValues {
@@ -108,183 +105,158 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
   };
 
   return (
-    <Transition show={isOpen} as={Fragment}>
-      <Dialog
-        as="div"
-        static
-        className="fixed inset-0 overflow-hidden"
-        open={isOpen}
-        onClose={toggle}
+    <SlideOverShell isOpen={isOpen} toggle={toggle}>
+      <Formik
+        enableReinitialize={true}
+        initialValues={{
+          enabled: true,
+          type: "",
+          name: "",
+          client_id: 0,
+          url: "",
+          headers: [],
+          api_key: "",
+          filters: [],
+          match_release: false,
+          tags_included: [],
+          tags_excluded: [],
+          include_unmonitored: false,
+          include_alternate_titles: false,
+          include_year: false,
+          skip_clean_sanitize: false,
+        }}
+        onSubmit={onSubmit}
+        validate={validate}
       >
-        <div className="absolute inset-0 overflow-hidden">
-          <DialogPanel className="absolute inset-y-0 right-0 max-w-full flex">
-            <TransitionChild
-              as={Fragment}
-              enter="transform transition ease-in-out duration-500 sm:duration-700"
-              enterFrom="translate-x-full"
-              enterTo="translate-x-0"
-              leave="transform transition ease-in-out duration-500 sm:duration-700"
-              leaveFrom="translate-x-0"
-              leaveTo="translate-x-full"
-            >
-              <div className="w-screen max-w-2xl">
-                <Formik
-                  enableReinitialize={true}
-                  initialValues={{
-                    enabled: true,
-                    type: "",
-                    name: "",
-                    client_id: 0,
-                    url: "",
-                    headers: [],
-                    api_key: "",
-                    filters: [],
-                    match_release: false,
-                    tags_included: [],
-                    tags_excluded: [],
-                    include_unmonitored: false,
-                    include_alternate_titles: false,
-                    include_year: false,
-                    skip_clean_sanitize: false,
-                  }}
-                  onSubmit={onSubmit}
-                  validate={validate}
-                >
-                  {({ values }) => (
-                    <Form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto">
-                      <div className="flex-1">
-                        <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
-                          <div className="flex items-start justify-between space-x-3">
-                            <div className="space-y-1">
-                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                                {t("forms.list.addTitle")}
-                              </DialogTitle>
-                              <p className="text-sm text-gray-500 dark:text-gray-200">
-                                {t("forms.list.description")}
-                              </p>
-                            </div>
-                            <div className="h-7 flex items-center">
-                              <button
-                                type="button"
-                                className="cursor-pointer bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                                onClick={toggle}
-                              >
-                                <span className="sr-only">{t("forms.list.closePanel")}</span>
-                                <XMarkIcon className="h-6 w-6" aria-hidden="true"/>
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
-                          <TextFieldWide
-                            name="name"
-                            label={t("forms.list.name")}
-                            required={true}
-                          />
-
-                          <div className="flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
-                            <div>
-                              <label htmlFor="type" className="block text-sm font-medium text-gray-900 dark:text-white"
-                              >
-                                {t("forms.list.type")}
-                              </label>
-                            </div>
-                            <div className="sm:col-span-2">
-                              <Field name="type" type="select">
-                                {({
-                                    field,
-                                    form: { setFieldValue }
-                                  }: FieldProps) => (
-                                  <Select
-                                    {...field}
-                                    isClearable={true}
-                                    isSearchable={true}
-                                    components={{
-                                      Input: common.SelectInput,
-                                      Control: common.SelectControl,
-                                      Menu: common.SelectMenu,
-                                      Option: common.SelectOption,
-                                      IndicatorSeparator: common.IndicatorSeparator,
-                                      DropdownIndicator: common.DropdownIndicator
-                                    }}
-                                    placeholder={t("forms.list.chooseType")}
-                                    styles={{
-                                      singleValue: (base) => ({
-                                        ...base,
-                                        color: "unset"
-                                      })
-                                    }}
-                                    theme={(theme) => ({
-                                      ...theme,
-                                      spacing: {
-                                        ...theme.spacing,
-                                        controlHeight: 30,
-                                        baseUnit: 2
-                                      }
-                                    })}
-                                    value={field?.value && field.value.value}
-                                    onChange={(newValue: unknown) => {
-                                      const option = newValue as { value: string };
-                                      setFieldValue(field.name, option?.value ?? "");
-                                    }}
-                                    options={ListTypeOptions}
-                                  />
-                                )}
-                              </Field>
-                            </div>
-                          </div>
-
-                          <SwitchGroupWide name="enabled" label={t("forms.list.enabled")}/>
-                        </div>
-
-                        <ListTypeForm listType={values.type as ListType} clients={clients ?? []}/>
-
-                        <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
-                          <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-                            <div className="px-4">
-                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                                {t("forms.list.filters")}
-                              </DialogTitle>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">
-                                {t("forms.list.filtersDescription")}
-                              </p>
-                            </div>
-
-                            <ListFilterMultiSelectField
-                              name="filters"
-                              label={t("forms.list.filters")}
-                              required={true}
-                              options={filterQuery.data?.map(f => ({ value: f.id, label: f.name })) ?? []}
-                            />
-
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4 sm:px-6">
-                        <div className="space-x-3 flex justify-end">
-                          <button
-                            type="button"
-                            className="cursor-pointer bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                            onClick={toggle}
-                          >
-                            {t("forms.list.cancel")}
-                          </button>
-                          <SubmitButton isPending={createMutation.isPending} isError={createMutation.isError} isSuccess={createMutation.isSuccess} />
-                        </div>
-                      </div>
-
-                      <DEBUG values={values}/>
-                    </Form>
-                  )}
-                </Formik>
+        {({ values }) => (
+          <Form className="h-full min-h-0 flex flex-col bg-white dark:bg-gray-800">
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
+                <div className="flex items-start justify-between space-x-3">
+                  <div className="space-y-1">
+                    <SlideOverTitle>
+                      {t("forms.list.addTitle")}
+                    </SlideOverTitle>
+                    <p className="text-sm text-gray-500 dark:text-gray-200">
+                      {t("forms.list.description")}
+                    </p>
+                  </div>
+                  <div className="h-7 flex items-center">
+                    <button
+                      type="button"
+                      className="cursor-pointer bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                      onClick={toggle}
+                    >
+                      <span className="sr-only">{t("forms.list.closePanel")}</span>
+                      <XMarkIcon className="h-6 w-6" aria-hidden="true"/>
+                    </button>
+                  </div>
+                </div>
               </div>
-            </TransitionChild>
-          </DialogPanel>
-        </div>
-      </Dialog>
-    </Transition>
+
+              <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
+                <TextFieldWide
+                  name="name"
+                  label={t("forms.list.name")}
+                  required={true}
+                />
+
+                <div className="flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
+                  <div>
+                    <label htmlFor="type" className="block text-sm font-medium text-gray-900 dark:text-white"
+                    >
+                      {t("forms.list.type")}
+                    </label>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Field name="type" type="select">
+                      {({
+                          field,
+                          form: { setFieldValue }
+                        }: FieldProps) => (
+                        <Select
+                          {...field}
+                          isClearable={true}
+                          isSearchable={true}
+                          components={{
+                            Input: common.SelectInput,
+                            Control: common.SelectControl,
+                            Menu: common.SelectMenu,
+                            Option: common.SelectOption,
+                            IndicatorSeparator: common.IndicatorSeparator,
+                            DropdownIndicator: common.DropdownIndicator
+                          }}
+                          placeholder={t("forms.list.chooseType")}
+                          styles={{
+                            singleValue: (base) => ({
+                              ...base,
+                              color: "unset"
+                            })
+                          }}
+                          theme={(theme) => ({
+                            ...theme,
+                            spacing: {
+                              ...theme.spacing,
+                              controlHeight: 30,
+                              baseUnit: 2
+                            }
+                          })}
+                          value={field?.value && field.value.value}
+                          onChange={(newValue: unknown) => {
+                            const option = newValue as { value: string };
+                            setFieldValue(field.name, option?.value ?? "");
+                          }}
+                          options={ListTypeOptions}
+                        />
+                      )}
+                    </Field>
+                  </div>
+                </div>
+
+                <SwitchGroupWide name="enabled" label={t("forms.list.enabled")}/>
+              </div>
+
+              <ListTypeForm listType={values.type as ListType} clients={clients ?? []}/>
+
+              <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
+                <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+                  <div className="px-4">
+                    <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+                      {t("forms.list.filters")}
+                    </h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {t("forms.list.filtersDescription")}
+                    </p>
+                  </div>
+
+                  <ListFilterMultiSelectField
+                    name="filters"
+                    label={t("forms.list.filters")}
+                    required={true}
+                    options={filterQuery.data?.map(f => ({ value: f.id, label: f.name })) ?? []}
+                  />
+
+                </div>
+              </div>
+              <DEBUG values={values}/>
+            </div>
+
+            <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4 sm:px-6">
+              <div className="space-x-3 flex justify-end">
+                <button
+                  type="button"
+                  className="cursor-pointer bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                  onClick={toggle}
+                >
+                  {t("forms.list.cancel")}
+                </button>
+                <SubmitButton isPending={createMutation.isPending} isError={createMutation.isError} isSuccess={createMutation.isSuccess} />
+              </div>
+            </div>
+          </Form>
+        )}
+      </Formik>
+    </SlideOverShell>
   );
 }
 
@@ -330,154 +302,129 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
   const deleteAction = () => deleteMutation.mutate(data.id);
 
   return (
-    <Transition show={isOpen} as={Fragment}>
-      <Dialog
-        as="div"
-        static
-        className="fixed inset-0 overflow-hidden"
-        open={isOpen}
-        onClose={toggle}
+    <SlideOverShell isOpen={isOpen} toggle={toggle}>
+      {deleteAction && (
+        <DeleteModal
+          isOpen={deleteModalIsOpen}
+          isLoading={false}
+          toggle={toggleDeleteModal}
+          buttonRef={cancelModalButtonRef}
+          deleteAction={deleteAction}
+          title={t("forms.list.removeTitle", { name: data.name })}
+          text={t("forms.list.removeText", { name: data.name })}
+        />
+      )}
+      <Formik
+        enableReinitialize={true}
+        initialValues={{
+          id: data.id,
+          enabled: data.enabled,
+          type: data.type,
+          name: data.name,
+          client_id: data.client_id,
+          url: data.url,
+          headers: data.headers || [],
+          api_key: data.api_key,
+          filters: data.filters,
+          match_release: data.match_release,
+          tags_included: data.tags_included,
+          tags_excluded: data.tags_excluded,
+          include_unmonitored: data.include_unmonitored,
+          include_alternate_titles: data.include_alternate_titles,
+          include_year: data.include_year,
+          skip_clean_sanitize: data.skip_clean_sanitize,
+        }}
+        onSubmit={onSubmit}
+        // validate={validate}
       >
-        {deleteAction && (
-          <DeleteModal
-            isOpen={deleteModalIsOpen}
-            isLoading={false}
-            toggle={toggleDeleteModal}
-            buttonRef={cancelModalButtonRef}
-            deleteAction={deleteAction}
-            title={t("forms.list.removeTitle", { name: data.name })}
-            text={t("forms.list.removeText", { name: data.name })}
-          />
-        )}
-        <div className="absolute inset-0 overflow-hidden">
-          <DialogPanel className="absolute inset-y-0 right-0 max-w-full flex">
-            <TransitionChild
-              as={Fragment}
-              enter="transform transition ease-in-out duration-500 sm:duration-700"
-              enterFrom="translate-x-full"
-              enterTo="translate-x-0"
-              leave="transform transition ease-in-out duration-500 sm:duration-700"
-              leaveFrom="translate-x-0"
-              leaveTo="translate-x-full"
-            >
-              <div className="w-screen max-w-2xl">
-                <Formik
-                  enableReinitialize={true}
-                  initialValues={{
-                    id: data.id,
-                    enabled: data.enabled,
-                    type: data.type,
-                    name: data.name,
-                    client_id: data.client_id,
-                    url: data.url,
-                    headers: data.headers || [],
-                    api_key: data.api_key,
-                    filters: data.filters,
-                    match_release: data.match_release,
-                    tags_included: data.tags_included,
-                    tags_excluded: data.tags_excluded,
-                    include_unmonitored: data.include_unmonitored,
-                    include_alternate_titles: data.include_alternate_titles,
-                    include_year: data.include_year,
-                    skip_clean_sanitize: data.skip_clean_sanitize,
-                  }}
-                  onSubmit={onSubmit}
-                  // validate={validate}
-                >
-                  {({ values }) => (
-                    <Form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto">
-                      <div className="flex-1">
-                        <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
-                          <div className="flex items-start justify-between space-x-3">
-                            <div className="space-y-1">
-                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                                {t("forms.list.updateTitle")}
-                              </DialogTitle>
-                              <p className="text-sm text-gray-500 dark:text-gray-200">
-                                {t("forms.list.description")}
-                              </p>
-                            </div>
-                            <div className="h-7 flex items-center">
-                              <button
-                                type="button"
-                                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                                onClick={toggle}
-                              >
-                                <span className="sr-only">{t("forms.list.closePanel")}</span>
-                                <XMarkIcon className="h-6 w-6" aria-hidden="true"/>
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
-
-                          <TextFieldWide name="name" label={t("forms.list.name")} required={true}/>
-
-                          <TextFieldWide name="type" label={t("forms.list.type")} required={true} disabled={true} />
-
-                          <SwitchGroupWide name="enabled" label={t("forms.list.enabled")}/>
-
-                          <div className="space-y-2 divide-y divide-gray-200 dark:divide-gray-700">
-                            <ListTypeForm listType={values.type} clients={clientsQuery.data ?? []}/>
-                          </div>
-
-                          <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
-                            <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-                              <div className="px-4">
-                                <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                                  {t("forms.list.filters")}
-                                </DialogTitle>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
-                                  {t("forms.list.filtersDescription")}
-                                </p>
-                              </div>
-
-                              <ListFilterMultiSelectField
-                                name="filters"
-                                label={t("forms.list.filters")}
-                                required={true}
-                                options={filterQuery.data?.map(f => ({ value: f.id, label: f.name })) ?? []}
-                              />
-
-                            </div>
-                          </div>
-
-                        </div>
-                      </div>
-
-                      <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4">
-                        <div className="space-x-3 flex justify-between">
-                          <button
-                            type="button"
-                            className="cursor-pointer inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-red-700 dark:text-white bg-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
-                            onClick={toggleDeleteModal}
-                          >
-                            {t("forms.list.remove")}
-                          </button>
-                          <div className="flex space-x-3">
-                          <button
-                            type="button"
-                            className="cursor-pointer bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                            onClick={toggle}
-                          >
-                            {t("forms.list.cancel")}
-                          </button>
-                          <SubmitButton isPending={mutation.isPending} isError={mutation.isError} isSuccess={mutation.isSuccess} />
-                          </div>
-                        </div>
-                      </div>
-
-                      <DEBUG values={values}/>
-                    </Form>
-                  )}
-                </Formik>
+        {({ values }) => (
+          <Form className="h-full min-h-0 flex flex-col bg-white dark:bg-gray-800">
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
+                <div className="flex items-start justify-between space-x-3">
+                  <div className="space-y-1">
+                    <SlideOverTitle>
+                      {t("forms.list.updateTitle")}
+                    </SlideOverTitle>
+                    <p className="text-sm text-gray-500 dark:text-gray-200">
+                      {t("forms.list.description")}
+                    </p>
+                  </div>
+                  <div className="h-7 flex items-center">
+                    <button
+                      type="button"
+                      className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                      onClick={toggle}
+                    >
+                      <span className="sr-only">{t("forms.list.closePanel")}</span>
+                      <XMarkIcon className="h-6 w-6" aria-hidden="true"/>
+                    </button>
+                  </div>
+                </div>
               </div>
-            </TransitionChild>
-          </DialogPanel>
-        </div>
-      </Dialog>
-    </Transition>
+
+              <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
+
+                <TextFieldWide name="name" label={t("forms.list.name")} required={true}/>
+
+                <TextFieldWide name="type" label={t("forms.list.type")} required={true} disabled={true} />
+
+                <SwitchGroupWide name="enabled" label={t("forms.list.enabled")}/>
+
+                <div className="space-y-2 divide-y divide-gray-200 dark:divide-gray-700">
+                  <ListTypeForm listType={values.type} clients={clientsQuery.data ?? []}/>
+                </div>
+
+                <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
+                  <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+                    <div className="px-4">
+                      <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+                        {t("forms.list.filters")}
+                      </h2>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {t("forms.list.filtersDescription")}
+                      </p>
+                    </div>
+
+                    <ListFilterMultiSelectField
+                      name="filters"
+                      label={t("forms.list.filters")}
+                      required={true}
+                      options={filterQuery.data?.map(f => ({ value: f.id, label: f.name })) ?? []}
+                    />
+
+                  </div>
+                </div>
+
+              </div>
+              <DEBUG values={values}/>
+            </div>
+
+            <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4">
+              <div className="space-x-3 flex justify-between">
+                <button
+                  type="button"
+                  className="cursor-pointer inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-red-700 dark:text-white bg-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
+                  onClick={toggleDeleteModal}
+                >
+                  {t("forms.list.remove")}
+                </button>
+                <div className="flex space-x-3">
+                <button
+                  type="button"
+                  className="cursor-pointer bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                  onClick={toggle}
+                >
+                  {t("forms.list.cancel")}
+                </button>
+                <SubmitButton isPending={mutation.isPending} isError={mutation.isError} isSuccess={mutation.isSuccess} />
+                </div>
+              </div>
+            </div>
+          </Form>
+        )}
+      </Formik>
+    </SlideOverShell>
   );
 }
 
@@ -566,6 +513,9 @@ const ListTypeForm = (props: ListTypeFormProps) => {
     case "READARR":
       return <ListTypeArr {...props} />;
     case "WHISPARR":
+    case "WHISPARR_V3":
+      return <ListTypeArr {...props} />;
+    case "SPORTARR":
       return <ListTypeArr {...props} />;
     case "TRAKT":
       return <ListTypeTrakt />;
@@ -600,10 +550,19 @@ const FilterOptionCheckBoxes = (props: ListTypeFormProps) => {
     case "LIDARR":
     case "WHISPARR":
     case "READARR":
+    case "SPORTARR":
       return (
         <fieldset>
           <legend className="sr-only">{t("forms.list.settingsLegend")}</legend>
           <SwitchGroupWide name="include_unmonitored" label={t("forms.list.includeUnmonitored")} description={t("forms.list.includeUnmonitoredDesc")} />
+        </fieldset>
+      );
+    case "WHISPARR_V3":
+      return (
+        <fieldset>
+          <legend className="sr-only">{t("forms.list.settingsLegend")}</legend>
+          <SwitchGroupWide name="include_unmonitored" label={t("forms.list.includeUnmonitored")} description={t("forms.list.includeUnmonitoredDesc")} />
+          <SwitchGroupWide name="include_alternate_titles" label={t("forms.list.includeAlternateTitles")} description={t("forms.list.includeAlternateTitlesDesc")} />
         </fieldset>
       );
     case "PLAINTEXT":
@@ -628,9 +587,9 @@ function ListTypeArr({ listType, clients }: ListTypeFormProps) {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4">
-        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+        <h2 className="text-lg font-medium text-gray-900 dark:text-white">
           {t("forms.list.source")}
-        </DialogTitle>
+        </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {t("forms.list.arrSourceDescription")}
         </p>
@@ -642,7 +601,7 @@ function ListTypeArr({ listType, clients }: ListTypeFormProps) {
         clientType={listType}
       />
 
-      {values.client_id > 0 && (values.type === "RADARR" || values.type == "SONARR") && (
+      {values.client_id > 0 && (values.type === "RADARR" || values.type === "SONARR" || values.type === "WHISPARR" || values.type === "WHISPARR_V3" || values.type === "SPORTARR") && (
         <>
           <ListArrTagsMultiSelectField name="tags_included" label={t("forms.list.tagsIncluded")} options={arrTagsQuery.data?.map(f => ({
             value: f.label,
@@ -670,9 +629,9 @@ function ListTypeTrakt() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4">
-        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+        <h2 className="text-lg font-medium text-gray-900 dark:text-white">
           {t("forms.list.sourceList")}
-        </DialogTitle>
+        </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {t("forms.list.traktSourceDescription")}
         </p>
@@ -708,9 +667,9 @@ function ListTypeAniList() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4 space-y-1">
-        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+        <h2 className="text-lg font-medium text-gray-900 dark:text-white">
           {t("forms.list.sourceList")}
-        </DialogTitle>
+        </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {t("forms.list.anilistSourceDescription")}
         </p>
@@ -737,9 +696,9 @@ function ListTypePlainText() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4">
-        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+        <h2 className="text-lg font-medium text-gray-900 dark:text-white">
           {t("forms.list.sourceList")}
-        </DialogTitle>
+        </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {t("forms.list.plaintextSourceDescription")}
         </p>
@@ -783,9 +742,9 @@ function ListTypeSteam() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4">
-        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+        <h2 className="text-lg font-medium text-gray-900 dark:text-white">
           {t("forms.list.sourceList")}
-        </DialogTitle>
+        </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {t("forms.list.steamSourceDescription")}
         </p>
@@ -801,9 +760,9 @@ function ListTypeMetacritic() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4">
-        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+        <h2 className="text-lg font-medium text-gray-900 dark:text-white">
           {t("forms.list.sourceList")}
-        </DialogTitle>
+        </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {t("forms.list.metacriticSourceDescription")}
         </p>
@@ -840,9 +799,9 @@ function ListTypeMDBList() {
     return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4">
-        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+        <h2 className="text-lg font-medium text-gray-900 dark:text-white">
           {t("forms.list.sourceList")}
-        </DialogTitle>
+        </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {t("forms.list.mdblistSourceDescription")}
         </p>

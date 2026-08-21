@@ -35,6 +35,7 @@
     "downloads": "下载",
     "per": "每",
     "usesDisabledIndexers": "使用了已禁用的索引器：{{names}}",
+    "usesDeprecatedIndexers": "使用了已移除或弃用的索引器：{{names}}。请编辑过滤器将其移除，或前往“设置 → 索引器”进行清理。",
     "noIndexer": "无索引器",
     "sort": {
       "label": "排序",
@@ -58,6 +59,7 @@
       "general": "常规",
       "moviesTv": "电影和剧集",
       "music": "音乐",
+      "books": "图书",
       "advanced": "高级",
       "external": "外部",
       "actions": "动作",
@@ -94,6 +96,7 @@
     "announceTypes": "公告类型",
     "announceTypesTooltip": "新增！匹配包含任一所选公告类型的发布。",
     "indexers": "索引器",
+    "deprecatedIndexer": "{{name}}（已弃用）",
     "rulesTitle": "规则",
     "rulesSubtitle": "指定种子如何被处理或筛选。",
     "minSize": "最小大小",
@@ -141,7 +144,8 @@
     "addNotification": "添加通知",
     "empty": "当前没有为此过滤器配置专属通知，将使用全局通知。",
     "selectNotification": "选择通知",
-    "muted": "静音",
+    "notificationDisabled": "已对此过滤器禁用",
+    "serviceDisabled": "服务已禁用",
     "eventsCount_one": "{{count}} 个事件",
     "eventsCount_other": "{{count}} 个事件",
     "removeTitle": "移除通知",
@@ -152,9 +156,9 @@
     "selectNotificationService": "选择一个通知",
     "notificationServiceTooltip": "选择该过滤器要使用的通知服务。",
     "notificationSettings": "通知设置",
-    "muteFilter": "静音过滤器",
-    "muteFilterDesc": "禁用该过滤器的所有通知。静音后，匹配到的发布不会发送任何通知。",
-    "mutedInfo": "过滤器已静音，将覆盖所有全局通知设置",
+    "disableNotification": "禁用此通知",
+    "disableNotificationDesc": "对于匹配该过滤器的发布，不通过此通知服务发送事件。",
+    "notificationDisabledInfo": "此通知服务已对该过滤器禁用。该过滤器仍会覆盖全局通知设置。",
     "triggerEvents": "触发事件",
     "pushApproved": "推送成功",
     "pushRejected": "推送被拒绝",
@@ -370,6 +374,30 @@
       "perfectFlacHint": "在 90% 的场景里，你真正想要的通常就是这个，而不是上面的细项。"
     }
   },
+  "books": {
+    "authors": "作者",
+    "authorsPlaceholder": "例如：Author One",
+    "titles": "书名",
+    "titlesPlaceholder": "例如：That Book",
+    "wildcardTooltip": "你可以使用通配符 *，或者用 ? 替代单个字符进行基础匹配。",
+    "years": "年份",
+    "yearsPlaceholder": "例如：2018,2019-2021",
+    "yearsTooltip": "该字段支持年份范围和逗号分隔的单个年份。",
+    "options": {
+      "title": "选项",
+      "subtitle": "语言、格式和标签",
+      "matchLanguage": "匹配语言",
+      "exceptLanguage": "排除语言",
+      "format": "格式",
+      "formatTooltip": "仅匹配包含任一所选格式的发布。",
+      "matchTags": "匹配标签",
+      "matchTagsPlaceholder": "例如：tag1,tag2",
+      "matchTagsTooltip": "用逗号分隔要匹配的标签列表。",
+      "exceptTags": "排除标签",
+      "exceptTagsPlaceholder": "例如：tag1,tag2",
+      "exceptTagsTooltip": "用逗号分隔要忽略的标签列表（优先级高于匹配标签）。"
+    }
+  },
   "external": {
     "title": "外部过滤器",
     "subtitle": "在过滤过程中运行外部脚本或 Webhook，并检查其返回状态。",
@@ -528,7 +556,7 @@
     },
     "transmission": {
       "label": "种子标签",
-      "labelPlaceholder": "例如：label1"
+      "labelPlaceholder": "例如：label1,label2"
     },
     "rtorrent": {
       "label": "标签",

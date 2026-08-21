@@ -35,6 +35,7 @@
     "downloads": "Téléchargements",
     "per": "par",
     "usesDisabledIndexers": "Utilise des indexeur(s) désactivé(s) : {{names}}",
+    "usesDeprecatedIndexers": "Utilise des indexeurs retirés ou obsolètes : {{names}}. Modifiez le filtre pour les retirer ou utilisez Paramètres → Indexeurs.",
     "noIndexer": "AUCUN INDEXEUR",
     "sort": {
       "label": "Trier",
@@ -58,6 +59,7 @@
       "general": "Général",
       "moviesTv": "Films et séries",
       "music": "Musique",
+      "books": "Livres",
       "advanced": "Avancé",
       "external": "Externe",
       "actions": "Actions",
@@ -94,6 +96,7 @@
     "announceTypes": "types d'annonce",
     "announceTypesTooltip": "NOUVEAU ! Correspondre aux releases contenant l'un des types d'annonce sélectionnés.",
     "indexers": "Indexeurs",
+    "deprecatedIndexer": "{{name}} (obsolète)",
     "rulesTitle": "Règles",
     "rulesSubtitle": "Définir les règles de traitement et de sélection des torrents.",
     "minSize": "Taille min.",
@@ -141,7 +144,8 @@
     "addNotification": "Ajouter une notification",
     "empty": "Aucune notification spécifique au filtre configurée. Les notifications globales seront utilisées.",
     "selectNotification": "Sélectionner une notification",
-    "muted": "En sourdine",
+    "notificationDisabled": "Désactivée pour ce filtre",
+    "serviceDisabled": "Service désactivé",
     "eventsCount_one": "{{count}} événement",
     "eventsCount_other": "{{count}} événements",
     "removeTitle": "Supprimer la notification",
@@ -152,9 +156,9 @@
     "selectNotificationService": "Sélectionner une notification",
     "notificationServiceTooltip": "Sélectionner le service de notification à utiliser pour ce filtre.",
     "notificationSettings": "Paramètres de notification",
-    "muteFilter": "Mettre le filtre en sourdine",
-    "muteFilterDesc": "Désactiver toutes les notifications pour ce filtre. En sourdine, aucune notification ne sera envoyée pour les releases correspondant à ce filtre.",
-    "mutedInfo": "Filtre en sourdine – remplace tous les paramètres de notification globaux",
+    "disableNotification": "Désactiver cette notification",
+    "disableNotificationDesc": "Ne pas envoyer d'événements via ce service de notification pour les releases correspondant à ce filtre.",
+    "notificationDisabledInfo": "Ce service de notification est désactivé pour le filtre. Le filtre continue de remplacer les paramètres de notification globaux.",
     "triggerEvents": "Événements déclencheurs",
     "pushApproved": "Push approuvé",
     "pushRejected": "Push rejeté",
@@ -370,6 +374,30 @@
       "perfectFlacHint": "C'est ce que tu veux dans 90% des cas (plutôt que les options ci-dessus)."
     }
   },
+  "books": {
+    "authors": "Auteurs",
+    "authorsPlaceholder": "ex. Auteur Un",
+    "titles": "Titres",
+    "titlesPlaceholder": "ex. Ce Livre",
+    "wildcardTooltip": "Filtrage de base avec les jokers * ou remplacer des caractères uniques avec ?",
+    "years": "Années",
+    "yearsPlaceholder": "ex. 2018,2019-2021",
+    "yearsTooltip": "Ce champ accepte une plage d'années et/ou des années séparées par des virgules.",
+    "options": {
+      "title": "Options",
+      "subtitle": "Langue, format et tags",
+      "matchLanguage": "Correspondre à la langue",
+      "exceptLanguage": "Exclure la langue",
+      "format": "Format",
+      "formatTooltip": "Correspondra uniquement aux releases avec l'un des formats sélectionnés.",
+      "matchTags": "Correspondre aux tags",
+      "matchTagsPlaceholder": "ex. tag1,tag2",
+      "matchTagsTooltip": "Liste de tags séparés par des virgules à faire correspondre.",
+      "exceptTags": "Exclure les tags",
+      "exceptTagsPlaceholder": "ex. tag1,tag2",
+      "exceptTagsTooltip": "Liste de tags séparés par des virgules à ignorer (prioritaire sur Correspondre aux tags)."
+    }
+  },
   "external": {
     "title": "Filtres externes",
     "subtitle": "Exécuter des scripts externes ou des webhooks et vérifier le statut dans le cadre du filtrage.",
@@ -527,8 +555,8 @@
       "skipHashCheckTooltip": "Cela ne fonctionnera qu'avec Deluge v2."
     },
     "transmission": {
-      "label": "Label du torrent",
-      "labelPlaceholder": "ex. label1"
+      "label": "Labels du torrent",
+      "labelPlaceholder": "ex. label1,label2"
     },
     "rtorrent": {
       "label": "Label",

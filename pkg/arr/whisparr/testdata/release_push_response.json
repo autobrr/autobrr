@@ -1,0 +1,30 @@
+[
+  {
+    "guid": "autobrr-1",
+    "quality": {
+      "quality": {
+        "id": 7,
+        "name": "Bluray-1080p",
+        "source": "bluray",
+        "resolution": 1080
+      },
+      "revision": {
+        "version": 1,
+        "real": 0,
+        "isRepack": false
+      }
+    },
+    "size": 1073741824,
+    "title": "Brazzers.Goes.Black.2018.1080p.BluRay.x264-GROUP",
+    "indexer": "autobrr",
+    "protocol": "torrent",
+    "downloadProtocol": "torrent",
+    "approved": false,
+    "temporarilyRejected": false,
+    "rejected": true,
+    "rejections": ["Unknown Movie. Unable to match to existing movie in Library using release title."],
+    "publishDate": "2026-07-27T09:30:00Z",
+    "downloadAllowed": false,
+    "releaseWeight": 0
+  }
+]

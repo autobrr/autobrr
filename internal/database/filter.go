@@ -11,38 +11,12 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
 	"github.com/rs/zerolog"
 )
-
-type EngineQuery struct {
-	engine   string
-	sqlite   string
-	postgres string
-}
-
-func NewEngineQuery(engine string, sqlite, postgres string) *EngineQuery {
-	return &EngineQuery{
-		engine:   engine,
-		sqlite:   sqlite,
-		postgres: postgres,
-	}
-}
-
-func (q *EngineQuery) Get() string {
-	switch q.engine {
-	case "sqlite":
-		return q.sqlite
-	case "postgres":
-		return q.postgres
-	}
-
-	return ""
-}
 
 type FilterRepo struct {
 	log zerolog.Logger
@@ -52,7 +26,7 @@ type FilterRepo struct {
 	filterDownloadQuery *EngineQuery
 }
 
-func NewFilterRepo(log logger.Logger, db *DB) domain.FilterRepo {
+func NewFilterRepo(log zerolog.Logger, db *DB) *FilterRepo {
 	return &FilterRepo{
 		log:                 log.With().Str("repo", "filter").Logger(),
 		db:                  db,
@@ -559,6 +533,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 		LeftJoin("release_profile_duplicate rdp ON rdp.id = f.release_profile_duplicate_id").
 		Where(sq.Eq{"i.identifier": indexer}).
 		Where(sq.Eq{"i.enabled": true}).
+		Where(sq.Eq{"i.archived": false}).
 		Where(sq.Eq{"f.enabled": true}).
 		OrderBy("f.priority DESC")
 
@@ -766,8 +741,27 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 }
 
 func (r *FilterRepo) FindExternalFiltersByID(ctx context.Context, filterId int) ([]domain.FilterExternal, error) {
+	externalFilters, err := r.findExternalFilters(ctx, []int{filterId})
+	if err != nil {
+		return nil, err
+	}
+
+	return externalFilters[filterId], nil
+}
+
+// FindExternalFiltersByFilterIDs returns external filters for the given filters grouped by filter id.
+func (r *FilterRepo) FindExternalFiltersByFilterIDs(ctx context.Context, filterIDs []int) (map[int][]domain.FilterExternal, error) {
+	return r.findExternalFilters(ctx, filterIDs)
+}
+
+func (r *FilterRepo) findExternalFilters(ctx context.Context, filterIDs []int) (map[int][]domain.FilterExternal, error) {
+	if len(filterIDs) == 0 {
+		return map[int][]domain.FilterExternal{}, nil
+	}
+
 	queryBuilder := r.db.squirrel.
 		Select(
+			"fe.filter_id",
 			"fe.id",
 			"fe.name",
 			"fe.idx",
@@ -787,8 +781,8 @@ func (r *FilterRepo) FindExternalFiltersByID(ctx context.Context, filterId int) 
 			"fe.on_error",
 		).
 		From("filter_external fe").
-		Where(sq.Eq{"fe.filter_id": filterId}).
-		OrderBy("fe.idx DESC")
+		Where(sq.Eq{"fe.filter_id": filterIDs}).
+		OrderBy("fe.filter_id", "fe.idx DESC")
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -797,16 +791,14 @@ func (r *FilterRepo) FindExternalFiltersByID(ctx context.Context, filterId int) 
 
 	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, domain.ErrRecordNotFound
-		}
 		return nil, errors.Wrap(err, "error executing query")
 	}
 	defer rows.Close()
 
-	var externalFilters []domain.FilterExternal
+	externalFilters := make(map[int][]domain.FilterExternal)
 
 	for rows.Next() {
+		var filterID int
 		var external domain.FilterExternal
 
 		// filter external
@@ -814,6 +806,7 @@ func (r *FilterRepo) FindExternalFiltersByID(ctx context.Context, filterId int) 
 		var extWebhookStatus, extWebhookRetryAttempts, extWebhookDelaySeconds, extExecStatus sql.NullInt32
 
 		if err := rows.Scan(
+			&filterID,
 			&external.ID,
 			&external.Name,
 			&external.Index,
@@ -848,7 +841,11 @@ func (r *FilterRepo) FindExternalFiltersByID(ctx context.Context, filterId int) 
 		external.WebhookRetryAttempts = int(extWebhookRetryAttempts.Int32)
 		external.WebhookRetryDelaySeconds = int(extWebhookDelaySeconds.Int32)
 
-		externalFilters = append(externalFilters, external)
+		externalFilters[filterID] = append(externalFilters[filterID], external)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "error scanning rows")
 	}
 
 	return externalFilters, nil
@@ -1362,6 +1359,10 @@ func (r *FilterRepo) ToggleEnabled(ctx context.Context, filterID int, enabled bo
 	return nil
 }
 
+// StoreIndexerConnections syncs the filter_indexer connections for the filter
+// to the given indexers, deleting stale connections and inserting missing ones.
+// Archived indexers already connected to the filter are kept; adding new
+// archived connections is rejected.
 func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, indexers []domain.Indexer) error {
 	tx, err := r.db.Handler.BeginTx(ctx, nil)
 	if err != nil {
@@ -1370,11 +1371,86 @@ func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, 
 
 	defer tx.Rollback()
 
-	deleteQueryBuilder := r.db.squirrel.
-		Delete("filter_indexer").
-		Where(sq.Eq{"filter_id": filterID})
+	uniqueIDs := make(map[int64]struct{}, len(indexers))
+	for _, indexer := range indexers {
+		uniqueIDs[indexer.ID] = struct{}{}
+	}
 
-	deleteQuery, deleteArgs, err := deleteQueryBuilder.ToSql()
+	indexerIDs := make([]int64, 0, len(uniqueIDs))
+	for id := range uniqueIDs {
+		indexerIDs = append(indexerIDs, id)
+	}
+
+	if len(indexerIDs) > 0 {
+		connectedQuery, connectedArgs, err := r.db.squirrel.
+			Select("indexer_id").
+			From("filter_indexer").
+			Where(sq.Eq{"filter_id": filterID}).
+			ToSql()
+		if err != nil {
+			return errors.Wrap(err, "error building query")
+		}
+
+		connectedRows, err := tx.QueryContext(ctx, connectedQuery, connectedArgs...)
+		if err != nil {
+			return errors.Wrap(err, "error executing query")
+		}
+
+		connected := make(map[int64]struct{})
+		for connectedRows.Next() {
+			var id int64
+			if err := connectedRows.Scan(&id); err != nil {
+				connectedRows.Close()
+				return errors.Wrap(err, "error scanning row")
+			}
+			connected[id] = struct{}{}
+		}
+		connectedRows.Close()
+		if err := connectedRows.Err(); err != nil {
+			return errors.Wrap(err, "error rows")
+		}
+
+		query, args, err := r.db.squirrel.
+			Select("id", "archived").
+			From("indexer").
+			Where(sq.Eq{"id": indexerIDs}).
+			ToSql()
+		if err != nil {
+			return errors.Wrap(err, "error building query")
+		}
+
+		rows, err := tx.QueryContext(ctx, query, args...)
+		if err != nil {
+			return errors.Wrap(err, "error executing query")
+		}
+
+		found := 0
+		for rows.Next() {
+			var id int64
+			var archived bool
+			if err := rows.Scan(&id, &archived); err != nil {
+				rows.Close()
+				return errors.Wrap(err, "error scanning row")
+			}
+			found++
+			if _, ok := connected[id]; archived && !ok {
+				rows.Close()
+				return errors.Wrap(domain.ErrIndexerArchived, "indexer with id %d is archived", id)
+			}
+		}
+		rows.Close()
+		if err := rows.Err(); err != nil {
+			return errors.Wrap(err, "error rows")
+		}
+		if found != len(indexerIDs) {
+			return domain.ErrIndexerNotFound
+		}
+	}
+
+	deleteQuery, deleteArgs, err := r.db.squirrel.
+		Delete("filter_indexer").
+		Where(sq.Eq{"filter_id": filterID}).
+		ToSql()
 	if err != nil {
 		return errors.Wrap(err, "error building query")
 	}
@@ -1384,41 +1460,49 @@ func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, 
 		return errors.Wrap(err, "error executing query")
 	}
 
-	if len(indexers) == 0 {
-		if err := tx.Commit(); err != nil {
-			return errors.Wrap(err, "error store indexers for filter: %d", filterID)
+	if len(indexerIDs) > 0 {
+		queryBuilder := r.db.squirrel.
+			Insert("filter_indexer").
+			Columns("filter_id", "indexer_id")
+
+		for _, indexerID := range indexerIDs {
+			queryBuilder = queryBuilder.Values(filterID, indexerID)
 		}
 
-		return nil
-	}
+		queryBuilder = queryBuilder.Suffix("ON CONFLICT DO NOTHING")
 
-	queryBuilder := r.db.squirrel.
-		Insert("filter_indexer").
-		Columns("filter_id", "indexer_id")
+		query, args, err := queryBuilder.ToSql()
+		if err != nil {
+			return errors.Wrap(err, "error building query")
+		}
 
-	for _, indexer := range indexers {
-		queryBuilder = queryBuilder.Values(filterID, indexer.ID)
-	}
-
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-
-	if _, err = tx.ExecContext(ctx, query, args...); err != nil {
-		return errors.Wrap(err, "error executing query")
+		if _, err = tx.ExecContext(ctx, query, args...); err != nil {
+			return errors.Wrap(err, "error executing query")
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
 		return errors.Wrap(err, "error store indexers for filter: %d", filterID)
 	}
 
-	r.log.Debug().Msgf("filter.StoreIndexerConnections: indexers on filter: %d", filterID)
+	r.log.Debug().Int("filter_id", filterID).Msg("filter store indexer connections")
 
 	return nil
 }
 
 func (r *FilterRepo) StoreIndexerConnection(ctx context.Context, filterID int, indexerID int) error {
+	var archived bool
+	err := r.db.Handler.QueryRowContext(ctx, "SELECT archived FROM indexer WHERE id = $1", indexerID).Scan(&archived)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.ErrIndexerNotFound
+		}
+		return errors.Wrap(err, "could not find indexer")
+	}
+	if archived {
+		return errors.Wrap(domain.ErrIndexerArchived, "indexer with id %d is archived", indexerID)
+	}
+
 	queryBuilder := r.db.squirrel.
 		Insert("filter_indexer").Columns("filter_id", "indexer_id").
 		Values(filterID, indexerID)
@@ -1452,6 +1536,38 @@ func (r *FilterRepo) DeleteIndexerConnections(ctx context.Context, filterID int)
 	}
 
 	return nil
+}
+
+// DeleteArchivedIndexerConnections removes filter links to archived indexers.
+func (r *FilterRepo) DeleteArchivedIndexerConnections(ctx context.Context, identifiers []string) (int64, error) {
+	subBuilder := r.db.squirrel.
+		Select("id").
+		From("indexer").
+		Where(sq.Eq{"archived": true})
+	if len(identifiers) > 0 {
+		subBuilder = subBuilder.Where(sq.Eq{"identifier": identifiers})
+	}
+
+	subQuery, subArgs, err := subBuilder.ToSql()
+	if err != nil {
+		return 0, errors.Wrap(err, "error building query")
+	}
+
+	queryBuilder := r.db.squirrel.
+		Delete("filter_indexer").
+		Where("indexer_id IN ("+subQuery+")", subArgs...)
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return 0, errors.Wrap(err, "error building query")
+	}
+
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		return 0, errors.Wrap(err, "error executing query")
+	}
+
+	return result.RowsAffected()
 }
 
 func (r *FilterRepo) DeleteFilterExternal(ctx context.Context, filterID int) error {
@@ -1516,7 +1632,7 @@ func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
 		return errors.Wrap(err, "error storing list and filters")
 	}
 
-	r.log.Debug().Msgf("filter.delete: successfully deleted: %v", filterID)
+	r.log.Debug().Int("filter_id", filterID).Msg("filter successfully deleted")
 
 	return nil
 }
@@ -1545,7 +1661,7 @@ func (r *FilterRepo) GetFilterDownloadCount(ctx context.Context, filter *domain.
 		return errors.Wrap(err, "error scanning stats data sqlite")
 	}
 
-	r.log.Trace().Msgf("filter %v downloads: %+v", filter.ID, &f)
+	r.log.Trace().Int("filter_id", filter.ID).Interface("downloads", &f).Msg("filter downloads")
 
 	filter.Downloads = &f
 
@@ -1640,7 +1756,7 @@ func (r *FilterRepo) StoreFilterExternal(ctx context.Context, filterID int, exte
 		return errors.Wrap(err, "error store external filters for filter: %d", filterID)
 	}
 
-	r.log.Debug().Msgf("filter.StoreFilterExternal: store external filters on filter: %d", filterID)
+	r.log.Debug().Int("filter_id", filterID).Msg("store external filters")
 
 	return nil
 }
@@ -1741,7 +1857,7 @@ func (r *FilterRepo) StoreFilterNotifications(ctx context.Context, filterID int,
 		return errors.Wrap(err, "error storing filter notifications for filter: %d", filterID)
 	}
 
-	r.log.Debug().Msgf("filter.StoreFilterNotifications: stored %d notifications for filter: %d", len(notifications), filterID)
+	r.log.Debug().Int("count", len(notifications)).Int("filter_id", filterID).Msg("store filter notifications")
 
 	return nil
 }
@@ -1766,7 +1882,7 @@ func (r *FilterRepo) DeleteFilterNotifications(ctx context.Context, filterID int
 		return errors.Wrap(err, "error getting rows affected")
 	}
 
-	r.log.Debug().Msgf("filter.DeleteFilterNotifications: deleted %d notifications for filter: %d", rowsAffected, filterID)
+	r.log.Debug().Int64("rows_affected", rowsAffected).Int("filter_id", filterID).Msg("filter notifications deleted")
 
 	return nil
 }

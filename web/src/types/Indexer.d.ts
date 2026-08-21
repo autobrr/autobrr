@@ -14,6 +14,18 @@ interface Indexer {
   use_proxy?: boolean;
   proxy_id?: number;
   settings: Array<IndexerSetting>;
+  archived?: boolean;
+  archived_at?: string;
+}
+
+interface IndexerDeprecation {
+  identifier: string;
+  name: string;
+  reason: string;
+  issue_url: string;
+  alias_of?: string;
+  deprecated_at: string;
+  filter_count: number;
 }
 
 interface IndexerMinimal {
@@ -23,12 +35,14 @@ interface IndexerMinimal {
   identifier_external: string;
 }
 
+type IndexerImplementation = "irc" | "torznab" | "newznab" | "rss";
+
 interface IndexerDefinition {
   id: number;
   name: string;
   identifier: string;
   identifier_external: string;
-  implementation: string;
+  implementation: IndexerImplementation;
   base_url: string;
   enabled?: boolean;
   description: string;
@@ -41,16 +55,15 @@ interface IndexerDefinition {
   proxy_id?: number;
   settings: IndexerSetting[];
   irc: IndexerIRC;
-  torznab: IndexerTorznab;
-  newznab?: IndexerTorznab;
-  rss: IndexerFeed;
-  parse: IndexerParse;
+  feed: IndexerFeed;
 }
+
+type SettingsFieldType = "text" | "secret";
 
 interface IndexerSetting {
   name: string;
   required?: boolean;
-  type: string;
+  type: SettingsFieldType;
   value?: string;
   label: string;
   default?: string;
@@ -64,15 +77,19 @@ interface IndexerIRC {
   server: string;
   port: number;
   tls: boolean;
-  nickserv: boolean;
-  channels: string[];
-  announcers: string[];
+  auth?: IndexerIRCAuth;
   settings: IndexerSetting[];
+  channels: IndexerIRCChannel[];
 }
 
-interface IndexerTorznab {
-  minInterval: number;
-  settings: IndexerSetting[];
+interface IndexerIRCAuth {
+  mechanism: IrcAuthMechanism;
+}
+
+interface IndexerIRCChannel {
+  name: string;
+  announcers: string[];
+  parse: IndexerParse;
 }
 
 interface IndexerFeed {
@@ -82,6 +99,8 @@ interface IndexerFeed {
 
 interface IndexerParse {
   type: string;
+  forcesizeunit: boolean;
+  skipcleanmessage: boolean;
   lines: IndexerParseLines[];
   match: IndexerParseMatch;
 }
@@ -93,7 +112,10 @@ interface IndexerParseLines {
 }
 
 interface IndexerParseMatch {
-  torrentUrl: string;
+  downloadurl: string;
+  releasename: string;
+  magneturi: string;
+  infourl: string;
   encode: string[];
 }
 

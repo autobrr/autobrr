@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -21,7 +20,7 @@ type DownloadClientRepo struct {
 	db  *DB
 }
 
-func NewDownloadClientRepo(log logger.Logger, db *DB) domain.DownloadClientRepo {
+func NewDownloadClientRepo(log zerolog.Logger, db *DB) *DownloadClientRepo {
 	return &DownloadClientRepo{
 		log: log.With().Str("repo", "action").Logger(),
 		db:  db,
@@ -166,7 +165,7 @@ func (r *DownloadClientRepo) Store(ctx context.Context, client *domain.DownloadC
 
 	client.ID = int32(retID)
 
-	r.log.Debug().Msgf("download_client.store: %d", client.ID)
+	r.log.Debug().Int32("client_id", client.ID).Msg("download client store")
 
 	return nil
 }
@@ -219,7 +218,7 @@ func (r *DownloadClientRepo) Update(ctx context.Context, client *domain.Download
 		return errors.New("no rows updated")
 	}
 
-	r.log.Debug().Msgf("download_client.update: %d", client.ID)
+	r.log.Debug().Int32("client_id", client.ID).Msg("download client update")
 
 	return nil
 }
@@ -237,7 +236,7 @@ func (r *DownloadClientRepo) Delete(ctx context.Context, clientID int32) error {
 			if txErr != nil {
 				r.log.Error().Err(txErr).Msg("error rolling back transaction")
 			}
-			r.log.Error().Msgf("something went terribly wrong panic: %v", p)
+			r.log.Error().Interface("panic", p).Msg("something went terribly wrong panic")
 		} else if err != nil {
 			txErr = tx.Rollback()
 			if txErr != nil {
@@ -264,7 +263,7 @@ func (r *DownloadClientRepo) Delete(ctx context.Context, clientID int32) error {
 		return errors.Wrap(err, "error deleting download client: %d", clientID)
 	}
 
-	r.log.Debug().Msgf("delete download client: %d", clientID)
+	r.log.Debug().Int32("client_id", clientID).Msg("delete download client")
 
 	return nil
 }
@@ -289,7 +288,7 @@ func (r *DownloadClientRepo) delete(ctx context.Context, tx *Tx, clientID int32)
 		return errors.New("no rows affected")
 	}
 
-	r.log.Debug().Msgf("delete download client: %d", clientID)
+	r.log.Debug().Int32("client_id", clientID).Msg("delete download client")
 
 	return nil
 }
@@ -301,9 +300,9 @@ func (r *DownloadClientRepo) deleteClientFromAction(ctx context.Context, tx *Tx,
 	}
 
 	if rowsAffected > 0 {
-		r.log.Debug().Msgf("disabled %d actions that referenced client %d", rowsAffected, clientID)
+		r.log.Debug().Int64("rows_affected", rowsAffected).Int32("client_id", clientID).Msg("disabled actions that referenced client")
 	} else {
-		r.log.Debug().Msgf("no actions found referencing client %d", clientID)
+		r.log.Debug().Int32("client_id", clientID).Msg("no actions found referencing client")
 	}
 
 	return nil
@@ -316,9 +315,9 @@ func (r *DownloadClientRepo) clearClientFromLists(ctx context.Context, tx *Tx, c
 	}
 
 	if rowsAffected > 0 {
-		r.log.Debug().Msgf("disabled %d lists that referenced client %d", rowsAffected, clientID)
+		r.log.Debug().Int64("rows_affected", rowsAffected).Int32("client_id", clientID).Msg("disabled lists that referenced client")
 	} else {
-		r.log.Debug().Msgf("no lists found referencing client %d", clientID)
+		r.log.Debug().Int32("client_id", clientID).Msg("no lists found referencing client")
 	}
 
 	return nil

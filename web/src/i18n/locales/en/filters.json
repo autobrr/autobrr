@@ -35,6 +35,7 @@
     "downloads": "Downloads",
     "per": "per",
     "usesDisabledIndexers": "Uses disabled indexer(s): {{names}}",
+    "usesDeprecatedIndexers": "Uses removed/deprecated indexer(s): {{names}}. Edit the filter to remove them or use Settings → Indexers to clean up.",
     "noIndexer": "NO INDEXER",
     "sort": {
       "label": "Sort",
@@ -58,6 +59,7 @@
       "general": "General",
       "moviesTv": "Movies and TV",
       "music": "Music",
+      "books": "Books",
       "advanced": "Advanced",
       "external": "External",
       "actions": "Actions",
@@ -94,6 +96,7 @@
     "announceTypes": "announce types",
     "announceTypesTooltip": "NEW! Match releases which contain any of the selected announce types.",
     "indexers": "Indexers",
+    "deprecatedIndexer": "{{name}} (deprecated)",
     "rulesTitle": "Rules",
     "rulesSubtitle": "Specify rules on how torrents should be handled/selected.",
     "minSize": "Min size",
@@ -141,7 +144,8 @@
     "addNotification": "Add notification",
     "empty": "No filter-specific notifications configured. Global notifications will be used.",
     "selectNotification": "Select notification",
-    "muted": "Muted",
+    "notificationDisabled": "Disabled for this filter",
+    "serviceDisabled": "Service disabled",
     "eventsCount_one": "{{count}} event",
     "eventsCount_other": "{{count}} events",
     "removeTitle": "Remove notification",
@@ -152,9 +156,9 @@
     "selectNotificationService": "Select a notification",
     "notificationServiceTooltip": "Select the notification service to use for this filter.",
     "notificationSettings": "Notification Settings",
-    "muteFilter": "Mute filter",
-    "muteFilterDesc": "Disable all notifications for this filter. When muted, no notifications will be sent for releases matched by this filter.",
-    "mutedInfo": "Filter muted - overrides all global notification settings",
+    "disableNotification": "Disable this notification",
+    "disableNotificationDesc": "Do not send events through this notification service for releases matched by this filter.",
+    "notificationDisabledInfo": "This notification service is disabled for the filter. The filter still overrides global settings.",
     "triggerEvents": "Trigger events",
     "pushApproved": "Push Approved",
     "pushRejected": "Push Rejected",
@@ -370,6 +374,30 @@
       "perfectFlacHint": "This is what you want in 90% of cases (instead of options above)."
     }
   },
+  "books": {
+    "authors": "Authors",
+    "authorsPlaceholder": "eg. Author One",
+    "titles": "Titles",
+    "titlesPlaceholder": "eg. That Book",
+    "wildcardTooltip": "You can use basic filtering like wildcards * or replace single characters with ?",
+    "years": "Years",
+    "yearsPlaceholder": "eg. 2018,2019-2021",
+    "yearsTooltip": "This field takes a range of years and/or comma separated single years.",
+    "options": {
+      "title": "Options",
+      "subtitle": "Language, format, and tags",
+      "matchLanguage": "Match Language",
+      "exceptLanguage": "Except Language",
+      "format": "Format",
+      "formatTooltip": "Will only match releases with any of the selected formats.",
+      "matchTags": "Match tags",
+      "matchTagsPlaceholder": "eg. tag1,tag2",
+      "matchTagsTooltip": "Comma separated list of tags to match.",
+      "exceptTags": "Except tags",
+      "exceptTagsPlaceholder": "eg. tag1,tag2",
+      "exceptTagsTooltip": "Comma separated list of tags to ignore (takes priority over Match tags)."
+    }
+  },
   "external": {
     "title": "External filters",
     "subtitle": "Run external scripts or webhooks and check status as part of filtering.",
@@ -527,8 +555,8 @@
       "skipHashCheckTooltip": "This will only work on Deluge v2."
     },
     "transmission": {
-      "label": "Torrent Label",
-      "labelPlaceholder": "eg. label1"
+      "label": "Torrent Label(s)",
+      "labelPlaceholder": "eg. label1,label2"
     },
     "rtorrent": {
       "label": "Label",

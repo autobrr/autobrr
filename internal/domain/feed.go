@@ -4,42 +4,16 @@
 package domain
 
 import (
-	"context"
 	"encoding/json"
 	"strconv"
 	"time"
 
+	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/newznab"
 	"github.com/autobrr/autobrr/pkg/torznab"
+
+	"golang.org/x/net/http/httpguts"
 )
-
-type FeedCacheRepo interface {
-	Get(feedId int, key string) ([]byte, error)
-	GetByFeed(ctx context.Context, feedId int) ([]FeedCacheItem, error)
-	GetCountByFeed(ctx context.Context, feedId int) (int, error)
-	Exists(feedId int, key string) (bool, error)
-	ExistingItems(ctx context.Context, feedId int, keys []string) (map[string]bool, error)
-	Put(feedId int, key string, val []byte, ttl time.Time) error
-	PutMany(ctx context.Context, items []FeedCacheItem) error
-	Delete(ctx context.Context, feedId int, key string) error
-	DeleteByFeed(ctx context.Context, feedId int) error
-	DeleteStale(ctx context.Context) error
-	DeleteOrphaned(ctx context.Context) error
-}
-
-type FeedRepo interface {
-	FindOne(ctx context.Context, params FindOneParams) (*Feed, error)
-	FindByID(ctx context.Context, id int) (*Feed, error)
-	Find(ctx context.Context) ([]Feed, error)
-	GetLastRunDataByID(ctx context.Context, id int) (string, error)
-	Store(ctx context.Context, feed *Feed) error
-	Update(ctx context.Context, feed *Feed) error
-	UpdateLastRun(ctx context.Context, feedID int) error
-	UpdateLastRunWithData(ctx context.Context, feedID int, data string) error
-	UpdateCapabilities(ctx context.Context, feedID int, caps *FeedCapabilities) error
-	ToggleEnabled(ctx context.Context, id int, enabled bool) error
-	Delete(ctx context.Context, id int) error
-}
 
 type Feed struct {
 	ID            int               `json:"id"`
@@ -55,6 +29,7 @@ type Feed struct {
 	Capabilities  *FeedCapabilities `json:"capabilities"`
 	ApiKey        string            `json:"api_key"`
 	Cookie        string            `json:"cookie"`
+	UserAgent     string            `json:"user_agent"`
 	TLSSkipVerify bool              `json:"tls_skip_verify"`
 	Settings      *FeedSettingsJSON `json:"settings"`
 	CreatedAt     time.Time         `json:"created_at"`
@@ -65,9 +40,19 @@ type Feed struct {
 	NextRun       time.Time         `json:"next_run"`
 
 	// belongs to Indexer
-	ProxyID  int64  `json:"-"`
-	UseProxy bool   `json:"-"`
-	Proxy    *Proxy `json:"-"`
+	IndexerEnabled bool   `json:"-"`
+	ProxyID        int64  `json:"-"`
+	UseProxy       bool   `json:"-"`
+	Proxy          *Proxy `json:"-"`
+}
+
+// Validate rejects field values that would make every feed request fail at the transport layer.
+func (f Feed) Validate() error {
+	if !httpguts.ValidHeaderFieldValue(f.UserAgent) {
+		return errors.New("user agent must not contain control characters")
+	}
+
+	return nil
 }
 
 func (f Feed) MarshalJSON() ([]byte, error) {

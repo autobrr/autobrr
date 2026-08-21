@@ -65,6 +65,57 @@ interface ReleaseStats {
   push_error_count: number;
 }
 
+interface ReleaseActivityDaily {
+  date: string;
+  matched_count: number;
+  push_approved_count: number;
+  push_rejected_count: number;
+  push_error_count: number;
+}
+
+interface ReleaseActivityStats {
+  days: number;
+  daily: ReleaseActivityDaily[];
+}
+
+interface ReleaseVolumeDaily {
+  date: string;
+  downloaded_bytes: number;
+}
+
+interface ReleaseVolumeStats {
+  days: number;
+  daily: ReleaseVolumeDaily[];
+}
+
+interface ReleaseHeatmapStats {
+  days: number;
+  // 168 cells indexed dow*24+hour (dow 0 = Sunday), hours in UTC
+  heatmap: number[];
+}
+
+interface ReleaseStatsIndexer {
+  indexer: string;
+  matched_count: number;
+  push_approved_count: number;
+}
+
+interface ReleaseStatsFilter {
+  filter: string;
+  matched_count: number;
+  push_approved_count: number;
+}
+
+interface ReleaseTopIndexersStats {
+  days: number;
+  top: ReleaseStatsIndexer[];
+}
+
+interface ReleaseTopFiltersStats {
+  days: number;
+  top: ReleaseStatsFilter[];
+}
+
 interface ReleaseFilter {
   id: string;
   value: string;

@@ -1,0 +1,80 @@
+---
+version: 2
+#id: dasunerwartete
+name: DasUnerwartete
+identifier: dasunerwartete
+description: DasUnerwartete (DU) is a GERMAN Private Torrent Tracker for MOVIES / TV / GENERAL.
+language: de-DE
+urls:
+  - https://dasunerwartete.biz/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: unknown
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS Key
+    help: Copy from a direct download RSS link. (Torrents > RSS Feed)
+
+  - name: userId
+    type: secret
+    required: true
+    label: User ID
+    help: Check your profile URL and copy the ID.
+
+irc:
+  network: DasUnerwartete
+  server: irc.dasunerwartete.biz
+  port: 6697
+  tls: true
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Must be like username|bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  channels:
+    - name: "#announce"
+      announcers:
+        - DU-Announce
+      parse:
+        type: single
+        lines:
+          - pattern: '.+ (?P<releaseName>.+) \| (?P<category>.+) \| (?P<torrentSize>.+) \| (?P<baseUrl>https?\:\/\/.*\/).*id=(?P<torrentId>\d{2,})'
+            tests:
+              - line: '🆕 Harlan.Cobens.Nur.fuer.dein.Leben.S01E07.GERMAN.DL.1080P.WEB.X264-WAYNE | Serien/HD | 1.54 GB | https://dasunerwartete.biz/details.php?id=001'
+                expect:
+                  releaseName: Harlan.Cobens.Nur.fuer.dein.Leben.S01E07.GERMAN.DL.1080P.WEB.X264-WAYNE
+                  category: Serien/HD
+                  torrentSize: 1.54 GB
+                  baseUrl: https://dasunerwartete.biz/
+                  torrentId: "001"
+
+              - line: '🆕 DoYouThinkIAmSexy.German.2022.AC3.DVDRiP.x264-GMA | Filme/SD | 699.16 MB | https://dasunerwartete.biz/details.php?id=002'
+                expect:
+                  releaseName: DoYouThinkIAmSexy.German.2022.AC3.DVDRiP.x264-GMA
+                  category: Filme/SD
+                  torrentSize: 699.16 MB
+                  baseUrl: https://dasunerwartete.biz/
+                  torrentId: "002"
+
+        match:
+          infourl: "/details.php?id={{ .torrentId }}"
+          downloadurl: "/rss-download.php?uid={{ .userId }}&pk={{ .rsskey }}&torrent={{ .torrentId }}"

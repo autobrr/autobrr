@@ -6,28 +6,29 @@
 import { QueryCache, QueryClient } from "@tanstack/react-query";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
+import { APIClient } from "@api/APIClient";
 import { AuthContext } from "@utils/Context";
-import { getRouteApi, redirect } from "@tanstack/react-router";
 
 const MAX_RETRIES = 6;
 
 export const queryClient = new QueryClient({
   queryCache: new QueryCache({
     onError: (error, query) => {
-      const loginRoute = getRouteApi("/login");
       console.error(`Caught error for query '${query.queryKey}': `, error);
 
       if (error.message === "Cookie expired or invalid.") {
-        AuthContext.reset();
-        redirect({
-          to: loginRoute.id,
-          search: {
-            // Use the current location to power a redirect after login
-            // (Do not use `router.state.resolvedLocation` as it can
-            // potentially lag behind the actual current location)
-            redirect: location.href
-          },
-        });
+        // several queries can fail at once; only the first one acts
+        if (AuthContext.get().isLoggedIn) {
+          // best effort: destroys the server-side session and clears the
+          // cookie in case the session is still alive on the server
+          APIClient.auth.logout().catch(() => {
+            // the session was already dead server-side
+          });
+          // navigation to /login happens in AuthenticatedLayout, which
+          // reacts to the reset while the location still points at the
+          // page to return to; navigating from here too would race it
+          AuthContext.reset();
+        }
         return;
       } else {
         toast.custom((t) => <Toast type="error" body={ error?.message } t={ t }/>);

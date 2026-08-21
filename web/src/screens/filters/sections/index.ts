@@ -7,6 +7,7 @@ export * from "./General";
 export * from "./Advanced";
 export * from "./MoviesAndTV";
 export * from "./Music";
+export * from "./Books";
 export * from "./External";
 export * from "./Actions";
 export * from "./Notifications";

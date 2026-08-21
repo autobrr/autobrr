@@ -8,7 +8,6 @@ import (
 	"database/sql"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -20,7 +19,7 @@ type UserRepo struct {
 	db  *DB
 }
 
-func NewUserRepo(log logger.Logger, db *DB) domain.UserRepo {
+func NewUserRepo(log zerolog.Logger, db *DB) *UserRepo {
 	return &UserRepo{
 		log: log.With().Str("repo", "user").Logger(),
 		db:  db,
@@ -138,8 +137,7 @@ func (r *UserRepo) Delete(ctx context.Context, username string) error {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	// Log the deletion.
-	r.log.Debug().Msgf("user.delete: successfully deleted user: %s", username)
+	r.log.Debug().Str("username", username).Msg("successfully deleted user")
 
 	return nil
 }

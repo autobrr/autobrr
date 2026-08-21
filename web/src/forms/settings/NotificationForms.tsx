@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
-import { Fragment, useMemo } from "react";
+import { useMemo } from "react";
 import type { FieldProps } from "formik";
 import { Field, Form, Formik, FormikErrors, FormikValues, useFormikContext } from "formik";
 import { XMarkIcon } from "@heroicons/react/24/solid";
@@ -18,7 +17,7 @@ import { NotificationKeys } from "@api/query_keys";
 import { PushoverSoundsQueryOptions } from "@api/queries";
 import { ExternalFilterWebhookMethodOptions, getEventOptions, getNotificationTypeOptions, PushoverSoundOptions, SelectOption } from "@domain/constants";
 import { DEBUG } from "@components/debug";
-import { SlideOver } from "@components/panels";
+import { SlideOver, SlideOverShell, SlideOverTitle } from "@components/panels";
 import { ExternalLink } from "@components/ExternalLink";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
@@ -35,9 +34,9 @@ function FormFieldsDiscord() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4">
-        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+        <h2 className="text-lg font-medium text-gray-900 dark:text-white">
           {t("forms.notification.settings")}
-        </DialogTitle>
+        </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {t("forms.notification.settingsDescDiscordPrefix")}
           <ExternalLink
@@ -65,9 +64,9 @@ function FormFieldsNotifiarr() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4">
-        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+        <h2 className="text-lg font-medium text-gray-900 dark:text-white">
           {t("forms.notification.settings")}
-        </DialogTitle>
+        </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {t("forms.notification.settingsDescNotifiarr")}
         </p>
@@ -87,9 +86,9 @@ function FormFieldsLunaSea() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4">
-        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+        <h2 className="text-lg font-medium text-gray-900 dark:text-white">
           {t("forms.notification.settings")}
-        </DialogTitle>
+        </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {t("forms.notification.settingsDescLunasea1")}
         </p>
@@ -120,9 +119,9 @@ function FormFieldsTelegram() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4">
-        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+        <h2 className="text-lg font-medium text-gray-900 dark:text-white">
           {t("forms.notification.settings")}
-        </DialogTitle>
+        </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {t("forms.notification.settingsDescTelegramPrefix")}
           <ExternalLink
@@ -180,9 +179,9 @@ function FormFieldsPushover() {
 
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4">
-        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+        <h2 className="text-lg font-medium text-gray-900 dark:text-white">
           {t("forms.notification.settings")}
-        </DialogTitle>
+        </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {t("forms.notification.settingsDescPushoverPrefix")}
           <ExternalLink
@@ -216,9 +215,9 @@ function FormFieldsPushover() {
         <div className="flex justify-between items-center p-4">
 
         <div className="">
-          <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+          <h2 className="text-lg font-medium text-gray-900 dark:text-white">
             {t("forms.notification.eventSounds")}
-          </DialogTitle>
+          </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">
             {t("forms.notification.eventSoundsDesc")}
           </p>
@@ -242,9 +241,9 @@ function FormFieldsGotify() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4">
-        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+        <h2 className="text-lg font-medium text-gray-900 dark:text-white">
           {t("forms.notification.settings")}
-        </DialogTitle>
+        </h2>
       </div>
 
       <TextFieldWide
@@ -269,9 +268,9 @@ function FormFieldsNtfy() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4">
-        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+        <h2 className="text-lg font-medium text-gray-900 dark:text-white">
           {t("forms.notification.settings")}
-        </DialogTitle>
+        </h2>
       </div>
 
       <TextFieldWide
@@ -300,6 +299,13 @@ function FormFieldsNtfy() {
         help={t("forms.notification.accessTokenHelp")}
       />
 
+      <TextFieldWide
+        name="topic"
+        label={t("forms.notification.tags")}
+        help={t("forms.notification.ntfyTagsHelp")}
+        placeholder={t("forms.notification.ntfyTagsPlaceholder")}
+      />
+
       <NumberFieldWide
         name="priority"
         label={t("forms.notification.priority")}
@@ -314,9 +320,9 @@ function FormFieldsShoutrrr() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4">
-        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+        <h2 className="text-lg font-medium text-gray-900 dark:text-white">
           {t("forms.notification.settings")}
-        </DialogTitle>
+        </h2>
       </div>
 
       <TextFieldWide
@@ -345,9 +351,9 @@ function FormFieldsGenericWebhook() {
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
       <div className="px-4">
-        <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+        <h2 className="text-lg font-medium text-gray-900 dark:text-white">
           {t("forms.notification.settings")}
-        </DialogTitle>
+        </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {t("forms.notification.settingsDescWebhook")}
         </p>
@@ -432,189 +438,165 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
   };
 
   return (
-    <Transition show={isOpen} as={Fragment}>
-      <Dialog
-        as="div"
-        static
-        className="fixed inset-0 overflow-hidden"
-        open={isOpen}
-        onClose={toggle}
+    <SlideOverShell isOpen={isOpen} toggle={toggle}>
+      <Formik
+        enableReinitialize={true}
+        initialValues={{
+          enabled: true,
+          type: "",
+          name: "",
+          webhook: "",
+          events: [],
+          username: "",
+          sound: "",
+          event_sounds: {}
+        }}
+        onSubmit={onSubmit}
+        validate={validate}
       >
-        <div className="absolute inset-0 overflow-hidden">
-          <DialogPanel className="absolute inset-y-0 right-0 max-w-full flex">
-            <TransitionChild
-              as={Fragment}
-              enter="transform transition ease-in-out duration-500 sm:duration-700"
-              enterFrom="translate-x-full"
-              enterTo="translate-x-0"
-              leave="transform transition ease-in-out duration-500 sm:duration-700"
-              leaveFrom="translate-x-0"
-              leaveTo="translate-x-full"
-            >
-              <div className="w-screen max-w-2xl">
-                <Formik
-                  enableReinitialize={true}
-                  initialValues={{
-                    enabled: true,
-                    type: "",
-                    name: "",
-                    webhook: "",
-                    events: [],
-                    username: "",
-                    sound: "",
-                    event_sounds: {}
-                  }}
-                  onSubmit={onSubmit}
-                  validate={validate}
-                >
-                  {({ values }) => (
-                    <Form className="h-full flex flex-col bg-white dark:bg-gray-800 shadow-xl overflow-y-auto">
-                      <div className="flex-1">
-                        <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
-                          <div className="flex items-start justify-between space-x-3">
-                            <div className="space-y-1">
-                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                                {t("settings:forms.notification.addTitle")}
-                              </DialogTitle>
-                              <p className="text-sm text-gray-500 dark:text-gray-200">
-                                {t("settings:forms.notification.addDescription")}
-                              </p>
-                            </div>
-                            <div className="h-7 flex items-center">
-                              <button
-                                type="button"
-                                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                                onClick={toggle}
-                              >
-                                <span className="sr-only">{t("settings:forms.notification.closePanel")}</span>
-                                <XMarkIcon className="h-6 w-6" aria-hidden="true" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col space-y-4 px-1 pt-6 sm:py-0 sm:space-y-0">
-                          <TextFieldWide
-                            name="name"
-                            label={t("settings:forms.notification.name")}
-                            required={true}
-                          />
-
-                          <div className="flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
-                            <div>
-                              <label
-                                htmlFor="type"
-                                className="block text-sm font-medium text-gray-900 dark:text-white"
-                              >
-                                {t("settings:forms.notification.type")}
-                              </label>
-                            </div>
-                            <div className="sm:col-span-2">
-                              <Field name="type" type="select">
-                                {({
-                                  field,
-                                  form: { setFieldValue, resetForm }
-                                }: FieldProps) => (
-                                  <Select
-                                    {...field}
-                                    isClearable={true}
-                                    isSearchable={true}
-                                    components={{
-                                      Input: common.SelectInput,
-                                      Control: common.SelectControl,
-                                      Menu: common.SelectMenu,
-                                      Option: common.SelectOption,
-                                      IndicatorSeparator: common.IndicatorSeparator,
-                                      DropdownIndicator: common.DropdownIndicator
-                                    }}
-                                    placeholder={t("settings:forms.notification.chooseType")}
-                                    styles={{
-                                      singleValue: (base) => ({
-                                        ...base,
-                                        color: "unset"
-                                      })
-                                    }}
-                                    theme={(theme) => ({
-                                      ...theme,
-                                      spacing: {
-                                        ...theme.spacing,
-                                        controlHeight: 30,
-                                        baseUnit: 2
-                                      }
-                                    })}
-                                    value={field?.value && field.value.value}
-                                    onChange={(option: unknown) => {
-                                      resetForm();
-
-                                      const opt = option as SelectOption;
-                                      // setFieldValue("name", option?.label ?? "")
-                                      setFieldValue(
-                                        field.name,
-                                        opt.value ?? ""
-                                      );
-                                    }}
-                                    options={notificationTypeOptions}
-                                  />
-                                )}
-                              </Field>
-                            </div>
-                          </div>
-
-                          <SwitchGroupWide name="enabled" label={t("settings:forms.notification.enabled")} />
-
-                          <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-                            <div className="px-4">
-                              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
-                                {t("settings:forms.notification.globalEvents")}
-                              </DialogTitle>
-                              <p className="text-sm text-gray-500 dark:text-gray-400">
-                                {t("settings:forms.notification.globalEventsDesc")}
-                              </p>
-                            </div>
-
-                            <div className="p-4 sm:grid sm:gap-4">
-                              <EventCheckBoxes />
-                            </div>
-                          </div>
-                        </div>
-                        {componentMap[values.type]}
-                      </div>
-
-                      <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4 sm:px-6">
-                        <div className="space-x-3 flex justify-end">
-                          <button
-                            type="button"
-                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                            onClick={() => testNotification(values)}
-                          >
-                            {t("settings:forms.notification.test")}
-                          </button>
-                          <button
-                            type="button"
-                            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                            onClick={toggle}
-                          >
-                            {t("settings:forms.notification.cancel")}
-                          </button>
-                          <button
-                            type="submit"
-                            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                          >
-                            {t("settings:forms.notification.save")}
-                          </button>
-                        </div>
-                      </div>
-
-                      <DEBUG values={values} />
-                    </Form>
-                  )}
-                </Formik>
+        {({ values }) => (
+          <Form className="h-full min-h-0 flex flex-col bg-white dark:bg-gray-800">
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
+                <div className="flex items-start justify-between space-x-3">
+                  <div className="space-y-1">
+                    <SlideOverTitle>
+                      {t("settings:forms.notification.addTitle")}
+                    </SlideOverTitle>
+                    <p className="text-sm text-gray-500 dark:text-gray-200">
+                      {t("settings:forms.notification.addDescription")}
+                    </p>
+                  </div>
+                  <div className="h-7 flex items-center">
+                    <button
+                      type="button"
+                      className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                      onClick={toggle}
+                    >
+                      <span className="sr-only">{t("settings:forms.notification.closePanel")}</span>
+                      <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                    </button>
+                  </div>
+                </div>
               </div>
-            </TransitionChild>
-          </DialogPanel>
-        </div>
-      </Dialog>
-    </Transition>
+
+              <div className="flex flex-col space-y-4 px-1 pt-6 sm:py-0 sm:space-y-0">
+                <TextFieldWide
+                  name="name"
+                  label={t("settings:forms.notification.name")}
+                  required={true}
+                />
+
+                <div className="flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
+                  <div>
+                    <label
+                      htmlFor="type"
+                      className="block text-sm font-medium text-gray-900 dark:text-white"
+                    >
+                      {t("settings:forms.notification.type")}
+                    </label>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Field name="type" type="select">
+                      {({
+                        field,
+                        form: { setFieldValue, resetForm }
+                      }: FieldProps) => (
+                        <Select
+                          {...field}
+                          isClearable={true}
+                          isSearchable={true}
+                          components={{
+                            Input: common.SelectInput,
+                            Control: common.SelectControl,
+                            Menu: common.SelectMenu,
+                            Option: common.SelectOption,
+                            IndicatorSeparator: common.IndicatorSeparator,
+                            DropdownIndicator: common.DropdownIndicator
+                          }}
+                          placeholder={t("settings:forms.notification.chooseType")}
+                          styles={{
+                            singleValue: (base) => ({
+                              ...base,
+                              color: "unset"
+                            })
+                          }}
+                          theme={(theme) => ({
+                            ...theme,
+                            spacing: {
+                              ...theme.spacing,
+                              controlHeight: 30,
+                              baseUnit: 2
+                            }
+                          })}
+                          value={field?.value && field.value.value}
+                          onChange={(option: unknown) => {
+                            resetForm();
+
+                            const opt = option as SelectOption;
+                            // setFieldValue("name", option?.label ?? "")
+                            setFieldValue(
+                              field.name,
+                              opt.value ?? ""
+                            );
+                          }}
+                          options={notificationTypeOptions}
+                        />
+                      )}
+                    </Field>
+                  </div>
+                </div>
+
+                <SwitchGroupWide name="enabled" label={t("settings:forms.notification.enabled")} />
+
+                <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+                  <div className="px-4">
+                    <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+                      {t("settings:forms.notification.globalEvents")}
+                    </h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {t("settings:forms.notification.globalEventsDesc")}
+                    </p>
+                  </div>
+
+                  <div className="p-4 sm:grid sm:gap-4">
+                    <EventCheckBoxes />
+                  </div>
+                </div>
+              </div>
+              {componentMap[values.type]}
+
+              <DEBUG values={values} />
+            </div>
+
+            <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4 sm:px-6">
+              <div className="space-x-3 flex justify-end">
+                <button
+                  type="button"
+                  className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                  onClick={() => testNotification(values)}
+                >
+                  {t("settings:forms.notification.test")}
+                </button>
+                <button
+                  type="button"
+                  className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                  onClick={toggle}
+                >
+                  {t("settings:forms.notification.cancel")}
+                </button>
+                <button
+                  type="submit"
+                  className="inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                >
+                  {t("settings:forms.notification.save")}
+                </button>
+              </div>
+            </div>
+          </Form>
+        )}
+      </Formik>
+    </SlideOverShell>
   );
 }
 
@@ -628,6 +610,7 @@ const EventCheckBox = ({ event }: { event: NotificationEventOption; }) => (
             {event.description && <p className="text-gray-500">{event.description}</p>}
           </span>
           <Checkbox
+            name={`events-${event.value}`}
             value={field.value.includes(event.value)}
             setValue={(checked) =>
               form.setFieldValue('events',
@@ -921,9 +904,9 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
             <SwitchGroupWide name="enabled" label={t("settings:forms.notification.enabled")} />
             <div className="pb-2">
               <div className="p-4">
-                <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+                <h2 className="text-lg font-medium text-gray-900 dark:text-white">
                   {t("settings:forms.notification.globalEvents")}
-                </DialogTitle>
+                </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   {t("settings:forms.notification.globalEventsDesc")}
                 </p>
@@ -937,9 +920,9 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
 
           <div className="pb-2">
             <div className="p-4">
-                <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+                <h2 className="text-lg font-medium text-gray-900 dark:text-white">
                   {t("settings:forms.notification.perFilterEvents")}
-                </DialogTitle>
+                </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   {t("settings:forms.notification.perFilterEventsDesc")}
                 </p>

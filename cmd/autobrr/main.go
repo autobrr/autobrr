@@ -19,6 +19,7 @@ import (
 	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/database"
 	"github.com/autobrr/autobrr/internal/diagnostics"
+	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/download_client"
 	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/internal/feed"
@@ -37,12 +38,12 @@ import (
 	"github.com/autobrr/autobrr/internal/server"
 	"github.com/autobrr/autobrr/internal/update"
 	"github.com/autobrr/autobrr/internal/user"
+	"github.com/autobrr/autobrr/pkg/featureflags"
 	"github.com/autobrr/autobrr/pkg/sqlite3store"
 
 	"github.com/KimMachineGun/automemlimit/memlimit"
 	"github.com/alexedwards/scs/postgresstore"
 	"github.com/alexedwards/scs/v2"
-	"github.com/asaskevich/EventBus"
 	"github.com/dcarbone/zadapters/zstdlog"
 	"github.com/r3labs/sse/v2"
 	"github.com/rs/zerolog"
@@ -55,6 +56,10 @@ var (
 	commit  = ""
 	date    = ""
 )
+
+func init() {
+	featureflags.Register(domain.IRCFuzzyAnnouncer, false)
+}
 
 func main() {
 	var configPath, profilePath string
@@ -69,8 +74,13 @@ func main() {
 	// read config
 	cfg := config.New(configPath, version)
 
+	// setup server-sent-events
+	serverEvents := sse.New()
+	serverEvents.CreateStreamWithOpts(logger.StreamLogs, sse.StreamOpts{MaxEntries: 1000, AutoReplay: true})
+	serverEvents.CreateStreamWithOpts("irc", sse.StreamOpts{MaxEntries: 0, AutoReplay: false, AutoStream: true})
+
 	// init new logger
-	log := logger.New(cfg.Config)
+	log := logger.New(cfg.Config, serverEvents)
 
 	// Set GOMAXPROCS to match the Linux container CPU quota (if any)
 	undo, err := maxprocs.Set(maxprocs.Logger(zstdlog.NewStdLoggerWithLevel(log.With().Logger(), zerolog.InfoLevel).Printf))
@@ -90,15 +100,8 @@ func main() {
 
 	diagnostics.SetupProfiling(cfg.Config.ProfilingEnabled, cfg.Config.ProfilingHost, cfg.Config.ProfilingPort)
 
-	// setup server-sent-events
-	serverEvents := sse.New()
-	serverEvents.CreateStreamWithOpts("logs", sse.StreamOpts{MaxEntries: 1000, AutoReplay: true})
-
-	// register SSE hook on logger
-	log.RegisterSSEWriter(serverEvents)
-
 	// setup internal eventbus
-	bus := EventBus.New()
+	eventBus := events.NewEventBus(log)
 
 	// open database connection
 	db, err := database.NewDB(cfg.Config, log)
@@ -111,19 +114,21 @@ func main() {
 		log.Fatal().Err(err).Msg("could not open db connection")
 	}
 
-	log.Info().Msgf("Starting autobrr")
-	log.Info().Msgf("Version: %s", version)
-	log.Info().Msgf("Commit: %s", commit)
-	log.Info().Msgf("Build date: %s", date)
-	log.Info().Msgf("Log-level: %s", cfg.Config.LogLevel)
-	log.Info().Msgf("Using database: %s", db.Driver)
-	log.Debug().Msgf("GOMEMLIMIT: %d bytes", memLimit)
+	log.Info().
+		Str("version", version).
+		Str("commit", commit).
+		Str("build_date", date).
+		Str("log_level", cfg.Config.LogLevel).
+		Str("database", db.Driver).
+		Msg("starting autobrr")
+
+	log.Debug().Int64("gomemlimit_bytes", memLimit).Msg("memory limit configured")
 
 	// session manager
 	sessionManager := scs.New()
 	switch db.Driver {
 	case database.DriverSQLite:
-		sessionManager.Store = sqlite3store.New(db)
+		sessionManager.Store = sqlite3store.New(db, sqlite3store.WithLogger(log.With().Str("module", "session-store").Logger()))
 	case database.DriverPostgres:
 		sessionManager.Store = postgresstore.New(db.Handler)
 	}
@@ -138,7 +143,7 @@ func main() {
 	var (
 		apikeyRepo         = database.NewAPIRepo(log, db)
 		downloadClientRepo = database.NewDownloadClientRepo(log, db)
-		actionRepo         = database.NewActionRepo(log, db, downloadClientRepo)
+		actionRepo         = database.NewActionRepo(log, db)
 		filterRepo         = database.NewFilterRepo(log, db)
 		feedRepo           = database.NewFeedRepo(log, db)
 		feedCacheRepo      = database.NewFeedCacheRepo(log, db)
@@ -155,25 +160,22 @@ func main() {
 	var (
 		apiService            = api.NewService(log, apikeyRepo)
 		updateService         = update.NewUpdate(log, cfg.Config)
-		notificationService   = notification.NewService(log, notificationRepo)
-		schedulingService     = scheduler.NewService(log, cfg.Config, notificationService, updateService)
+		notificationService   = notification.NewService(log, eventBus, notificationRepo)
+		schedulingService     = scheduler.NewService(log, eventBus, cfg.Config, updateService)
 		userService           = user.NewService(userRepo)
 		authService           = auth.NewService(log, userService)
 		proxyService          = proxy.NewService(log, proxyRepo)
 		indexerAPIService     = indexer.NewAPIService(log, proxyService)
-		downloadService       = releasedownload.NewDownloadService(log, releaseRepo, indexerRepo, proxyService)
+		downloadService       = releasedownload.NewDownloadService(log, indexerRepo, proxyService)
 		downloadClientService = download_client.NewService(log, downloadClientRepo)
-		actionService         = action.NewService(log, actionRepo, downloadClientService, downloadService, bus)
-		indexerService        = indexer.NewService(log, cfg.Config, bus, indexerRepo, releaseRepo, indexerAPIService, schedulingService)
+		actionService         = action.NewService(log, eventBus, actionRepo, downloadClientService, downloadService)
+		indexerService        = indexer.NewService(log, eventBus, cfg.Config, indexerRepo, releaseRepo, indexerAPIService)
 		filterService         = filter.NewService(log, filterRepo, actionService, releaseRepo, indexerAPIService, indexerService, downloadService, notificationService)
-		releaseService        = release.NewService(log, releaseRepo, actionService, filterService, indexerService, schedulingService, bus)
-		ircService            = irc.NewService(log, serverEvents, ircRepo, releaseService, indexerService, notificationService, proxyService)
-		feedService           = feed.NewService(log, feedRepo, feedCacheRepo, releaseService, proxyService, schedulingService)
+		releaseService        = release.NewService(log, eventBus, releaseRepo, actionService, filterService, indexerService, schedulingService)
+		ircService            = irc.NewService(log, eventBus, serverEvents, ircRepo, releaseService, indexerService, proxyService)
+		feedService           = feed.NewService(log, eventBus, feedRepo, feedCacheRepo, releaseService, proxyService, schedulingService)
 		listService           = list.NewService(log, listRepo, downloadClientService, filterService, schedulingService)
 	)
-
-	// register event subscribers
-	events.NewSubscribers(log, bus, feedService, notificationService, releaseService)
 
 	errorChannel := make(chan error)
 
@@ -225,7 +227,7 @@ func main() {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
 
-	srv := server.NewServer(log, cfg.Config, ircService, indexerService, feedService, releaseService, listService, schedulingService, updateService)
+	srv := server.NewServer(log, cfg.Config, ircService, indexerService, feedService, releaseService, listService, notificationService, schedulingService, updateService)
 	if err := srv.Start(); err != nil {
 		log.Fatal().Stack().Err(err).Msg("could not start server")
 		return
@@ -237,7 +239,7 @@ func main() {
 	}
 
 	for sig := range sigCh {
-		log.Info().Msgf("received signal: %v, shutting down server.", sig)
+		log.Info().Str("signal", sig.String()).Msg("received signal, shutting down server")
 
 		srv.Shutdown()
 

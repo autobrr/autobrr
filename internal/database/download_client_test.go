@@ -73,7 +73,10 @@ func getMockArrList(filterID int, clientID int32) *domain.List {
 }
 
 func TestDownloadClientRepo_List(t *testing.T) {
-	for dbType, db := range testDBs {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 		repo := NewDownloadClientRepo(log, db)
 		mockData := getMockDownloadClient()
@@ -81,166 +84,172 @@ func TestDownloadClientRepo_List(t *testing.T) {
 		t.Run(fmt.Sprintf("List_Succeeds_With_No_Filters [%s]", dbType), func(t *testing.T) {
 			// Insert mock data
 			mock := &mockData
-			err := repo.Store(context.Background(), mock)
-			clients, err := repo.List(context.Background())
+			err := repo.Store(ctx, mock)
+			clients, err := repo.List(ctx)
 			assert.NoError(t, err)
 			assert.NotEmpty(t, clients)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), mock.ID)
+			_ = repo.Delete(ctx, mock.ID)
 		})
 
 		t.Run(fmt.Sprintf("List_Succeeds_With_Empty_Database [%s]", dbType), func(t *testing.T) {
-			clients, err := repo.List(context.Background())
+			clients, err := repo.List(ctx)
 			assert.NoError(t, err)
 			assert.Empty(t, clients)
 		})
 
 		t.Run(fmt.Sprintf("List_Fails_With_Context_Timeout [%s]", dbType), func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
+			timeoutCtx, cancel := context.WithTimeout(ctx, 1*time.Nanosecond)
 			defer cancel()
-			_, err := repo.List(ctx)
+			_, err := repo.List(timeoutCtx)
 			assert.Error(t, err)
 		})
 
 		t.Run(fmt.Sprintf("List_Succeeds_With_Data_Integrity [%s]", dbType), func(t *testing.T) {
 			mock := &mockData
-			err := repo.Store(context.Background(), mock)
-			clients, err := repo.List(context.Background())
+			err := repo.Store(ctx, mock)
+			clients, err := repo.List(ctx)
 			assert.NoError(t, err)
 			assert.Equal(t, 1, len(clients))
 			assert.Equal(t, mock.Name, clients[0].Name)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), mock.ID)
+			_ = repo.Delete(ctx, mock.ID)
 		})
 
 		t.Run(fmt.Sprintf("List_Succeeds_With_Boundary_Value_For_Port [%s]", dbType), func(t *testing.T) {
 			mock := &mockData
 			mock.Port = 65535
-			err := repo.Store(context.Background(), mock)
-			clients, err := repo.List(context.Background())
+			err := repo.Store(ctx, mock)
+			clients, err := repo.List(ctx)
 			assert.NoError(t, err)
 			assert.Equal(t, 65535, clients[0].Port)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), mock.ID)
+			_ = repo.Delete(ctx, mock.ID)
 		})
 
 		t.Run(fmt.Sprintf("List_Succeeds_With_Boolean_Flags_Set_To_False [%s]", dbType), func(t *testing.T) {
 			mockData.Enabled = false
 			mockData.TLS = false
 			mockData.TLSSkipVerify = false
-			err := repo.Store(context.Background(), &mockData)
-			clients, err := repo.List(context.Background())
+			err := repo.Store(ctx, &mockData)
+			clients, err := repo.List(ctx)
 			assert.NoError(t, err)
 			assert.Equal(t, false, clients[0].Enabled)
 			assert.Equal(t, false, clients[0].TLS)
 			assert.Equal(t, false, clients[0].TLSSkipVerify)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), mockData.ID)
+			_ = repo.Delete(ctx, mockData.ID)
 		})
 
 		t.Run(fmt.Sprintf("List_Succeeds_With_Special_Characters_In_Name [%s]", dbType), func(t *testing.T) {
 			mockData.Name = "Special$Name"
-			err := repo.Store(context.Background(), &mockData)
-			clients, err := repo.List(context.Background())
+			err := repo.Store(ctx, &mockData)
+			clients, err := repo.List(ctx)
 			assert.NoError(t, err)
 			assert.Equal(t, "Special$Name", clients[0].Name)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), mockData.ID)
+			_ = repo.Delete(ctx, mockData.ID)
 		})
 	}
 }
 
 func TestDownloadClientRepo_FindByID(t *testing.T) {
-	for dbType, db := range testDBs {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 		repo := NewDownloadClientRepo(log, db)
 		mockData := getMockDownloadClient()
 
 		t.Run(fmt.Sprintf("FindByID_Succeeds [%s]", dbType), func(t *testing.T) {
 			mock := &mockData
-			_ = repo.Store(context.Background(), mock)
-			foundClient, err := repo.FindByID(context.Background(), mock.ID)
+			_ = repo.Store(ctx, mock)
+			foundClient, err := repo.FindByID(ctx, mock.ID)
 			assert.NoError(t, err)
 			assert.NotNil(t, foundClient)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), mock.ID)
+			_ = repo.Delete(ctx, mock.ID)
 		})
 
 		t.Run(fmt.Sprintf("FindByID_Fails_With_Nonexistent_ID [%s]", dbType), func(t *testing.T) {
-			_, err := repo.FindByID(context.Background(), 9999)
+			_, err := repo.FindByID(ctx, 9999)
 			assert.Error(t, err)
 			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
 		})
 
 		t.Run(fmt.Sprintf("FindByID_Fails_With_Negative_ID [%s]", dbType), func(t *testing.T) {
-			_, err := repo.FindByID(context.Background(), -1)
+			_, err := repo.FindByID(ctx, -1)
 			assert.Error(t, err)
 		})
 
 		t.Run(fmt.Sprintf("FindByID_Fails_With_Context_Timeout [%s]", dbType), func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
+			timeoutCtx, cancel := context.WithTimeout(ctx, 1*time.Nanosecond)
 			defer cancel()
 
-			_, err := repo.FindByID(ctx, 1)
+			_, err := repo.FindByID(timeoutCtx, 1)
 			assert.Error(t, err)
 		})
 
 		t.Run(fmt.Sprintf("FindByID_Fails_After_Client_Deleted [%s]", dbType), func(t *testing.T) {
 			mock := &mockData
-			_ = repo.Store(context.Background(), mock)
-			_ = repo.Delete(context.Background(), mock.ID)
-			_, err := repo.FindByID(context.Background(), mock.ID)
+			_ = repo.Store(ctx, mock)
+			_ = repo.Delete(ctx, mock.ID)
+			_, err := repo.FindByID(ctx, mock.ID)
 			assert.Error(t, err)
 			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), mock.ID)
+			_ = repo.Delete(ctx, mock.ID)
 		})
 
 		t.Run(fmt.Sprintf("FindByID_Succeeds_With_Data_Integrity [%s]", dbType), func(t *testing.T) {
 			mock := &mockData
-			_ = repo.Store(context.Background(), mock)
-			foundClient, err := repo.FindByID(context.Background(), mock.ID)
+			_ = repo.Store(ctx, mock)
+			foundClient, err := repo.FindByID(ctx, mock.ID)
 			assert.NoError(t, err)
 			assert.Equal(t, mock.Name, foundClient.Name)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), mock.ID)
+			_ = repo.Delete(ctx, mock.ID)
 		})
 
 		t.Run(fmt.Sprintf("FindByID_Succeeds_From_Cache [%s]", dbType), func(t *testing.T) {
 			mock := &mockData
-			_ = repo.Store(context.Background(), mock)
-			foundClient1, _ := repo.FindByID(context.Background(), mock.ID)
-			foundClient2, err := repo.FindByID(context.Background(), mock.ID)
+			_ = repo.Store(ctx, mock)
+			foundClient1, _ := repo.FindByID(ctx, mock.ID)
+			foundClient2, err := repo.FindByID(ctx, mock.ID)
 			assert.NoError(t, err)
 			assert.Equal(t, foundClient1, foundClient2)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), mock.ID)
+			_ = repo.Delete(ctx, mock.ID)
 		})
 	}
 }
 
 func TestDownloadClientRepo_Store(t *testing.T) {
-	for dbType, db := range testDBs {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 		repo := NewDownloadClientRepo(log, db)
 
 		t.Run(fmt.Sprintf("Store_Succeeds [%s]", dbType), func(t *testing.T) {
 			mockData := getMockDownloadClient()
-			err := repo.Store(context.Background(), &mockData)
+			err := repo.Store(ctx, &mockData)
 			assert.NoError(t, err)
 			assert.NotNil(t, mockData)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), mockData.ID)
+			_ = repo.Delete(ctx, mockData.ID)
 		})
 
 		//TODO: Is this okay? Should we be able to store a client with no name (empty string)?
@@ -256,58 +265,61 @@ func TestDownloadClientRepo_Store(t *testing.T) {
 				Password:      "",
 				Settings:      domain.DownloadClientSettings{},
 			}
-			err := repo.Store(context.Background(), badMockData)
+			err := repo.Store(ctx, badMockData)
 			assert.NoError(t, err)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), badMockData.ID)
+			_ = repo.Delete(ctx, badMockData.ID)
 		})
 
 		t.Run(fmt.Sprintf("Store_Fails_With_Context_Timeout [%s]", dbType), func(t *testing.T) {
 			mockData := getMockDownloadClient()
-			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
+			timeoutCtx, cancel := context.WithTimeout(ctx, 1*time.Nanosecond)
 			defer cancel()
-			err := repo.Store(ctx, &mockData)
+			err := repo.Store(timeoutCtx, &mockData)
 			assert.Error(t, err)
 		})
 
 		t.Run(fmt.Sprintf("Store_Succeeds_And_Caches [%s]", dbType), func(t *testing.T) {
 			mockData := getMockDownloadClient()
-			_ = repo.Store(context.Background(), &mockData)
+			_ = repo.Store(ctx, &mockData)
 
-			cachedClient, _ := repo.FindByID(context.Background(), mockData.ID)
+			cachedClient, _ := repo.FindByID(ctx, mockData.ID)
 			assert.Equal(t, &mockData, cachedClient)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), mockData.ID)
+			_ = repo.Delete(ctx, mockData.ID)
 		})
 	}
 }
 
 func TestDownloadClientRepo_Update(t *testing.T) {
-	for dbType, db := range testDBs {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 		repo := NewDownloadClientRepo(log, db)
 
 		t.Run(fmt.Sprintf("Update_Successfully_Updates_Record [%s]", dbType), func(t *testing.T) {
 			mockClient := getMockDownloadClient()
 
-			_ = repo.Store(context.Background(), &mockClient)
+			_ = repo.Store(ctx, &mockClient)
 			mockClient.Name = "updatedName"
-			err := repo.Update(context.Background(), &mockClient)
+			err := repo.Update(ctx, &mockClient)
 
 			assert.NoError(t, err)
 			assert.Equal(t, "updatedName", mockClient.Name)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), mockClient.ID)
+			_ = repo.Delete(ctx, mockClient.ID)
 		})
 
 		t.Run(fmt.Sprintf("Update_Fails_With_Missing_ID [%s]", dbType), func(t *testing.T) {
 			badMockData := getMockDownloadClient()
 			badMockData.ID = 0
 
-			err := repo.Update(context.Background(), &badMockData)
+			err := repo.Update(ctx, &badMockData)
 
 			assert.Error(t, err)
 
@@ -317,7 +329,7 @@ func TestDownloadClientRepo_Update(t *testing.T) {
 			badMockData := getMockDownloadClient()
 			badMockData.ID = 9999
 
-			err := repo.Update(context.Background(), &badMockData)
+			err := repo.Update(ctx, &badMockData)
 
 			assert.Error(t, err)
 		})
@@ -325,7 +337,7 @@ func TestDownloadClientRepo_Update(t *testing.T) {
 		t.Run(fmt.Sprintf("Update_Fails_With_Missing_Required_Fields [%s]", dbType), func(t *testing.T) {
 			badMockData := domain.DownloadClient{}
 
-			err := repo.Update(context.Background(), &badMockData)
+			err := repo.Update(ctx, &badMockData)
 
 			assert.Error(t, err)
 		})
@@ -333,51 +345,54 @@ func TestDownloadClientRepo_Update(t *testing.T) {
 }
 
 func TestDownloadClientRepo_Delete(t *testing.T) {
-	for dbType, db := range testDBs {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 		repo := NewDownloadClientRepo(log, db)
 
 		t.Run(fmt.Sprintf("Delete_Successfully_Deletes_Client [%s]", dbType), func(t *testing.T) {
 			mockClient := getMockDownloadClient()
-			_ = repo.Store(context.Background(), &mockClient)
+			_ = repo.Store(ctx, &mockClient)
 
-			err := repo.Delete(context.Background(), mockClient.ID)
+			err := repo.Delete(ctx, mockClient.ID)
 			assert.NoError(t, err)
 
 			// Verify client was deleted
-			_, err = repo.FindByID(context.Background(), mockClient.ID)
+			_, err = repo.FindByID(ctx, mockClient.ID)
 			assert.Error(t, err)
 		})
 
 		t.Run(fmt.Sprintf("Delete_Fails_With_Nonexistent_Client_ID [%s]", dbType), func(t *testing.T) {
-			err := repo.Delete(context.Background(), 9999)
+			err := repo.Delete(ctx, 9999)
 			assert.Error(t, err)
 		})
 
 		t.Run(fmt.Sprintf("Delete_Fails_With_Context_Timeout [%s]", dbType), func(t *testing.T) {
 			mockClient := getMockDownloadClient()
-			_ = repo.Store(context.Background(), &mockClient)
+			_ = repo.Store(ctx, &mockClient)
 
-			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
+			timeoutCtx, cancel := context.WithTimeout(ctx, 1*time.Nanosecond)
 			defer cancel()
 
-			err := repo.Delete(ctx, mockClient.ID)
+			err := repo.Delete(timeoutCtx, mockClient.ID)
 			assert.Error(t, err)
 
 			// Cleanup
-			_ = repo.Delete(context.Background(), mockClient.ID)
+			_ = repo.Delete(ctx, mockClient.ID)
 		})
 
 		t.Run(fmt.Sprintf("Delete_Clears_Client_From_Actions [%s]", dbType), func(t *testing.T) {
-			actionRepo := NewActionRepo(log, db, repo)
+			actionRepo := NewActionRepo(log, db)
 			filterRepo := NewFilterRepo(log, db)
 
 			mockClient := getMockDownloadClient()
-			err := repo.Store(context.Background(), &mockClient)
+			err := repo.Store(ctx, &mockClient)
 			assert.NoError(t, err)
 
 			filter := getMockFilter()
-			err = filterRepo.Store(context.Background(), filter)
+			err = filterRepo.Store(ctx, filter)
 			assert.NoError(t, err)
 
 			actionWithoutFilter := getMockAction()
@@ -385,7 +400,7 @@ func TestDownloadClientRepo_Delete(t *testing.T) {
 			actionWithoutFilter.FilterID = 0
 			actionWithoutFilter.Name = "action-without-filter"
 
-			err = actionRepo.Store(context.Background(), actionWithoutFilter)
+			err = actionRepo.Store(ctx, actionWithoutFilter)
 			assert.NoError(t, err)
 
 			actionWithFilter := getMockAction()
@@ -393,31 +408,31 @@ func TestDownloadClientRepo_Delete(t *testing.T) {
 			actionWithFilter.FilterID = filter.ID
 			actionWithFilter.Name = "action-with-filter"
 
-			err = actionRepo.Store(context.Background(), actionWithFilter)
+			err = actionRepo.Store(ctx, actionWithFilter)
 			assert.NoError(t, err)
 
-			err = repo.Delete(context.Background(), mockClient.ID)
+			err = repo.Delete(ctx, mockClient.ID)
 			assert.NoError(t, err)
 
-			updatedActionWithoutFilter, err := actionRepo.Get(context.Background(), &domain.GetActionRequest{Id: actionWithoutFilter.ID})
+			updatedActionWithoutFilter, err := actionRepo.Get(ctx, &domain.GetActionRequest{Id: actionWithoutFilter.ID})
 			assert.NoError(t, err)
 			assert.False(t, updatedActionWithoutFilter.Enabled)
 			assert.Zero(t, updatedActionWithoutFilter.ClientID)
 			assert.Zero(t, updatedActionWithoutFilter.FilterID)
 
-			updatedActionWithFilter, err := actionRepo.Get(context.Background(), &domain.GetActionRequest{Id: actionWithFilter.ID})
+			updatedActionWithFilter, err := actionRepo.Get(ctx, &domain.GetActionRequest{Id: actionWithFilter.ID})
 			assert.NoError(t, err)
 			assert.False(t, updatedActionWithFilter.Enabled)
 			assert.Zero(t, updatedActionWithFilter.ClientID)
 			assert.Equal(t, filter.ID, updatedActionWithFilter.FilterID)
 
-			_, err = repo.FindByID(context.Background(), mockClient.ID)
+			_, err = repo.FindByID(ctx, mockClient.ID)
 			assert.Error(t, err)
 			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
 
-			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: actionWithoutFilter.ID})
-			_ = actionRepo.Delete(context.Background(), &domain.DeleteActionRequest{ActionId: actionWithFilter.ID})
-			_ = filterRepo.Delete(context.Background(), filter.ID)
+			_ = actionRepo.Delete(ctx, &domain.DeleteActionRequest{ActionId: actionWithoutFilter.ID})
+			_ = actionRepo.Delete(ctx, &domain.DeleteActionRequest{ActionId: actionWithFilter.ID})
+			_ = filterRepo.Delete(ctx, filter.ID)
 		})
 
 		t.Run(fmt.Sprintf("Delete_Clears_Client_From_Lists [%s]", dbType), func(t *testing.T) {
@@ -425,21 +440,21 @@ func TestDownloadClientRepo_Delete(t *testing.T) {
 			listRepo := NewListRepo(log, db)
 
 			mockClient := getMockDownloadClient()
-			err := repo.Store(context.Background(), &mockClient)
+			err := repo.Store(ctx, &mockClient)
 			assert.NoError(t, err)
 
 			filter := getMockFilter()
-			err = filterRepo.Store(context.Background(), filter)
+			err = filterRepo.Store(ctx, filter)
 			assert.NoError(t, err)
 
 			list := getMockArrList(filter.ID, mockClient.ID)
-			err = listRepo.Store(context.Background(), list)
+			err = listRepo.Store(ctx, list)
 			assert.NoError(t, err)
 
-			err = repo.Delete(context.Background(), mockClient.ID)
+			err = repo.Delete(ctx, mockClient.ID)
 			assert.NoError(t, err)
 
-			lists, err := listRepo.List(context.Background())
+			lists, err := listRepo.List(ctx)
 			assert.NoError(t, err)
 
 			var updatedList *domain.List
@@ -455,12 +470,12 @@ func TestDownloadClientRepo_Delete(t *testing.T) {
 				assert.Zero(t, updatedList.ClientID)
 			}
 
-			_, err = repo.FindByID(context.Background(), mockClient.ID)
+			_, err = repo.FindByID(ctx, mockClient.ID)
 			assert.Error(t, err)
 			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
 
-			_ = listRepo.Delete(context.Background(), list.ID)
-			_ = filterRepo.Delete(context.Background(), filter.ID)
+			_ = listRepo.Delete(ctx, list.ID)
+			_ = filterRepo.Delete(ctx, filter.ID)
 		})
 	}
 }

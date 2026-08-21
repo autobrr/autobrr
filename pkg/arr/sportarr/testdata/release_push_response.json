@@ -1,0 +1,18 @@
+[
+  {
+    "title": "Formula.1.2026x10.Belgium.Race.SkyF1HD.1080p",
+    "infoUrl": null,
+    "downloadUrl": "https://www.test.org/rss/download/0000001/00000000000000000000/Formula.1.2026x10.Belgium.Race.SkyF1HD.1080p.torrent",
+    "size": 0,
+    "indexer": "test",
+    "downloadProtocol": "torrent",
+    "protocol": "torrent",
+    "publishDate": "2026-07-19T15:00:00.0000000Z",
+    "approved": false,
+    "rejected": true,
+    "temporarilyRejected": false,
+    "rejections": [
+      "No matching event found"
+    ]
+  }
+]

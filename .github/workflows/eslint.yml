@@ -10,7 +10,7 @@ on:
     - cron: '20 13 * * 6'
 
 env:
-  NODE_VERSION: '22.17.0'
+  NODE_VERSION: '24.15.0'
 
 jobs:
   codeql:
@@ -23,21 +23,23 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 
-      - name: Set up corepack
-        run: npm install -g corepack@latest && corepack enable
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6.0.10
+        with:
+          package_json_file: web/package.json
 
-      # It can not be done before enable corepack
+      # It can not be done before installing pnpm
       - name: Set up cache
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           cache: pnpm
           cache-dependency-path: web/pnpm-lock.yaml

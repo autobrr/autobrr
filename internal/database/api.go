@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -17,7 +16,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func NewAPIRepo(log logger.Logger, db *DB) domain.APIRepo {
+func NewAPIRepo(log zerolog.Logger, db *DB) *APIRepo {
 	return &APIRepo{
 		log: log.With().Str("repo", "api").Logger(),
 		db:  db,
@@ -68,7 +67,7 @@ func (r *APIRepo) Delete(ctx context.Context, key string) error {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	r.log.Debug().Msgf("successfully deleted: %v", key)
+	r.log.Debug().Str("api_key", key).Msg("successfully deleted")
 
 	return nil
 }
