@@ -221,10 +221,13 @@ func (s *Service) setNotification(snapshot *routingSnapshot, notification *domai
 func (s *Service) setupEventListeners() {
 	s.eventBus.OnAppUpdate(func(ctx context.Context, event events.AppUpdateEvent) error {
 		payload := domain.NotificationPayload{
-			Event:     domain.NotificationEventAppUpdateAvailable,
-			Subject:   "New update available!",
-			Message:   event.NewVersion,
-			Timestamp: time.Now(),
+			Event:          domain.NotificationEventAppUpdateAvailable,
+			Subject:        "New update available!",
+			Message:        event.NewVersion,
+			CurrentVersion: event.CurrentVersion,
+			NewVersion:     event.NewVersion,
+			URL:            event.URL,
+			Timestamp:      time.Now(),
 		}
 		s.Send(ctx, payload)
 
