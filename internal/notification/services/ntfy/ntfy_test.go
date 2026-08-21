@@ -7,12 +7,25 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// shortenRetryDelay must only be used in sequential tests: parallel tests are
+// paused until every sequential test, including the cleanup, has finished.
+func shortenRetryDelay(t *testing.T) {
+	t.Helper()
+
+	prevRetryDelay, prevDefaultRetryAfter := retryDelay, defaultRetryAfter
+	retryDelay = time.Millisecond * 10
+	defaultRetryAfter = time.Millisecond * 10
+	t.Cleanup(func() { retryDelay, defaultRetryAfter = prevRetryDelay, prevDefaultRetryAfter })
+}
 
 func TestClient_SendMessage(t *testing.T) {
 	t.Parallel()
@@ -65,4 +78,121 @@ func TestClient_SendMessage_BasicAuth(t *testing.T) {
 	client := NewSender(zerolog.New(io.Discard), config)
 
 	assert.NoError(t, client.SendMessage(t.Context(), &Message{Title: "Test", Message: "autobrr goes brr!!"}))
+}
+
+func TestClient_SendMessage_RateLimitedThenSuccess(t *testing.T) {
+	t.Parallel()
+
+	var requests atomic.Int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		assert.Equal(t, "autobrr goes brr!!", string(body))
+
+		if requests.Add(1) == 1 {
+			w.Header().Set("Retry-After", "1")
+			w.WriteHeader(http.StatusTooManyRequests)
+			_, _ = w.Write([]byte(`{"code":42901,"http":429,"error":"limit reached"}`))
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := NewSender(zerolog.New(io.Discard), Config{Host: server.URL, Name: "mock"})
+
+	start := time.Now()
+	assert.NoError(t, client.SendMessage(t.Context(), &Message{Title: "Test", Message: "autobrr goes brr!!"}))
+	assert.GreaterOrEqual(t, time.Since(start), time.Millisecond*900, "retry must honor the server-directed delay")
+	assert.Equal(t, int32(2), requests.Load())
+}
+
+func TestClient_SendMessage_RateLimitFallbackDelay(t *testing.T) {
+	shortenRetryDelay(t)
+
+	var requests atomic.Int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if requests.Add(1) == 1 {
+			w.WriteHeader(http.StatusTooManyRequests)
+			_, _ = w.Write([]byte(`{"code":42901,"http":429,"error":"limit reached"}`))
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := NewSender(zerolog.New(io.Discard), Config{Host: server.URL, Name: "mock"})
+
+	assert.NoError(t, client.SendMessage(t.Context(), &Message{Title: "Test", Message: "autobrr goes brr!!"}))
+	assert.Equal(t, int32(2), requests.Load())
+}
+
+func TestClient_SendMessage_RateLimitTooLong(t *testing.T) {
+	t.Parallel()
+
+	var requests atomic.Int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
+		w.Header().Set("Retry-After", "60")
+		w.WriteHeader(http.StatusTooManyRequests)
+		_, _ = w.Write([]byte(`{"code":42901,"http":429,"error":"limit reached"}`))
+	}))
+	defer server.Close()
+
+	client := NewSender(zerolog.New(io.Discard), Config{Host: server.URL, Name: "mock"})
+
+	err := client.SendMessage(t.Context(), &Message{Title: "Test", Message: "autobrr goes brr!!"})
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "unexpected status: 429")
+		assert.Contains(t, err.Error(), "exceeds the retry budget")
+	}
+	assert.Equal(t, int32(1), requests.Load())
+}
+
+func TestClient_SendMessage_ServerErrorRetries(t *testing.T) {
+	shortenRetryDelay(t)
+
+	var requests atomic.Int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	client := NewSender(zerolog.New(io.Discard), Config{Host: server.URL, Name: "mock"})
+
+	err := client.SendMessage(t.Context(), &Message{Title: "Test", Message: "autobrr goes brr!!"})
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "unexpected status: 500")
+	}
+	assert.Equal(t, int32(3), requests.Load())
+}
+
+func TestClient_SendMessage_UnauthorizedNoRetry(t *testing.T) {
+	t.Parallel()
+
+	var requests atomic.Int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"code":40101,"http":401,"error":"unauthorized"}`))
+	}))
+	defer server.Close()
+
+	client := NewSender(zerolog.New(io.Discard), Config{Host: server.URL, Token: "bad-token", Name: "mock"})
+
+	err := client.SendMessage(t.Context(), &Message{Title: "Test", Message: "autobrr goes brr!!"})
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "check access token or username/password")
+		assert.Contains(t, err.Error(), "unexpected status: 401")
+		assert.Contains(t, err.Error(), "unauthorized")
+	}
+	assert.Equal(t, int32(1), requests.Load())
 }

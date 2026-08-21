@@ -20,7 +20,8 @@ func TestClient_SendMessage(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/message", r.URL.Path)
-		assert.Equal(t, "mock-token", r.URL.Query().Get("token"))
+		assert.Equal(t, "mock-token", r.Header.Get("X-Gotify-Key"))
+		assert.Empty(t, r.URL.Query().Get("token"))
 		assert.Equal(t, "application/x-www-form-urlencoded", r.Header.Get("Content-Type"))
 
 		require.NoError(t, r.ParseForm())
@@ -46,7 +47,7 @@ func TestClient_SendMessage_Error(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
-		_, _ = w.Write([]byte(`{"error":"Unauthorized"}`))
+		_, _ = w.Write([]byte(`{"error":"Unauthorized","errorCode":401,"errorDescription":"you need to provide a valid access token or user credentials to access this api"}`))
 	}))
 	defer server.Close()
 
@@ -54,7 +55,27 @@ func TestClient_SendMessage_Error(t *testing.T) {
 
 	err := client.SendMessage(t.Context(), &Message{Title: "Test", Message: "autobrr goes brr!!"})
 	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "check gotify application token")
 		assert.Contains(t, err.Error(), "unexpected status: 401")
 		assert.Contains(t, err.Error(), "Unauthorized")
+		assert.Contains(t, err.Error(), "you need to provide a valid access token")
+	}
+}
+
+func TestClient_SendMessage_ErrorRawBody(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadGateway)
+		_, _ = w.Write([]byte(`bad gateway`))
+	}))
+	defer server.Close()
+
+	client := NewSender(zerolog.New(io.Discard), Config{Host: server.URL, Token: "mock-token", Name: "mock"})
+
+	err := client.SendMessage(t.Context(), &Message{Title: "Test", Message: "autobrr goes brr!!"})
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "unexpected status: 502")
+		assert.Contains(t, err.Error(), "bad gateway")
 	}
 }

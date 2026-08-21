@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
+	"github.com/avast/retry-go/v4"
 	"github.com/dustin/go-humanize"
 	"github.com/rs/zerolog"
 )
@@ -287,7 +289,7 @@ type Client struct {
 	httpClient *http.Client
 }
 
-func (s *Client) Name() string {
+func (c *Client) Name() string {
 	return "discord"
 }
 
@@ -302,44 +304,145 @@ func NewSender(log zerolog.Logger, config Config) *Client {
 	}
 }
 
-func (s *Client) SendMessage(ctx context.Context, message *Message) error {
+// waits are capped per attempt so two capped waits plus the requests still
+// fit the caller's 30s send budget; a server demanding more than the cap is
+// unrecoverable immediately
+const maxRetryAfter = time.Second * 10
+
+// Shortened in tests.
+var (
+	defaultRetryAfter = time.Second * 2
+	retryDelay        = time.Millisecond * 500
+)
+
+// rateLimitError carries the server-directed wait so the retry delay
+// function can honor it instead of the default backoff.
+type rateLimitError struct {
+	delay time.Duration
+	msg   string
+}
+
+func (e *rateLimitError) Error() string {
+	return e.msg
+}
+
+func (c *Client) SendMessage(ctx context.Context, message *Message) error {
 	jsonData, err := json.Marshal(message)
 	if err != nil {
-		return errors.Wrap(err, "could not marshal message to json: %v", message)
+		return errors.Wrap(err, "could not marshal message to json: %+v", message)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, s.config.WebHookURL, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return errors.Wrap(err, "could not create request for message: %v", jsonData)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	//req.Header.Set("User-Agent", "autobrr")
-
-	// TODO retryable http on status 429
-
-	res, err := s.httpClient.Do(req)
-	if err != nil {
-		return errors.Wrap(err, "client request error for message: %v", jsonData)
-	}
-
-	defer sharedhttp.DrainAndClose(res)
-
-	s.log.Trace().Msgf("discord response status: %d", res.StatusCode)
-
-	// discord responds with 204, Notifiarr with 204 so lets take all 200 as ok
-	if res.StatusCode != http.StatusOK && res.StatusCode != http.StatusNoContent {
-		// Limit error body reading to prevent memory issues
-		limitedReader := io.LimitReader(res.Body, 4096) // 4KB limit
-		body, err := io.ReadAll(limitedReader)
+	return retry.Do(func() error {
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.config.WebHookURL, bytes.NewReader(jsonData))
 		if err != nil {
-			return errors.Wrap(err, "could not read body for discord: %v", jsonData)
+			return retry.Unrecoverable(errors.Wrap(err, "could not create request"))
 		}
 
-		return errors.New("unexpected status: %v body: %v", res.StatusCode, string(body))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("User-Agent", "autobrr")
+
+		res, err := c.httpClient.Do(req)
+		if err != nil {
+			return errors.Wrap(err, "client request error")
+		}
+
+		defer sharedhttp.DrainAndClose(res)
+
+		c.log.Trace().Int("status_code", res.StatusCode).Msg("response status")
+
+		switch res.StatusCode {
+		// discord responds with 204, or 200 with ?wait=true; Notifiarr passthrough responds 200
+		case http.StatusOK, http.StatusNoContent:
+			c.log.Debug().Str("message", string(jsonData)).Msg("notification successfully sent to discord")
+			return nil
+
+		case http.StatusTooManyRequests:
+			body, _ := io.ReadAll(io.LimitReader(res.Body, 4096))
+
+			var apiErr apiError
+			_ = json.Unmarshal(body, &apiErr)
+
+			statusErr := apiErr.statusError(res.StatusCode, body)
+
+			delay := rateLimitDelay(res, apiErr.RetryAfter)
+			if delay > maxRetryAfter {
+				return retry.Unrecoverable(errors.Wrap(statusErr, "server demanded %s wait which exceeds the retry budget", delay))
+			}
+
+			return &rateLimitError{delay: delay, msg: statusErr.Error()}
+
+		case http.StatusBadRequest:
+			return retry.Unrecoverable(errors.Wrap(statusError(res), "discord rejected the message payload"))
+
+		case http.StatusUnauthorized, http.StatusForbidden, http.StatusNotFound:
+			return retry.Unrecoverable(errors.Wrap(statusError(res), "discord webhook not usable - check the webhook URL, it may have been removed"))
+
+		default:
+			return statusError(res)
+		}
+	},
+		retry.Context(ctx),
+		retry.LastErrorOnly(true),
+		retry.Attempts(3),
+		retry.Delay(retryDelay),
+		retry.DelayType(func(n uint, err error, config *retry.Config) time.Duration {
+			var rle *rateLimitError
+			if errors.As(err, &rle) && rle.delay > 0 {
+				return rle.delay
+			}
+
+			return retry.BackOffDelay(n, err, config)
+		}),
+	)
+}
+
+type apiError struct {
+	Message    string  `json:"message"`
+	Code       int     `json:"code"`
+	RetryAfter float64 `json:"retry_after"`
+}
+
+func (e *apiError) statusError(statusCode int, body []byte) error {
+	// the 429 payload carries no code, only message and retry_after
+	if e.Message != "" && e.Code == 0 {
+		return errors.New("unexpected status: %d error: %s", statusCode, e.Message)
 	}
 
-	s.log.Debug().Str("message", string(jsonData)).Msg("notification successfully sent to discord")
+	if e.Message != "" {
+		return errors.New("unexpected status: %d error: %s code: %d", statusCode, e.Message, e.Code)
+	}
 
-	return nil
+	if body := bytes.TrimSpace(body); len(body) > 0 {
+		return errors.New("unexpected status: %d body: %s", statusCode, body)
+	}
+
+	return errors.New("unexpected status: %d", statusCode)
+}
+
+// statusError surfaces the Discord JSON error payload when present, falling
+// back to the raw body, and always reports the status code.
+func statusError(res *http.Response) error {
+	body, _ := io.ReadAll(io.LimitReader(res.Body, 4096))
+
+	var apiErr apiError
+	_ = json.Unmarshal(body, &apiErr)
+
+	return apiErr.statusError(res.StatusCode, body)
+}
+
+// rateLimitDelay extracts the wait Discord demands from a 429 response,
+// preferring the JSON retry_after (float seconds, can be sub-second) over the
+// Retry-After header.
+func rateLimitDelay(res *http.Response, retryAfter float64) time.Duration {
+	if retryAfter > 0 {
+		return time.Duration(retryAfter * float64(time.Second))
+	}
+
+	if header := res.Header.Get("Retry-After"); header != "" {
+		if seconds, err := strconv.ParseFloat(header, 64); err == nil && seconds > 0 {
+			return time.Duration(seconds * float64(time.Second))
+		}
+	}
+
+	return defaultRetryAfter
 }

@@ -6,6 +6,8 @@ package shoutrrr
 import (
 	"context"
 
+	"github.com/autobrr/autobrr/pkg/errors"
+
 	"github.com/nicholas-fedor/shoutrrr"
 	"github.com/rs/zerolog"
 )
@@ -39,7 +41,7 @@ func (c *Client) Name() string {
 // from the URL scheme itself and takes no context.
 func (c *Client) SendMessage(_ context.Context, message *Message) error {
 	if err := shoutrrr.Send(c.config.URL, message.Message); err != nil {
-		return err
+		return errors.Wrap(err, "could not send message via shoutrrr")
 	}
 
 	c.log.Debug().Msg("notification successfully sent via shoutrrr")

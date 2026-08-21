@@ -86,15 +86,27 @@ func (c *Client) SendMessage(ctx context.Context, message *Message) error {
 	c.log.Trace().Int("status_code", res.StatusCode).Msg("response status")
 
 	if res.StatusCode != http.StatusOK {
-		body, err := io.ReadAll(io.LimitReader(res.Body, 4096))
-		if err != nil {
-			return errors.Wrap(err, "could not read response body")
-		}
-
-		return errors.New("unexpected status: %v body: %v", res.StatusCode, string(body))
+		return statusError(res)
 	}
 
 	c.log.Debug().Msg("notification successfully sent to lunasea")
 
 	return nil
+}
+
+// statusError always reports the status code even when the error body cannot
+// be read, and hints at the usual cause of a 404 from the hosted webhook.
+func statusError(res *http.Response) error {
+	body, _ := io.ReadAll(io.LimitReader(res.Body, 4096))
+
+	err := errors.New("unexpected status: %d", res.StatusCode)
+	if len(body) > 0 {
+		err = errors.New("unexpected status: %d body: %s", res.StatusCode, string(body))
+	}
+
+	if res.StatusCode == http.StatusNotFound {
+		return errors.Wrap(err, "webhook not found: check the webhook URL, the device or user id is likely wrong")
+	}
+
+	return err
 }
