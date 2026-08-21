@@ -42,7 +42,9 @@ func (e Event) GetType() EventType {
 
 type AppUpdateEvent struct {
 	Event
-	NewVersion string
+	CurrentVersion string
+	NewVersion     string
+	URL            string
 }
 
 type ReleaseEvent struct {

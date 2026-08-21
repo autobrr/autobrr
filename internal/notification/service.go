@@ -37,7 +37,7 @@ type notificationRepo interface {
 }
 
 type Sender interface {
-	Send(event domain.NotificationEvent, payload domain.NotificationPayload) error
+	Send(ctx context.Context, payload domain.NotificationPayload) error
 	IsEnabled() bool
 	Name() string
 }
@@ -221,12 +221,15 @@ func (s *Service) setNotification(snapshot *routingSnapshot, notification *domai
 func (s *Service) setupEventListeners() {
 	s.eventBus.OnAppUpdate(func(ctx context.Context, event events.AppUpdateEvent) error {
 		payload := domain.NotificationPayload{
-			Event:     domain.NotificationEventAppUpdateAvailable,
-			Subject:   "New update available!",
-			Message:   event.NewVersion,
-			Timestamp: time.Now(),
+			Event:          domain.NotificationEventAppUpdateAvailable,
+			Subject:        "New update available!",
+			Message:        event.NewVersion,
+			CurrentVersion: event.CurrentVersion,
+			NewVersion:     event.NewVersion,
+			URL:            event.URL,
+			Timestamp:      time.Now(),
 		}
-		s.Send(payload.Event, payload)
+		s.Send(ctx, payload)
 
 		return nil
 	})
@@ -244,7 +247,7 @@ func (s *Service) setupEventListeners() {
 			Timestamp:      time.Now(),
 			Release:        release,
 		}
-		s.Send(payload.Event, payload)
+		s.Send(ctx, payload)
 
 		return nil
 	})
@@ -295,7 +298,7 @@ func (s *Service) setupEventListeners() {
 			return nil
 		}
 
-		s.Send(payload.Event, payload)
+		s.Send(ctx, payload)
 
 		return nil
 	})
@@ -329,7 +332,7 @@ func (s *Service) setupEventListeners() {
 			return nil
 		}
 
-		s.Send(payload.Event, payload)
+		s.Send(ctx, payload)
 
 		return nil
 	})
@@ -538,28 +541,32 @@ func (s *Service) newSender(notification *domain.Notification) Sender {
 	}
 }
 
-func (s *Service) Send(event domain.NotificationEvent, payload domain.NotificationPayload) {
+func (s *Service) Send(ctx context.Context, payload domain.NotificationPayload) {
 	snapshot := s.currentSnapshot()
 	if len(snapshot.senders) == 0 {
 		s.log.Trace().Msg("no notification senders registered")
 		return
 	}
 
-	interestedSenders := snapshot.resolve(event, payload.FilterID)
+	interestedSenders := snapshot.resolve(payload.Event, payload.FilterID)
 	if len(interestedSenders) == 0 {
-		s.log.Trace().Str("event", string(event)).Msg("no interested notification senders for event")
+		s.log.Trace().Str("event", string(payload.Event)).Msg("no interested notification senders for event")
 		return
 	}
 
-	go func(interested []Sender, event domain.NotificationEvent, payload domain.NotificationPayload) {
+	go func(interested []Sender, payload domain.NotificationPayload) {
 		for _, sender := range interested {
-			s.log.Debug().Str("sender", sender.Name()).Str("event", string(event)).Msg("sending notification")
+			func() {
+				senderCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+				defer cancel()
+				s.log.Debug().Str("sender", sender.Name()).Str("event", string(payload.Event)).Msg("sending notification")
 
-			if err := sender.Send(event, payload); err != nil {
-				s.log.Error().Err(err).Str("sender", sender.Name()).Str("event", string(event)).Msg("could not send notification")
-			}
+				if err := sender.Send(senderCtx, payload); err != nil {
+					s.log.Error().Err(err).Str("sender", sender.Name()).Str("event", string(payload.Event)).Msg("could not send notification")
+				}
+			}()
 		}
-	}(interestedSenders, event, payload)
+	}(interestedSenders, payload)
 }
 
 func (s *Service) Test(ctx context.Context, notification *domain.Notification) error {
@@ -586,15 +593,15 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 	// send test events
 	testEvents := []domain.NotificationPayload{
 		{
+			Event:     domain.NotificationEventTest,
 			Subject:   "Test Notification",
 			Message:   "autobrr goes brr!!",
-			Event:     domain.NotificationEventTest,
 			Timestamp: time.Now(),
 		},
 		{
+			Event:          domain.NotificationEventPushApproved,
 			Subject:        "New release!",
 			Message:        "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
-			Event:          domain.NotificationEventPushApproved,
 			ReleaseName:    "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
 			Filter:         "TV",
 			Indexer:        "MockIndexer",
@@ -623,9 +630,9 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 			},
 		},
 		{
+			Event:          domain.NotificationEventPushRejected,
 			Subject:        "New release!",
 			Message:        "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
-			Event:          domain.NotificationEventPushRejected,
 			ReleaseName:    "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
 			Filter:         "TV",
 			Indexer:        "MockIndexer",
@@ -653,9 +660,9 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 			},
 		},
 		{
+			Event:          domain.NotificationEventPushError,
 			Subject:        "New release!",
 			Message:        "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
-			Event:          domain.NotificationEventPushError,
 			ReleaseName:    "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
 			Filter:         "TV",
 			Indexer:        "MockIndexer",
@@ -683,27 +690,30 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 			},
 		},
 		{
+			Event:     domain.NotificationEventIRCDisconnected,
 			Subject:   "IRC Disconnected unexpectedly",
 			Message:   "Network: P2P-Network",
-			Event:     domain.NotificationEventIRCDisconnected,
 			Timestamp: time.Now(),
 		},
 		{
+			Event:     domain.NotificationEventIRCReconnected,
 			Subject:   "IRC Reconnected",
 			Message:   "Network: P2P-Network",
-			Event:     domain.NotificationEventIRCReconnected,
 			Timestamp: time.Now(),
 		},
 		{
-			Subject:   "New update available!",
-			Message:   "v1.6.0",
-			Event:     domain.NotificationEventAppUpdateAvailable,
-			Timestamp: time.Now(),
+			Event:          domain.NotificationEventAppUpdateAvailable,
+			Subject:        "New update available!",
+			Message:        "v1.85.0",
+			CurrentVersion: "v1.84.0",
+			NewVersion:     "v1.85.0",
+			URL:            "https://github.com/autobrr/autobrr/releases/tag/v1.85.0",
+			Timestamp:      time.Now(),
 		},
 		{
+			Event:          domain.NotificationEventReleaseNew,
 			Subject:        "New release received!",
 			Message:        "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
-			Event:          domain.NotificationEventReleaseNew,
 			ReleaseName:    "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
 			Filter:         "TV",
 			Indexer:        "MockIndexer",
@@ -732,14 +742,14 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 		return errors.New("unsupported notification type")
 	}
 
-	g, _ := errgroup.WithContext(ctx)
+	g, gCtx := errgroup.WithContext(ctx)
 
 	for _, event := range testEvents {
 		if !enabledEvent(notification.Events, event.Event) {
 			continue
 		}
 
-		if err := agent.Send(event.Event, event); err != nil {
+		if err := agent.Send(gCtx, event); err != nil {
 			s.log.Error().Err(err).Interface("notification", notification).Msg("error sending test notification")
 			return err
 		}

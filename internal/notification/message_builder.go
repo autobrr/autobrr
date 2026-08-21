@@ -17,10 +17,16 @@ type MessageBuilder interface {
 	BuildBody(payload domain.NotificationPayload) string
 }
 
+// The builders are stateless, so the per-service message builders share these.
+var (
+	plainTextBuilder = &MessageBuilderPlainText{}
+	htmlBuilder      = &MessageBuilderHTML{}
+)
+
 type ConditionMessagePart struct {
 	Condition bool
 	Format    string
-	Bits      []interface{}
+	Bits      []any
 }
 
 // MessageBuilderPlainText constructs the body of the notification message in plain text format.
@@ -29,16 +35,16 @@ type MessageBuilderPlainText struct{}
 // BuildBody constructs the body of the notification message.
 func (b *MessageBuilderPlainText) BuildBody(payload domain.NotificationPayload) string {
 	messageParts := []ConditionMessagePart{
-		{payload.Sender != "", "%v\n", []interface{}{payload.Sender}},
-		{payload.Subject != "" && payload.Message != "", "%v\n%v", []interface{}{payload.Subject, payload.Message}},
-		{payload.ReleaseName != "", "New release: %v\n", []interface{}{payload.ReleaseName}},
-		{payload.Size > 0, "Size: %v\n", []interface{}{humanize.Bytes(payload.Size)}},
-		{payload.Status != "", "Status: %v\n", []interface{}{payload.Status.String()}},
-		{payload.Indexer != "", "Indexer: %v\n", []interface{}{payload.Indexer}},
-		{payload.Filter != "", "Filter: %v\n", []interface{}{payload.Filter}},
-		{payload.Action != "", "Action: %v: %v\n", []interface{}{payload.ActionType, payload.Action}},
-		{payload.Action != "" && payload.ActionClient != "", "Client: %v\n", []interface{}{payload.ActionClient}},
-		{len(payload.Rejections) > 0, "Rejections: %v\n", []interface{}{strings.Join(payload.Rejections, ", ")}},
+		{payload.Sender != "", "%v\n", []any{payload.Sender}},
+		{payload.Subject != "" && payload.Message != "", "%v\n%v", []any{payload.Subject, payload.Message}},
+		{payload.ReleaseName != "", "New release: %v\n", []any{payload.ReleaseName}},
+		{payload.Size > 0, "Size: %v\n", []any{humanize.Bytes(payload.Size)}},
+		{payload.Status != "", "Status: %v\n", []any{payload.Status.String()}},
+		{payload.Indexer != "", "Indexer: %v\n", []any{payload.Indexer}},
+		{payload.Filter != "", "Filter: %v\n", []any{payload.Filter}},
+		{payload.Action != "", "Action: %v: %v\n", []any{payload.ActionType, payload.Action}},
+		{payload.Action != "" && payload.ActionClient != "", "Client: %v\n", []any{payload.ActionClient}},
+		{len(payload.Rejections) > 0, "Rejections: %v\n", []any{strings.Join(payload.Rejections, ", ")}},
 	}
 
 	return formatMessageContent(messageParts)
@@ -49,16 +55,16 @@ type MessageBuilderHTML struct{}
 
 func (b *MessageBuilderHTML) BuildBody(payload domain.NotificationPayload) string {
 	messageParts := []ConditionMessagePart{
-		{payload.Sender != "", "<b>%v</b>\n", []interface{}{html.EscapeString(payload.Sender)}},
-		{payload.Subject != "" && payload.Message != "", "<b>%v</b> %v\n", []interface{}{html.EscapeString(payload.Subject), html.EscapeString(payload.Message)}},
-		{payload.ReleaseName != "", "<b>New release:</b> %v\n", []interface{}{html.EscapeString(payload.ReleaseName)}},
-		{payload.Size > 0, "<b>Size:</b> %v\n", []interface{}{humanize.Bytes(payload.Size)}},
-		{payload.Status != "", "<b>Status:</b> %v\n", []interface{}{html.EscapeString(payload.Status.String())}},
-		{payload.Indexer != "", "<b>Indexer:</b> %v\n", []interface{}{html.EscapeString(payload.Indexer)}},
-		{payload.Filter != "", "<b>Filter:</b> %v\n", []interface{}{html.EscapeString(payload.Filter)}},
-		{payload.Action != "", "<b>Action:</b> %v: %v\n", []interface{}{payload.ActionType, html.EscapeString(payload.Action)}},
-		{payload.Action != "" && payload.ActionClient != "", "<b>Client:</b> %v\n", []interface{}{html.EscapeString(payload.ActionClient)}},
-		{len(payload.Rejections) > 0, "<b>Rejections:</b> %v\n", []interface{}{html.EscapeString(strings.Join(payload.Rejections, ", "))}},
+		{payload.Sender != "", "<b>%v</b>\n", []any{html.EscapeString(payload.Sender)}},
+		{payload.Subject != "" && payload.Message != "", "<b>%v</b> %v\n", []any{html.EscapeString(payload.Subject), html.EscapeString(payload.Message)}},
+		{payload.ReleaseName != "", "<b>New release:</b> %v\n", []any{html.EscapeString(payload.ReleaseName)}},
+		{payload.Size > 0, "<b>Size:</b> %v\n", []any{humanize.Bytes(payload.Size)}},
+		{payload.Status != "", "<b>Status:</b> %v\n", []any{html.EscapeString(payload.Status.String())}},
+		{payload.Indexer != "", "<b>Indexer:</b> %v\n", []any{html.EscapeString(payload.Indexer)}},
+		{payload.Filter != "", "<b>Filter:</b> %v\n", []any{html.EscapeString(payload.Filter)}},
+		{payload.Action != "", "<b>Action:</b> %v: %v\n", []any{payload.ActionType, html.EscapeString(payload.Action)}},
+		{payload.Action != "" && payload.ActionClient != "", "<b>Client:</b> %v\n", []any{html.EscapeString(payload.ActionClient)}},
+		{len(payload.Rejections) > 0, "<b>Rejections:</b> %v\n", []any{html.EscapeString(strings.Join(payload.Rejections, ", "))}},
 	}
 
 	return formatMessageContent(messageParts)

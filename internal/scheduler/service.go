@@ -16,10 +16,6 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type notificationSender interface {
-	Send(event domain.NotificationEvent, payload domain.NotificationPayload)
-}
-
 type updateChecker interface {
 	CheckUpdateAvailable(ctx context.Context) (*version.Release, error)
 }
