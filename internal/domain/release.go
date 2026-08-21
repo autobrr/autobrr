@@ -59,7 +59,7 @@ type Release struct {
 	TorrentDataRawBytes                []byte                `json:"-"`
 	TorrentHash                        string                `json:"-"`
 	TorrentName                        string                `json:"name"`            // full release name
-	Vars                               map[string]string     `json:"-"`               // raw announce vars from indexer definition
+	RawVars                            map[string]string     `json:"-"`               // raw announce vars from indexer definition
 	NormalizedHash                     string                `json:"normalized_hash"` // normalized torrent name and md5 hashed
 	Size                               uint64                `json:"size"`
 	Title                              string                `json:"title"`     // Parsed title
@@ -1322,7 +1322,7 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error 
 		}
 	}
 
-	r.Vars = varMap
+	r.RawVars = varMap
 
 	return nil
 }

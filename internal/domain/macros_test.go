@@ -283,6 +283,19 @@ func TestMacros_Parse(t *testing.T) {
 			want:    "tags: WEB-DL",
 			wantErr: false,
 		},
+		{
+			name: "test_raw_vars",
+			release: Release{
+				ReleaseTags: "WEB-DL",
+				RawVars: map[string]string{
+					"releaseName": "Servant S01 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-FLUX",
+					"custom":      "test",
+				},
+			},
+			args:    args{text: `release: "{{.RawVars.releaseName}}" custom: {{.RawVars.custom}}`},
+			want:    `release: "Servant S01 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-FLUX" custom: test`,
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
