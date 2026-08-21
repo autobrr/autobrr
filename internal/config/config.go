@@ -143,6 +143,12 @@ checkForUpdates = true
 # reverse proxy or loopback), NOT a forwarded header or the end user's browser.
 # Prefer the exact proxy address as a /32 or /128.
 #authAllowedPeerCIDRs = ["127.0.0.1/32", "::1/128"]
+#
+# Header the reverse proxy overwrites on EVERY request with the end user's IP,
+# used for access logs while authentication is disabled. Only safe with a header
+# your proxy sets unconditionally (e.g. X-Real-IP with nginx real_ip, or
+# CF-Connecting-IP with Cloudflare); leave empty to log the proxy address instead.
+#authClientIPHeader = ""
 
 # Metrics
 #
@@ -311,6 +317,7 @@ func (c *AppConfig) defaults() {
 		AuthDisabled:                false,
 		AuthDisabledAcknowledgement: "",
 		AuthAllowedPeerCIDRs:        []string{},
+		AuthClientIPHeader:          "",
 	}
 }
 
@@ -481,6 +488,10 @@ func (c *AppConfig) loadFromEnv() {
 
 	if v := GetEnvStr("AUTH_ALLOWED_PEER_CIDRS"); v != "" {
 		c.Config.AuthAllowedPeerCIDRs = splitEnvList(v)
+	}
+
+	if v := GetEnvStr("AUTH_CLIENT_IP_HEADER"); v != "" {
+		c.Config.AuthClientIPHeader = v
 	}
 }
 

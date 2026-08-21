@@ -247,6 +247,56 @@ func TestRequireAuthDisabledIPAllowlist_RunsBeforeRealIP(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, rr.Code)
 }
 
+func TestRequireAuthDisabledIPAllowlist_ClientIPHeaderCannotBypass(t *testing.T) {
+	// The configured client IP header is for logging only; the allowlist keys off
+	// the TCP peer even with ClientIPFromHeader in the chain behind it.
+	s := newAuthDisabledTestServer([]string{"192.168.1.0/24"})
+
+	handler := s.RequireAuthDisabledIPAllowlist(middleware.ClientIPFromHeader("X-Real-IP")(okHandler()))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/filters", nil)
+	req.RemoteAddr = "203.0.113.5:1234"
+	req.Header.Set("X-Real-IP", "192.168.1.42")
+	rr := httptest.NewRecorder()
+
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusForbidden, rr.Code)
+}
+
+func TestLoggerMiddleware_LogsResolvedClientIP(t *testing.T) {
+	var buf bytes.Buffer
+	logger := zerolog.New(&buf)
+
+	handler := middleware.ClientIPFromHeader("X-Real-IP")(LoggerMiddleware(&logger, nil)(okHandler()))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/filters", nil)
+	req.RemoteAddr = "127.0.0.1:1234"
+	req.Header.Set("X-Real-IP", "192.0.2.7")
+	rr := httptest.NewRecorder()
+
+	handler.ServeHTTP(rr, req)
+
+	assert.Contains(t, buf.String(), `"remote_ip":"192.0.2.7"`)
+	// ClientIPFromHeader must never rewrite the peer address itself.
+	assert.Equal(t, "127.0.0.1:1234", req.RemoteAddr)
+}
+
+func TestLoggerMiddleware_FallsBackToRemoteAddr(t *testing.T) {
+	var buf bytes.Buffer
+	logger := zerolog.New(&buf)
+
+	handler := LoggerMiddleware(&logger, nil)(okHandler())
+
+	req := httptest.NewRequest(http.MethodGet, "/api/filters", nil)
+	req.RemoteAddr = "127.0.0.1:1234"
+	rr := httptest.NewRecorder()
+
+	handler.ServeHTTP(rr, req)
+
+	assert.Contains(t, buf.String(), `"remote_ip":"127.0.0.1:1234"`)
+}
+
 func TestIsAuthenticated_BypassedWhenAuthDisabled(t *testing.T) {
 	s := newAuthDisabledTestServer([]string{"127.0.0.1/32"})
 

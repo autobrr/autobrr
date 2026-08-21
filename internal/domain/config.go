@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+
+	"golang.org/x/net/http/httpguts"
 )
 
 type Config struct {
@@ -63,6 +65,12 @@ type Config struct {
 	// is disabled. Entries match the immediate TCP peer autobrr sees (normally the
 	// reverse proxy or loopback), never a forwarded header or the end user's browser.
 	AuthAllowedPeerCIDRs []string `toml:"authAllowedPeerCIDRs"`
+
+	// AuthClientIPHeader optionally names a header the reverse proxy overwrites on
+	// every request with the end user's IP (e.g. X-Real-IP). While authentication is
+	// disabled it is resolved into the request context for access logs; it never
+	// affects the peer allowlist, which always checks the TCP peer.
+	AuthClientIPHeader string `toml:"authClientIPHeader"`
 }
 
 // AuthDisabledAcknowledgementValue is the exact value AuthDisabledAcknowledgement
@@ -165,7 +173,7 @@ func (c *Config) ValidateAuthDisabledConfig() error {
 	// explicit origins in this mode. Tokenize the value the same way it is consumed
 	// (comma-split) so a wildcard hidden inside a list is still rejected.
 	hasOrigin := false
-	for _, origin := range strings.Split(c.CorsAllowedOrigins, ",") {
+	for origin := range strings.SplitSeq(c.CorsAllowedOrigins, ",") {
 		origin = strings.TrimSpace(origin)
 		if origin == "" {
 			continue
@@ -178,6 +186,10 @@ func (c *Config) ValidateAuthDisabledConfig() error {
 
 	if !hasOrigin {
 		return errors.New("corsAllowedOrigins must be set to explicit origins when authentication is disabled")
+	}
+
+	if header := strings.TrimSpace(c.AuthClientIPHeader); header != "" && !httpguts.ValidHeaderFieldName(header) {
+		return errors.New("authClientIPHeader is not a valid header name: %s", header)
 	}
 
 	return nil

@@ -160,12 +160,24 @@ func TestConfig_ValidateAuthDisabledConfig(t *testing.T) {
 		assert.EqualError(t, c.ValidateAuthDisabledConfig(), "corsAllowedOrigins must be set to explicit origins when authentication is disabled")
 	})
 
+	t.Run("auth disabled with invalid client ip header is rejected", func(t *testing.T) {
+		c := &Config{
+			AuthDisabled:                true,
+			AuthDisabledAcknowledgement: AuthDisabledAcknowledgementValue,
+			AuthAllowedPeerCIDRs:        []string{"127.0.0.1/32"},
+			CorsAllowedOrigins:          "https://autobrr.example.com",
+			AuthClientIPHeader:          "X Real IP",
+		}
+		assert.EqualError(t, c.ValidateAuthDisabledConfig(), "authClientIPHeader is not a valid header name: X Real IP")
+	})
+
 	t.Run("fully valid config", func(t *testing.T) {
 		c := &Config{
 			AuthDisabled:                true,
 			AuthDisabledAcknowledgement: AuthDisabledAcknowledgementValue,
 			AuthAllowedPeerCIDRs:        []string{"127.0.0.1/32", "192.168.0.0/16"},
 			CorsAllowedOrigins:          "https://autobrr.example.com",
+			AuthClientIPHeader:          "X-Real-IP",
 		}
 		assert.NoError(t, c.ValidateAuthDisabledConfig())
 	})

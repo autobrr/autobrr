@@ -196,10 +196,15 @@ func (s *Server) Handler() http.Handler {
 	r.Use(hlog.RequestIDHandler("request_id", "X-Request-Id"))
 	// Must run before RealIP so forwarded headers cannot bypass the allowlist.
 	r.Use(s.RequireAuthDisabledIPAllowlist)
-	// RealIP rewrites r.RemoteAddr from untrusted forwarded headers. With auth
-	// disabled there is no trusted-proxy configuration, so skip it and keep the
-	// real TCP peer address intact for both the allowlist decision and logging.
-	if !s.config.Config.IsAuthDisabled() {
+	if s.config.Config.IsAuthDisabled() {
+		// RealIP rewrites r.RemoteAddr from forwarded headers it trusts from any
+		// peer, so it stays off in this mode. If the operator names the header their
+		// proxy overwrites, resolve the client IP from it into the request context
+		// for logging; r.RemoteAddr keeps the real TCP peer either way.
+		if header := strings.TrimSpace(s.config.Config.AuthClientIPHeader); header != "" {
+			r.Use(middleware.ClientIPFromHeader(header))
+		}
+	} else {
 		r.Use(middleware.RealIP)
 	}
 	r.Use(middleware.Recoverer)

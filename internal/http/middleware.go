@@ -154,12 +154,19 @@ func LoggerMiddleware(logger *zerolog.Logger, skipPaths []string) func(next http
 				}
 
 				if !slices.Contains(skipPaths, r.URL.Path) {
+					// prefer the client IP a ClientIPFrom* middleware resolved from a
+					// trusted header; RemoteAddr otherwise (RealIP-rewritten when active).
+					remoteIP := r.RemoteAddr
+					if ip := middleware.GetClientIP(r.Context()); ip != "" {
+						remoteIP = ip
+					}
+
 					// log end request
 					log.Trace().
 						Str("type", "access").
 						Timestamp().
 						Fields(map[string]any{
-							"remote_ip":  r.RemoteAddr,
+							"remote_ip":  remoteIP,
 							"url":        r.URL.Path,
 							"proto":      r.Proto,
 							"method":     r.Method,
