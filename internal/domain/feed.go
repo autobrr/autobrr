@@ -70,6 +70,20 @@ func (f Feed) MarshalJSON() ([]byte, error) {
 
 type FeedSettingsJSON struct {
 	DownloadType FeedDownloadType `json:"download_type"`
+	CacheTTLDays int              `json:"cache_ttl_days"`
+}
+
+// DefaultFeedCacheTTLDays is the feed cache item TTL used when a feed has no explicit cache TTL configured.
+const DefaultFeedCacheTTLDays = 31
+
+// CacheTTL returns the expiry time for new feed cache items.
+func (f Feed) CacheTTL() time.Time {
+	days := DefaultFeedCacheTTLDays
+	if f.Settings != nil && f.Settings.CacheTTLDays > 0 {
+		days = f.Settings.CacheTTLDays
+	}
+
+	return time.Now().AddDate(0, 0, days)
 }
 
 type FeedIndexer struct {

@@ -390,6 +390,8 @@
         "refreshTimeoutHelp": "Čekat počet sekund před zrušením refreshnutí.",
         "maxAge": "Max. věk",
         "maxAgeHelp": "Maximální věk obsahu kanálu v sekundách. Použijte 0 k vypnutí filtru věku a zpracování všech položek.",
+        "cacheTTL": "TTL mezipaměti",
+        "cacheTTLHelp": "Počet dní, po které si autobrr pamatuje zpracované položky kanálu. Položky, které jsou v kanálu stále přítomny po vypršení, budou zpracovány a staženy znovu. Výchozí hodnota je 31 dní.",
         "cookie": "Cookie",
         "cookieHelp": "Ne často používané",
         "userAgent": "User-Agent",

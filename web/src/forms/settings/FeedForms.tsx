@@ -120,7 +120,10 @@ export function FeedUpdateForm({ isOpen, toggle, data}: UpdateFormProps<Feed>) {
     max_age: feed.max_age,
     categories: feed.categories || [],
     capabilities: feed.capabilities || null,
-    settings: feed.settings
+    settings: {
+      ...feed.settings,
+      cache_ttl_days: feed.settings?.cache_ttl_days || 31
+    }
   };
 
   return (
@@ -221,6 +224,7 @@ function FormFieldsTorznab({ feedID }: { feedID: number }) {
 
       <NumberFieldWide name="timeout" label={t("forms.feed.refreshTimeout")} help={t("forms.feed.refreshTimeoutHelp")}/>
       <NumberFieldWide name="max_age" label={t("forms.feed.maxAge")} help={t("forms.feed.maxAgeHelp")}/>
+      <NumberFieldWide name="settings.cache_ttl_days" label={t("forms.feed.cacheTTL")} help={t("forms.feed.cacheTTLHelp")}/>
 
       <FeedCategoriesSection feedID={feedID} />
     </div>
@@ -260,6 +264,7 @@ function FormFieldsNewznab({ feedID }: { feedID: number }) {
 
       <NumberFieldWide name="timeout" label={t("forms.feed.refreshTimeout")} help={t("forms.feed.refreshTimeoutHelp")}/>
       <NumberFieldWide name="max_age" label={t("forms.feed.maxAge")} help={t("forms.feed.maxAgeHelp")}/>
+      <NumberFieldWide name="settings.cache_ttl_days" label={t("forms.feed.cacheTTL")} help={t("forms.feed.cacheTTLHelp")}/>
 
       <FeedCategoriesSection feedID={feedID} />
     </div>
@@ -288,6 +293,7 @@ function FormFieldsRSS() {
       <NumberFieldWide name="interval" label={t("forms.feed.refreshInterval")} help={t("forms.feed.refreshIntervalHelp")}/>
       <NumberFieldWide name="timeout" label={t("forms.feed.refreshTimeout")} help={t("forms.feed.refreshTimeoutHelp")}/>
       <NumberFieldWide name="max_age" label={t("forms.feed.maxAge")} help={t("forms.feed.maxAgeHelp")}/>
+      <NumberFieldWide name="settings.cache_ttl_days" label={t("forms.feed.cacheTTL")} help={t("forms.feed.cacheTTLHelp")}/>
 
       <PasswordFieldWide name="cookie" label={t("forms.feed.cookie")} help={t("forms.feed.cookieHelp")} />
 

@@ -390,6 +390,8 @@
       "refreshTimeoutHelp": "Sekunden bis zum Abbrechen der Aktualisierung.",
       "maxAge": "Max. Alter",
       "maxAgeHelp": "Maximales Alter des Feedinhalts in Sekunden. 0 verwenden, um den Altersfilter zu deaktivieren und alle Einträge zu verarbeiten.",
+      "cacheTTL": "Cache-TTL",
+      "cacheTTLHelp": "Anzahl der Tage, die verarbeitete Feed-Einträge gemerkt werden. Einträge, die nach Ablauf noch im Feed vorhanden sind, werden erneut verarbeitet und heruntergeladen. Standard ist 31 Tage.",
       "cookie": "Cookie",
       "cookieHelp": "Nicht häufig verwendet",
       "userAgent": "User-Agent",

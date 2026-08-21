@@ -390,6 +390,8 @@
       "refreshTimeoutHelp": "Segundos a esperar antes de cancelar la actualización.",
       "maxAge": "Antigüedad máxima",
       "maxAgeHelp": "Antigüedad máxima del contenido del feed en segundos. Usa 0 para deshabilitar el filtro de antigüedad y procesar todos los elementos.",
+      "cacheTTL": "TTL de caché",
+      "cacheTTLHelp": "Días que se recuerdan los elementos del feed procesados. Los elementos que sigan presentes en el feed tras la expiración se procesarán y descargarán de nuevo. El valor predeterminado es 31 días.",
       "cookie": "Cookie",
       "cookieHelp": "No se usa comúnmente",
       "userAgent": "User-Agent",

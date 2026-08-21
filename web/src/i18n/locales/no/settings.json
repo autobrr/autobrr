@@ -390,6 +390,8 @@
       "refreshTimeoutHelp": "Sekunder å vente før oppdateringen avbrytes.",
       "maxAge": "Maks alder",
       "maxAgeHelp": "Maksimum alder på feedinnhold i sekunder. Bruk 0 for å deaktivere aldersfilteret og behandle alle elementer.",
+      "cacheTTL": "Cache-TTL",
+      "cacheTTLHelp": "Antall dager behandlede feedelementer huskes. Elementer som fortsatt finnes i feeden etter utløp vil bli behandlet og lastet ned på nytt. Standard er 31 dager.",
       "cookie": "Informasjonskapsel (Cookie)",
       "cookieHelp": "Brukes vanligvis ikke",
       "userAgent": "User-Agent",
