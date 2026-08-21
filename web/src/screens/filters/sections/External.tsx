@@ -34,7 +34,7 @@ export function External() {
     id: values.external.length + 1,
     index: values.external.length,
     name: `External ${values.external.length + 1}`,
-    enabled: false,
+    enabled: true,
     type: "EXEC",
     on_error: "REJECT",
   };
