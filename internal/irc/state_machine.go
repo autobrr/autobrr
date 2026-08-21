@@ -27,7 +27,7 @@ const (
 )
 
 func (s ConnectionState) String() string {
-	return [...]string{
+	names := [...]string{
 		"Disconnected",
 		"Connecting",
 		"Connected",
@@ -37,7 +37,13 @@ func (s ConnectionState) String() string {
 		"FullyOperational",
 		"PartiallyOperational",
 		"Error",
-	}[s]
+	}
+
+	if s < 0 || int(s) >= len(names) {
+		return fmt.Sprintf("ConnectionState(%d)", int(s))
+	}
+
+	return names[s]
 }
 
 var validTransitions = map[ConnectionState][]ConnectionState{
@@ -210,6 +216,9 @@ func (sm *ConnectionStateMachine) allEnabledChannelsMonitoring() bool {
 
 func (sm *ConnectionStateMachine) onStateEntry(state ConnectionState) {
 	switch state {
+	case StateConnecting:
+		// the connect attempt itself is driven by the handler; no entry action
+
 	case StateConnected:
 		sm.m.Lock()
 		sm.authAttempts = 0
@@ -262,13 +271,12 @@ func (sm *ConnectionStateMachine) onStateEntry(state ConnectionState) {
 
 func (sm *ConnectionStateMachine) handleAuthentication() {
 	sm.handler.m.RLock()
-	password := sm.handler.network.Auth.Password
-	needsAuth := password != "" && !sm.handler.saslauthed
+	needsAuth := sm.handler.network.Auth.NickServEnabled() && !sm.handler.saslauthed
 	sm.handler.m.RUnlock()
 
 	if needsAuth {
 		sm.log.Trace().Msg("sending NickServ authentication")
-		if err := sm.handler.NickServIdentify(password); err != nil {
+		if err := sm.handler.NickServIdentify(); err != nil {
 			sm.log.Error().Err(err).Msg("failed to send NickServ identify")
 		}
 		// Wait for handleNickServ callback to call OnAuthenticated()
@@ -309,7 +317,7 @@ func (sm *ConnectionStateMachine) OnConnected() {
 	// Determine next state based on auth requirements
 	sm.handler.m.RLock()
 	botMode := sm.handler.network.BotMode
-	needsAuth := sm.handler.network.Auth.Password != "" && !sm.handler.saslauthed
+	needsAuth := sm.handler.network.Auth.NickServEnabled() && !sm.handler.saslauthed
 	sm.handler.m.RUnlock()
 
 	if botMode && sm.handler.botModeSupported() {

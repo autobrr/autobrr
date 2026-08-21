@@ -70,6 +70,14 @@ export const IndexersOptionsQueryOptions = () =>
     staleTime: Infinity
   });
 
+export const IndexerDeprecationsQueryOptions = () =>
+  queryOptions({
+    queryKey: IndexerKeys.deprecations(),
+    queryFn: () => APIClient.indexers.getDeprecations(),
+    refetchOnWindowFocus: false,
+    staleTime: Infinity
+  });
+
 export const IndexersSchemaQueryOptions = (enabled: boolean) =>
   queryOptions({
     queryKey: IndexerKeys.schema(),
@@ -156,12 +164,60 @@ export const ReleasesLatestQueryOptions = () =>
     refetchInterval: 15000  // refetch recent activity table on dashboard page every 15s
   });
 
+// Dashboard widget queries contain failures in their own card: no throw to
+// the route error boundary (the global default) and only quick retries so
+// the widget's error state appears in seconds instead of minutes. The
+// expired-cookie error must not retry so the login redirect stays prompt.
+const widgetQueryDefaults = {
+  placeholderData: keepPreviousData,
+  staleTime: 5000,
+  refetchOnWindowFocus: true,
+  refetchInterval: 15000,
+  throwOnError: false,
+  retry: (failureCount: number, error: Error) =>
+    error.message !== "Cookie expired or invalid." && failureCount < 2
+};
+
 export const ReleasesStatsQueryOptions = () =>
   queryOptions({
     queryKey: ReleaseKeys.stats(),
     queryFn: () => APIClient.release.stats(),
-    refetchOnWindowFocus: true,
-    refetchInterval: 15000  // refetch stats on dashboard page every 15s
+    ...widgetQueryDefaults
+  });
+
+export const ReleasesActivityQueryOptions = (days: number = 30) =>
+  queryOptions({
+    queryKey: ReleaseKeys.statsActivity(days),
+    queryFn: () => APIClient.release.statsActivity(days),
+    ...widgetQueryDefaults
+  });
+
+export const ReleasesVolumeQueryOptions = (days: number = 30) =>
+  queryOptions({
+    queryKey: ReleaseKeys.statsVolume(days),
+    queryFn: () => APIClient.release.statsVolume(days),
+    ...widgetQueryDefaults
+  });
+
+export const ReleasesHeatmapQueryOptions = (days: number = 30) =>
+  queryOptions({
+    queryKey: ReleaseKeys.statsHeatmap(days),
+    queryFn: () => APIClient.release.statsHeatmap(days),
+    ...widgetQueryDefaults
+  });
+
+export const ReleasesTopIndexersQueryOptions = (days: number = 30) =>
+  queryOptions({
+    queryKey: ReleaseKeys.statsTopIndexers(days),
+    queryFn: () => APIClient.release.statsTopIndexers(days),
+    ...widgetQueryDefaults
+  });
+
+export const ReleasesTopFiltersQueryOptions = (days: number = 30) =>
+  queryOptions({
+    queryKey: ReleaseKeys.statsTopFilters(days),
+    queryFn: () => APIClient.release.statsTopFilters(days),
+    ...widgetQueryDefaults
   });
 
 // ReleasesIndexersQueryOptions get basic list of used indexers by identifier
@@ -170,12 +226,15 @@ export const ReleasesIndexersQueryOptions = () =>
     queryKey: ReleaseKeys.indexers(),
     queryFn: async () => {
       const indexersResponse: IndexerDefinition[] = await APIClient.indexers.getAll();
+      const deprecationsResponse: IndexerDeprecation[] = await APIClient.indexers.getDeprecations();
       const indexerOptionsResponse: string[] = await APIClient.release.indexerOptions();
-      
+
       const indexersMap = new Map(indexersResponse.map((indexer: IndexerDefinition) => [indexer.identifier, indexer.name]));
-      
+      // fall back to deprecation metadata so removed indexers still show a friendly name
+      const deprecationsMap = new Map(deprecationsResponse.map((d: IndexerDeprecation) => [d.identifier, d.name]));
+
       return indexerOptionsResponse.map((identifier: string) => ({
-        name: indexersMap.get(identifier) || identifier,
+        name: indexersMap.get(identifier) || deprecationsMap.get(identifier) || identifier,
         identifier: identifier
       }));
     },

@@ -344,6 +344,7 @@ const LogsDropdown = () => {
             <MenuItem>
               {() => (
                 <Checkbox
+                  name="scrollOnNewLog"
                   label={t("logs.options.scrollOnNewMessage")}
                   value={settings.scrollOnNewLog}
                   setValue={(newValue) => onSetValue("scrollOnNewLog", newValue)}
@@ -353,6 +354,7 @@ const LogsDropdown = () => {
             <MenuItem>
               {() => (
                 <Checkbox
+                  name="indentLogLines"
                   label={t("logs.options.indentLogLines")}
                   description={t("logs.options.indentLogLinesDescription")}
                   value={settings.indentLogLines}
@@ -363,6 +365,7 @@ const LogsDropdown = () => {
             <MenuItem>
               {() => (
                 <Checkbox
+                  name="hideWrappedText"
                   label={t("logs.options.hideWrappedText")}
                   description={t("logs.options.hideWrappedTextDescription")}
                   value={settings.hideWrappedText}

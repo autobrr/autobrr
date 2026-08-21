@@ -62,7 +62,7 @@ qBittorrent, Deluge, r(u)Torrent, and Transmission. You don't need to use the *a
 ## Key Features
 
 - Torrents and Usenet support
-- Support for 75+ torrent trackers with IRC announces
+- Support for 100+ torrent trackers with IRC announces
 - Newznab, Torznab, and RSS support to easily get access to hundreds of torrent and Usenet indexers
 - Torrent Magnet support
 - Powerful but simple filtering with RegEx support (like in autodl-irssi)
@@ -72,7 +72,7 @@ qBittorrent, Deluge, r(u)Torrent, and Transmission. You don't need to use the *a
 - Great container support (Docker, k8s/Kubernetes)
 - Database engine supporting both PostgreSQL and SQLite
 - Authentication support including built-in auth and OpenID Connect (OIDC)
-- Notifications (Discord, Telegram, Notifiarr, Pushover, Gotify)
+- Notifications (Discord, Telegram, Notifiarr, Pushover, Gotify, Shoutrrr, ntfy)
 - One autobrr instance can communicate with multiple clients (torrent, Usenet, and \*arr) on remote servers
 - Base path / Subfolder (and subdomain) support for convenient reverse-proxy support
 
@@ -83,8 +83,9 @@ qBittorrent, Deluge, r(u)Torrent, and Transmission. You don't need to use the *a
 - **rTorrent**
 - **Transmission**
 - **Porla**
-- **Sonarr, Radarr, Lidarr, Whisparr, Readarr:** Pushes releases directly for early swarm participation, rather than relying on RSS feeds.
-- **SABnzbd (Usenet):** Integrates smoothly for Usenet downloads.
+- **aria2**
+- **Sonarr, Radarr, Lidarr, Whisparr, Readarr, Sportarr:** Pushes releases directly for early swarm participation, rather than relying on RSS feeds.
+- **SABnzbd and NZBGet (Usenet):** Integrates smoothly for Usenet downloads.
 - **Watch Folder:** Monitors specified folders for new files.
 - **Exec Custom Scripts:** Execute tailored scripts for advanced automation.
 - **Webhook:** Offers webhook support for diverse integration needs.
@@ -98,7 +99,7 @@ Usenet support via Newznab feeds allows you to easily manage everything in a sin
 applications that handle RSS well, we think autobrr offers very easy-to-use filtering to help you get the content you
 want.
 
-You can use Usenet feeds and send to arrs or send directly to SABnzbd.
+You can use Usenet feeds and send to arrs or send directly to SABnzbd or NZBGet.
 
 ## Installation
 

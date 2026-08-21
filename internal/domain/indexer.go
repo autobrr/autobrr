@@ -6,10 +6,14 @@ package domain
 import (
 	"bytes"
 	"encoding/json"
+	"maps"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
+	"sync"
 	"text/template"
+	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/regexcache"
@@ -30,29 +34,39 @@ type Indexer struct {
 	Proxy              *Proxy                `json:"proxy"`
 	ProxyID            int64                 `json:"proxy_id"`
 	Settings           map[string]string     `json:"settings,omitempty"`
+	Archived           bool                  `json:"archived"`
+	ArchivedAt         *time.Time            `json:"archived_at,omitempty"`
+}
+
+// secretSettingKeys are indexer settings redacted in API responses; updates must echo them
+// back, redacted or not, so a saved credential is never silently dropped.
+var secretSettingKeys = map[string]struct{}{
+	"rsskey":       {},
+	"rss_key":      {},
+	"passkey":      {},
+	"authkey":      {},
+	"torrentpass":  {},
+	"torrent_pass": {},
+	"api_key":      {},
+	"apikey":       {},
+	"uid":          {},
+	"userid":       {},
+	"key":          {},
+	"token":        {},
+	"cookie":       {},
+}
+
+// IsSecretIndexerSetting reports whether an indexer setting key holds a credential.
+func IsSecretIndexerSetting(key string) bool {
+	_, ok := secretSettingKeys[strings.ToLower(key)]
+	return ok
 }
 
 func (i Indexer) MarshalJSON() ([]byte, error) {
-	// Define secret keys that should be redacted
-	secretKeys := map[string]bool{
-		"rsskey":       true,
-		"rss_key":      true,
-		"passkey":      true,
-		"authkey":      true,
-		"torrentpass":  true,
-		"torrent_pass": true,
-		"api_key":      true,
-		"apikey":       true,
-		"uid":          true,
-		"key":          true,
-		"token":        true,
-		"cookie":       true,
-	}
-
 	// Create a copy of the settings map with redacted secrets
 	redactedSettings := make(map[string]string)
 	for key, value := range i.Settings {
-		if secretKeys[strings.ToLower(key)] {
+		if IsSecretIndexerSetting(key) {
 			redactedSettings[key] = RedactString(value)
 		} else {
 			redactedSettings[key] = value
@@ -87,6 +101,17 @@ func (m IndexerMinimal) GetExternalIdentifier() string {
 	}
 
 	return m.Identifier
+}
+
+// IndexerDeprecation describes an indexer whose definition has been removed.
+type IndexerDeprecation struct {
+	Identifier   string    `json:"identifier" yaml:"identifier"`
+	Name         string    `json:"name" yaml:"name"`
+	Reason       string    `json:"reason" yaml:"reason"`
+	IssueURL     string    `json:"issue_url" yaml:"issue_url"`
+	AliasOf      string    `json:"alias_of,omitempty" yaml:"alias_of,omitempty"`
+	DeprecatedAt time.Time `json:"deprecated_at" yaml:"deprecated_at"`
+	FilterCount  int       `json:"filter_count" yaml:"-"`
 }
 
 type IndexerDefinition struct {
@@ -173,12 +198,16 @@ func (i IndexerImplementation) String() string {
 }
 
 func (i IndexerDefinition) HasApi() bool {
-	for _, a := range i.Supports {
-		if a == "api" {
-			return true
-		}
+	return slices.Contains(i.Supports, "api")
+}
+
+// ValidateIRCAuth rejects invalid authentication metadata in an indexer definition.
+func (i IndexerDefinition) ValidateIRCAuth() error {
+	if i.IRC == nil || i.IRC.Auth == nil {
+		return nil
 	}
-	return false
+
+	return i.IRC.Auth.Validate()
 }
 
 type IndexerDefinitionCustom struct {
@@ -233,6 +262,7 @@ func (i *IndexerDefinitionCustom) ToIndexerDefinition() *IndexerDefinition {
 			Server:      i.IRC.Server,
 			Port:        i.IRC.Port,
 			TLS:         i.IRC.TLS,
+			Auth:        i.IRC.Auth,
 			SettingsMap: i.IRC.SettingsMap,
 			Settings:    i.IRC.Settings,
 			Channels:    make([]IndexerIRCV2Channel, 0),
@@ -345,11 +375,26 @@ type IndexerIRC struct {
 	Server      string            `json:"server"`
 	Port        int               `json:"port"`
 	TLS         bool              `json:"tls"`
+	Auth        *IndexerIRCAuth   `json:"auth,omitempty"`
 	Channels    []string          `json:"channels"`
 	Announcers  []string          `json:"announcers"`
 	SettingsMap map[string]string `json:"-"`
 	Settings    []IndexerSetting  `json:"settings"`
 	Parse       *IndexerIRCParse  `json:"parse,omitempty"`
+}
+
+// IndexerIRCAuth declares the authentication mechanism used by an IRC network.
+type IndexerIRCAuth struct {
+	Mechanism IRCAuthMechanism `json:"mechanism"`
+}
+
+// Validate rejects undeclared and unknown authentication mechanisms.
+func (a IndexerIRCAuth) Validate() error {
+	if !a.Mechanism.IsValid() {
+		return errors.New("invalid IRC authentication mechanism: %q", a.Mechanism)
+	}
+
+	return nil
 }
 
 type IRCMappings map[string]map[string]map[string]string
@@ -359,6 +404,7 @@ type IndexerIRCV2 struct {
 	Server      string                          `json:"server"`
 	Port        int                             `json:"port"`
 	TLS         bool                            `json:"tls"`
+	Auth        *IndexerIRCAuth                 `json:"auth,omitempty"`
 	SettingsMap map[string]string               `json:"-"`
 	Settings    []IndexerSetting                `json:"settings"`
 	Channels    []IndexerIRCV2Channel           `json:"channels"`
@@ -518,11 +564,37 @@ func parseLineMatchRegexp(pattern string, tmpVars map[string]string, line string
 	return true, nil
 }
 
-func parseTemplateURL(baseURL, sourceURL string, vars map[string]string, basename string) (*url.URL, error) {
-	// setup text template to inject variables into
-	tmpl, err := template.New(basename).Funcs(sprig.TxtFuncMap()).Parse(sourceURL)
+// sprigFuncs is built once. sprig.TxtFuncMap assembles a map of well over a
+// hundred entries on every call, and these templates are rendered for every
+// announce.
+var sprigFuncs = sprig.TxtFuncMap()
+
+// templates caches the parsed announce templates. Their text comes from the
+// indexer definitions, so the set is bounded by what is loaded at startup, and
+// a parsed template is safe to execute from several announce processors at once.
+var templates sync.Map
+
+func cachedTemplate(name, text string) (*template.Template, error) {
+	key := name + "\x00" + text
+
+	if cached, ok := templates.Load(key); ok {
+		return cached.(*template.Template), nil
+	}
+
+	tmpl, err := template.New(name).Funcs(sprigFuncs).Parse(text)
 	if err != nil {
-		return nil, errors.New("could not create %s url template", basename)
+		return nil, errors.New("could not create %s template", name)
+	}
+
+	templates.Store(key, tmpl)
+
+	return tmpl, nil
+}
+
+func parseTemplateURL(baseURL, sourceURL string, vars map[string]string, basename string) (*url.URL, error) {
+	tmpl, err := cachedTemplate(basename, sourceURL)
+	if err != nil {
+		return nil, err
 	}
 
 	var urlBytes bytes.Buffer
@@ -605,10 +677,9 @@ func (p *IndexerIRCV2ParseMatch) ParseURLs(baseURL string, vars map[string]strin
 	return nil
 }
 
-func (p *IndexerIRCV2ParseMatch) ParseTorrentName(vars map[string]string, rls *Release) error {
+func (p *IndexerIRCV2ParseMatch) ParseReleaseName(vars map[string]string, rls *Release) error {
 	if p.ReleaseName != "" {
-		// setup text template to inject variables into
-		tmplName, err := template.New("releasename").Funcs(sprig.TxtFuncMap()).Parse(p.ReleaseName)
+		tmplName, err := cachedTemplate("releasename", p.ReleaseName)
 		if err != nil {
 			return err
 		}
@@ -620,27 +691,6 @@ func (p *IndexerIRCV2ParseMatch) ParseTorrentName(vars map[string]string, rls *R
 
 		rls.TorrentName = nameBytes.String()
 	}
-
-	return nil
-}
-
-func ParseReleaseName(releaseNameTemplate string, vars map[string]string, rls *Release) error {
-	if releaseNameTemplate == "" {
-		return nil
-	}
-
-	// setup text template to inject variables into
-	tmplName, err := template.New("releasename").Funcs(sprig.TxtFuncMap()).Parse(releaseNameTemplate)
-	if err != nil {
-		return err
-	}
-
-	var nameBytes bytes.Buffer
-	if err := tmplName.Execute(&nameBytes, &vars); err != nil {
-		return errors.New("could not write torrent name template output")
-	}
-
-	rls.TorrentName = nameBytes.String()
 
 	return nil
 }
@@ -657,9 +707,7 @@ func (p *IndexerIRCV2Parse) MapCustomVariables(vars map[string]string) error {
 			continue
 		}
 
-		for k, v := range keyValueMap {
-			vars[k] = v
-		}
+		maps.Copy(vars, keyValueMap)
 	}
 
 	return nil
@@ -697,7 +745,7 @@ func (p *IndexerIRCV2Parse) Parse(def *IndexerDefinition, channelName string, va
 	}
 
 	// optionally parse release name template
-	if err := ParseReleaseName(channel.Parse.Match.ReleaseName, mergedVars, rls); err != nil {
+	if err := p.Match.ParseReleaseName(mergedVars, rls); err != nil {
 		return errors.Wrap(err, "could not parse release name")
 	}
 

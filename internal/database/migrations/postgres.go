@@ -8,7 +8,6 @@ import (
 
 	"github.com/autobrr/autobrr/pkg/migrator"
 
-	"github.com/dcarbone/zadapters/zstdlog"
 	"github.com/rs/zerolog"
 )
 
@@ -18,7 +17,7 @@ func PostgresMigrations(db *sql.DB, logger zerolog.Logger) *migrator.Migrator {
 		migrator.WithEngine(migrator.EnginePostgres),
 		migrator.WithEmbedFS(SchemaMigrationsPostgres, "postgres"),
 		migrator.WithSchemaFile("current_schema_postgres.sql"),
-		migrator.WithLogger(zstdlog.NewStdLoggerWithLevel(logger.With().Str("module", "database-migrations").Logger(), zerolog.InfoLevel)),
+		migrator.WithLogger(logger.With().Str("module", "database-migrations").Logger()),
 	)
 
 	migrate.AddFileMigration("0_base_schema_postgres.sql")
@@ -104,6 +103,10 @@ func PostgresMigrations(db *sql.DB, logger zerolog.Logger) *migrator.Migrator {
 	migrate.AddFileMigration("80_feed_add_tls_skip_verify.sql")
 	migrate.AddFileMigration("81_irc_update_darkpeers_network.sql")
 	migrate.AddFileMigration("82_indexers_rename_rotorrent_to_seedcore.sql")
+	migrate.AddFileMigration("83_create_release_status_indexes.sql")
+	migrate.AddFileMigration("84_feeds_add_user_agent.sql")
+	migrate.AddFileMigration("85_add_indexer_archived_and_deprecation.sql")
+	migrate.AddFileMigration("86_irc_update_samaritano_port_and_tls.sql")
 
 	return migrate
 }

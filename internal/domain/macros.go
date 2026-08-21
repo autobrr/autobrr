@@ -95,6 +95,7 @@ type Macro struct {
 	Type                      string
 	Uploader                  string
 	RecordLabel               string
+	RawVars                   map[string]string
 	Website                   string
 	Year                      int
 	Month                     int
@@ -178,6 +179,7 @@ func NewMacro(release Release) Macro {
 		Uploader:                  release.Uploader,
 		RecordLabel:               release.RecordLabel,
 		Website:                   release.Website,
+		RawVars:                   release.RawVars,
 		Year:                      release.Year,
 		Month:                     release.Month,
 		Day:                       release.Day,

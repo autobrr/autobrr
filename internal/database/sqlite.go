@@ -179,7 +179,7 @@ func (db *DB) databaseConsistencyCheckSQLite() error {
 		return errors.Wrap(err, "backup integrity unexpected state")
 	}
 
-	db.log.Info().Msgf("Database integrity check: %s", status)
+	db.log.Info().Str("status", status).Msg("database integrity check")
 
 	if status != "ok" {
 		return errors.New("backup integrity check failed: %q", status)
@@ -205,7 +205,7 @@ func (db *DB) sqlitePerformReIndexing(results []string) error {
 	for _, issue := range results {
 		index, found := strings.CutPrefix(issue, "wrong # of entries in index ")
 		if found {
-			db.log.Warn().Msgf("Database integrity check failed on index: %s", index)
+			db.log.Warn().Str("index", index).Msg("database integrity check failed on index")
 
 			badIndexes = append(badIndexes, index)
 		}
@@ -216,7 +216,7 @@ func (db *DB) sqlitePerformReIndexing(results []string) error {
 	}
 
 	for _, index := range badIndexes {
-		db.log.Info().Msgf("Database attempt to re-index: %s", index)
+		db.log.Info().Str("index", index).Msg("database attempt to re-index")
 
 		_, err := db.Handler.Exec(fmt.Sprintf("REINDEX %s;", index))
 		if err != nil {
@@ -237,14 +237,14 @@ func (db *DB) backupSQLiteDatabase() error {
 
 	backupFile := db.DSN + fmt.Sprintf("_sv%v_%s.backup", version, time.Now().UTC().Format(timeFormat))
 
-	db.log.Info().Msgf("Creating database backup: %s", backupFile)
+	db.log.Info().Str("path", backupFile).Msg("creating database backup")
 
 	_, err := db.Handler.Exec("VACUUM INTO ?;", backupFile)
 	if err != nil {
 		return errors.Wrap(err, "failed to backup database")
 	}
 
-	db.log.Info().Msgf("Database backup created at: %s", backupFile)
+	db.log.Info().Str("path", backupFile).Msg("database backup created")
 
 	return nil
 }
@@ -280,7 +280,7 @@ func (db *DB) cleanupSQLiteBackups() error {
 		}
 	}
 
-	db.log.Info().Msgf("Found %d SQLite backups", len(backups))
+	db.log.Info().Int("count", len(backups)).Msg("found SQLite backups")
 
 	if len(backups) == 0 {
 		return nil
@@ -294,23 +294,23 @@ func (db *DB) cleanupSQLiteBackups() error {
 	})
 
 	for i := 0; len(broken) != 0 && len(backups) == db.cfg.DatabaseMaxBackups && i < len(broken); i++ {
-		db.log.Info().Msgf("Remove Old SQLite backup: %s", broken[i])
+		db.log.Info().Str("backup", broken[i]).Msg("remove old SQLite backup")
 
 		if err := os.Remove(filepath.Join(backupDir, broken[i])); err != nil {
 			return errors.Wrap(err, "failed to remove old backups")
 		}
 
-		db.log.Info().Msgf("Removed Old SQLite backup: %s", broken[i])
+		db.log.Info().Str("backup", broken[i]).Msg("removed old SQLite backup")
 	}
 
 	for i := db.cfg.DatabaseMaxBackups; i < len(backups); i++ {
-		db.log.Info().Msgf("Remove SQLite backup: %s", backups[i])
+		db.log.Info().Str("backup", backups[i]).Msg("remove SQLite backup")
 
 		if err := os.Remove(filepath.Join(backupDir, backups[i])); err != nil {
 			return errors.Wrap(err, "failed to remove old backups")
 		}
 
-		db.log.Info().Msgf("Removed SQLite backup: %s", backups[i])
+		db.log.Info().Str("backup", backups[i]).Msg("removed SQLite backup")
 	}
 
 	return nil

@@ -333,6 +333,7 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
         />
         <div className="col-span-2 md:col-span-1 flex pl-1 sm:pl-2.5 text-gray-500 dark:text-gray-400">
           <Checkbox
+            name="enabled"
             value={network.enabled}
             setValue={onToggleMutation}
           />
@@ -778,7 +779,7 @@ interface EventsProps {
 
 export const Events = ({ network, channel }: EventsProps) => {
   const [settings] = SettingsContext.use();
-  const { events: logs } = useIrcChannelWithHistory(network.id, channel, 100, true);
+  const { events: logs } = useIrcChannelWithHistory(network.id, channel, 1000, true);
 
   const [isFullscreen, toggleFullscreen] = useToggle(false);
 
@@ -916,6 +917,7 @@ const IRCLogsDropdown = () => {
           <MenuItem>
             {() => (
               <Checkbox
+                name="scrollOnNewLog"
                 label={t("forms.irc.scrollOnNewMessage")}
                 value={settings.scrollOnNewLog}
                 setValue={(newValue) => onSetValue("scrollOnNewLog", newValue)}

@@ -20,6 +20,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
 
@@ -575,7 +576,7 @@ func (c *AppConfig) load(configPath string) {
 	}
 }
 
-func (c *AppConfig) DynamicReload(log logger.Logger) {
+func (c *AppConfig) DynamicReload(log zerolog.Logger) {
 	viper.WatchConfig()
 	viper.OnConfigChange(func(e fsnotify.Event) {
 		c.m.Lock()
@@ -583,7 +584,7 @@ func (c *AppConfig) DynamicReload(log logger.Logger) {
 
 		logLevel := viper.GetString("logLevel")
 		c.Config.LogLevel = logLevel
-		log.SetLogLevel(c.Config.LogLevel)
+		logger.SetLevel(c.Config.LogLevel)
 
 		logPath := viper.GetString("logPath")
 		c.Config.LogPath = logPath

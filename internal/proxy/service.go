@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
@@ -34,7 +33,7 @@ type Service struct {
 	cache map[int64]*domain.Proxy
 }
 
-func NewService(log logger.Logger, repo proxyRepo) *Service {
+func NewService(log zerolog.Logger, repo proxyRepo) *Service {
 	return &Service{
 		log:   log.With().Str("module", "proxy").Logger(),
 		repo:  repo,
@@ -165,7 +164,7 @@ func (s *Service) Test(ctx context.Context, proxy *domain.Proxy) error {
 		return errors.New("got unexpected status code: %d", resp.StatusCode)
 	}
 
-	s.log.Debug().Msgf("proxy %s test OK!", proxy.Addr)
+	s.log.Debug().Str("proxy_addr", proxy.Addr).Msg("proxy test ok")
 
 	return nil
 }

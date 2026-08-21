@@ -22,7 +22,7 @@ func (s *Service) metacritic(ctx context.Context, list *domain.List) error {
 		return errors.New("no URL provided for metacritic")
 	}
 
-	l.Debug().Msgf("fetching titles from %s", list.URL)
+	l.Debug().Str("url", list.URL).Msg("fetching titles")
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, list.URL, nil)
 	if err != nil {
@@ -93,15 +93,15 @@ func (s *Service) metacritic(ctx context.Context, list *domain.List) error {
 	}
 
 	if len(filterTitles) == 0 && len(filterArtists) == 0 {
-		l.Debug().Msgf("no titles found to update filter: %v", list.Name)
+		l.Debug().Msg("no titles found to update list")
 		return nil
 	}
 
 	joinedArtists := strings.Join(filterArtists, ",")
 	joinedTitles := strings.Join(filterTitles, ",")
 
-	l.Trace().Str("albums", joinedTitles).Msgf("found %d album titles", len(joinedTitles))
-	l.Trace().Str("artists", joinedTitles).Msgf("found %d artit titles", len(joinedArtists))
+	l.Trace().Str("albums", joinedTitles).Int("count", len(filterTitles)).Msg("found album titles")
+	l.Trace().Str("artists", joinedArtists).Int("count", len(filterArtists)).Msg("found artist titles")
 
 	filterUpdate := domain.FilterUpdate{Albums: &joinedTitles, Artists: &joinedArtists}
 
@@ -112,7 +112,7 @@ func (s *Service) metacritic(ctx context.Context, list *domain.List) error {
 	}
 
 	for _, filter := range list.Filters {
-		l.Debug().Msgf("updating filter: %v", filter.ID)
+		l.Debug().Int("filter_id", filter.ID).Msg("updating filter")
 
 		filterUpdate.ID = filter.ID
 
@@ -120,7 +120,7 @@ func (s *Service) metacritic(ctx context.Context, list *domain.List) error {
 			return errors.Wrapf(err, "error updating filter: %v", filter.ID)
 		}
 
-		l.Debug().Msgf("successfully updated filter: %v", filter.ID)
+		l.Debug().Int("filter_id", filter.ID).Msg("successfully updated filter")
 	}
 
 	return nil

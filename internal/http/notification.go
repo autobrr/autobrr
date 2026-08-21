@@ -7,10 +7,9 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/notification"
+	"github.com/autobrr/autobrr/internal/notification/services/pushover"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/go-chi/chi/v5"
@@ -53,7 +52,7 @@ func (h notificationHandler) Routes(r chi.Router) {
 func (h notificationHandler) list(w http.ResponseWriter, r *http.Request) {
 	list, _, err := h.service.Find(r.Context(), domain.NotificationQueryParams{})
 	if err != nil {
-		h.encoder.StatusNotFound(w)
+		h.encoder.Error(w, err)
 		return
 	}
 
@@ -77,13 +76,13 @@ func (h notificationHandler) store(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h notificationHandler) findByID(w http.ResponseWriter, r *http.Request) {
-	notificationID, err := strconv.Atoi(chi.URLParam(r, "notificationID"))
+	notificationID, err := parseURLParamInt(r, "notificationID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
-	notification, err := h.service.FindByID(r.Context(), notificationID)
+	notif, err := h.service.FindByID(r.Context(), notificationID)
 	if err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
 			h.encoder.NotFoundErr(w, errors.New("notification with id %d not found", notificationID))
@@ -94,7 +93,7 @@ func (h notificationHandler) findByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.encoder.StatusResponse(w, http.StatusNoContent, notification)
+	h.encoder.StatusResponse(w, http.StatusOK, notif)
 }
 
 func (h notificationHandler) update(w http.ResponseWriter, r *http.Request) {
@@ -104,8 +103,12 @@ func (h notificationHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.service.Update(r.Context(), data)
-	if err != nil {
+	if err := h.service.Update(r.Context(), data); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("notification with id %d not found", data.ID))
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}
@@ -114,18 +117,23 @@ func (h notificationHandler) update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h notificationHandler) delete(w http.ResponseWriter, r *http.Request) {
-	notificationID, err := strconv.Atoi(chi.URLParam(r, "notificationID"))
+	notificationID, err := parseURLParamInt(r, "notificationID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
 	if err := h.service.Delete(r.Context(), notificationID); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("notification with id %d not found", notificationID))
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}
 
-	h.encoder.StatusResponse(w, http.StatusNoContent, nil)
+	h.encoder.NoContent(w)
 }
 
 func (h notificationHandler) test(w http.ResponseWriter, r *http.Request) {
@@ -146,11 +154,11 @@ func (h notificationHandler) test(w http.ResponseWriter, r *http.Request) {
 func (h notificationHandler) pushoverSounds(w http.ResponseWriter, r *http.Request) {
 	apiToken := r.URL.Query().Get("token")
 	if apiToken == "" {
-		h.encoder.Error(w, errors.New("api token is required"))
+		h.encoder.BadRequestErr(w, errors.New("token parameter is required"))
 		return
 	}
 
-	sounds, err := notification.GetPushoverSounds(apiToken)
+	sounds, err := pushover.GetSounds(r.Context(), apiToken)
 	if err != nil {
 		h.encoder.Error(w, err)
 		return

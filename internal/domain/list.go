@@ -21,6 +21,8 @@ const (
 	ListTypeLidarr     ListType = "LIDARR"
 	ListTypeReadarr    ListType = "READARR"
 	ListTypeWhisparr   ListType = "WHISPARR"
+	ListTypeWhisparrV3 ListType = "WHISPARR_V3"
+	ListTypeSportarr   ListType = "SPORTARR"
 	ListTypeMDBList    ListType = "MDBLIST"
 	ListTypeMetacritic ListType = "METACRITIC"
 	ListTypePlaintext  ListType = "PLAINTEXT"
@@ -107,7 +109,7 @@ func (l *List) Validate() error {
 }
 
 func (l *List) ListTypeArr() bool {
-	return l.Type == ListTypeRadarr || l.Type == ListTypeSonarr || l.Type == ListTypeLidarr || l.Type == ListTypeReadarr || l.Type == ListTypeWhisparr
+	return l.Type == ListTypeRadarr || l.Type == ListTypeSonarr || l.Type == ListTypeLidarr || l.Type == ListTypeReadarr || l.Type == ListTypeWhisparr || l.Type == ListTypeWhisparrV3 || l.Type == ListTypeSportarr
 }
 
 func (l *List) ListTypeList() bool {

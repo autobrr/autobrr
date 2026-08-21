@@ -328,6 +328,9 @@ export const APIClient = {
     toggleEnable: (id: number, enabled: boolean) => appClient.Put(`api/filters/${id}/enabled`, {
       body: { enabled }
     }),
+    pruneDeprecatedIndexers: (identifiers: string[] = []) => appClient.Post<{ removed: number }>("api/filters/indexers/prune-deprecated", {
+      body: { identifiers }
+    }),
     delete: (id: number) => appClient.Delete(`api/filters/${id}`),
     notifications: {
       get: (filterId: number) => appClient.Get<FilterNotification[]>(`api/filters/${filterId}/notifications`),
@@ -360,10 +363,13 @@ export const APIClient = {
     })
   },
   indexers: {
-    // returns indexer options for all currently present/enabled indexers
+    // returns all configured indexer rows (including archived/deprecated ones, flagged)
     getOptions: () => appClient.Get<Indexer[]>("api/indexer/options"),
     // returns indexer definitions for all currently present/enabled indexers
     getAll: () => appClient.Get<IndexerDefinition[]>("api/indexer"),
+    // returns metadata for removed/deprecated indexers
+    getDeprecations: () => appClient.Get<IndexerDeprecation[]>("api/indexer/deprecations"),
+    deleteArchived: (id: number) => appClient.Delete(`api/indexer/deprecations/${id}`),
     // returns all possible indexer definitions
     getSchema: () => appClient.Get<IndexerDefinition[]>("api/indexer/schema"),
     create: (indexer: Indexer) => appClient.Post<Indexer>("api/indexer", {
@@ -514,6 +520,21 @@ export const APIClient = {
     },
     indexerOptions: () => appClient.Get<string[]>("api/release/indexers"),
     stats: () => appClient.Get<ReleaseStats>("api/release/stats"),
+    statsActivity: (days: number) => appClient.Get<ReleaseActivityStats>("api/release/stats/activity", {
+      queryString: { days }
+    }),
+    statsVolume: (days: number) => appClient.Get<ReleaseVolumeStats>("api/release/stats/volume", {
+      queryString: { days }
+    }),
+    statsHeatmap: (days: number) => appClient.Get<ReleaseHeatmapStats>("api/release/stats/heatmap", {
+      queryString: { days }
+    }),
+    statsTopIndexers: (days: number) => appClient.Get<ReleaseTopIndexersStats>("api/release/stats/indexers", {
+      queryString: { days }
+    }),
+    statsTopFilters: (days: number) => appClient.Get<ReleaseTopFiltersStats>("api/release/stats/filters", {
+      queryString: { days }
+    }),
     delete: (params: DeleteParams) => {
       return appClient.Delete("api/release", {
         queryString: {

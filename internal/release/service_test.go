@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/internal/logger"
 
-	"github.com/asaskevich/EventBus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -57,17 +57,16 @@ func (m *mockReleaseRepo) Update(ctx context.Context, release *domain.Release) e
 }
 
 func TestService_Process_PublishesEvent(t *testing.T) {
-	bus := EventBus.New()
+	log := logger.Mock()
+
+	bus := events.NewEventBus(log)
 
 	// Track if event was published
 	published := false
-	bus.Subscribe(domain.EventNotificationSend, func(event *domain.NotificationEvent, payload *domain.NotificationPayload) {
-		if *event == domain.NotificationEventReleaseNew {
-			published = true
-		}
+	bus.OnReleaseNew(func(ctx context.Context, event events.ReleaseEvent) error {
+		published = true
+		return nil
 	})
-
-	log := logger.Mock()
 
 	// Minimal mock for FilterSvc
 	filterSvc := &mockFilterService{}
@@ -85,7 +84,7 @@ func TestService_Process_PublishesEvent(t *testing.T) {
 
 	s := &Service{
 		log:        log.With().Logger(),
-		bus:        bus,
+		eventBus:   bus,
 		filterSvc:  filterSvc,
 		actionSvc:  actionSvc,
 		repo:       repo,
@@ -97,7 +96,7 @@ func TestService_Process_PublishesEvent(t *testing.T) {
 		Indexer:     domain.IndexerMinimal{Name: "MockIndexer", Identifier: "mock"},
 	}
 
-	s.Process(release)
+	s.Process(t.Context(), release)
 
 	// s.bus.Publish is synchronous in EventBus when using standard Publish
 	assert.True(t, published, "RELEASE_NEW event should have been published")

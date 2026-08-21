@@ -10,6 +10,11 @@ updates:
       github:
         patterns:
           - "*"
+    # codeql-action moves its floating v4 tag the moment each release publishes,
+    # so the default cooldown makes Dependabot pin v4 to the previous concrete
+    # version. Exclude it so @v4 is compared against the actual latest release.
+    cooldown:
+      exclude: ["github/codeql-action"]
 
   - package-ecosystem: gomod
     directory: /
@@ -33,3 +38,6 @@ updates:
       npm:
         patterns:
           - "*"
+    ignore:
+      - dependency-name: "typescript"
+        update-types: [ "version-update:semver-major" ]

@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/config"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/web"
 
 	"github.com/alexedwards/scs/v2"
@@ -21,6 +20,7 @@ import (
 	"github.com/r3labs/sse/v2"
 	"github.com/rs/cors"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/hlog"
 )
 
 type Server struct {
@@ -58,7 +58,7 @@ type Server struct {
 }
 
 type Deps struct {
-	Log logger.Logger
+	Log zerolog.Logger
 	SSE *sse.Server
 	DB  DatabaseHealth
 
@@ -167,7 +167,7 @@ func (s *Server) Open() error {
 			break
 		}
 
-		s.log.Error().Err(err).Msgf("Failed to start %s server. Attempted to listen on %s", proto, addr)
+		s.log.Error().Err(err).Str("protocol", proto).Str("addr", addr).Msg("failed to start server")
 	}
 
 	return err
@@ -179,7 +179,7 @@ func (s *Server) tryToServe(addr, protocol string) error {
 		return err
 	}
 
-	s.log.Info().Msgf("Starting API %s server. Listening on %s", protocol, listener.Addr().String())
+	s.log.Info().Str("protocol", protocol).Str("addr", listener.Addr().String()).Msg("starting api server")
 
 	server := http.Server{
 		Handler:           s.Handler(),
@@ -192,7 +192,8 @@ func (s *Server) tryToServe(addr, protocol string) error {
 func (s *Server) Handler() http.Handler {
 	r := chi.NewRouter()
 
-	r.Use(middleware.RequestID)
+	r.Use(hlog.NewHandler(s.log))
+	r.Use(hlog.RequestIDHandler("request_id", "X-Request-Id"))
 	// Must run before RealIP so forwarded headers cannot bypass the allowlist.
 	r.Use(s.RequireAuthDisabledIPAllowlist)
 	// RealIP rewrites r.RemoteAddr from untrusted forwarded headers. With auth

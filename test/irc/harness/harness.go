@@ -10,6 +10,7 @@
 package harness
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 	"sync"
@@ -17,6 +18,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/internal/irc"
 
 	"github.com/r3labs/sse/v2"
@@ -58,13 +60,15 @@ func Start(t testing.TB, network domain.IrcNetwork, defs []*domain.IndexerDefini
 	}
 	log := zerolog.New(zerolog.NewTestWriter(t)).Level(level).With().Timestamp().Logger()
 
+	bus := events.NewEventBus(log)
+
 	inst := &Instance{
 		t:        t,
 		sse:      &sseCapture{},
 		Releases: newReleaseSink(),
 	}
 
-	inst.Handler = irc.NewHandler(log, inst.sse, network, defs, inst.Releases, noopNotifier{})
+	inst.Handler = irc.NewHandler(log, bus, inst.sse, network, defs, inst.Releases)
 
 	if err := inst.Handler.Run(); err != nil && !o.AllowRunError {
 		t.Fatalf("harness: handler.Run: %v", err)
@@ -245,7 +249,7 @@ func newReleaseSink() *ReleaseSink {
 }
 
 // Process implements the handler's releaseService.
-func (s *ReleaseSink) Process(release *domain.Release) {
+func (s *ReleaseSink) Process(_ context.Context, release *domain.Release) {
 	s.mu.Lock()
 	s.releases = append(s.releases, release)
 	s.mu.Unlock()

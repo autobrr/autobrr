@@ -25,6 +25,8 @@ irc:
   server: irc.animefriends.moe
   port: 7000
   tls: true
+  auth:
+    mechanism: NICKSERV
   settings:
     - name: nick
       type: text

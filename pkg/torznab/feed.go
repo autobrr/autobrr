@@ -65,6 +65,7 @@ type FeedItem struct {
 	Comments        string           `xml:"comments"`
 	Size            uint64           `xml:"size"`
 	Link            string           `xml:"link"`
+	MagnetURI       string           `xml:"magneturl,omitempty"`
 	Enclosure       *Enclosure       `xml:"enclosure,omitempty"`
 	Category        []int            `xml:"category,omitempty"`
 	Categories      Categories
@@ -202,7 +203,7 @@ func (f *FeedItem) parseAttributes() {
 				break
 			}
 		case "imdb", "imdbid":
-			if f.ImdbId == "" {
+			if f.ImdbId == "" && attr.Value != "" {
 				if !strings.HasPrefix(attr.Value, "tt") {
 					f.ImdbId = "tt" + attr.Value
 				} else {
@@ -222,6 +223,10 @@ func (f *FeedItem) parseAttributes() {
 			}
 		case "genre":
 			f.Genres = strings.Split(attr.Value, ",")
+		case "magneturl":
+			if f.MagnetURI == "" {
+				f.MagnetURI = attr.Value
+			}
 		}
 	}
 

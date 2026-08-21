@@ -22,7 +22,7 @@ import { Section } from "@screens/settings/_components";
 import { EmptySimple } from "@components/emptystates";
 import { ListAddForm, ListUpdateForm } from "@forms";
 import { ListTypeNameMap } from "@domain/constants";
-import { classNames, IsErrorWithMessage } from "@utils";
+import { classNames, CopyTextToClipboard, IsErrorWithMessage } from "@utils";
 import { DeleteModal } from "@components/modals";
 
 function ListsSettings() {
@@ -190,7 +190,7 @@ function ListItem({ list }: ListItemProps) {
 
       <div className="grid grid-cols-12 items-center py-2">
         <div className="col-span-2 sm:col-span-1 pl-1 py-0.5 sm:pl-6 flex items-center">
-          <Checkbox value={list.enabled ?? false} setValue={onToggleMutation}/>
+          <Checkbox name="enabled" value={list.enabled ?? false} setValue={onToggleMutation}/>
         </div>
         <div
           className="col-span-8 sm:col-span-4 lg:col-span-4 pl-10 sm:pl-12 pr-6 block flex-col text-sm font-medium text-gray-900 dark:text-white truncate">
@@ -267,11 +267,18 @@ function ListItem({ list }: ListItemProps) {
                           focus ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
                           "font-medium cursor-pointer group flex rounded-md items-center w-full px-2 py-2 text-sm"
                         )}
-                        onClick={() => {
-                          navigator.clipboard.writeText(String(list.id));
-                          toast.custom((toastInstance) => (
-                            <Toast type="success" body={t("listScreens.lists.copyIdSuccess", { id: list.id })} t={toastInstance} />
-                          ));
+                        onClick={async () => {
+                          try {
+                            await CopyTextToClipboard(String(list.id));
+                            toast.custom((toastInstance) => (
+                              <Toast type="success" body={t("listScreens.lists.copyIdSuccess", { id: list.id })} t={toastInstance} />
+                            ));
+                          } catch (error) {
+                            console.error("Could not copy list ID to clipboard", error);
+                            toast.custom((toastInstance) => (
+                              <Toast type="error" body={t("listScreens.lists.copyIdError")} t={toastInstance} />
+                            ));
+                          }
                         }}
                       >
                         <ClipboardDocumentIcon

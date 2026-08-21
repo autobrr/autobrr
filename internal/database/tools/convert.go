@@ -13,9 +13,9 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/database/migrations"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
+	"github.com/rs/zerolog"
 	_ "modernc.org/sqlite"
 )
 
@@ -86,11 +86,11 @@ type Opts struct {
 }
 
 type SqliteToPostgresConverter struct {
-	logger                      logger.Logger
+	logger                      zerolog.Logger
 	sqliteDBPath, postgresDBURL string
 }
 
-func NewConverter(logger logger.Logger, sqliteDBPath, postgresDBURL string) DBConverter {
+func NewConverter(logger zerolog.Logger, sqliteDBPath, postgresDBURL string) DBConverter {
 	return &SqliteToPostgresConverter{
 		logger:        logger,
 		sqliteDBPath:  sqliteDBPath,
@@ -244,7 +244,7 @@ func (c *SqliteToPostgresConverter) migrateTable(ctx context.Context, sqliteDB, 
 		fkViolationMessages = append(fkViolationMessages, violations...)
 	}
 
-	c.logger.Info().Msgf("Converted %d rows to table '%s' from SQLite to PostgreSQL", rowsAffected, table)
+	c.logger.Info().Int64("rows_affected", rowsAffected).Str("table", table).Msg("converted rows to table from SQLite to PostgreSQL")
 
 	return fkViolationMessages, nil
 }

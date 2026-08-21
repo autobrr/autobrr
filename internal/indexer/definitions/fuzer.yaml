@@ -13,7 +13,7 @@ supports:
 # source: gazelle
 settings:
   - name: uid
-    type: text
+    type: secret
     required: true
     label: User ID
     help: Create rss link at https://www.fuzer.me/getrss.php and find at &u=11111

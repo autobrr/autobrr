@@ -59,7 +59,7 @@ irc:
       parse:
         type: single
         lines:
-          - pattern: 'NEW TORRENT in (?P<category>.+) :: (?P<releaseName>.+) :: (?P<baseUrl>https:\/\/.+\/)download\/(?P<torrentId>\d+) :: Tags: \[(?P<releaseTags>.+?)\](?: :: Genre: )?(?:\[(?P<tags>.+?)\])? :: Size: \[(?P<torrentSize>.+)\]'
+          - pattern: 'NEW TORRENT in (?P<category>.+) :: (?P<releaseName>.+) :: (?P<baseUrl>https:\/\/.+\/)download\/(?P<torrentId>\d+) :: Tags: \[(?P<releaseTags>(?:[^\]]*?(?P<freeleech>freeleech))?[^\]]*)\](?: :: Genre: )?(?:\[(?P<tags>.+?)\])? :: Size: \[(?P<torrentSize>.+)\]'
             tests:
               - line: 'NEW TORRENT in Movies/XviD :: This.is.my.Movie.2019.BRRip.XviD.AC3-iND :: https://digitalcore.club/api/v1/torrents/download/00000 :: Tags: [p2p,unrar] :: Size: [1.23 GiB]'
                 expect:
@@ -69,6 +69,7 @@ irc:
                   torrentId: "00000"
                   tags: ""
                   releaseTags: p2p,unrar
+                  freeleech: ""
                   torrentSize: 1.23 GiB
 
               - line: 'NEW TORRENT in Movies/1080p :: This.is.my.Movie.2019.BRRip.XviD.AC3-iND :: https://digitalcore.club/api/v1/torrents/download/00000 :: Tags: [p2p,unrar] :: Genre: [Drama, Fantasy, Horror] :: Size: [1.23 GiB]'
@@ -79,17 +80,41 @@ irc:
                   torrentId: "00000"
                   tags: "Drama, Fantasy, Horror"
                   releaseTags: p2p,unrar
+                  freeleech: ""
                   torrentSize: 1.23 GiB
 
-              - line: "NEW TORRENT in Games/PC :: STAR.WARS.Episode.I.Jedi.Power.Battles.Update.1-RUNE :: https://digitalcore.club/api/v1/torrents/download/1726693 :: Tags: [new] :: Genre: [Platform, Hack and slash/Beat 'em up, Adventure, Arcade] :: Size: [65.98 MiB]"
+              - line: "NEW TORRENT in Games/PC :: STAR.WARS.Episode.I.Jedi.Power.Battles.Update.1-RUNE :: https://digitalcore.club/api/v1/torrents/download/00000 :: Tags: [new] :: Genre: [Platform, Hack and slash/Beat 'em up, Adventure, Arcade] :: Size: [65.98 MiB]"
                 expect:
                   category: Games/PC
                   releaseName: STAR.WARS.Episode.I.Jedi.Power.Battles.Update.1-RUNE
                   baseUrl: https://digitalcore.club/api/v1/torrents/
-                  torrentId: "1726693"
+                  torrentId: "00000"
                   tags: "Platform, Hack and slash/Beat 'em up, Adventure, Arcade"
                   releaseTags: new
+                  freeleech: ""
                   torrentSize: 65.98 MiB
+
+              - line: 'NEW TORRENT in Tv/PACKS :: Hannibal.S01-S03.1080p.BluRay.x265-KONTRAST :: https://digitalcore.club/api/v1/torrents/download/00000 :: Tags: [p2p, unrar, pack, freeleech, archive] :: Genre: [Crime, Drama, Horror, Mystery] :: Size: [37.44 GiB]'
+                expect:
+                  category: Tv/PACKS
+                  releaseName: Hannibal.S01-S03.1080p.BluRay.x265-KONTRAST
+                  baseUrl: https://digitalcore.club/api/v1/torrents/
+                  torrentId: "00000"
+                  tags: "Crime, Drama, Horror, Mystery"
+                  releaseTags: p2p, unrar, pack, freeleech, archive
+                  freeleech: freeleech
+                  torrentSize: 37.44 GiB
+
+              - line: 'NEW TORRENT in Tv/SPORTS :: WWE.Friday.Night.Smackdown.2026.08.07.German.1080p.WEB.h264-SPORTY :: https://digitalcore.club/api/v1/torrents/download/00000 :: Tags: [freeleech, new] :: Genre: [Action, Sport] :: Size: [6.67 GiB]'
+                expect:
+                  category: Tv/SPORTS
+                  releaseName: WWE.Friday.Night.Smackdown.2026.08.07.German.1080p.WEB.h264-SPORTY
+                  baseUrl: https://digitalcore.club/api/v1/torrents/
+                  torrentId: "00000"
+                  tags: "Action, Sport"
+                  releaseTags: freeleech, new
+                  freeleech: freeleech
+                  torrentSize: 6.67 GiB
 
         match:
           infourl: "/torrent/{{ .torrentId }}/"

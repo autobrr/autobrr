@@ -9,7 +9,6 @@ import type { FieldArrayRenderProps, FieldProps } from "formik";
 import { Field, FieldArray, FormikErrors, FormikValues } from "formik";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import Select from "react-select";
-import { DialogTitle } from "@headlessui/react";
 import { useTranslation } from "react-i18next";
 
 import { IrcAuthMechanismTypeOptions, OptionBasicTyped } from "@domain/constants";
@@ -208,21 +207,34 @@ export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
             placeholder={t("forms.irc.nickPlaceholderAdd")}
             required={true}
           />
-          <TextFieldWide
-            name="auth.account"
-            label={t("forms.irc.authAccount")}
-            placeholder={t("forms.irc.authAccountPlaceholder")}
-            required={true}
+
+          <SelectField<IrcAuthMechanism>
+            name="auth.mechanism"
+            label={t("forms.irc.mechanism")}
+            isClearable={false}
+            options={IrcAuthMechanismTypeOptions}
           />
-          <PasswordFieldWide
-            name="auth.password"
-            label={t("forms.irc.authPassword")}
-          />
+
+          {values.auth.mechanism !== "NONE" && (
+            <>
+              <TextFieldWide
+                name="auth.account"
+                label={t("forms.irc.authAccount")}
+                placeholder={t("forms.irc.authAccountPlaceholder")}
+                required={values.auth.mechanism === "SASL_PLAIN"}
+              />
+              <PasswordFieldWide
+                name="auth.password"
+                label={t("forms.irc.authPassword")}
+                required={true}
+              />
+            </>
+          )}
           <PasswordFieldWide name="invite_command" label={t("forms.irc.inviteCommand")}/>
 
           <div className="border-t border-gray-200 dark:border-gray-700 py-5">
             <div className="px-4 space-y-1 mb-8">
-              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.irc.channels")}</DialogTitle>
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.irc.channels")}</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 {t("forms.irc.channelsDesc")}
               </p>
@@ -236,7 +248,7 @@ export function IrcNetworkAddForm({ isOpen, toggle }: AddFormProps) {
   );
 }
 
-const validateNetwork = (values: FormikValues, requiredMessage: string) => {
+const validateNetwork = (values: FormikValues, requiredMessage: string, existingAuth?: IrcAuth) => {
   const errors = {} as FormikErrors<FormikValues>;
 
   if (!values.name) {
@@ -253,6 +265,23 @@ const validateNetwork = (values: FormikValues, requiredMessage: string) => {
 
   if (!values.nick) {
     errors.nick = requiredMessage;
+  }
+
+  const authChanged = !existingAuth ||
+    values.auth?.mechanism !== existingAuth.mechanism ||
+    values.auth?.account !== existingAuth.account ||
+    values.auth?.password !== existingAuth.password;
+  if (authChanged) {
+    const authErrors: FormikErrors<IrcAuth> = {};
+    if (values.auth?.mechanism === "SASL_PLAIN" && !values.auth.account) {
+      authErrors.account = requiredMessage;
+    }
+    if ((values.auth?.mechanism === "SASL_PLAIN" || values.auth?.mechanism === "NICKSERV") && !values.auth.password) {
+      authErrors.password = requiredMessage;
+    }
+    if (Object.keys(authErrors).length > 0) {
+      errors.auth = authErrors;
+    }
   }
 
   return errors;
@@ -340,7 +369,7 @@ export function IrcNetworkUpdateForm({ isOpen, toggle, data: network }: UpdateFo
       deleteAction={deleteAction}
       initialValues={initialValues}
       validate={(values) => {
-        return validateNetwork(values, t("forms.irc.required"));
+        return validateNetwork(values, t("forms.irc.required"), network.auth);
       }}
     >
       {(values) => (
@@ -398,9 +427,9 @@ export function IrcNetworkUpdateForm({ isOpen, toggle, data: network }: UpdateFo
           <div className="border-t border-gray-200 dark:border-gray-700 py-4">
             <div className="flex justify-between px-4">
               <div className="space-y-1">
-                <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">
+                <h2 className="text-lg font-medium text-gray-900 dark:text-white">
                   {t("forms.irc.proxy")}
-                </DialogTitle>
+                </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   {t("forms.irc.proxyDesc")}
                 </p>
@@ -422,7 +451,7 @@ export function IrcNetworkUpdateForm({ isOpen, toggle, data: network }: UpdateFo
 
           <div className="border-t border-gray-200 dark:border-gray-700 py-5">
             <div className="px-4 space-y-1 mb-8">
-              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.irc.identification")}</DialogTitle>
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.irc.identification")}</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 {t("forms.irc.identificationDesc")}
               </p>
@@ -431,6 +460,7 @@ export function IrcNetworkUpdateForm({ isOpen, toggle, data: network }: UpdateFo
             <SelectField<IrcAuthMechanism>
               name="auth.mechanism"
               label={t("forms.irc.mechanism")}
+              isClearable={false}
               options={IrcAuthMechanismTypeOptions}
             />
 
@@ -452,7 +482,7 @@ export function IrcNetworkUpdateForm({ isOpen, toggle, data: network }: UpdateFo
 
           <div className="border-t border-gray-200 dark:border-gray-700 py-5">
             <div className="px-4 space-y-1 mb-8">
-              <DialogTitle className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.irc.channels")}</DialogTitle>
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.irc.channels")}</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 {t("forms.irc.channelsUpdateDesc")}
               </p>
@@ -471,9 +501,10 @@ interface SelectFieldProps<T> {
   label: string;
   options: OptionBasicTyped<T>[]
   placeholder?: string;
+  isClearable?: boolean;
 }
 
-export function SelectField<T>({ name, label, options, placeholder }: SelectFieldProps<T>) {
+export function SelectField<T>({ name, label, options, placeholder, isClearable = true }: SelectFieldProps<T>) {
   const { t } = useTranslation("settings");
   return (
     <div className="flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
@@ -494,7 +525,7 @@ export function SelectField<T>({ name, label, options, placeholder }: SelectFiel
             <Select
               {...field}
               id={name}
-              isClearable={true}
+              isClearable={isClearable}
               isSearchable={true}
               components={{
                 Input: common.SelectInput,
