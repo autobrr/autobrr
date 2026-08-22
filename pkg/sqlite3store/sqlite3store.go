@@ -4,10 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"log"
 	"math"
 	"sync"
 	"time"
+
+	"github.com/rs/zerolog"
 )
 
 type SqlDB interface {
@@ -28,9 +29,17 @@ func WithCleanupInterval(interval time.Duration) OptFunc {
 	}
 }
 
+// WithLogger sets the logger used by the background cleanup goroutine.
+func WithLogger(log zerolog.Logger) OptFunc {
+	return func(s *SQLite3Store) {
+		s.log = log
+	}
+}
+
 // SQLite3Store represents the session store.
 type SQLite3Store struct {
 	db              SqlDB
+	log             zerolog.Logger
 	stopCleanup     chan bool
 	cleanupInterval time.Duration
 	cache           map[string]cacheEntry
@@ -174,7 +183,7 @@ func (p *SQLite3Store) startCleanup(interval time.Duration) {
 		case <-ticker.C:
 			err := p.deleteExpired(context.Background())
 			if err != nil {
-				log.Println(err)
+				p.log.Error().Err(err).Msg("could not delete expired sessions")
 			}
 			p.pruneCache()
 		case <-p.stopCleanup:

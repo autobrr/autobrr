@@ -24,6 +24,6 @@ func (m *mockFeedCacheRepo) PutMany(_ context.Context, _ []domain.FeedCacheItem)
 
 type mockReleaseSvc struct{}
 
-func (m *mockReleaseSvc) ProcessMultipleFromIndexer(_ []*domain.Release, _ domain.IndexerMinimal) error {
+func (m *mockReleaseSvc) ProcessMultipleFromIndexer(_ context.Context, _ []*domain.Release, _ domain.IndexerMinimal) error {
 	return nil
 }

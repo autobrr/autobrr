@@ -1,0 +1,11 @@
+{
+  "title": "The Best Book by Famous Author [English / epub, mobi]",
+  "indexer": "mock-indexer",
+  "protocol": "torrent",
+  "approved": false,
+  "rejected": false,
+  "temporarilyRejected": true,
+  "rejections": [
+    "Waiting for a better quality release"
+  ]
+}

@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -53,7 +52,7 @@ type DB struct {
 	squirrel sq.StatementBuilderType
 }
 
-func NewDB(cfg *domain.Config, log logger.Logger) (*DB, error) {
+func NewDB(cfg *domain.Config, log zerolog.Logger) (*DB, error) {
 	db := &DB{
 		// set a default placeholder for squirrel to support both sqlite and postgres
 		squirrel: sq.StatementBuilder.PlaceholderFormat(sq.Dollar),

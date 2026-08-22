@@ -17,6 +17,7 @@ interface Feed {
   capabilities: FeedCaps | null;
   api_key: string;
   cookie: string;
+  user_agent: string;
   tls_skip_verify: boolean;
   last_run: string;
   last_run_data: string;
@@ -28,7 +29,7 @@ interface Feed {
 
 interface FeedSettings {
   download_type: FeedDownloadType;
-  // download_type: string;
+  cache_ttl_days: number;
 }
 
 type FeedDownloadType = "MAGNET" | "TORRENT" | "NZB";

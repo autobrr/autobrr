@@ -38,6 +38,7 @@ const tabs: tabType[] = [
   { name: "details.tabs.general", href: "/filters/$filterId", exact: true },
   { name: "details.tabs.moviesTv", href: "/filters/$filterId/movies-tv" },
   { name: "details.tabs.music", href: "/filters/$filterId/music" },
+  { name: "details.tabs.books", href: "/filters/$filterId/books" },
   { name: "details.tabs.advanced", href: "/filters/$filterId/advanced" },
   { name: "details.tabs.external", href: "/filters/$filterId/external" },
   { name: "details.tabs.actions", href: "/filters/$filterId/actions" },

@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: animeworld
 name: AnimeWorld
 identifier: animeworld
@@ -24,10 +25,6 @@ irc:
   server: irc.rizon.net
   port: 6697
   tls: true
-  channels:
-    - "#animeworld"
-  announcers:
-    - "ryuko"
   settings:
     - name: nick
       type: text
@@ -53,97 +50,92 @@ irc:
       label: Channel Password
       help: Channel password
 
-  parse:
-    type: single
-    lines:
-      - tests:
-        - line: 'Neuer Upload: Magic.S02E10.Ger.Eng.Sub.AAC.1080p.WEB.h264-ABC [Kategorie: Anime Serien][Typ: WebDL][Auflösung: 1080p][Größe: 1.35 GB][FL: 100%] | https://animeworld.cx/torrents/00000 | Uploader: NotAnonymous'
-          expect:
-            announceTypeEnum: "Neuer Upload"
-            torrentName: 'Magic.S02E10.Ger.Eng.Sub.AAC.1080p.WEB.h264-ABC'
-            category: Anime Serien
-            releaseTags: WebDL
-            resolution: 1080p
-            torrentSize: 1.35 GB
-            freeleechPercent: 100
-            tags: ""
-            baseUrl: https://animeworld.cx/
-            torrentId: "00000"
-            uploader: NotAnonymous
-        - line: 'Neuer Upload: The.Zero.S04.German.DL.DTS.1080p.BluRay.10bit.x265.Repack-ABC [Kategorie: Anime Serien][Typ: Encode][Auflösung: 1080p][Größe: 17.28 GiB][FL: 100%][Vorgestellt] | https://animeworld.cx/torrents/00000 | Uploader: Anonym'
-          expect:
-            announceTypeEnum: "Neuer Upload"
-            torrentName: 'The.Zero.S04.German.DL.DTS.1080p.BluRay.10bit.x265.Repack-ABC'
-            category: Anime Serien
-            releaseTags: Encode
-            resolution: 1080p
-            torrentSize: 17.28 GiB
-            freeleechPercent: 100
-            tags: "Vorgestellt"
-            baseUrl: https://animeworld.cx/
-            torrentId: "00000"
-            uploader: Anonym
-        - line: 'Neuer Upload: How.to.Train.2010.German.DL.AC3.1080p.BluRay.x264-ABC [Kategorie: Cartoon Filme][Typ: Encode][Auflösung: 1080p][Größe: 3.45 GiB][FL: 0%] | https://animeworld.cx/torrents/00000 | Uploader: Anonym'
-          expect:
-            announceTypeEnum: "Neuer Upload"
-            torrentName: 'How.to.Train.2010.German.DL.AC3.1080p.BluRay.x264-ABC'
-            category: Cartoon Filme
-            releaseTags: Encode
-            resolution: 1080p
-            torrentSize: 3.45 GiB
-            freeleechPercent: 0
-            tags: ""
-            baseUrl: https://animeworld.cx/
-            torrentId: "00000"
-            uploader: Anonym
-        - line: 'Neuer Upload: Irgendein Testrelease ohne Schema [Kategorie: H-Manga / Doujinshi][Typ: Digital][Auflösung: No Res][Größe: 673.21 MiB][FL: 0%] | https://animeworld.cx/torrents/00000 | Uploader: Anonym'
-          expect:
-            announceTypeEnum: "Neuer Upload"
-            torrentName: 'Irgendein Testrelease ohne Schema'
-            category: 'H-Manga / Doujinshi'
-            releaseTags: Digital
-            resolution: No Res
-            torrentSize: 673.21 MiB
-            freeleechPercent: 0
-            tags: ""
-            baseUrl: https://animeworld.cx/
-            torrentId: "00000"
-            uploader: Anonym
-        - line: 'Torrent vorgestellt: The.Cinephile.2021.German.DL.FLAC.1080p.BluRay.10bit.x265-GROUP [Kategorie: Anime Filme][Typ: Encode][Auflösung: 1080p][Größe: 4.48 GiB] | http://animeworld.cx/torrents/00000'
-          expect:
-            announceTypeEnum: "Torrent vorgestellt"
-            torrentName: 'The.Cinephile.2021.German.DL.FLAC.1080p.BluRay.10bit.x265-GROUP'
-            category: Anime Filme
-            releaseTags: Encode
-            resolution: 1080p
-            torrentSize: 4.48 GiB
-            freeleechPercent: ""
-            tags: ""
-            baseUrl: http://animeworld.cx/
-            torrentId: "00000"
-            uploader: ""
+  channels:
+    - name: "#animeworld"
+      announcers:
+        - "ryuko"
+      parse:
+        type: single
+        lines:
+          - pattern: '(?P<announceTypeEnum>Neuer Upload|Torrent vorgestellt): (?P<releaseName>.+) \[Kategorie: (?P<category>.+)\]\[Typ: (?P<releaseTags>.+)\]\[Auflösung: (?P<resolution>.+)\]\[Größe: (?P<torrentSize>.+?)\](?:\[FL: (?P<freeleechPercent>.+)%\])?(?:\[(?P<tags>Vorgestellt)\])? \| (?P<baseUrl>https?\:\/\/.*\/)torrents\/(?P<torrentId>\d+)(?: \| Uploader: (?P<uploader>.+))?'
+            tests:
+              - line: 'Neuer Upload: Magic.S02E10.Ger.Eng.Sub.AAC.1080p.WEB.h264-ABC [Kategorie: Anime Serien][Typ: WebDL][Auflösung: 1080p][Größe: 1.35 GB][FL: 100%] | https://animeworld.cx/torrents/00000 | Uploader: NotAnonymous'
+                expect:
+                  announceTypeEnum: "Neuer Upload"
+                  releaseName: 'Magic.S02E10.Ger.Eng.Sub.AAC.1080p.WEB.h264-ABC'
+                  category: Anime Serien
+                  releaseTags: WebDL
+                  resolution: 1080p
+                  torrentSize: 1.35 GB
+                  freeleechPercent: 100
+                  tags: ""
+                  baseUrl: https://animeworld.cx/
+                  torrentId: "00000"
+                  uploader: NotAnonymous
 
-        pattern: '(Neuer Upload|Torrent vorgestellt): (.+) \[Kategorie: (.+)\]\[Typ: (.+)\]\[Auflösung: (.+)\]\[Größe: (.+?)\](?:\[FL: (.+)%\])?(?:\[(Vorgestellt)\])? \| (https?\:\/\/.*\/)torrents\/(\d+)(?: \| Uploader: (.+))?'
-        vars:
-          - announceTypeEnum
-          - torrentName
-          - category
-          - releaseTags
-          - resolution
-          - torrentSize
-          - freeleechPercent
-          - tags
-          - baseUrl
-          - torrentId
-          - uploader
+              - line: 'Neuer Upload: The.Zero.S04.German.DL.DTS.1080p.BluRay.10bit.x265.Repack-ABC [Kategorie: Anime Serien][Typ: Encode][Auflösung: 1080p][Größe: 17.28 GiB][FL: 100%][Vorgestellt] | https://animeworld.cx/torrents/00000 | Uploader: Anonym'
+                expect:
+                  announceTypeEnum: "Neuer Upload"
+                  releaseName: 'The.Zero.S04.German.DL.DTS.1080p.BluRay.10bit.x265.Repack-ABC'
+                  category: Anime Serien
+                  releaseTags: Encode
+                  resolution: 1080p
+                  torrentSize: 17.28 GiB
+                  freeleechPercent: 100
+                  tags: "Vorgestellt"
+                  baseUrl: https://animeworld.cx/
+                  torrentId: "00000"
+                  uploader: Anonym
 
-    mappings:
-      announceTypeEnum:
-        "Neuer Upload":
-          announceType: NEW
-        "Torrent vorgestellt":
-          announceType: PROMO
+              - line: 'Neuer Upload: How.to.Train.2010.German.DL.AC3.1080p.BluRay.x264-ABC [Kategorie: Cartoon Filme][Typ: Encode][Auflösung: 1080p][Größe: 3.45 GiB][FL: 0%] | https://animeworld.cx/torrents/00000 | Uploader: Anonym'
+                expect:
+                  announceTypeEnum: "Neuer Upload"
+                  releaseName: 'How.to.Train.2010.German.DL.AC3.1080p.BluRay.x264-ABC'
+                  category: Cartoon Filme
+                  releaseTags: Encode
+                  resolution: 1080p
+                  torrentSize: 3.45 GiB
+                  freeleechPercent: 0
+                  tags: ""
+                  baseUrl: https://animeworld.cx/
+                  torrentId: "00000"
+                  uploader: Anonym
 
-    match:
-      infourl: "/torrents/{{ .torrentId }}"
-      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rss_key }}"
+              - line: 'Neuer Upload: Irgendein Testrelease ohne Schema [Kategorie: H-Manga / Doujinshi][Typ: Digital][Auflösung: No Res][Größe: 673.21 MiB][FL: 0%] | https://animeworld.cx/torrents/00000 | Uploader: Anonym'
+                expect:
+                  announceTypeEnum: "Neuer Upload"
+                  releaseName: 'Irgendein Testrelease ohne Schema'
+                  category: 'H-Manga / Doujinshi'
+                  releaseTags: Digital
+                  resolution: No Res
+                  torrentSize: 673.21 MiB
+                  freeleechPercent: 0
+                  tags: ""
+                  baseUrl: https://animeworld.cx/
+                  torrentId: "00000"
+                  uploader: Anonym
+
+              - line: 'Torrent vorgestellt: The.Cinephile.2021.German.DL.FLAC.1080p.BluRay.10bit.x265-GROUP [Kategorie: Anime Filme][Typ: Encode][Auflösung: 1080p][Größe: 4.48 GiB] | http://animeworld.cx/torrents/00000'
+                expect:
+                  announceTypeEnum: "Torrent vorgestellt"
+                  releaseName: 'The.Cinephile.2021.German.DL.FLAC.1080p.BluRay.10bit.x265-GROUP'
+                  category: Anime Filme
+                  releaseTags: Encode
+                  resolution: 1080p
+                  torrentSize: 4.48 GiB
+                  freeleechPercent: ""
+                  tags: ""
+                  baseUrl: http://animeworld.cx/
+                  torrentId: "00000"
+                  uploader: ""
+
+        mappings:
+          announceTypeEnum:
+            "Neuer Upload":
+              announceType: NEW
+            "Torrent vorgestellt":
+              announceType: PROMO
+
+        match:
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .rss_key }}"

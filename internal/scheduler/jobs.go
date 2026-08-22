@@ -10,29 +10,44 @@ import (
 	"strings"
 	"time"
 
-	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/notification"
-	"github.com/autobrr/autobrr/internal/update"
+	"github.com/autobrr/autobrr/internal/events"
 
 	"github.com/dustin/go-humanize"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
+type eventBus interface {
+	EmitAppUpdate(ctx context.Context, event events.AppUpdateEvent)
+}
+
 type CheckUpdatesJob struct {
-	Name          string
-	Log           zerolog.Logger
-	Version       string
-	NotifSvc      notification.Sender
-	updateService *update.Service
+	name          string
+	log           zerolog.Logger
+	eventBus      eventBus
+	version       string
+	updateService updateChecker
 
 	lastCheckVersion string
 }
 
+func NewUpdateCheckerJob(log zerolog.Logger, bus eventBus, name, version string, updateService updateChecker) *CheckUpdatesJob {
+	return &CheckUpdatesJob{
+		log:              log.With().Str("job", name).Logger(),
+		eventBus:         bus,
+		name:             name,
+		version:          version,
+		lastCheckVersion: version,
+		updateService:    updateService,
+	}
+}
+
 func (j *CheckUpdatesJob) Run() {
-	newRelease, err := j.updateService.CheckUpdateAvailable(context.TODO())
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	newRelease, err := j.updateService.CheckUpdateAvailable(ctx)
 	if err != nil {
-		j.Log.Error().Err(err).Msg("could not check for new release")
+		j.log.Error().Err(err).Msg("could not check for new release")
 		return
 	}
 
@@ -40,13 +55,13 @@ func (j *CheckUpdatesJob) Run() {
 		// this is not persisted so this can trigger more than once
 		// lets check if we have different versions between runs
 		if newRelease.TagName != j.lastCheckVersion {
-			j.Log.Info().Msgf("a new release has been found: %v Consider updating.", newRelease.TagName)
+			j.log.Info().Str("version", newRelease.TagName).Msg("new release available")
 
-			j.NotifSvc.Send(domain.NotificationEventAppUpdateAvailable, domain.NotificationPayload{
-				Subject:   "New update available!",
-				Message:   newRelease.TagName,
-				Event:     domain.NotificationEventAppUpdateAvailable,
-				Timestamp: time.Now(),
+			j.eventBus.EmitAppUpdate(ctx, events.AppUpdateEvent{
+				Type:           events.ApplicationUpdate,
+				CurrentVersion: j.version,
+				NewVersion:     newRelease.TagName,
+				URL:            newRelease.HtmlURL,
 			})
 		}
 
@@ -81,15 +96,10 @@ func (j *TempDirCleanupJob) Run() {
 		return
 	}
 
-	currentUID := os.Getenv("UID")
-	if currentUID == "" {
-		// Fallback for systems where UID isn't set
-		currentUID = os.Getenv("USER")
-		if currentUID == "" {
-			log.Debug().Msg("could not determine current user, skipping ownership check")
-			// Continue without ownership filtering or implement alternative logic
-		}
-	}
+	// Ask the OS rather than the environment. UID is a shell variable that is not
+	// exported to child processes and USER is a name, not a numeric id. Compare
+	// against the effective uid since that is what files we create are owned by.
+	currentUID := os.Geteuid()
 
 	for _, file := range files {
 		if !strings.HasPrefix(file.Name(), tmpFilePattern) {
@@ -98,12 +108,27 @@ func (j *TempDirCleanupJob) Run() {
 
 		tempFile := filepath.Join(tmpDir, file.Name())
 
-		fileInfo, err := os.Stat(tempFile)
+		// Info reports on the directory entry itself. os.Stat would follow a
+		// symlink and we would end up judging the target's owner and mtime,
+		// which on a shared /tmp is another user's to control.
+		fileInfo, err := file.Info()
 		if err != nil {
+			if os.IsNotExist(err) {
+				// removed since the directory was read, nothing to do
+				continue
+			}
+
 			j.log.Error().Err(err).Str("file", tempFile).Msg("failed to get file info")
 			continue
 		}
 
+		// only ever touch regular files, a symlink or directory sharing the
+		// prefix is not ours to reason about
+		if !fileInfo.Mode().IsRegular() {
+			continue
+		}
+
+		// on a shared box other users keep their torrents in the same /tmp
 		if !isOwnedByCurrentUser(currentUID, fileInfo) {
 			continue
 		}
@@ -120,5 +145,5 @@ func (j *TempDirCleanupJob) Run() {
 		}
 	}
 
-	j.log.Debug().Msgf("Completed cleanup of temporary directory. Deleted %d files with a total size of %s.", deletedCount, humanize.IBytes(totalSize))
+	j.log.Debug().Uint("deleted_count", deletedCount).Str("total_size", humanize.IBytes(totalSize)).Msg("completed temp directory cleanup")
 }

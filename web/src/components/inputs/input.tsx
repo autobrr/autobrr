@@ -66,6 +66,7 @@ export const TextField = ({
         <>
           <input
             {...field}
+            id={name}
             name={name}
             type="text"
             defaultValue={defaultValue}

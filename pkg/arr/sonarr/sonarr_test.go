@@ -6,7 +6,6 @@
 package sonarr
 
 import (
-	"context"
 	"io"
 	"log"
 	"net/http"
@@ -114,7 +113,7 @@ func Test_client_Push(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := New(tt.fields.config)
 
-			rejections, err := c.Push(context.Background(), tt.args.release)
+			rejections, err := c.Push(t.Context(), tt.args.release)
 			assert.Equal(t, tt.rejections, rejections)
 			if tt.wantErr && assert.Error(t, err) {
 				assert.Equal(t, tt.err, err)
@@ -184,7 +183,7 @@ func Test_client_Test(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := New(tt.cfg)
 
-			got, err := c.Test(context.Background())
+			got, err := c.Test(t.Context())
 			if tt.wantErr && assert.Error(t, err) {
 				assert.EqualErrorf(t, err, tt.expectedErr, "Error should be: %v, got: %v", tt.wantErr, err)
 			}
@@ -192,4 +191,80 @@ func Test_client_Test(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func Test_client_Push_invalid_download_client(t *testing.T) {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+	log.SetOutput(io.Discard)
+
+	mux := http.NewServeMux()
+	ts := httptest.NewServer(mux)
+	defer ts.Close()
+
+	mux.HandleFunc("/api/v3/release/push", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`[{
+			"propertyName": "DownloadClient",
+			"errorMessage": "Download client does not exist.",
+			"errorCode": "InvalidValue",
+			"attemptedValue": "bad-client",
+			"severity": "Error"
+		}]`))
+	})
+
+	client := New(Config{
+		Hostname: ts.URL,
+	})
+
+	rejections, err := client.Push(t.Context(), ReleasePushRequest{
+		Title:            "Example",
+		DownloadUrl:      "https://example.invalid/release.torrent",
+		Size:             0,
+		Indexer:          "test",
+		DownloadProtocol: "torrent",
+		Protocol:         "torrent",
+		PublishDate:      "2024-01-01T00:00:00Z",
+		DownloadClient:   "bad-client",
+	})
+
+	assert.Nil(t, rejections)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "invalid configuration")
+		assert.Contains(t, err.Error(), "Download client does not exist.")
+	}
+}
+
+// A temporarily rejected release comes back with rejected false and temporarilyRejected
+// true, and waits in Sonarr's pending queue instead of being grabbed, so its rejections
+// still have to reach the caller.
+func Test_client_Push_temporarilyRejected(t *testing.T) {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+	log.SetOutput(io.Discard)
+
+	mux := http.NewServeMux()
+	ts := httptest.NewServer(mux)
+	defer ts.Close()
+
+	mux.HandleFunc("/api/v3/release/push", func(w http.ResponseWriter, r *http.Request) {
+		jsonPayload, _ := os.ReadFile("testdata/release_push_temporarily_rejected_response.json")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(jsonPayload)
+	})
+
+	c := New(Config{Hostname: ts.URL})
+
+	rejections, err := c.Push(t.Context(), ReleasePushRequest{
+		Title:            "Series.Title.S01E01.1080p.WEB-DL.x264-GROUP",
+		DownloadUrl:      "https://www.mock-indexer.test/tor/download.php?tid=000000",
+		Size:             1048576,
+		Indexer:          "mock-indexer",
+		DownloadProtocol: "torrent",
+		Protocol:         "torrent",
+		PublishDate:      "2026-08-15T17:36:15Z",
+	})
+
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"Waiting for a better quality release"}, rejections)
 }

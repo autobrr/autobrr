@@ -126,7 +126,7 @@ func main() {
 		cfg := config.New(configPath, version)
 
 		// init new logger
-		l := logger.New(cfg.Config)
+		l := logger.New(cfg.Config, nil)
 
 		// open database connection
 		db, _ := database.NewDB(cfg.Config, l)
@@ -176,7 +176,7 @@ func main() {
 		cfg := config.New(configPath, version)
 
 		// init new logger
-		l := logger.New(cfg.Config)
+		l := logger.New(cfg.Config, nil)
 
 		// open database connection
 		db, _ := database.NewDB(cfg.Config, l)
@@ -257,7 +257,7 @@ func main() {
 			ExcludeTables: strings.Split(excludeTables, ","),
 		}
 
-		l := logger.New(&domain.Config{LogLevel: "TRACE", Version: "dev"})
+		l := logger.New(&domain.Config{LogLevel: "TRACE", Version: "dev"}, nil)
 
 		c := tools.NewConverter(l, sqliteDBPath, postgresDBURL)
 		if err := c.Convert(ctx, opts); err != nil {
@@ -327,7 +327,7 @@ func main() {
 		cfg := config.New(configPath, version)
 
 		// init new logger
-		l := logger.New(cfg.Config)
+		l := logger.New(cfg.Config, nil)
 
 		// open database connection
 		db, _ := database.NewDB(cfg.Config, l)

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -22,7 +21,7 @@ type ListRepo struct {
 	db  *DB
 }
 
-func NewListRepo(log logger.Logger, db *DB) domain.ListRepo {
+func NewListRepo(log zerolog.Logger, db *DB) *ListRepo {
 	return &ListRepo{
 		log: log.With().Str("repo", "list").Logger(),
 		db:  db,
@@ -82,9 +81,11 @@ func (r *ListRepo) List(ctx context.Context) ([]*domain.List, error) {
 		list.ClientID = clientID.V
 		list.URL = url.V
 		list.APIKey = apiKey.V
+
 		list.LastRefreshTime = lastRefreshTime.V
 		list.LastRefreshData = lastRefreshData.V
 		list.LastRefreshStatus = domain.ListRefreshStatus(lastRefreshStatus.V)
+
 		list.Filters = make([]domain.ListFilter, 0)
 
 		lists = append(lists, &list)
@@ -135,10 +136,11 @@ func (r *ListRepo) FindByID(ctx context.Context, listID int64) (*domain.List, er
 
 	var list domain.List
 
-	var url, apiKey sql.Null[string]
+	var url, apiKey, lastRefreshStatus, lastRefreshData sql.Null[string]
+	var lastRefreshTime sql.Null[time.Time]
 	var clientID sql.Null[int]
 
-	err = row.Scan(&list.ID, &list.Name, &list.Enabled, &list.Type, &clientID, &url, pq.Array(&list.Headers), &apiKey, &list.MatchRelease, pq.Array(&list.TagsInclude), pq.Array(&list.TagsExclude), &list.IncludeUnmonitored, &list.IncludeAlternateTitles, &list.IncludeYear, &list.SkipCleanSanitize, &list.LastRefreshTime, &list.LastRefreshStatus, &list.LastRefreshData, &list.CreatedAt, &list.UpdatedAt)
+	err = row.Scan(&list.ID, &list.Name, &list.Enabled, &list.Type, &clientID, &url, pq.Array(&list.Headers), &apiKey, &list.MatchRelease, pq.Array(&list.TagsInclude), pq.Array(&list.TagsExclude), &list.IncludeUnmonitored, &list.IncludeAlternateTitles, &list.IncludeYear, &list.SkipCleanSanitize, &lastRefreshTime, &lastRefreshStatus, &lastRefreshData, &list.CreatedAt, &list.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -146,6 +148,10 @@ func (r *ListRepo) FindByID(ctx context.Context, listID int64) (*domain.List, er
 	list.ClientID = clientID.V
 	list.URL = url.V
 	list.APIKey = apiKey.V
+
+	list.LastRefreshTime = lastRefreshTime.V
+	list.LastRefreshData = lastRefreshData.V
+	list.LastRefreshStatus = domain.ListRefreshStatus(lastRefreshStatus.V)
 
 	return &list, nil
 }
@@ -191,11 +197,6 @@ func (r *ListRepo) Store(ctx context.Context, list *domain.List) error {
 			list.IncludeYear,
 			list.SkipCleanSanitize,
 		).Suffix("RETURNING id").RunWith(tx)
-
-	//query, args, err := qb.ToSql()
-	//if err != nil {
-	//	return err
-	//}
 
 	if err := qb.QueryRowContext(ctx).Scan(&list.ID); err != nil {
 		return err
@@ -248,14 +249,6 @@ func (r *ListRepo) Update(ctx context.Context, list *domain.List) error {
 		return err
 	}
 
-	if err := r.StoreListFilterConnection(ctx, tx, list); err != nil {
-		return err
-	}
-
-	if err := tx.Commit(); err != nil {
-		return errors.Wrap(err, "error updating filter actions")
-	}
-
 	rowsAffected, err := results.RowsAffected()
 	if err != nil {
 		return err
@@ -263,6 +256,14 @@ func (r *ListRepo) Update(ctx context.Context, list *domain.List) error {
 
 	if rowsAffected == 0 {
 		return domain.ErrUpdateFailed
+	}
+
+	if err := r.StoreListFilterConnection(ctx, tx, list); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return errors.Wrap(err, "error updating list and filters")
 	}
 
 	return nil
@@ -339,7 +340,7 @@ func (r *ListRepo) Delete(ctx context.Context, listID int64) error {
 	}
 
 	if err := tx.Commit(); err != nil {
-		return errors.Wrap(err, "error storing list and filters")
+		return errors.Wrap(err, "error deleting list and filter connections")
 	}
 
 	return nil
@@ -373,10 +374,20 @@ func (r *ListRepo) ToggleEnabled(ctx context.Context, listID int64, enabled bool
 	return nil
 }
 
+// StoreListFilterConnection syncs the list_filter connections for the list to
+// list.Filters, deleting stale connections and inserting missing ones.
 func (r *ListRepo) StoreListFilterConnection(ctx context.Context, tx *Tx, list *domain.List) error {
-	qb := r.db.squirrel.Delete("list_filter").Where(sq.Eq{"list_id": list.ID})
+	filterIDs := make([]int, 0, len(list.Filters))
+	for _, filter := range list.Filters {
+		filterIDs = append(filterIDs, filter.ID)
+	}
 
-	query, args, err := qb.ToSql()
+	deleteQb := r.db.squirrel.Delete("list_filter").Where(sq.Eq{"list_id": list.ID})
+	if len(filterIDs) > 0 {
+		deleteQb = deleteQb.Where(sq.NotEq{"filter_id": filterIDs})
+	}
+
+	query, args, err := deleteQb.ToSql()
 	if err != nil {
 		return err
 	}
@@ -391,41 +402,25 @@ func (r *ListRepo) StoreListFilterConnection(ctx context.Context, tx *Tx, list *
 		return err
 	}
 
-	r.log.Trace().Int64("rows_affected", rowsAffected).Msg("deleted list filters")
+	r.log.Trace().Int64("rows_affected", rowsAffected).Msg("deleted stale list filter connections")
 
-	//if rowsAffected == 0 {
-	//	return domain.ErrUpdateFailed
-	//}
+	if len(filterIDs) == 0 {
+		return nil
+	}
 
-	for _, filter := range list.Filters {
-		qb := r.db.squirrel.Insert("list_filter").
-			Columns(
-				"list_id",
-				"filter_id",
-			).
-			Values(
-				list.ID,
-				filter.ID,
-			)
+	insertQb := r.db.squirrel.Insert("list_filter").Columns("list_id", "filter_id")
+	for _, filterID := range filterIDs {
+		insertQb = insertQb.Values(list.ID, filterID)
+	}
+	insertQb = insertQb.Suffix("ON CONFLICT DO NOTHING")
 
-		query, args, err := qb.ToSql()
-		if err != nil {
-			return err
-		}
+	query, args, err = insertQb.ToSql()
+	if err != nil {
+		return err
+	}
 
-		results, err := tx.ExecContext(ctx, query, args...)
-		if err != nil {
-			return err
-		}
-
-		rowsAffected, err := results.RowsAffected()
-		if err != nil {
-			return err
-		}
-
-		if rowsAffected == 0 {
-			return domain.ErrUpdateFailed
-		}
+	if _, err := tx.ExecContext(ctx, query, args...); err != nil {
+		return err
 	}
 
 	return nil
@@ -466,6 +461,47 @@ func (r *ListRepo) GetListFilters(ctx context.Context, listID int64) ([]domain.L
 		}
 
 		filters = append(filters, filter)
+	}
+
+	return filters, nil
+}
+
+// GetAllListFilters returns the filters connected to each list, keyed by list id.
+func (r *ListRepo) GetAllListFilters(ctx context.Context) (map[int64][]domain.ListFilter, error) {
+	qb := r.db.squirrel.Select(
+		"lf.list_id",
+		"f.id",
+		"f.name",
+	).
+		From("list_filter lf").
+		Join(
+			"filter f ON f.id = lf.filter_id",
+		).
+		OrderBy(
+			"f.name ASC",
+		)
+
+	query, args, err := qb.ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	filters := make(map[int64][]domain.ListFilter)
+	for rows.Next() {
+		var listID int64
+		var filter domain.ListFilter
+		if err := rows.Scan(&listID, &filter.ID, &filter.Name); err != nil {
+			return nil, err
+		}
+
+		filters[listID] = append(filters[listID], filter)
 	}
 
 	return filters, nil

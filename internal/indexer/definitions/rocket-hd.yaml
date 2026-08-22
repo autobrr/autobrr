@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: rocket-hd
 name: RocketHD
 identifier: rocket-hd
@@ -24,10 +25,6 @@ irc:
   server: irc.rocket-hd.cc
   port: 6697
   tls: true
-  channels:
-    - "#announce"
-  announcers:
-    - GLaDOS
   settings:
     - name: nick
       type: text
@@ -41,53 +38,45 @@ irc:
       label: Network password
       help: Your profile > Settings > IRC Key
 
-  parse:
-    type: single
-    lines:
-      - tests:
-          - line: "TV|WEB-DL|1080p|Die Scharfschuetzen S01 German 1080p WEB-DL H.264-AIDA|RLS:Die.Scharfschuetzen.S01.German.1080p.WEB-DL.H.264-AIDA|S:67.15GiB|TMDB:12345|U:Anonym|O:INTERNAL|FL:0|DU:0 [https://rocket-hd.cc/torrents/99]"
-            expect:
-              category: TV
-              releaseTags: WEB-DL
-              resolution: 1080p
-              torrentName: Die Scharfschuetzen S01 German 1080p WEB-DL H.264-AIDA
-              releaseName: Die.Scharfschuetzen.S01.German.1080p.WEB-DL.H.264-AIDA
-              torrentSize: 67.15GiB
-              tmdb: "12345"
-              uploader: Anonym
-              origin: INTERNAL
-              freeleechPercent: "0"
-              doubleUp: "0"
-              torrentId: "99"
-          - line: "Movies|Encode|1080p|Ju On 2 2003 GERMAN DL 1080p BluRay x264-WATCHABLE|RLS:Ju.On.2.2003.GERMAN.DL.1080p.BluRay.x264-WATCHABLE|S:7.42GiB|TMDB:67890|U:fritz47|O:NORMAL|FL:50|DU:0 [https://rocket-hd.cc/torrents/100]"
-            expect:
-              category: Movies
-              releaseTags: Encode
-              resolution: 1080p
-              torrentName: Ju On 2 2003 GERMAN DL 1080p BluRay x264-WATCHABLE
-              releaseName: Ju.On.2.2003.GERMAN.DL.1080p.BluRay.x264-WATCHABLE
-              torrentSize: 7.42GiB
-              tmdb: "67890"
-              uploader: fritz47
-              origin: NORMAL
-              freeleechPercent: "50"
-              doubleUp: "0"
-              torrentId: "100"
-        pattern: '^([^|]+)\|([^|]+)\|([^|]*)\|([^|]+)\|RLS:([^|]+)\|S:([^|]+)\|TMDB:(\d+)\|U:([^|]+)\|O:([^|]+)\|FL:(\d+)\|DU:(\d+) \[.*?/torrents/(\d+)\]'
-        vars:
-          - category
-          - releaseTags
-          - resolution
-          - torrentName
-          - releaseName
-          - torrentSize
-          - tmdb
-          - uploader
-          - origin
-          - freeleechPercent
-          - doubleUp
-          - torrentId
+  channels:
+    - name: "#announce"
+      announcers:
+        - GLaDOS
+      parse:
+        type: single
+        lines:
+          - pattern: '^(?P<category>[^|]+)\|(?P<releaseTags>[^|]+)\|(?P<resolution>[^|]*)\|(?P<releaseName>[^|]+)\|RLS:(?P<releaseName2>[^|]+)\|S:(?P<torrentSize>[^|]+)\|TMDB:(?P<tmdb>\d+)\|U:(?P<uploader>[^|]+)\|O:(?P<origin>[^|]+)\|FL:(?P<freeleechPercent>\d+)\|DU:(?P<doubleUp>\d+) \[.*?/torrents/(?P<torrentId>\d+)\]'
+            tests:
+              - line: "TV|WEB-DL|1080p|Die Scharfschuetzen S01 German 1080p WEB-DL H.264-AIDA|RLS:Die.Scharfschuetzen.S01.German.1080p.WEB-DL.H.264-AIDA|S:67.15GiB|TMDB:12345|U:Anonym|O:INTERNAL|FL:0|DU:0 [https://rocket-hd.cc/torrents/99]"
+                expect:
+                  category: TV
+                  releaseTags: WEB-DL
+                  resolution: 1080p
+                  releaseName: Die Scharfschuetzen S01 German 1080p WEB-DL H.264-AIDA
+                  releaseName2: Die.Scharfschuetzen.S01.German.1080p.WEB-DL.H.264-AIDA
+                  torrentSize: 67.15GiB
+                  tmdb: "12345"
+                  uploader: Anonym
+                  origin: INTERNAL
+                  freeleechPercent: "0"
+                  doubleUp: "0"
+                  torrentId: "99"
 
-    match:
-      infourl: "/torrents/{{ .torrentId }}"
-      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
+              - line: "Movies|Encode|1080p|Ju On 2 2003 GERMAN DL 1080p BluRay x264-WATCHABLE|RLS:Ju.On.2.2003.GERMAN.DL.1080p.BluRay.x264-WATCHABLE|S:7.42GiB|TMDB:67890|U:fritz47|O:NORMAL|FL:50|DU:0 [https://rocket-hd.cc/torrents/100]"
+                expect:
+                  category: Movies
+                  releaseTags: Encode
+                  resolution: 1080p
+                  releaseName: Ju On 2 2003 GERMAN DL 1080p BluRay x264-WATCHABLE
+                  releaseName2: Ju.On.2.2003.GERMAN.DL.1080p.BluRay.x264-WATCHABLE
+                  torrentSize: 7.42GiB
+                  tmdb: "67890"
+                  uploader: fritz47
+                  origin: NORMAL
+                  freeleechPercent: "50"
+                  doubleUp: "0"
+                  torrentId: "100"
+
+        match:
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
