@@ -5,6 +5,14 @@ ALTER TABLE filter
 ALTER TABLE filter
     ADD COLUMN max_downloads_window_type TEXT NOT NULL DEFAULT 'FIXED';
 
+-- TIMESTAMPTZ makes the download window comparisons against CURRENT_TIMESTAMP
+-- instant-correct when the app and database run in different timezones (#2089).
+-- Existing naive values are reinterpreted in the session timezone; where the
+-- app wrote another zone, history is off by that offset until it ages out of
+-- the enforcement window
+ALTER TABLE release_action_status
+    ALTER COLUMN timestamp TYPE TIMESTAMPTZ;
+
 -- the composite index lets the download window count run as an index range
 -- scan; it replaces the plain filter_id index from migration 23, which fresh
 -- installs never got, hence the guard

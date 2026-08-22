@@ -520,7 +520,7 @@ CREATE TABLE release_action_status
     filter     TEXT,
     filter_id  INTEGER,
     rejections TEXT[]    DEFAULT '{}' NOT NULL,
-    timestamp  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    timestamp  TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     raw        TEXT,
     log        TEXT,
     release_id INTEGER                NOT NULL,

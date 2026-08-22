@@ -1134,7 +1134,7 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			mockReleaseActionStatus.ActionID = int64(mockAction.ID)
 			mockReleaseActionStatus.FilterID = int64(mockFilter.ID)
 			mockReleaseActionStatus.ReleaseID = mockRelease.ID
-			mockReleaseActionStatus.Timestamp = time.Now().Add(-30 * time.Second)
+			mockReleaseActionStatus.Timestamp = time.Now().UTC().Add(-30 * time.Second)
 
 			err = releaseRepo.StoreReleaseActionStatus(t.Context(), mockReleaseActionStatus)
 			assert.NoError(t, err)
@@ -1180,7 +1180,7 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			mockReleaseActionStatus.ActionID = int64(mockAction.ID)
 			mockReleaseActionStatus.FilterID = int64(mockFilter.ID)
 			mockReleaseActionStatus.ReleaseID = mockRelease.ID
-			mockReleaseActionStatus.Timestamp = time.Now().Add(-30 * time.Minute)
+			mockReleaseActionStatus.Timestamp = time.Now().UTC().Add(-30 * time.Minute)
 
 			err = releaseRepo.StoreReleaseActionStatus(t.Context(), mockReleaseActionStatus)
 			assert.NoError(t, err)
@@ -1226,7 +1226,7 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			mockReleaseActionStatus.ActionID = int64(mockAction.ID)
 			mockReleaseActionStatus.FilterID = int64(mockFilter.ID)
 			mockReleaseActionStatus.ReleaseID = mockRelease.ID
-			mockReleaseActionStatus.Timestamp = time.Now().Add(-2 * time.Minute)
+			mockReleaseActionStatus.Timestamp = time.Now().UTC().Add(-2 * time.Minute)
 
 			err = releaseRepo.StoreReleaseActionStatus(t.Context(), mockReleaseActionStatus)
 			assert.NoError(t, err)
@@ -1317,7 +1317,7 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			mockReleaseActionStatus.ActionID = int64(mockAction.ID)
 			mockReleaseActionStatus.FilterID = int64(mockFilter.ID)
 			mockReleaseActionStatus.ReleaseID = mockRelease.ID
-			mockReleaseActionStatus.Timestamp = time.Now().Add(-12 * time.Hour)
+			mockReleaseActionStatus.Timestamp = time.Now().UTC().Add(-12 * time.Hour)
 
 			err = releaseRepo.StoreReleaseActionStatus(t.Context(), mockReleaseActionStatus)
 			assert.NoError(t, err)
@@ -1363,7 +1363,7 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			mockReleaseActionStatus.ActionID = int64(mockAction.ID)
 			mockReleaseActionStatus.FilterID = int64(mockFilter.ID)
 			mockReleaseActionStatus.ReleaseID = mockRelease.ID
-			mockReleaseActionStatus.Timestamp = time.Now().Add(-2 * 24 * time.Hour)
+			mockReleaseActionStatus.Timestamp = time.Now().UTC().Add(-2 * 24 * time.Hour)
 
 			err = releaseRepo.StoreReleaseActionStatus(t.Context(), mockReleaseActionStatus)
 			assert.NoError(t, err)
@@ -1417,7 +1417,7 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			mockReleaseActionStatus.ActionID = int64(mockAction.ID)
 			mockReleaseActionStatus.FilterID = int64(mockFilter.ID)
 			mockReleaseActionStatus.ReleaseID = mockRelease.ID
-			mockReleaseActionStatus.Timestamp = time.Now().Add(-365 * 24 * time.Hour)
+			mockReleaseActionStatus.Timestamp = time.Now().UTC().Add(-365 * 24 * time.Hour)
 
 			err = releaseRepo.StoreReleaseActionStatus(t.Context(), mockReleaseActionStatus)
 			assert.NoError(t, err)
