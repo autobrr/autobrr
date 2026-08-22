@@ -46,7 +46,6 @@ func windowTypeOrFixed(w domain.FilterMaxDownloadsWindowType) domain.FilterMaxDo
 	return w
 }
 
-// calendar boundary expressions for FIXED windows
 var (
 	fixedWindowStartSQLite = map[domain.FilterMaxDownloadsUnit]string{
 		domain.FilterMaxDownloadsMinute: `strftime('%Y-%m-%d %H:%M:00', datetime('now', 'localtime'))`,
@@ -71,11 +70,13 @@ var (
 // fixed expressions and clamped integers, never user input.
 func (r *FilterRepo) downloadsWindowStart(filter *domain.Filter) string {
 	if filter.MaxDownloadsWindowType == domain.FilterMaxDownloadsWindowRolling {
+		n, unit := filter.DownloadPeriod()
+
 		if r.db.Driver == "postgres" {
-			return fmt.Sprintf("CURRENT_TIMESTAMP - INTERVAL '%s'", filter.DownloadPeriodPGInterval())
+			return fmt.Sprintf("CURRENT_TIMESTAMP - INTERVAL '%d %s'", n, unit)
 		}
 
-		return fmt.Sprintf("datetime('now', 'localtime', '%s')", filter.DownloadPeriodSQLiteModifier())
+		return fmt.Sprintf("datetime('now', 'localtime', '-%d %s')", n, unit)
 	}
 
 	boundaries := fixedWindowStartSQLite
@@ -910,6 +911,10 @@ func (r *FilterRepo) findExternalFilters(ctx context.Context, filterIDs []int) (
 }
 
 func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
+	// normalize on the struct so the caller echoes what gets stored
+	filter.MaxDownloadsPeriod = clampPeriod(filter.MaxDownloadsPeriod)
+	filter.MaxDownloadsWindowType = windowTypeOrFixed(filter.MaxDownloadsWindowType)
+
 	queryBuilder := r.db.squirrel.
 		Insert("filter").
 		Columns(
@@ -993,8 +998,8 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			pq.Array(filter.AnnounceTypes),
 			filter.MaxDownloads,
 			filter.MaxDownloadsUnit,
-			clampPeriod(filter.MaxDownloadsPeriod),
-			windowTypeOrFixed(filter.MaxDownloadsWindowType),
+			filter.MaxDownloadsPeriod,
+			filter.MaxDownloadsWindowType,
 			filter.MatchReleases,
 			filter.ExceptReleases,
 			filter.UseRegex,
@@ -1069,6 +1074,10 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 }
 
 func (r *FilterRepo) Update(ctx context.Context, filter *domain.Filter) error {
+	// normalize on the struct so the caller echoes what gets stored
+	filter.MaxDownloadsPeriod = clampPeriod(filter.MaxDownloadsPeriod)
+	filter.MaxDownloadsWindowType = windowTypeOrFixed(filter.MaxDownloadsWindowType)
+
 	var err error
 
 	queryBuilder := r.db.squirrel.
@@ -1082,8 +1091,8 @@ func (r *FilterRepo) Update(ctx context.Context, filter *domain.Filter) error {
 		Set("announce_types", pq.Array(filter.AnnounceTypes)).
 		Set("max_downloads", filter.MaxDownloads).
 		Set("max_downloads_unit", filter.MaxDownloadsUnit).
-		Set("max_downloads_period", clampPeriod(filter.MaxDownloadsPeriod)).
-		Set("max_downloads_window_type", windowTypeOrFixed(filter.MaxDownloadsWindowType)).
+		Set("max_downloads_period", filter.MaxDownloadsPeriod).
+		Set("max_downloads_window_type", filter.MaxDownloadsWindowType).
 		Set("use_regex", filter.UseRegex).
 		Set("match_releases", filter.MatchReleases).
 		Set("except_releases", filter.ExceptReleases).

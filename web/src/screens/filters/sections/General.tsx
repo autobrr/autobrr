@@ -146,19 +146,21 @@ export const General = () => {
               </div>
             }
           />
-          <Select
-            name="max_downloads_window_type"
-            label={t("filters:general.maxDownloadsWindowType")}
-            options={getWindowTypeOptions(t)}
-            optionDefaultText={t("filters:general.selectWindowType")}
-            tooltip={
-              <div>
-                <p>{t("filters:general.maxDownloadsWindowTypeTooltip")}</p>
-                <DocsLink href="https://autobrr.com/filters#rules" />
-              </div>
-            }
-          />
-          {values.max_downloads_window_type === "ROLLING" && (
+          {values.max_downloads_unit !== "" && values.max_downloads_unit !== "EVER" && (
+            <Select
+              name="max_downloads_window_type"
+              label={t("filters:general.maxDownloadsWindowType")}
+              options={getWindowTypeOptions(t)}
+              optionDefaultText={t("filters:general.selectWindowType")}
+              tooltip={
+                <div>
+                  <p>{t("filters:general.maxDownloadsWindowTypeTooltip")}</p>
+                  <DocsLink href="https://autobrr.com/filters#rules" />
+                </div>
+              }
+            />
+          )}
+          {values.max_downloads_unit !== "" && values.max_downloads_unit !== "EVER" && values.max_downloads_window_type === "ROLLING" && (
             <NumberField
               name="max_downloads_period"
               label={t("filters:general.maxDownloadsPeriod")}

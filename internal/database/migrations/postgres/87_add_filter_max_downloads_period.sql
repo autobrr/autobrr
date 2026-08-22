@@ -7,9 +7,10 @@ ALTER TABLE filter
 
 -- TIMESTAMPTZ makes the download window comparisons against CURRENT_TIMESTAMP
 -- instant-correct when the app and database run in different timezones (#2089).
--- Existing naive values are reinterpreted in the session timezone; where the
--- app wrote another zone, history is off by that offset until it ages out of
--- the enforcement window
+-- Existing naive values are reinterpreted in the session timezone: exact where
+-- app and database share a zone, off by the offset otherwise until history ages
+-- out of the enforcement window. Metadata-only on UTC servers; non-UTC servers
+-- rewrite the table once
 ALTER TABLE release_action_status
     ALTER COLUMN timestamp TYPE TIMESTAMPTZ;
 

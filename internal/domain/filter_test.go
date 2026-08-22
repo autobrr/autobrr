@@ -2249,23 +2249,49 @@ func TestFilter_CheckFilter1(t *testing.T) {
 func TestFilter_DownloadPeriod(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		name         string
-		filter       Filter
-		wantModifier string
-		wantInterval string
+		name     string
+		filter   Filter
+		wantN    int
+		wantUnit string
 	}{
-		{name: "rolling_minute", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsMinute, MaxDownloadsPeriod: 2, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}, wantModifier: "-2 minutes", wantInterval: "2 minutes"},
-		{name: "rolling_hour", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsHour, MaxDownloadsPeriod: 6, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}, wantModifier: "-6 hours", wantInterval: "6 hours"},
-		{name: "rolling_day", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsDay, MaxDownloadsPeriod: 3, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}, wantModifier: "-3 days", wantInterval: "3 days"},
-		{name: "rolling_week", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsWeek, MaxDownloadsPeriod: 2, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}, wantModifier: "-14 days", wantInterval: "14 days"},
-		{name: "rolling_month", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsMonth, MaxDownloadsPeriod: 2, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}, wantModifier: "-2 months", wantInterval: "2 months"},
-		{name: "rolling_zero_period", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsHour, MaxDownloadsPeriod: 0, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}, wantModifier: "-1 hours", wantInterval: "1 hours"},
-		{name: "fixed_ignores_period", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsDay, MaxDownloadsPeriod: 3}, wantModifier: "-1 days", wantInterval: "1 days"},
+		{name: "rolling_minute", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsMinute, MaxDownloadsPeriod: 2, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}, wantN: 2, wantUnit: "minutes"},
+		{name: "rolling_hour", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsHour, MaxDownloadsPeriod: 6, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}, wantN: 6, wantUnit: "hours"},
+		{name: "rolling_day", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsDay, MaxDownloadsPeriod: 3, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}, wantN: 3, wantUnit: "days"},
+		{name: "rolling_week", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsWeek, MaxDownloadsPeriod: 2, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}, wantN: 14, wantUnit: "days"},
+		{name: "rolling_month", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsMonth, MaxDownloadsPeriod: 2, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}, wantN: 2, wantUnit: "months"},
+		{name: "rolling_zero_period", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsHour, MaxDownloadsPeriod: 0, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}, wantN: 1, wantUnit: "hours"},
+		{name: "fixed_ignores_period", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsDay, MaxDownloadsPeriod: 3}, wantN: 1, wantUnit: "days"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.wantModifier, tt.filter.DownloadPeriodSQLiteModifier())
-			assert.Equal(t, tt.wantInterval, tt.filter.DownloadPeriodPGInterval())
+			n, unit := tt.filter.DownloadPeriod()
+			assert.Equal(t, tt.wantN, n)
+			assert.Equal(t, tt.wantUnit, unit)
+		})
+	}
+}
+
+func TestFilter_ValidateMaxDownloads(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name    string
+		filter  Filter
+		wantErr bool
+	}{
+		{name: "valid_rolling", filter: Filter{Name: "test", MaxDownloadsUnit: FilterMaxDownloadsDay, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}},
+		{name: "valid_empty", filter: Filter{Name: "test"}},
+		{name: "invalid_unit", filter: Filter{Name: "test", MaxDownloadsUnit: "YEAR"}, wantErr: true},
+		{name: "invalid_unit_case", filter: Filter{Name: "test", MaxDownloadsUnit: "day"}, wantErr: true},
+		{name: "invalid_window_type", filter: Filter{Name: "test", MaxDownloadsWindowType: "rolling"}, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.filter.Validate()
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
 		})
 	}
 }

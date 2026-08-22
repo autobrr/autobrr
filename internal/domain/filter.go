@@ -30,6 +30,8 @@ func (f *FilterDownloads) String() string {
 	return fmt.Sprintf("Period: %d", f.PeriodCount)
 }
 
+// FilterMaxDownloadsWindowType selects how the download window is anchored:
+// FIXED resets at calendar boundaries, ROLLING slides over the last period units.
 type FilterMaxDownloadsWindowType string
 
 const (
@@ -58,10 +60,9 @@ func (f *Filter) MaxDownloadsPeriodNormalized() int {
 	return f.MaxDownloadsPeriod
 }
 
-// downloadPeriodUnits returns the rolling window size and the SQL unit keyword
-// for the filter's download window. Callers must handle FilterMaxDownloadsEver
-// separately.
-func (f *Filter) downloadPeriodUnits() (int, string) {
+// DownloadPeriod returns the rolling window size and its unit keyword, with
+// WEEK folded into days. Callers must handle FilterMaxDownloadsEver separately.
+func (f *Filter) DownloadPeriod() (int, string) {
 	period := f.MaxDownloadsPeriodNormalized()
 
 	switch f.MaxDownloadsUnit {
@@ -78,20 +79,6 @@ func (f *Filter) downloadPeriodUnits() (int, string) {
 	}
 
 	return 1, "days"
-}
-
-// DownloadPeriodSQLiteModifier returns a SQLite datetime modifier like "-3 days".
-func (f *Filter) DownloadPeriodSQLiteModifier() string {
-	n, unit := f.downloadPeriodUnits()
-
-	return fmt.Sprintf("-%d %s", n, unit)
-}
-
-// DownloadPeriodPGInterval returns a PostgreSQL interval string like "3 days".
-func (f *Filter) DownloadPeriodPGInterval() string {
-	n, unit := f.downloadPeriodUnits()
-
-	return fmt.Sprintf("%d %s", n, unit)
 }
 
 type SmartEpisodeParams struct {
@@ -362,6 +349,18 @@ func (f *Filter) Validate() error {
 
 	if _, _, err := f.parsedSizeLimits(); err != nil {
 		return fmt.Errorf("error validating filter size limits: %w", err)
+	}
+
+	switch f.MaxDownloadsUnit {
+	case "", FilterMaxDownloadsMinute, FilterMaxDownloadsHour, FilterMaxDownloadsDay, FilterMaxDownloadsWeek, FilterMaxDownloadsMonth, FilterMaxDownloadsEver:
+	default:
+		return errors.New("validation: invalid max downloads unit: %s", f.MaxDownloadsUnit)
+	}
+
+	switch f.MaxDownloadsWindowType {
+	case "", FilterMaxDownloadsWindowFixed, FilterMaxDownloadsWindowRolling:
+	default:
+		return errors.New("validation: invalid max downloads window type: %s", f.MaxDownloadsWindowType)
 	}
 
 	for _, external := range f.External {

@@ -679,7 +679,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
           </span>
           {filter.max_downloads_unit !== "" && filter.downloads !== undefined && (
             <span className="ml-2 whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
-              {t("list.downloads")}: {filter.downloads.period_count}/{filter.max_downloads} {t("list.per")} {filter.max_downloads_window_type === "ROLLING" && filter.max_downloads_period > 1 ? `${filter.max_downloads_period} ` : ""}{filter.max_downloads_unit}
+              {t("list.downloads")}: {filter.downloads.period_count}/{filter.max_downloads} {t("list.per")} {filter.max_downloads_unit !== "EVER" && filter.max_downloads_window_type === "ROLLING" && filter.max_downloads_period > 1 ? `${filter.max_downloads_period} ` : ""}{filter.max_downloads_unit}
             </span>
           )}
         </div>
