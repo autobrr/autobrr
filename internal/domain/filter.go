@@ -20,21 +20,14 @@ import (
 	"github.com/go-andiamo/splitter"
 )
 
+// FilterDownloads holds the download count within the filter's enforcement
+// window; for EVER the window is the filter's lifetime.
 type FilterDownloads struct {
 	PeriodCount int `json:"period_count"`
-	TotalCount  int `json:"total_count"`
 }
 
 func (f *FilterDownloads) String() string {
-	return fmt.Sprintf("Period: %d, Total: %d", f.PeriodCount, f.TotalCount)
-}
-
-func (f *FilterDownloads) BelowCount(unit FilterMaxDownloadsUnit, maxDownloads int) bool {
-	if unit == FilterMaxDownloadsEver {
-		return f.TotalCount < maxDownloads
-	}
-
-	return f.PeriodCount < maxDownloads
+	return fmt.Sprintf("Period: %d", f.PeriodCount)
 }
 
 type FilterMaxDownloadsWindowType string
@@ -758,7 +751,7 @@ func (f *Filter) checkMaxDownloads() bool {
 		return false
 	}
 
-	return f.Downloads.BelowCount(f.MaxDownloadsUnit, f.MaxDownloads)
+	return f.Downloads.PeriodCount < f.MaxDownloads
 }
 
 // checkSizeFilter compares the filter size limits to a release's size if it is

@@ -939,7 +939,6 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			assert.NotNil(t, mockData.Downloads)
 			assert.Equal(t, mockData.Downloads, &domain.FilterDownloads{
 				PeriodCount: 1,
-				TotalCount:  1,
 			})
 
 			// Cleanup
@@ -956,7 +955,6 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			assert.NotNil(t, mockFilter.Downloads)
 			assert.Equal(t, mockFilter.Downloads, &domain.FilterDownloads{
 				PeriodCount: 0,
-				TotalCount:  0,
 			})
 		})
 
@@ -1014,7 +1012,6 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			assert.NotNil(t, mockFilter.Downloads)
 			assert.Equal(t, mockFilter.Downloads, &domain.FilterDownloads{
 				PeriodCount: 1,
-				TotalCount:  1,
 			})
 
 			// Cleanup
@@ -1082,7 +1079,6 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			assert.NotNil(t, mockFilter.Downloads)
 			assert.Equal(t, mockFilter.Downloads, &domain.FilterDownloads{
 				PeriodCount: 0,
-				TotalCount:  1,
 			})
 
 			// Cleanup
@@ -1104,7 +1100,6 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			assert.NotNil(t, mockFilter.Downloads)
 			assert.Equal(t, mockFilter.Downloads, &domain.FilterDownloads{
 				PeriodCount: 0,
-				TotalCount:  0,
 			})
 
 			// Cleanup
@@ -1241,7 +1236,6 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, mockFilter.Downloads)
 			assert.Equal(t, 0, mockFilter.Downloads.PeriodCount, "should not count release outside rolling window")
-			assert.Equal(t, 1, mockFilter.Downloads.TotalCount, "total count should include all releases")
 
 			// Cleanup
 			_ = actionRepo.Delete(t.Context(), &domain.DeleteActionRequest{ActionId: mockAction.ID})
@@ -1389,7 +1383,6 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, mockFilter.Downloads)
 			assert.Equal(t, 0, mockFilter.Downloads.PeriodCount, "should not count release outside rolling 1 day window")
-			assert.Equal(t, 1, mockFilter.Downloads.TotalCount)
 
 			// Cleanup
 			_ = actionRepo.Delete(t.Context(), &domain.DeleteActionRequest{ActionId: mockAction.ID})
@@ -1435,7 +1428,6 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			assert.NotNil(t, mockFilter.Downloads)
 			assert.Equal(t, mockFilter.Downloads, &domain.FilterDownloads{
 				PeriodCount: 1,
-				TotalCount:  1,
 			})
 
 			// Cleanup

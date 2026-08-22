@@ -163,7 +163,6 @@ interface ExternalFilter {
 
 interface FilterDownloads {
   period_count: number;
-  total_count: number;
 }
 
 interface FilterNotification {

@@ -5,7 +5,10 @@ ALTER TABLE filter
 ALTER TABLE filter
     ADD COLUMN max_downloads_window_type TEXT NOT NULL DEFAULT 'FIXED';
 
--- fresh installs never got this index; upgraded installs created it in
--- 23_release_action_status_add_filter_id.sql, hence the guard
-CREATE INDEX IF NOT EXISTS release_action_status_filter_id_index
-    ON release_action_status (filter_id);
+-- the composite index lets the download window count run as an index range
+-- scan; it replaces the plain filter_id index from migration 23, which fresh
+-- installs never got, hence the guard
+DROP INDEX IF EXISTS release_action_status_filter_id_index;
+
+CREATE INDEX release_action_status_filter_id_status_timestamp_index
+    ON release_action_status (filter_id, status, timestamp);

@@ -21,16 +21,12 @@ import (
 type FilterRepo struct {
 	log zerolog.Logger
 	db  *DB
-
-	// database specific queries
-	filterDownloadQuery *EngineQuery
 }
 
 func NewFilterRepo(log zerolog.Logger, db *DB) *FilterRepo {
 	return &FilterRepo{
-		log:                 log.With().Str("repo", "filter").Logger(),
-		db:                  db,
-		filterDownloadQuery: NewEngineQuery(db.Driver, filterDownloadsSQLite, filterDownloadsPG),
+		log: log.With().Str("repo", "filter").Logger(),
+		db:  db,
 	}
 }
 
@@ -49,23 +45,6 @@ func windowTypeOrFixed(w domain.FilterMaxDownloadsWindowType) domain.FilterMaxDo
 
 	return w
 }
-
-const (
-	// window start expression is interpolated via downloadsWindowStart; both
-	// sides of the SQLite comparison are canonical datetime() output so plain
-	// string comparison is safe
-	filterDownloadsSQLite = `SELECT
-	COUNT(DISTINCT CASE WHEN datetime(timestamp, 'localtime') >= %s THEN release_id END) as "period_count",
-	COUNT(DISTINCT release_id) as "total_count"
-FROM release_action_status
-WHERE status IN ('PUSH_APPROVED', 'PENDING') AND filter_id = ?;`
-
-	filterDownloadsPG = `SELECT
-    COUNT(DISTINCT CASE WHEN timestamp >= %s THEN release_id END) as "period_count",
-    COUNT(DISTINCT release_id) as "total_count"
-FROM release_action_status
-WHERE status IN ('PUSH_APPROVED', 'PENDING') AND filter_id = $1;`
-)
 
 // calendar boundary expressions for FIXED windows
 var (
@@ -1730,47 +1709,37 @@ func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
 
 // GetFilterDownloadCount looks up how many `PENDING` or `PUSH_APPROVED`
 // releases there have been for the given filter in its download window: since
-// the most recent calendar boundary for FIXED windows, or within the last
-// period units for ROLLING windows.
+// the most recent calendar boundary for FIXED windows, within the last period
+// units for ROLLING windows, or over the filter's lifetime for EVER.
 //
 // See also
 // https://github.com/autobrr/autobrr/pull/1285#pullrequestreview-1795913581
 func (r *FilterRepo) GetFilterDownloadCount(ctx context.Context, filter *domain.Filter) error {
+	queryBuilder := r.db.squirrel.
+		Select("COUNT(DISTINCT release_id)").
+		From("release_action_status").
+		Where(sq.Eq{"status": []string{"PUSH_APPROVED", "PENDING"}, "filter_id": filter.ID})
+
+	if filter.MaxDownloadsUnit != domain.FilterMaxDownloadsEver {
+		windowStart := r.downloadsWindowStart(filter)
+
+		if r.db.Driver == "postgres" {
+			queryBuilder = queryBuilder.Where("timestamp >= " + windowStart)
+		} else {
+			// stored SQLite timestamps mix formats and offsets, so both sides
+			// are normalized through datetime() before comparing
+			queryBuilder = queryBuilder.Where("datetime(timestamp, 'localtime') >= " + windowStart)
+		}
+	}
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
 	var f domain.FilterDownloads
 
-	if filter.MaxDownloadsUnit == domain.FilterMaxDownloadsEver {
-		queryBuilder := r.db.squirrel.
-			Select("COUNT(DISTINCT release_id)").
-			From("release_action_status").
-			Where(sq.Eq{"status": []string{"PUSH_APPROVED", "PENDING"}, "filter_id": filter.ID})
-
-		query, args, err := queryBuilder.ToSql()
-		if err != nil {
-			return errors.Wrap(err, "error building query")
-		}
-
-		if err := r.db.Handler.QueryRowContext(ctx, query, args...).Scan(&f.TotalCount); err != nil {
-			return errors.Wrap(err, "error scanning row")
-		}
-
-		f.PeriodCount = f.TotalCount
-		filter.Downloads = &f
-
-		return nil
-	}
-
-	query := fmt.Sprintf(r.filterDownloadQuery.Get(), r.downloadsWindowStart(filter))
-
-	row := r.db.Handler.QueryRowContext(ctx, query, filter.ID)
-	if err := row.Err(); err != nil {
-		return errors.Wrap(err, "error executing query")
-	}
-
-	if err := row.Scan(&f.PeriodCount, &f.TotalCount); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return domain.ErrRecordNotFound
-		}
-
+	if err := r.db.Handler.QueryRowContext(ctx, query, args...).Scan(&f.PeriodCount); err != nil {
 		return errors.Wrap(err, "error scanning row")
 	}
 
