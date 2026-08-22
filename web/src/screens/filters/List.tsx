@@ -679,7 +679,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
           </span>
           {filter.max_downloads_unit !== "" && filter.downloads !== undefined && (
             <span className="ml-2 whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
-              {t("list.downloads")}: {renderMaxDownloads(filter.max_downloads_unit, filter.downloads)}/{filter.max_downloads} {t("list.per")} {filter.max_downloads_interval && filter.max_downloads_interval > 1 ? `${filter.max_downloads_interval} ` : ""}{filter.max_downloads_unit}
+              {t("list.downloads")}: {filter.downloads.period_count}/{filter.max_downloads} {t("list.per")} {filter.max_downloads_window_type === "ROLLING" && filter.max_downloads_period > 1 ? `${filter.max_downloads_period} ` : ""}{filter.max_downloads_unit}
             </span>
           )}
         </div>
@@ -713,25 +713,6 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
       </span>
     </li>
   );
-}
-
-function renderMaxDownloads(unit: string, downloads: FilterDownloads): number {
-  switch (unit) {
-    case "MINUTE":
-      return downloads.minute_count
-    case "HOUR":
-      return downloads.hour_count
-    case "DAY":
-      return downloads.day_count
-    case "WEEK":
-      return downloads.week_count
-    case "MONTH":
-      return downloads.month_count
-    case "EVER":
-      return downloads.total_count
-    default:
-      return 0
-  }
 }
 
 interface IndexerTagProps {

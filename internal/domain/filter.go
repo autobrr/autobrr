@@ -21,42 +21,20 @@ import (
 )
 
 type FilterDownloads struct {
-	MinuteCount int `json:"minute_count"`
-	HourCount   int `json:"hour_count"`
-	DayCount    int `json:"day_count"`
-	WeekCount   int `json:"week_count"`
-	MonthCount  int `json:"month_count"`
+	PeriodCount int `json:"period_count"`
 	TotalCount  int `json:"total_count"`
 }
 
 func (f *FilterDownloads) String() string {
-	return fmt.Sprintf("Minute: %d, Hour: %d, Day: %d, Week: %d, Month: %d, Total: %d", f.MinuteCount, f.HourCount, f.DayCount, f.WeekCount, f.MonthCount, f.TotalCount)
+	return fmt.Sprintf("Period: %d, Total: %d", f.PeriodCount, f.TotalCount)
 }
 
-func (f *FilterDownloads) BelowCount(unit FilterMaxDownloadsUnit, maxDownloads int, interval int) bool {
-	// Handle default/invalid interval
-	if interval <= 0 {
-		interval = 1
+func (f *FilterDownloads) BelowCount(unit FilterMaxDownloadsUnit, maxDownloads int) bool {
+	if unit == FilterMaxDownloadsEver {
+		return f.TotalCount < maxDownloads
 	}
 
-	var count int
-	switch unit {
-	case FilterMaxDownloadsMinute:
-		count = f.MinuteCount
-	case FilterMaxDownloadsHour:
-		count = f.HourCount
-	case FilterMaxDownloadsDay:
-		count = f.DayCount
-	case FilterMaxDownloadsWeek:
-		count = f.WeekCount
-	case FilterMaxDownloadsMonth:
-		count = f.MonthCount
-	case FilterMaxDownloadsEver:
-		count = f.TotalCount
-	}
-
-	// Proportional calculation: allow maxDownloads * interval downloads
-	return count < (maxDownloads * interval)
+	return f.PeriodCount < maxDownloads
 }
 
 type FilterMaxDownloadsWindowType string
@@ -76,6 +54,52 @@ const (
 	FilterMaxDownloadsMonth  FilterMaxDownloadsUnit = "MONTH"
 	FilterMaxDownloadsEver   FilterMaxDownloadsUnit = "EVER"
 )
+
+// MaxDownloadsPeriodNormalized is the rolling window multiplier clamped to a
+// minimum of 1; FIXED windows always span a single unit.
+func (f *Filter) MaxDownloadsPeriodNormalized() int {
+	if f.MaxDownloadsWindowType != FilterMaxDownloadsWindowRolling || f.MaxDownloadsPeriod <= 0 {
+		return 1
+	}
+
+	return f.MaxDownloadsPeriod
+}
+
+// downloadPeriodUnits returns the rolling window size and the SQL unit keyword
+// for the filter's download window. Callers must handle FilterMaxDownloadsEver
+// separately.
+func (f *Filter) downloadPeriodUnits() (int, string) {
+	period := f.MaxDownloadsPeriodNormalized()
+
+	switch f.MaxDownloadsUnit {
+	case FilterMaxDownloadsMinute:
+		return period, "minutes"
+	case FilterMaxDownloadsHour:
+		return period, "hours"
+	case FilterMaxDownloadsDay:
+		return period, "days"
+	case FilterMaxDownloadsWeek:
+		return period * 7, "days"
+	case FilterMaxDownloadsMonth:
+		return period, "months"
+	}
+
+	return 1, "days"
+}
+
+// DownloadPeriodSQLiteModifier returns a SQLite datetime modifier like "-3 days".
+func (f *Filter) DownloadPeriodSQLiteModifier() string {
+	n, unit := f.downloadPeriodUnits()
+
+	return fmt.Sprintf("-%d %s", n, unit)
+}
+
+// DownloadPeriodPGInterval returns a PostgreSQL interval string like "3 days".
+func (f *Filter) DownloadPeriodPGInterval() string {
+	n, unit := f.downloadPeriodUnits()
+
+	return fmt.Sprintf("%d %s", n, unit)
+}
 
 type SmartEpisodeParams struct {
 	Title   string
@@ -113,7 +137,7 @@ type Filter struct {
 	Priority                  int32                        `json:"priority"`
 	MaxDownloads              int                          `json:"max_downloads,omitempty"`
 	MaxDownloadsUnit          FilterMaxDownloadsUnit       `json:"max_downloads_unit,omitempty"`
-	MaxDownloadsInterval      int                          `json:"max_downloads_interval,omitempty"`
+	MaxDownloadsPeriod        int                          `json:"max_downloads_period,omitempty"`
 	MaxDownloadsWindowType    FilterMaxDownloadsWindowType `json:"max_downloads_window_type,omitempty"`
 	MatchReleases             string                       `json:"match_releases,omitempty"`
 	ExceptReleases            string                       `json:"except_releases,omitempty"`
@@ -268,7 +292,7 @@ type FilterUpdate struct {
 	AnnounceTypes             *[]string                     `json:"announce_types,omitempty"`
 	MaxDownloads              *int                          `json:"max_downloads,omitempty"`
 	MaxDownloadsUnit          *FilterMaxDownloadsUnit       `json:"max_downloads_unit,omitempty"`
-	MaxDownloadsInterval      *int                          `json:"max_downloads_interval,omitempty"`
+	MaxDownloadsPeriod        *int                          `json:"max_downloads_period,omitempty"`
 	MaxDownloadsWindowType    *FilterMaxDownloadsWindowType `json:"max_downloads_window_type,omitempty"`
 	MatchReleases             *string                       `json:"match_releases,omitempty"`
 	ExceptReleases            *string                       `json:"except_releases,omitempty"`
@@ -422,17 +446,12 @@ func (f *Filter) CheckFilter(r *Release) (*RejectionReasons, bool) {
 
 	// Max downloads check. If reached return early so other filters can be checked as quick as possible.
 	if f.IsMaxDownloadsLimitEnabled() && !f.checkMaxDownloads() {
-		interval := f.MaxDownloadsInterval
-		if interval <= 0 {
-			interval = 1
+		msg := fmt.Sprintf("reached %d per %s", f.MaxDownloads, f.MaxDownloadsUnit)
+		if period := f.MaxDownloadsPeriodNormalized(); period > 1 {
+			msg = fmt.Sprintf("reached %d per %d %s", f.MaxDownloads, period, f.MaxDownloadsUnit)
 		}
-		var intervalMsg string
-		if interval == 1 {
-			intervalMsg = fmt.Sprintf("reached %d per %s", f.MaxDownloads, f.MaxDownloadsUnit)
-		} else {
-			intervalMsg = fmt.Sprintf("reached %d every %d %s", f.MaxDownloads, interval, f.MaxDownloadsUnit)
-		}
-		f.RejectReasons.Addf("max downloads", fmt.Sprintf("[max downloads] %s", intervalMsg), f.Downloads.String(), intervalMsg)
+
+		f.RejectReasons.Addf("max downloads", fmt.Sprintf("[max downloads] %s", msg), f.Downloads.String(), msg)
 		return f.RejectReasons, false
 	}
 
@@ -739,13 +758,7 @@ func (f *Filter) checkMaxDownloads() bool {
 		return false
 	}
 
-	// Default to interval of 1 if not set
-	interval := f.MaxDownloadsInterval
-	if interval <= 0 {
-		interval = 1
-	}
-
-	return f.Downloads.BelowCount(f.MaxDownloadsUnit, f.MaxDownloads, interval)
+	return f.Downloads.BelowCount(f.MaxDownloadsUnit, f.MaxDownloads)
 }
 
 // checkSizeFilter compares the filter size limits to a release's size if it is

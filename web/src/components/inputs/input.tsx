@@ -161,7 +161,7 @@ export const RegexField = ({
     try {
       new RegExp(pattern);
       return true;
-    } catch (e) {
+    } catch {
       return false;
     }
   };
@@ -302,7 +302,7 @@ export const RegexTextAreaField = ({
     try {
       new RegExp(pattern);
       return true;
-    } catch (e) {
+    } catch {
       return false;
     }
   };
@@ -638,8 +638,6 @@ interface NumberFieldProps {
   required?: boolean;
   min?: number;
   max?: number;
-  hidden?: boolean;
-  columns?: number;
   tooltip?: React.JSX.Element;
   className?: string;
   isDecimal?: boolean;
@@ -652,22 +650,13 @@ export const NumberField = ({
   step,
   min,
   max,
-  hidden,
-  columns = 6,
   tooltip,
   disabled,
   required,
   isDecimal,
   className = ""
 }: NumberFieldProps) => (
-    <div
-    className={classNames(
-      className,
-      "col-span-12",
-      hidden ? "hidden" : "",
-      columns ? `sm:col-span-${columns}` : ""
-    )}
-  >
+  <div className={classNames(className, "col-span-12 sm:col-span-6")}>
     <label
       htmlFor={name}
       className="flex ml-px text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wide"

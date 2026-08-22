@@ -799,15 +799,9 @@ export const downloadsPerUnitOptions: OptionBasic[] = [
   }
 ];
 
-export const windowTypeOptions: OptionBasic[] = [
-  {
-    label: "Fixed (resets at hour/day/week start)",
-    value: "FIXED"
-  },
-  {
-    label: "Rolling (last X hours/days)",
-    value: "ROLLING"
-  }
+export const getWindowTypeOptions = (t: TFunction): OptionBasic[] => [
+  { label: t("options:maxDownloadsWindowType.FIXED"), value: "FIXED" },
+  { label: t("options:maxDownloadsWindowType.ROLLING"), value: "ROLLING" }
 ];
 
 export const DownloadRuleConditionOptions: OptionBasic[] = [
