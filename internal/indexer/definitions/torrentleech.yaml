@@ -31,7 +31,7 @@ irc:
   port: 7021
   tls: true
   auth:
-    mechanism: NICKSERV
+    mechanism: NONE
   settings:
     - name: nick
       type: text

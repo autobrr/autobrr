@@ -108,12 +108,19 @@ func TestBundledDefinitionIRCAuth(t *testing.T) {
 	require.NoError(t, s.LoadIndexerDefinitions())
 
 	for _, identifier := range []string{
-		"aither", "animebytes", "brks", "docspedia", "funfile", "sharewood", "superbits", "torrentleech", "zenith",
+		"aither", "animebytes", "brks", "docspedia", "funfile", "sharewood", "superbits", "zenith",
 	} {
 		definition := s.definitions[identifier]
 		require.NotNil(t, definition.IRC, identifier)
 		require.NotNil(t, definition.IRC.Auth, identifier)
 		assert.Equal(t, domain.IRCAuthMechanismNickServ, definition.IRC.Auth.Mechanism, identifier)
+	}
+
+	for _, identifier := range []string{"torrentleech"} {
+		definition := s.definitions[identifier]
+		require.NotNil(t, definition.IRC, identifier)
+		require.NotNil(t, definition.IRC.Auth, identifier)
+		assert.Equal(t, domain.IRCAuthMechanismNone, definition.IRC.Auth.Mechanism, identifier)
 	}
 
 	for _, identifier := range []string{"alpharatio"} {
