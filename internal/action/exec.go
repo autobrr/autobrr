@@ -4,8 +4,11 @@
 package action
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -15,34 +18,28 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func (s *Service) execCmd(ctx context.Context, action *domain.Action, release *domain.Release) error {
+func (s *Service) execCmd(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error) {
 	l := zerolog.Ctx(ctx)
 
 	l.Debug().Msg("running Exec action")
 
-	// check if program exists
 	cmd, err := exec.LookPath(action.ExecCmd)
 	if err != nil {
-		return errors.Wrap(err, "exec failed, could not find program: %s", action.ExecCmd)
+		return nil, errors.Wrap(err, "exec failed, could not find program: %s", action.ExecCmd)
 	}
 
 	args, err := shellquote.Split(action.ExecArgs)
 	if err != nil {
-		return errors.Wrap(err, "could not parse exec args: %s", action.ExecArgs)
+		return nil, errors.Wrap(err, "could not parse exec args: %s", action.ExecArgs)
 	}
-
-	// we need to split on space into a string slice, so we can spread the args into exec
 
 	start := time.Now()
 
-	// setup command and args
 	command := exec.CommandContext(ctx, cmd, args...)
 
-	// execute command
 	output, err := command.CombinedOutput()
 	if err != nil {
-		// everything other than exit 0 is considered an error
-		return errors.Wrap(err, "error executing command: %s args: %s", cmd, args)
+		return nil, errors.Wrap(err, "error executing command: %s args: %s", cmd, args)
 	}
 
 	l.Trace().Str("output", string(output)).Msg("executed command")
@@ -51,5 +48,17 @@ func (s *Service) execCmd(ctx context.Context, action *domain.Action, release *d
 
 	l.Info().Str("cmd", cmd).Strs("args", args).Str("indexer", release.Indexer.Identifier).Dur("duration", duration).Msg("executed command")
 
-	return nil
+	// Scripts signal rejection by printing one or more lines prefixed with "REJECT:".
+	// Any other output is ignored, preserving backwards compatibility with existing scripts.
+	var rejections []string
+	scanner := bufio.NewScanner(bytes.NewReader(output))
+	for scanner.Scan() {
+		if line := scanner.Text(); strings.HasPrefix(line, "REJECT:") {
+			if reason := strings.TrimSpace(strings.TrimPrefix(line, "REJECT:")); reason != "" {
+				rejections = append(rejections, reason)
+			}
+		}
+	}
+
+	return rejections, nil
 }

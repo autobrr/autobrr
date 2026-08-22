@@ -73,21 +73,17 @@ func Test_service_execCmd(t *testing.T) {
 		action  *domain.Action
 	}
 	tests := []struct {
-		name string
-		args args
+		name           string
+		args           args
+		wantRejections []string
+		wantErr        bool
 	}{
 		{
-			name: "test_1",
+			name: "approved_no_output",
 			args: args{
 				release: domain.Release{
-					TorrentName:    "This is a test",
-					TorrentTmpFile: "tmp-10000",
-					Indexer: domain.IndexerMinimal{
-						ID:                 0,
-						Name:               "Mock Indexer",
-						Identifier:         "mock",
-						IdentifierExternal: "Mock Indexer",
-					},
+					TorrentName: "This is a test",
+					Indexer:     domain.IndexerMinimal{Identifier: "mock"},
 				},
 				action: &domain.Action{
 					Name:     "echo",
@@ -95,6 +91,72 @@ func Test_service_execCmd(t *testing.T) {
 					ExecArgs: "hello",
 				},
 			},
+			wantRejections: nil,
+			wantErr:        false,
+		},
+		{
+			name: "rejected_single_reason",
+			args: args{
+				release: domain.Release{
+					TorrentName: "This is a test",
+					Indexer:     domain.IndexerMinimal{Identifier: "mock"},
+				},
+				action: &domain.Action{
+					Name:     "sh",
+					ExecCmd:  "sh",
+					ExecArgs: `-c "echo 'REJECT: release is too old'"`,
+				},
+			},
+			wantRejections: []string{"release is too old"},
+			wantErr:        false,
+		},
+		{
+			name: "rejected_multiple_reasons",
+			args: args{
+				release: domain.Release{
+					TorrentName: "This is a test",
+					Indexer:     domain.IndexerMinimal{Identifier: "mock"},
+				},
+				action: &domain.Action{
+					Name:     "sh",
+					ExecCmd:  "sh",
+					ExecArgs: `-c "printf 'REJECT: too old\nREJECT: wrong group\n'"`,
+				},
+			},
+			wantRejections: []string{"too old", "wrong group"},
+			wantErr:        false,
+		},
+		{
+			name: "approved_non_reject_output",
+			args: args{
+				release: domain.Release{
+					TorrentName: "This is a test",
+					Indexer:     domain.IndexerMinimal{Identifier: "mock"},
+				},
+				action: &domain.Action{
+					Name:     "sh",
+					ExecCmd:  "sh",
+					ExecArgs: `-c "echo 'all good'"`,
+				},
+			},
+			wantRejections: nil,
+			wantErr:        false,
+		},
+		{
+			name: "error_nonzero_exit",
+			args: args{
+				release: domain.Release{
+					TorrentName: "This is a test",
+					Indexer:     domain.IndexerMinimal{Identifier: "mock"},
+				},
+				action: &domain.Action{
+					Name:     "sh",
+					ExecCmd:  "sh",
+					ExecArgs: `-c "exit 1"`,
+				},
+			},
+			wantRejections: nil,
+			wantErr:        true,
 		},
 	}
 	for _, tt := range tests {
@@ -104,7 +166,13 @@ func Test_service_execCmd(t *testing.T) {
 				repo:      nil,
 				clientSvc: nil,
 			}
-			s.execCmd(t.Context(), tt.args.action, &tt.args.release)
+			rejections, err := s.execCmd(t.Context(), tt.args.action, &tt.args.release)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.wantRejections, rejections)
 		})
 	}
 }

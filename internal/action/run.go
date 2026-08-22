@@ -49,7 +49,7 @@ func (s *Service) RunAction(ctx context.Context, action *domain.Action, release 
 		s.test(ctx)
 
 	case domain.ActionTypeExec:
-		err = s.execCmd(ctx, action, release)
+		rejections, err = s.execCmd(ctx, action, release)
 
 	case domain.ActionTypeWatchFolder:
 		err = s.watchFolder(ctx, action, release)
