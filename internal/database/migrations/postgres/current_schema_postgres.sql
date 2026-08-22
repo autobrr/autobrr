@@ -538,6 +538,9 @@ CREATE INDEX release_action_status_status_index
 CREATE INDEX release_action_status_timestamp_status_index
     ON release_action_status (timestamp, status);
 
+CREATE INDEX release_action_status_filter_id_index
+    ON release_action_status (filter_id);
+
 CREATE TABLE feed
 (
     id              SERIAL PRIMARY KEY,
