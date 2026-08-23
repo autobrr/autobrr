@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"os/exec"
+	"slices"
 	"strings"
 	"time"
 
@@ -48,17 +49,32 @@ func (s *Service) execCmd(ctx context.Context, action *domain.Action, release *d
 
 	l.Info().Str("cmd", cmd).Strs("args", args).Str("indexer", release.Indexer.Identifier).Dur("duration", duration).Msg("executed command")
 
-	// Scripts signal rejection by printing one or more lines prefixed with "REJECT:".
-	// Any other output is ignored, preserving backwards compatibility with existing scripts.
-	var rejections []string
+	return parseExecRejections(output), nil
+}
+
+// parseExecRejections reads the trailing block of "REJECT:"-prefixed lines from a script's
+// output. Only lines at the very end of the output are considered, so scripts can log freely
+// before signalling rejection; the scan stops at the first line (from the bottom) that isn't
+// a REJECT: line, and any output before that is ignored for backwards compatibility.
+func parseExecRejections(output []byte) []string {
+	var lines []string
 	scanner := bufio.NewScanner(bytes.NewReader(output))
 	for scanner.Scan() {
-		if line := scanner.Text(); strings.HasPrefix(line, "REJECT:") {
-			if reason := strings.TrimSpace(strings.TrimPrefix(line, "REJECT:")); reason != "" {
-				rejections = append(rejections, reason)
-			}
+		lines = append(lines, scanner.Text())
+	}
+
+	var rejections []string
+	for i := len(lines) - 1; i >= 0; i-- {
+		reason, ok := strings.CutPrefix(lines[i], "REJECT:")
+		if !ok {
+			break
+		}
+		if reason = strings.TrimSpace(reason); reason != "" {
+			rejections = append(rejections, reason)
 		}
 	}
 
-	return rejections, nil
+	slices.Reverse(rejections)
+
+	return rejections
 }

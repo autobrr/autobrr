@@ -127,6 +127,38 @@ func Test_service_execCmd(t *testing.T) {
 			wantErr:        false,
 		},
 		{
+			name: "rejected_after_leading_log_output",
+			args: args{
+				release: domain.Release{
+					TorrentName: "This is a test",
+					Indexer:     domain.IndexerMinimal{Identifier: "mock"},
+				},
+				action: &domain.Action{
+					Name:     "sh",
+					ExecCmd:  "sh",
+					ExecArgs: `-c "printf 'checking release\nREJECT: too old\n'"`,
+				},
+			},
+			wantRejections: []string{"too old"},
+			wantErr:        false,
+		},
+		{
+			name: "approved_reject_not_trailing",
+			args: args{
+				release: domain.Release{
+					TorrentName: "This is a test",
+					Indexer:     domain.IndexerMinimal{Identifier: "mock"},
+				},
+				action: &domain.Action{
+					Name:     "sh",
+					ExecCmd:  "sh",
+					ExecArgs: `-c "printf 'REJECT: too old\ndone\n'"`,
+				},
+			},
+			wantRejections: nil,
+			wantErr:        false,
+		},
+		{
 			name: "approved_non_reject_output",
 			args: args{
 				release: domain.Release{
