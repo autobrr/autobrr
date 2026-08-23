@@ -395,7 +395,7 @@ export const APIClient = {
       body: network
     }),
     deleteNetwork: (id: number) => appClient.Delete(`api/irc/network/${id}`),
-    restartNetwork: (id: number) => appClient.Get(`api/irc/network/${id}/restart`),
+    restartNetwork: (id: number) => appClient.Post(`api/irc/network/${id}/restart`),
     sendCmd: (cmd: SendIrcCmdRequest) => appClient.Post(`api/irc/network/${cmd.network_id}/cmd`, {
       body: cmd
     }),
