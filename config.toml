@@ -137,4 +137,4 @@ checkForUpdates = true
 
 # Custom definitions
 #
-customDefinitions = "test/definitions"
+#customDefinitions = "test/definitions"
