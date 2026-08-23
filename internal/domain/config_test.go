@@ -77,6 +77,38 @@ func TestConfig_ParseAuthAllowedPeerCIDRs(t *testing.T) {
 	})
 }
 
+func TestConfig_ParseAuthAllowedOrigins(t *testing.T) {
+	tests := []struct {
+		name       string
+		origins    string
+		want       []string
+		wantErrMsg string
+	}{
+		{"single origin", "https://autobrr.example.com", []string{"https://autobrr.example.com"}, ""},
+		{"origin with port", "http://nas:7474", []string{"http://nas:7474"}, ""},
+		{"multiple origins", "https://autobrr.example.com, http://192.168.1.10:7474", []string{"https://autobrr.example.com", "http://192.168.1.10:7474"}, ""},
+		{"normalized to lowercase", "https://Autobrr.Example.com", []string{"https://autobrr.example.com"}, ""},
+		{"trailing slash dropped", "https://autobrr.example.com/", []string{"https://autobrr.example.com"}, ""},
+		{"empty value", "", []string{}, ""},
+		{"bare hostname rejected", "autobrr.example.com", nil, "invalid origin in corsAllowedOrigins: autobrr.example.com"},
+		{"path rejected", "https://autobrr.example.com/api", nil, "invalid origin in corsAllowedOrigins: https://autobrr.example.com/api"},
+		{"wildcard rejected", "*", nil, "invalid origin in corsAllowedOrigins: *"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Config{CorsAllowedOrigins: tt.origins}
+			origins, err := c.ParseAuthAllowedOrigins()
+			if tt.wantErrMsg != "" {
+				assert.ErrorContains(t, err, tt.wantErrMsg)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, origins)
+		})
+	}
+}
+
 func TestConfig_ValidateAuthDisabledConfig(t *testing.T) {
 	t.Run("auth not disabled is always valid", func(t *testing.T) {
 		c := &Config{}
@@ -148,6 +180,16 @@ func TestConfig_ValidateAuthDisabledConfig(t *testing.T) {
 			CorsAllowedOrigins:          "*,https://autobrr.example.com",
 		}
 		assert.EqualError(t, c.ValidateAuthDisabledConfig(), "corsAllowedOrigins must not contain a wildcard \"*\" when authentication is disabled")
+	})
+
+	t.Run("auth disabled with malformed cors origin is rejected", func(t *testing.T) {
+		c := &Config{
+			AuthDisabled:                true,
+			AuthDisabledAcknowledgement: AuthDisabledAcknowledgementValue,
+			AuthAllowedPeerCIDRs:        []string{"127.0.0.1/32"},
+			CorsAllowedOrigins:          "autobrr.example.com",
+		}
+		assert.ErrorContains(t, c.ValidateAuthDisabledConfig(), "invalid origin in corsAllowedOrigins: autobrr.example.com")
 	})
 
 	t.Run("auth disabled with empty cors is rejected", func(t *testing.T) {

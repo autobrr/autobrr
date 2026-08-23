@@ -37,6 +37,12 @@ type Server struct {
 	// config.AuthAllowedPeerCIDRs, rather than on every request.
 	authAllowedPeerPrefixes []netip.Prefix
 
+	// authAllowedOrigins and authAllowedHosts are derived once at startup from
+	// config.CorsAllowedOrigins. While auth is disabled, browser requests to the
+	// API are enforced against them by RejectUntrustedBrowserRequests.
+	authAllowedOrigins map[string]struct{}
+	authAllowedHosts   map[string]struct{}
+
 	// healthCheckPaths holds the exact resolved paths (base URL included) that are
 	// reachable from loopback while auth is disabled.
 	healthCheckPaths []string
@@ -138,6 +144,10 @@ func NewServer(deps Deps) *Server {
 		} else {
 			srv.authAllowedPeerPrefixes = prefixes
 		}
+
+		if err := srv.buildAuthAllowedOriginSets(); err != nil {
+			srv.log.Error().Err(err).Msg("auth disabled: invalid corsAllowedOrigins, denying all browser requests")
+		}
 	}
 
 	srv.healthCheckPaths = []string{
@@ -146,6 +156,26 @@ func NewServer(deps Deps) *Server {
 	}
 
 	return srv
+}
+
+// buildAuthAllowedOriginSets derives the origin and host allowlists enforced by
+// RejectUntrustedBrowserRequests from the configured CORS origins.
+func (s *Server) buildAuthAllowedOriginSets() error {
+	origins, err := s.config.Config.ParseAuthAllowedOrigins()
+	if err != nil {
+		return err
+	}
+
+	s.authAllowedOrigins = make(map[string]struct{}, len(origins))
+	s.authAllowedHosts = make(map[string]struct{}, len(origins))
+	for _, origin := range origins {
+		s.authAllowedOrigins[origin] = struct{}{}
+		if _, host, ok := strings.Cut(origin, "://"); ok {
+			s.authAllowedHosts[host] = struct{}{}
+		}
+	}
+
+	return nil
 }
 
 // routeBaseURL returns the base path the routers are mounted under. It mirrors the
@@ -227,6 +257,9 @@ func (s *Server) Handler() http.Handler {
 
 	// Create a separate router for API
 	apiRouter := chi.NewRouter()
+	// API only, so cross-site navigations to the web shell (e.g. dashboard
+	// iframes) keep working; their in-frame API calls are same-origin.
+	apiRouter.Use(s.RejectUntrustedBrowserRequests)
 	apiRouter.Route("/auth", newAuthHandler(encoder, s.log, s, s.config.Config, s.sessionManager, s.authService, s.oidcService).Routes)
 	apiRouter.Route("/healthz", newHealthHandler(encoder, s.db).Routes)
 	apiRouter.Group(func(r chi.Router) {

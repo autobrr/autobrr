@@ -5,6 +5,7 @@ package domain
 
 import (
 	"net/netip"
+	"net/url"
 	"strings"
 
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -144,6 +145,35 @@ func (c *Config) ParseAuthAllowedPeerCIDRs() ([]netip.Prefix, error) {
 	return prefixes, nil
 }
 
+// ParseAuthAllowedOrigins parses CorsAllowedOrigins into normalized
+// scheme://host[:port] origin values. While authentication is disabled the
+// configured origins are enforced server-side against the Origin and Host of
+// browser requests, so every entry must be a real origin: no wildcard, no bare
+// hostname, no path.
+func (c *Config) ParseAuthAllowedOrigins() ([]string, error) {
+	origins := make([]string, 0)
+
+	for entry := range strings.SplitSeq(c.CorsAllowedOrigins, ",") {
+		entry = strings.TrimSpace(entry)
+		if entry == "" {
+			continue
+		}
+
+		u, err := url.Parse(entry)
+		if err != nil {
+			return nil, errors.Wrap(err, "invalid origin in corsAllowedOrigins: %s", entry)
+		}
+
+		if (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" || u.User != nil || (u.Path != "" && u.Path != "/") || u.RawQuery != "" || u.Fragment != "" {
+			return nil, errors.New("invalid origin in corsAllowedOrigins: %s (expected http(s)://host[:port])", entry)
+		}
+
+		origins = append(origins, strings.ToLower(u.Scheme+"://"+u.Host))
+	}
+
+	return origins, nil
+}
+
 // ValidateAuthDisabledConfig validates that disabling authentication is configured
 // safely. It is a no-op when auth is not disabled.
 func (c *Config) ValidateAuthDisabledConfig() error {
@@ -168,23 +198,22 @@ func (c *Config) ValidateAuthDisabledConfig() error {
 		return errors.New("authAllowedPeerCIDRs contains no valid entries")
 	}
 
-	// A wildcard CORS origin combined with disabled auth turns any allowlisted-IP
-	// browser into a cross-origin read/write primitive against the API, so require
-	// explicit origins in this mode. Tokenize the value the same way it is consumed
-	// (comma-split) so a wildcard hidden inside a list is still rejected.
-	hasOrigin := false
+	// In this mode the CORS origins double as the browser allowlist: the Origin and
+	// Host of browser requests are enforced against them server-side, so they must
+	// be explicit, valid origins - a wildcard would let any website script the API
+	// from an allowlisted browser.
 	for origin := range strings.SplitSeq(c.CorsAllowedOrigins, ",") {
-		origin = strings.TrimSpace(origin)
-		if origin == "" {
-			continue
-		}
-		if origin == "*" {
+		if strings.TrimSpace(origin) == "*" {
 			return errors.New("corsAllowedOrigins must not contain a wildcard \"*\" when authentication is disabled")
 		}
-		hasOrigin = true
 	}
 
-	if !hasOrigin {
+	origins, err := c.ParseAuthAllowedOrigins()
+	if err != nil {
+		return err
+	}
+
+	if len(origins) == 0 {
 		return errors.New("corsAllowedOrigins must be set to explicit origins when authentication is disabled")
 	}
 

@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/autobrr/autobrr/internal/config"
@@ -295,6 +296,203 @@ func TestLoggerMiddleware_FallsBackToRemoteAddr(t *testing.T) {
 	handler.ServeHTTP(rr, req)
 
 	assert.Contains(t, buf.String(), `"remote_ip":"127.0.0.1:1234"`)
+}
+
+// newAuthDisabledTestServerWithOrigins mirrors NewServer's origin-set derivation
+// on top of newAuthDisabledTestServer.
+func newAuthDisabledTestServerWithOrigins(cidrs []string, corsOrigins string) *Server {
+	s := newAuthDisabledTestServer(cidrs)
+	s.config.Config.CorsAllowedOrigins = corsOrigins
+
+	if err := s.buildAuthAllowedOriginSets(); err != nil {
+		panic(err)
+	}
+
+	return s
+}
+
+func TestRejectUntrustedBrowserRequests_PassThroughWhenAuthEnabled(t *testing.T) {
+	s := &Server{
+		log:    zerolog.Nop(),
+		config: &config.AppConfig{Config: &domain.Config{}},
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/api/filters", strings.NewReader(`{}`))
+	req.Header.Set("Origin", "https://evil.example.com")
+	req.Header.Set("Sec-Fetch-Site", "cross-site")
+	rr := httptest.NewRecorder()
+
+	s.RejectUntrustedBrowserRequests(okHandler()).ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+}
+
+func TestRejectUntrustedBrowserRequests_AllowsRequestsWithoutBrowserMarkers(t *testing.T) {
+	// curl-style API clients send no Origin or Sec-Fetch headers and any Host.
+	s := newAuthDisabledTestServerWithOrigins([]string{"127.0.0.1/32"}, "https://autobrr.example.com")
+
+	req := httptest.NewRequest(http.MethodGet, "/api/filters", nil)
+	req.Host = "nas:7474"
+	rr := httptest.NewRecorder()
+
+	s.RejectUntrustedBrowserRequests(okHandler()).ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+}
+
+func TestRejectUntrustedBrowserRequests_AllowsAllowlistedOrigin(t *testing.T) {
+	s := newAuthDisabledTestServerWithOrigins([]string{"127.0.0.1/32"}, "https://autobrr.example.com")
+
+	req := httptest.NewRequest(http.MethodPost, "/api/filters", strings.NewReader(`{}`))
+	req.Host = "autobrr.example.com"
+	req.Header.Set("Origin", "https://autobrr.example.com")
+	req.Header.Set("Sec-Fetch-Site", "same-origin")
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+
+	s.RejectUntrustedBrowserRequests(okHandler()).ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+}
+
+func TestRejectUntrustedBrowserRequests_BlocksDisallowedOrigin(t *testing.T) {
+	s := newAuthDisabledTestServerWithOrigins([]string{"127.0.0.1/32"}, "https://autobrr.example.com")
+
+	req := httptest.NewRequest(http.MethodPost, "/api/filters", strings.NewReader(`{}`))
+	req.Host = "autobrr.example.com"
+	req.Header.Set("Origin", "https://evil.example.com")
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+
+	s.RejectUntrustedBrowserRequests(okHandler()).ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusForbidden, rr.Code)
+}
+
+func TestRejectUntrustedBrowserRequests_BlocksCrossSiteNavigation(t *testing.T) {
+	// A GET navigation (link click) carries Sec-Fetch-Site but no Origin; it must
+	// not reach state-changing GET routes like the webhook triggers.
+	s := newAuthDisabledTestServerWithOrigins([]string{"127.0.0.1/32"}, "https://autobrr.example.com")
+
+	req := httptest.NewRequest(http.MethodGet, "/api/webhook/lists/trigger", nil)
+	req.Host = "autobrr.example.com"
+	req.Header.Set("Sec-Fetch-Site", "cross-site")
+	rr := httptest.NewRecorder()
+
+	s.RejectUntrustedBrowserRequests(okHandler()).ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusForbidden, rr.Code)
+}
+
+func TestRejectUntrustedBrowserRequests_AllowsCrossSiteFetchFromAllowlistedOrigin(t *testing.T) {
+	// A dashboard on another domain doing authorized fetch calls is exactly what
+	// corsAllowedOrigins exists for; an allowlisted Origin overrides Sec-Fetch.
+	s := newAuthDisabledTestServerWithOrigins([]string{"127.0.0.1/32"}, "https://autobrr.example.com,https://dash.example.net")
+
+	req := httptest.NewRequest(http.MethodPost, "/api/filters", strings.NewReader(`{}`))
+	req.Host = "autobrr.example.com"
+	req.Header.Set("Origin", "https://dash.example.net")
+	req.Header.Set("Sec-Fetch-Site", "cross-site")
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+
+	s.RejectUntrustedBrowserRequests(okHandler()).ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+}
+
+func TestRejectUntrustedBrowserRequests_AllowsNonCrossSiteFetchValues(t *testing.T) {
+	// "none" is a user-initiated navigation (address bar, bookmark) and
+	// "same-site" covers sibling subdomains; neither is an attack vector here.
+	for _, site := range []string{"same-origin", "same-site", "none"} {
+		t.Run(site, func(t *testing.T) {
+			s := newAuthDisabledTestServerWithOrigins([]string{"127.0.0.1/32"}, "https://autobrr.example.com")
+
+			req := httptest.NewRequest(http.MethodGet, "/api/filters", nil)
+			req.Host = "autobrr.example.com"
+			req.Header.Set("Sec-Fetch-Site", site)
+			rr := httptest.NewRecorder()
+
+			s.RejectUntrustedBrowserRequests(okHandler()).ServeHTTP(rr, req)
+
+			assert.Equal(t, http.StatusOK, rr.Code)
+		})
+	}
+}
+
+func TestRejectUntrustedBrowserRequests_BlocksUnknownHostForBrowserRequests(t *testing.T) {
+	// DNS rebinding: the rebound request looks same-origin to the browser, but the
+	// Host header still names the attacker's domain.
+	s := newAuthDisabledTestServerWithOrigins([]string{"127.0.0.1/32"}, "https://autobrr.example.com")
+
+	req := httptest.NewRequest(http.MethodGet, "/api/filters", nil)
+	req.Host = "rebind.evil.example"
+	req.Header.Set("Sec-Fetch-Site", "same-origin")
+	rr := httptest.NewRecorder()
+
+	s.RejectUntrustedBrowserRequests(okHandler()).ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusForbidden, rr.Code)
+}
+
+func TestRejectUntrustedBrowserRequests_AllowsIPLiteralAndLocalhostHosts(t *testing.T) {
+	// Rebinding requires an attacker-controlled DNS name, so direct-IP and
+	// localhost access needs no extra configuration.
+	for _, host := range []string{"192.168.1.10:7474", "[::1]:7474", "localhost:7474", "localhost"} {
+		t.Run(host, func(t *testing.T) {
+			s := newAuthDisabledTestServerWithOrigins([]string{"127.0.0.1/32"}, "https://autobrr.example.com")
+
+			req := httptest.NewRequest(http.MethodGet, "/api/filters", nil)
+			req.Host = host
+			req.Header.Set("Sec-Fetch-Site", "same-origin")
+			rr := httptest.NewRecorder()
+
+			s.RejectUntrustedBrowserRequests(okHandler()).ServeHTTP(rr, req)
+
+			assert.Equal(t, http.StatusOK, rr.Code)
+		})
+	}
+}
+
+func TestRejectUntrustedBrowserRequests_BlocksTextPlainMutation(t *testing.T) {
+	// A cross-site form can submit JSON in a text/plain body without a preflight.
+	s := newAuthDisabledTestServerWithOrigins([]string{"127.0.0.1/32"}, "https://autobrr.example.com")
+
+	req := httptest.NewRequest(http.MethodPost, "/api/filters", strings.NewReader(`{"name":"x"}`))
+	req.Host = "autobrr.example.com"
+	req.Header.Set("Content-Type", "text/plain")
+	rr := httptest.NewRecorder()
+
+	s.RejectUntrustedBrowserRequests(okHandler()).ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusUnsupportedMediaType, rr.Code)
+}
+
+func TestRejectUntrustedBrowserRequests_AllowsJSONContentTypeWithCharset(t *testing.T) {
+	s := newAuthDisabledTestServerWithOrigins([]string{"127.0.0.1/32"}, "https://autobrr.example.com")
+
+	req := httptest.NewRequest(http.MethodPost, "/api/filters", strings.NewReader(`{"name":"x"}`))
+	req.Host = "autobrr.example.com"
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	rr := httptest.NewRecorder()
+
+	s.RejectUntrustedBrowserRequests(okHandler()).ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+}
+
+func TestRejectUntrustedBrowserRequests_AllowsBodylessMutationWithoutContentType(t *testing.T) {
+	// The webhook trigger POSTs take no body; they must keep working from plain
+	// API clients that set no Content-Type at all.
+	s := newAuthDisabledTestServerWithOrigins([]string{"127.0.0.1/32"}, "https://autobrr.example.com")
+
+	req := httptest.NewRequest(http.MethodPost, "/api/webhook/lists/trigger", nil)
+	req.Host = "nas:7474"
+	rr := httptest.NewRecorder()
+
+	s.RejectUntrustedBrowserRequests(okHandler()).ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
 }
 
 func TestIsAuthenticated_BypassedWhenAuthDisabled(t *testing.T) {

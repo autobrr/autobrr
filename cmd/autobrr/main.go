@@ -142,8 +142,8 @@ func main() {
 
 		if prefixes, err := cfg.Config.ParseAuthAllowedPeerCIDRs(); err == nil {
 			for _, p := range prefixes {
-				if (p.Addr().Is4() && p.Bits() < 24) || (p.Addr().Is6() && p.Bits() < 64) {
-					log.Warn().Str("cidr", p.String()).Msg("authAllowedPeerCIDRs contains a broad range; prefer the exact reverse-proxy address as a /32 or /128")
+				if p.Bits() < p.Addr().BitLen() {
+					log.Warn().Str("cidr", p.String()).Msg("authAllowedPeerCIDRs entry grants every address in the range full administrative access; prefer the exact reverse-proxy address as a /32 or /128")
 				}
 			}
 		}

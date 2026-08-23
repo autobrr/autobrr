@@ -351,16 +351,47 @@ export const AuthRoute = createRoute({
         });
       }
     } else {
-      // Reconcile the persisted auth method with the server so switching into
-      // auth-disabled mode can't leave stale login/account UI behind for a session
-      // that was already marked logged in.
+      // Reconcile the persisted auth method with the server so switching auth
+      // modes in either direction can't leave stale UI behind for a session that
+      // was already marked logged in.
+      let authMode: string | undefined;
       try {
         const config = await context.queryClient.ensureQueryData(ConfigQueryOptions());
-        if (config.auth_mode === 'disabled' && AuthContext.get().authMethod !== 'disabled') {
-          AuthContext.set({ ...AuthContext.get(), authMethod: 'disabled' });
-        }
+        authMode = config.auth_mode;
       } catch (error) {
         console.debug("auth mode reconciliation failed:", error);
+      }
+
+      const storedAuthMethod = AuthContext.get().authMethod;
+      if (authMode === 'disabled' && storedAuthMethod !== 'disabled') {
+        AuthContext.set({ ...AuthContext.get(), authMethod: 'disabled' });
+      } else if (authMode && authMode !== 'disabled' && storedAuthMethod === 'disabled') {
+        // Auth was switched back on; replace the synthetic disabled identity with
+        // the real session, or fall back to login if none survives.
+        try {
+          const response = await APIClient.auth.validate();
+          let issuerUrl;
+          if (response.auth_method === 'oidc') {
+            const oidcConfig = await APIClient.auth.getOIDCConfig();
+            issuerUrl = oidcConfig.issuerUrl;
+          }
+
+          AuthContext.set({
+            isLoggedIn: true,
+            username: response.username || 'unknown',
+            authMethod: response.auth_method,
+            profilePicture: response.profile_picture,
+            issuerUrl: issuerUrl
+          });
+        } catch {
+          AuthContext.reset();
+          throw redirect({
+            to: LoginRoute.to,
+            search: {
+              redirect: location.href,
+            },
+          });
+        }
       }
     }
 

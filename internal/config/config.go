@@ -132,8 +132,7 @@ checkForUpdates = true
 # Only for deployments where a reverse proxy in front of autobrr performs
 # authentication itself. When enabled, autobrr performs NO authentication of its
 # own and grants full access to any request whose immediate network peer matches
-# authAllowedPeerCIDRs. Cannot be combined with oidcEnabled, and
-# corsAllowedOrigins must be set to explicit origins (not "*").
+# authAllowedPeerCIDRs. Cannot be combined with oidcEnabled.
 #
 # Requires the acknowledgement below set to the exact value shown.
 #authDisabled = false
@@ -143,6 +142,13 @@ checkForUpdates = true
 # reverse proxy or loopback), NOT a forwarded header or the end user's browser.
 # Prefer the exact proxy address as a /32 or /128.
 #authAllowedPeerCIDRs = ["127.0.0.1/32", "::1/128"]
+#
+# corsAllowedOrigins is REQUIRED in this mode and must list every URL you access
+# autobrr at (UI or API, comma separated, scheme://host[:port] - no wildcard).
+# Browser requests with any other Origin or Host are rejected to block cross-site
+# request forgery and DNS rebinding; plain API clients (curl, scripts) are only
+# subject to the peer allowlist. Direct access by IP or localhost needs no entry.
+#corsAllowedOrigins = "https://autobrr.example.com"
 #
 # Header the reverse proxy overwrites on EVERY request with the end user's IP,
 # used for access logs while authentication is disabled. Only safe with a header

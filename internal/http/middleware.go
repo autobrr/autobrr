@@ -5,6 +5,7 @@ package http
 
 import (
 	"fmt"
+	"mime"
 	"net"
 	"net/http"
 	"net/netip"
@@ -121,6 +122,91 @@ func (s *Server) RequireAuthDisabledIPAllowlist(next http.Handler) http.Handler 
 		s.log.Warn().Str("peer_ip", addr.String()).Msg("auth disabled: rejected request, peer not in authAllowedPeerCIDRs")
 		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 	})
+}
+
+// RejectUntrustedBrowserRequests blocks cross-site browser requests to the API
+// while authentication is disabled. CORS cannot do that: it only controls whether
+// the browser may read the response, and rs/cors invokes the handler regardless of
+// origin, so a cross-site request still executes server-side. Requests without
+// browser markers (curl, API clients) pass untouched; the peer allowlist is their
+// only gate.
+func (s *Server) RejectUntrustedBrowserRequests(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !s.config.Config.IsAuthDisabled() {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		originAllowed := false
+		if origin := r.Header.Get("Origin"); origin != "" {
+			if _, ok := s.authAllowedOrigins[strings.ToLower(origin)]; !ok {
+				s.log.Warn().Str("origin", origin).Str("url", r.URL.Path).Msg("auth disabled: rejected request, origin not in corsAllowedOrigins")
+				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+				return
+			}
+			originAllowed = true
+		}
+
+		// Sec-Fetch-Site covers what Origin cannot: cross-site GET navigations
+		// (links, iframes) carry no Origin header. An allowlisted Origin overrides
+		// it so operators can deliberately grant cross-origin API access via
+		// corsAllowedOrigins.
+		secFetchSite := r.Header.Get("Sec-Fetch-Site")
+		if secFetchSite == "cross-site" && !originAllowed {
+			s.log.Warn().Str("url", r.URL.Path).Msg("auth disabled: rejected cross-site browser request")
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+			return
+		}
+
+		// DNS-rebound requests look same-origin to the browser; only the Host
+		// header gives them away. Rebinding needs an attacker-controlled DNS name,
+		// so IP literals and localhost stay allowed, and clients without Sec-Fetch
+		// headers are not restricted.
+		if secFetchSite != "" && !s.isAllowedHost(r.Host) {
+			s.log.Warn().Str("host", r.Host).Str("url", r.URL.Path).Msg("auth disabled: rejected browser request, host not derived from corsAllowedOrigins")
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+			return
+		}
+
+		switch r.Method {
+		case http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete:
+			// A cross-site HTML form can submit JSON inside a text/plain body with
+			// no preflight; requiring the JSON media type on mutations closes that
+			// for browsers that predate Origin and Sec-Fetch.
+			if r.ContentLength != 0 {
+				if mt, _, err := mime.ParseMediaType(r.Header.Get("Content-Type")); err != nil || mt != "application/json" {
+					s.log.Warn().Str("content_type", r.Header.Get("Content-Type")).Str("url", r.URL.Path).Msg("auth disabled: rejected mutation, content type must be application/json")
+					http.Error(w, http.StatusText(http.StatusUnsupportedMediaType), http.StatusUnsupportedMediaType)
+					return
+				}
+			}
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+// isAllowedHost reports whether the Host of a browser request in auth-disabled
+// mode is an IP literal, localhost, or a host derived from corsAllowedOrigins.
+func (s *Server) isAllowedHost(host string) bool {
+	host = strings.ToLower(host)
+
+	if _, ok := s.authAllowedHosts[host]; ok {
+		return true
+	}
+
+	bare := host
+	if h, _, err := net.SplitHostPort(host); err == nil {
+		bare = h
+	}
+
+	if bare == "localhost" {
+		return true
+	}
+
+	_, err := netip.ParseAddr(strings.Trim(bare, "[]"))
+
+	return err == nil
 }
 
 // LoggerMiddleware logs each request at trace level. Requests whose path exactly

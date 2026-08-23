@@ -31,6 +31,7 @@ Full documentation can be found at [https://autobrr.com](https://autobrr.com)
    - [MacOS](#macos)
    - [Linux Generic](#linux-generic)
    - [Environment Variables](#environment-variables)
+   - [Disabling built-in authentication](#disabling-built-in-authentication)
 4. [Community](#community)
 5. [Contributing](#contributing)
 6. [Code of Conduct](#code-of-conduct)
@@ -312,44 +313,49 @@ If you are not running a reverse proxy change `host` in the `config.toml` to `0.
 
 The following environment variables can be used:
 
-| Variable                               | Description                                              | Default     |
-|----------------------------------------|----------------------------------------------------------|-------------|
-| `AUTOBRR__HOST`                        | Listen address                                           | `127.0.0.1` |
-| `AUTOBRR__PORT`                        | Listen port                                              | `7474`      |
-| `AUTOBRR__BASE_URL`                    | Base URL for reverse proxy                               | `/`         |
-| `AUTOBRR__BASE_URL_MODE_LEGACY`        | Base URL Mode Legacy for old proxy setups                | `true`      |
-| `AUTOBRR__LOG_LEVEL`                   | Log level (DEBUG, INFO, WARN, ERROR)                     | `INFO`      |
-| `AUTOBRR__LOG_PATH`                    | Log file location                                        | -           |
-| `AUTOBRR__LOG_MAX_SIZE`                | Max size in MB before rotation                           | `10`        |
-| `AUTOBRR__LOG_MAX_BACKUPS`             | Number of rotated logs to keep                           | `5`         |
-| `AUTOBRR__CUSTOM_DEFINITIONS`          | Path to custom indexer definitions                       | -           |
-| `AUTOBRR__CHECK_FOR_UPDATES`           | Enable update checks                                     | `true`      |
-| `AUTOBRR__DATABASE_TYPE`               | Database type (sqlite/postgres)                          | `sqlite`    |
-| `AUTOBRR__DATABASE_MAX_BACKUPS`        | Number of backups to keep                                | `5`         |
-| `AUTOBRR__DATABASE_DSN`                | Database connection string. Use this or individual vars  | -           |
-| `AUTOBRR__POSTGRES_HOST`               | PostgreSQL host                                          | -           |
-| `AUTOBRR__POSTGRES_PORT`               | PostgreSQL port                                          | `5432`      |
-| `AUTOBRR__POSTGRES_DATABASE`           | PostgreSQL database name                                 | -           |
-| `AUTOBRR__POSTGRES_DB`                 | PostgreSQL database name                                 | -           |
-| `AUTOBRR__POSTGRES_USER`               | PostgreSQL username                                      | -           |
-| `AUTOBRR__POSTGRES_PASS`               | PostgreSQL password                                      | -           |
-| `AUTOBRR__POSTGRES_PASSWORD`           | PostgreSQL password                                      | -           |
-| `AUTOBRR__POSTGRES_SSLMODE`            | PostgreSQL SSL mode                                      | `disable`   |
-| `AUTOBRR__POSTGRES_SOCKET`             | PostgreSQL unix socket                                   | -           |
-| `AUTOBRR__POSTGRES_EXTRA_PARAMS`       | Additional PostgreSQL parameters                         | -           |
-| `AUTOBRR__OIDC_ENABLED`                | Enable OpenID Connect authentication                     | `false`     |
-| `AUTOBRR__OIDC_ISSUER`                 | OIDC issuer URL                                          | -           |
-| `AUTOBRR__OIDC_CLIENT_ID`              | OIDC client ID                                           | -           |
-| `AUTOBRR__OIDC_CLIENT_SECRET`          | OIDC client secret                                       | -           |
-| `AUTOBRR__OIDC_REDIRECT_URL`           | OIDC callback URL                                        | -           |
-| `AUTOBRR__OIDC_DISABLE_BUILT_IN_LOGIN` | Disable login form (only works when using external auth) | `false`     |
-| `AUTOBRR__METRICS_ENABLED`             | Enable Metrics server                                    | `false`     |
-| `AUTOBRR__METRICS_HOST`                | Metrics listen address                                   | `127.0.0.1` |
-| `AUTOBRR__METRICS_PORT`                | Metrics listen port                                      | `9074`      |
-| `AUTOBRR__METRICS_BASIC_AUTH_USERS`    | Metrics basic auth users                                 | -           |
-| `AUTOBRR__PROFILING_ENABLED`           | Enable profiling                                         | `false`     |
-| `AUTOBRR__PROFILING_HOST`              | Profiling listen address                                 | `127.0.0.1` |
-| `AUTOBRR__PROFILING_PORT`              | Profiling listen port                                    | `6060`      |
+| Variable                                 | Description                                                                                                   | Default     |
+|------------------------------------------|---------------------------------------------------------------------------------------------------------------|-------------|
+| `AUTOBRR__HOST`                          | Listen address                                                                                                | `127.0.0.1` |
+| `AUTOBRR__PORT`                          | Listen port                                                                                                   | `7474`      |
+| `AUTOBRR__BASE_URL`                      | Base URL for reverse proxy                                                                                    | `/`         |
+| `AUTOBRR__BASE_URL_MODE_LEGACY`          | Base URL Mode Legacy for old proxy setups                                                                     | `true`      |
+| `AUTOBRR__LOG_LEVEL`                     | Log level (DEBUG, INFO, WARN, ERROR)                                                                          | `INFO`      |
+| `AUTOBRR__LOG_PATH`                      | Log file location                                                                                             | -           |
+| `AUTOBRR__LOG_MAX_SIZE`                  | Max size in MB before rotation                                                                                | `10`        |
+| `AUTOBRR__LOG_MAX_BACKUPS`               | Number of rotated logs to keep                                                                                | `5`         |
+| `AUTOBRR__CUSTOM_DEFINITIONS`            | Path to custom indexer definitions                                                                            | -           |
+| `AUTOBRR__CHECK_FOR_UPDATES`             | Enable update checks                                                                                          | `true`      |
+| `AUTOBRR__DATABASE_TYPE`                 | Database type (sqlite/postgres)                                                                               | `sqlite`    |
+| `AUTOBRR__DATABASE_MAX_BACKUPS`          | Number of backups to keep                                                                                     | `5`         |
+| `AUTOBRR__DATABASE_DSN`                  | Database connection string. Use this or individual vars                                                       | -           |
+| `AUTOBRR__POSTGRES_HOST`                 | PostgreSQL host                                                                                               | -           |
+| `AUTOBRR__POSTGRES_PORT`                 | PostgreSQL port                                                                                               | `5432`      |
+| `AUTOBRR__POSTGRES_DATABASE`             | PostgreSQL database name                                                                                      | -           |
+| `AUTOBRR__POSTGRES_DB`                   | PostgreSQL database name                                                                                      | -           |
+| `AUTOBRR__POSTGRES_USER`                 | PostgreSQL username                                                                                           | -           |
+| `AUTOBRR__POSTGRES_PASS`                 | PostgreSQL password                                                                                           | -           |
+| `AUTOBRR__POSTGRES_PASSWORD`             | PostgreSQL password                                                                                           | -           |
+| `AUTOBRR__POSTGRES_SSLMODE`              | PostgreSQL SSL mode                                                                                           | `disable`   |
+| `AUTOBRR__POSTGRES_SOCKET`               | PostgreSQL unix socket                                                                                        | -           |
+| `AUTOBRR__POSTGRES_EXTRA_PARAMS`         | Additional PostgreSQL parameters                                                                              | -           |
+| `AUTOBRR__OIDC_ENABLED`                  | Enable OpenID Connect authentication                                                                          | `false`     |
+| `AUTOBRR__OIDC_ISSUER`                   | OIDC issuer URL                                                                                               | -           |
+| `AUTOBRR__OIDC_CLIENT_ID`                | OIDC client ID                                                                                                | -           |
+| `AUTOBRR__OIDC_CLIENT_SECRET`            | OIDC client secret                                                                                            | -           |
+| `AUTOBRR__OIDC_REDIRECT_URL`             | OIDC callback URL                                                                                             | -           |
+| `AUTOBRR__OIDC_DISABLE_BUILT_IN_LOGIN`   | Disable login form (only works when using external auth)                                                      | `false`     |
+| `AUTOBRR__CORS_ALLOWED_ORIGINS`          | Allowed CORS origins, comma separated. Required when auth is disabled                                         | -           |
+| `AUTOBRR__AUTH_DISABLED`                 | Disable built-in authentication (see [Disabling built-in authentication](#disabling-built-in-authentication)) | `false`     |
+| `AUTOBRR__AUTH_DISABLED_ACKNOWLEDGEMENT` | Must be `I_ACKNOWLEDGE_THIS_IS_A_BAD_IDEA` to disable authentication                                          | -           |
+| `AUTOBRR__AUTH_ALLOWED_PEER_CIDRS`       | Peer allowlist while auth is disabled, comma separated CIDRs or IPs                                           | -           |
+| `AUTOBRR__AUTH_CLIENT_IP_HEADER`         | Proxy header to log client IPs from while auth is disabled                                                    | -           |
+| `AUTOBRR__METRICS_ENABLED`               | Enable Metrics server                                                                                         | `false`     |
+| `AUTOBRR__METRICS_HOST`                  | Metrics listen address                                                                                        | `127.0.0.1` |
+| `AUTOBRR__METRICS_PORT`                  | Metrics listen port                                                                                           | `9074`      |
+| `AUTOBRR__METRICS_BASIC_AUTH_USERS`      | Metrics basic auth users                                                                                      | -           |
+| `AUTOBRR__PROFILING_ENABLED`             | Enable profiling                                                                                              | `false`     |
+| `AUTOBRR__PROFILING_HOST`                | Profiling listen address                                                                                      | `127.0.0.1` |
+| `AUTOBRR__PROFILING_PORT`                | Profiling listen port                                                                                         | `6060`      |
 
 #### Docker secrets
 
@@ -396,6 +402,47 @@ secrets:
 volumes:
   postgres:
 ```
+
+### Disabling built-in authentication
+
+For deployments where a reverse proxy in front of autobrr performs authentication itself (forward auth via Authelia/Authentik, SSO at the proxy, etc.), the built-in login can be disabled. **Autobrr then performs no authentication of its own**: every request whose network peer matches the allowlist gets full administrative access, so this must only be used when the proxy authenticates every route and the autobrr port is not reachable any other way.
+
+All of the following are required:
+
+```toml
+authDisabled = true
+authDisabledAcknowledgement = "I_ACKNOWLEDGE_THIS_IS_A_BAD_IDEA"
+# The immediate TCP peer(s) autobrr sees - the reverse proxy address, as exact
+# /32 or /128 entries. NOT the end user's address, and never a forwarded header.
+authAllowedPeerCIDRs = ["127.0.0.1/32", "::1/128"]
+# Every URL you access autobrr at (UI or API). Browser requests with any other
+# Origin or Host are rejected to block CSRF and DNS rebinding. Plain API clients
+# (curl, scripts, integrations) are unaffected; direct access by IP address or
+# localhost needs no entry.
+corsAllowedOrigins = "https://autobrr.example.com"
+# Optional: a header your proxy overwrites on every request with the end user's
+# IP (e.g. X-Real-IP), used for access logs only.
+#authClientIPHeader = "X-Real-IP"
+```
+
+Example with [Caddy](https://caddyserver.com/) performing forward auth for every route:
+
+```caddy
+autobrr.example.com {
+	forward_auth authelia:9091 {
+		uri /api/authz/forward-auth
+	}
+	reverse_proxy localhost:7474
+}
+```
+
+Things to be aware of:
+
+- Keep `host = "127.0.0.1"` (or an equally private bind) so the backend port cannot be reached without going through the proxy. A wildcard bind combined with a broad peer allowlist hands out admin access to the whole range - loopback, Docker network gateways, Kubernetes node addresses, and shared proxy or CDN ranges can all carry traffic from callers that are not your proxy.
+- Broad CIDRs are warned about at startup: every address in an allowlisted range has full administrative access, so list the exact proxy address instead of its subnet.
+- While auth is disabled, mutating API requests must send `Content-Type: application/json`, and API key management is unavailable (an authless caller could otherwise mint a credential that outlives re-enabling auth). Existing API keys keep working after you re-enable authentication.
+- If you started with auth disabled and never created a user, re-enabling authentication exposes first-user onboarding to whoever reaches the login page first. Create the user right after re-enabling, or create one up front with `autobrrctl create-user`.
+- To re-enable authentication: remove the `authDisabled` settings, restart autobrr, then verify you are asked to log in.
 
 ## Community
 
