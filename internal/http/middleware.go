@@ -48,6 +48,9 @@ func (s *Server) IsAuthenticated(next http.Handler) http.Handler {
 				if err := s.sessionManager.Destroy(r.Context()); err != nil {
 					s.log.Error().Err(err).Msg("failed to destroy session")
 				}
+				// 403 on purpose, never 401: a 401 makes browsers holding cached
+				// reverse-proxy Basic Auth credentials treat them as invalid and
+				// re-prompt, breaking those setups
 				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 				return
 			}

@@ -181,7 +181,9 @@ export async function HttpClient<T = unknown>(
     // It is most likely an error.
     switch (response.status) {
     case 403: {
-      if (AuthContext.get().isLoggedIn) {
+      // Plain-text 403s come from the auth middleware (session gone); JSON 403s
+      // are application errors and fall through to show the server's message.
+      if (!isJson && AuthContext.get().isLoggedIn) {
         return Promise.reject(new Error("Cookie expired or invalid."));
       }
       break;
