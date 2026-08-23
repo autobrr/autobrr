@@ -251,6 +251,26 @@ func (h *authHandler) updateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if data.PasswordNew != "" {
+		h.revokeOtherSessions(r.Context())
+	}
+
 	// send response as ok
 	h.encoder.StatusResponseMessage(w, http.StatusOK, "user successfully updated")
+}
+
+// revokeOtherSessions destroys every session except the current one, so a
+// password change invalidates sessions an attacker may already hold.
+func (h *authHandler) revokeOtherSessions(ctx context.Context) {
+	currentToken := h.sessionManager.Token(ctx)
+
+	if err := h.sessionManager.Iterate(ctx, func(sessionCtx context.Context) error {
+		if h.sessionManager.Token(sessionCtx) == currentToken {
+			return nil
+		}
+
+		return h.sessionManager.Destroy(sessionCtx)
+	}); err != nil {
+		h.log.Error().Err(err).Msg("could not revoke other sessions after password change")
+	}
 }
