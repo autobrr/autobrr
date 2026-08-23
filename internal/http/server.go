@@ -241,9 +241,12 @@ func (s *Server) Handler() http.Handler {
 	r.Use(LoggerMiddleware(&s.log, s.healthCheckPaths))
 
 	c := cors.New(cors.Options{
-		AllowCredentials:   true,
-		AllowedMethods:     []string{http.MethodHead, http.MethodOptions, http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete},
-		AllowedHeaders:     []string{"Authorization"},
+		AllowCredentials: true,
+		AllowedMethods:   []string{http.MethodHead, http.MethodOptions, http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete},
+		// Content-Type must be approved for cross-origin JSON writes to pass
+		// preflight, X-API-Token so allowlisted browser tools can authenticate
+		// with a header instead of ?apikey= in the URL.
+		AllowedHeaders:     []string{"Authorization", "Content-Type", "X-API-Token", "X-Requested-With"},
 		AllowedOrigins:     s.allowedOrigins,
 		OptionsPassthrough: true,
 		// Enable Debugging for testing, consider disabling in production
