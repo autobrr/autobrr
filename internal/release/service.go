@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/pkg/errors"
 
-	"github.com/asaskevich/EventBus"
 	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog"
 )
@@ -77,6 +77,11 @@ type schedulerService interface {
 	GetNextRun(id string) (time.Time, error)
 }
 
+type eventBus interface {
+	EmitReleaseNew(ctx context.Context, event events.ReleaseEvent)
+	EmitReleasePush(ctx context.Context, event events.ReleasePushEvent)
+}
+
 type actionClientTypeKey struct {
 	Type     domain.ActionType
 	ClientID int32
@@ -94,9 +99,9 @@ func (k cleanupJobKey) ToString() string {
 
 type Service struct {
 	log         zerolog.Logger
+	eventBus    eventBus
 	m           sync.RWMutex
 	cleanupJobs map[string]int
-	bus         EventBus.Bus
 
 	repo       releaseRepo
 	actionSvc  actionService
@@ -105,11 +110,11 @@ type Service struct {
 	scheduler  schedulerService
 }
 
-func NewService(log zerolog.Logger, repo releaseRepo, actionSvc actionService, filterSvc filterService, indexerSvc indexerService, scheduler schedulerService, bus EventBus.Bus) *Service {
+func NewService(log zerolog.Logger, eventBus eventBus, repo releaseRepo, actionSvc actionService, filterSvc filterService, indexerSvc indexerService, scheduler schedulerService) *Service {
 	return &Service{
 		log:         log.With().Str("module", "release").Logger(),
+		eventBus:    eventBus,
 		cleanupJobs: map[string]int{},
-		bus:         bus,
 		repo:        repo,
 		actionSvc:   actionSvc,
 		filterSvc:   filterSvc,
@@ -422,7 +427,7 @@ func (s *Service) Process(ctx context.Context, release *domain.Release) {
 		release.TraceID = domain.TraceIDFromCtx(ctx)
 	}
 
-	s.publishEventReleaseNew(release)
+	s.publishEventReleaseNew(ctx, release)
 
 	// TODO check in config for "Save all releases"
 
@@ -653,7 +658,7 @@ func (s *Service) ProcessMultipleFromIndexer(ctx context.Context, releases []*do
 			if release == nil {
 				continue
 			}
-			s.publishEventReleaseNew(release)
+			s.publishEventReleaseNew(ctx, release)
 		}
 
 		s.log.Debug().Str("indexer", indexer.Name).Msg("no active filters found for indexer: skipping filter processing")
@@ -669,7 +674,7 @@ func (s *Service) ProcessMultipleFromIndexer(ctx context.Context, releases []*do
 			release.TraceID = domain.NewTraceID()
 		}
 
-		s.publishEventReleaseNew(release)
+		s.publishEventReleaseNew(ctx, release)
 
 		if err := s.processRelease(ctx, release, filters); err != nil {
 			s.log.Error().Err(err).Str("trace_id", release.TraceID).Str("indexer", indexer.Name).Msg("release.ProcessMultipleFromIndexer: error processing filters for indexer")
@@ -695,6 +700,13 @@ func (s *Service) runAction(ctx context.Context, action *domain.Action, release 
 		status.Status = domain.ReleasePushStatusErr
 		status.Rejections = []string{err.Error()}
 
+		s.eventBus.EmitReleasePush(ctx, events.ReleasePushEvent{
+			Event:        events.Event{Type: events.ReleasePushError},
+			Action:       action,
+			ActionStatus: status,
+			Release:      release,
+		})
+
 		return status, err
 	}
 
@@ -702,10 +714,24 @@ func (s *Service) runAction(ctx context.Context, action *domain.Action, release 
 		status.Status = domain.ReleasePushStatusRejected
 		status.Rejections = rejections
 
+		s.eventBus.EmitReleasePush(ctx, events.ReleasePushEvent{
+			Event:        events.Event{Type: events.ReleasePushRejected},
+			Action:       action,
+			ActionStatus: status,
+			Release:      release,
+		})
+
 		return status, nil
 	}
 
 	status.Status = domain.ReleasePushStatusApproved
+
+	s.eventBus.EmitReleasePush(ctx, events.ReleasePushEvent{
+		Event:        events.Event{Type: events.ReleasePushApproved},
+		Action:       action,
+		ActionStatus: status,
+		Release:      release,
+	})
 
 	return status, nil
 }
@@ -796,19 +822,11 @@ func (s *Service) Retry(ctx context.Context, req *domain.ReleaseActionRetryReq) 
 	return nil
 }
 
-func (s *Service) publishEventReleaseNew(release *domain.Release) {
-	payload := &domain.NotificationPayload{
-		Event:          domain.NotificationEventReleaseNew,
-		ReleaseName:    release.TorrentName,
-		Indexer:        release.Indexer.Name,
-		InfoHash:       release.TorrentHash,
-		Size:           release.Size,
-		Protocol:       release.Protocol,
-		Implementation: release.Implementation,
-		Timestamp:      time.Now(),
-		Release:        release,
-	}
-	s.bus.Publish(domain.EventNotificationSend, &payload.Event, payload)
+func (s *Service) publishEventReleaseNew(ctx context.Context, release *domain.Release) {
+	s.eventBus.EmitReleaseNew(ctx, events.ReleaseEvent{
+		Event:   events.Event{Type: events.ReleaseNew},
+		Release: release,
+	})
 }
 
 func (s *Service) startCleanupJob(job *domain.ReleaseCleanupJob) error {

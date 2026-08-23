@@ -9,14 +9,15 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
-	"github.com/asaskevich/EventBus"
 	"github.com/rs/zerolog"
 )
 
 type actionRepo interface {
 	Store(ctx context.Context, action *domain.Action) error
+	Update(ctx context.Context, action domain.Action) (*domain.Action, error)
 	StoreFilterActions(ctx context.Context, filterID int64, actions []*domain.Action) ([]*domain.Action, error)
 	FindByFilterID(ctx context.Context, filterID int, active *bool, withClient bool) ([]*domain.Action, error)
 	List(ctx context.Context) ([]domain.Action, error)
@@ -36,23 +37,27 @@ type downloadService interface {
 	ResolveMagnetURI(ctx context.Context, r *domain.Release) error
 }
 
+type eventBus interface {
+	OnReleasePush(handler func(context.Context, events.ReleasePushEvent) error) func()
+}
+
 type Service struct {
 	log         zerolog.Logger
+	eventBus    eventBus
 	repo        actionRepo
 	clientSvc   clientService
 	downloadSvc downloadService
-	bus         EventBus.Bus
 
 	httpClient *http.Client
 }
 
-func NewService(log zerolog.Logger, repo actionRepo, clientSvc clientService, downloadSvc downloadService, bus EventBus.Bus) *Service {
+func NewService(log zerolog.Logger, bus eventBus, repo actionRepo, clientSvc clientService, downloadSvc downloadService) *Service {
 	s := &Service{
 		log:         log.With().Str("module", "action").Logger(),
+		eventBus:    bus,
 		repo:        repo,
 		clientSvc:   clientSvc,
 		downloadSvc: downloadSvc,
-		bus:         bus,
 
 		httpClient: &http.Client{
 			Timeout:   time.Second * 120,
@@ -65,6 +70,10 @@ func NewService(log zerolog.Logger, repo actionRepo, clientSvc clientService, do
 
 func (s *Service) Store(ctx context.Context, action *domain.Action) error {
 	return s.repo.Store(ctx, action)
+}
+
+func (s *Service) Update(ctx context.Context, action *domain.Action) (*domain.Action, error) {
+	return s.repo.Update(ctx, *action)
 }
 
 func (s *Service) StoreFilterActions(ctx context.Context, filterID int64, actions []*domain.Action) ([]*domain.Action, error) {

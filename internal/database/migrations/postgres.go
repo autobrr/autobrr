@@ -105,7 +105,10 @@ func PostgresMigrations(db *sql.DB, logger zerolog.Logger) *migrator.Migrator {
 	migrate.AddFileMigration("82_indexers_rename_rotorrent_to_seedcore.sql")
 	migrate.AddFileMigration("83_create_release_status_indexes.sql")
 	migrate.AddFileMigration("84_feeds_add_user_agent.sql")
-	migrate.AddFileMigration("85_add_action_status_retry_and_position.sql")
+	migrate.AddFileMigration("85_add_indexer_archived_and_deprecation.sql")
+	migrate.AddFileMigration("86_irc_update_samaritano_port_and_tls.sql")
+	migrate.AddFileMigration("87_add_filter_max_downloads_period.sql")
+	migrate.AddFileMigration("88_add_action_status_retry_and_position.sql")
 
 	return migrate
 }

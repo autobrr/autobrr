@@ -77,16 +77,6 @@ jobs:
   test:
     name: Test ubuntu-latest
     runs-on: ubuntu-latest
-    services:
-      test_postgres:
-        image: postgres:12.10
-        ports:
-          - "5437:5432"
-        env:
-          POSTGRES_USER: testdb
-          POSTGRES_PASSWORD: testdb
-          POSTGRES_DB: autobrr
-        options: --health-cmd pg_isready --health-interval 1s --health-timeout 5s --health-retries 60
     env:
       CGO_ENABLED: 0
     steps:
@@ -94,6 +84,10 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+
+      - name: Check indexer deprecation tombstones
+        if: github.event_name == 'pull_request'
+        run: scripts/check-indexer-deprecations.sh "${{ github.event.pull_request.base.sha }}"
 
       - name: Set up Go
         uses: actions/setup-go@v7

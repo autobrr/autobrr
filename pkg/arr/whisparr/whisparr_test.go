@@ -4,7 +4,6 @@
 package whisparr
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -94,7 +93,7 @@ func TestClient_Test(t *testing.T) {
 	t.Run("v2 client against v2 server", func(t *testing.T) {
 		ts := newTestServer(t, VersionV2)
 
-		status, err := newTestClient(ts.URL, VersionV2).Test(context.Background())
+		status, err := newTestClient(ts.URL, VersionV2).Test(t.Context())
 		require.NoError(t, err)
 		assert.Equal(t, "2.2.0.108", status.Version)
 	})
@@ -102,7 +101,7 @@ func TestClient_Test(t *testing.T) {
 	t.Run("v3 client against v3 server", func(t *testing.T) {
 		ts := newTestServer(t, VersionV3)
 
-		status, err := newTestClient(ts.URL, VersionV3).Test(context.Background())
+		status, err := newTestClient(ts.URL, VersionV3).Test(t.Context())
 		require.NoError(t, err)
 		assert.Equal(t, "3.3.7.979", status.Version)
 	})
@@ -110,7 +109,7 @@ func TestClient_Test(t *testing.T) {
 	t.Run("v2 client against v3 server reports the mismatch", func(t *testing.T) {
 		ts := newTestServer(t, VersionV3)
 
-		_, err := newTestClient(ts.URL, VersionV2).Test(context.Background())
+		_, err := newTestClient(ts.URL, VersionV2).Test(t.Context())
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "configured for Whisparr v2")
 		assert.Contains(t, err.Error(), "3.3.7.979")
@@ -119,7 +118,7 @@ func TestClient_Test(t *testing.T) {
 	t.Run("v3 client against v2 server reports the mismatch", func(t *testing.T) {
 		ts := newTestServer(t, VersionV2)
 
-		_, err := newTestClient(ts.URL, VersionV3).Test(context.Background())
+		_, err := newTestClient(ts.URL, VersionV3).Test(t.Context())
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "configured for Whisparr v3")
 	})
@@ -129,7 +128,7 @@ func TestClient_Test(t *testing.T) {
 
 		client := New(Config{Hostname: ts.URL, APIKey: "wrong", Version: VersionV2, Log: zerolog.Nop()})
 
-		_, err := client.Test(context.Background())
+		_, err := client.Test(t.Context())
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "unauthorized")
 	})
@@ -140,7 +139,7 @@ func TestClient_GetAllSeries(t *testing.T) {
 
 	ts := newTestServer(t, VersionV2)
 
-	series, err := newTestClient(ts.URL, VersionV2).GetAllSeries(context.Background())
+	series, err := newTestClient(ts.URL, VersionV2).GetAllSeries(t.Context())
 	require.NoError(t, err)
 	require.Len(t, series, 2)
 
@@ -158,7 +157,7 @@ func TestClient_GetMovies(t *testing.T) {
 
 	ts := newTestServer(t, VersionV3)
 
-	movies, err := newTestClient(ts.URL, VersionV3).GetMovies(context.Background())
+	movies, err := newTestClient(ts.URL, VersionV3).GetMovies(t.Context())
 	require.NoError(t, err)
 	require.Len(t, movies, 2)
 
@@ -181,14 +180,14 @@ func TestClient_ItemEndpointsAreVersionSpecific(t *testing.T) {
 	t.Run("no movie endpoint on v2", func(t *testing.T) {
 		ts := newTestServer(t, VersionV2)
 
-		_, err := newTestClient(ts.URL, VersionV2).GetMovies(context.Background())
+		_, err := newTestClient(ts.URL, VersionV2).GetMovies(t.Context())
 		require.Error(t, err)
 	})
 
 	t.Run("no series endpoint on v3", func(t *testing.T) {
 		ts := newTestServer(t, VersionV3)
 
-		_, err := newTestClient(ts.URL, VersionV3).GetAllSeries(context.Background())
+		_, err := newTestClient(ts.URL, VersionV3).GetAllSeries(t.Context())
 		require.Error(t, err)
 	})
 }
@@ -198,7 +197,7 @@ func TestClient_Push(t *testing.T) {
 
 	ts := newTestServer(t, VersionV3)
 
-	rejections, err := newTestClient(ts.URL, VersionV3).Push(context.Background(), ReleasePushRequest{
+	rejections, err := newTestClient(ts.URL, VersionV3).Push(t.Context(), ReleasePushRequest{
 		Title:            "Brazzers.Goes.Black.2018.1080p.BluRay.x264-GROUP",
 		DownloadUrl:      ts.URL + "/download",
 		Size:             1073741824,
@@ -208,4 +207,36 @@ func TestClient_Push(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assert.Equal(t, []string{"Unknown Movie. Unable to match to existing movie in Library using release title."}, rejections)
+}
+
+// A temporarily rejected release comes back with rejected false and temporarilyRejected
+// true, and waits in Whisparr's pending queue instead of being grabbed, so its rejections
+// still have to reach the caller.
+func TestClient_Push_temporarilyRejected(t *testing.T) {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v3/release/push", func(w http.ResponseWriter, r *http.Request) {
+		payload, err := os.ReadFile("testdata/release_push_temporarily_rejected_response.json")
+		require.NoError(t, err)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(payload)
+	})
+
+	ts := httptest.NewServer(mux)
+	t.Cleanup(ts.Close)
+
+	rejections, err := newTestClient(ts.URL, VersionV3).Push(t.Context(), ReleasePushRequest{
+		Title:            "Brazzers.Goes.Black.2018.1080p.BluRay.x264-GROUP",
+		DownloadUrl:      ts.URL + "/download",
+		Size:             1073741824,
+		Indexer:          "autobrr",
+		Protocol:         "torrent",
+		DownloadProtocol: "torrent",
+	})
+
+	require.NoError(t, err)
+	assert.Equal(t, []string{"Waiting for a better quality release"}, rejections)
 }

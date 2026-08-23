@@ -40,9 +40,10 @@ type Feed struct {
 	NextRun       time.Time         `json:"next_run"`
 
 	// belongs to Indexer
-	ProxyID  int64  `json:"-"`
-	UseProxy bool   `json:"-"`
-	Proxy    *Proxy `json:"-"`
+	IndexerEnabled bool   `json:"-"`
+	ProxyID        int64  `json:"-"`
+	UseProxy       bool   `json:"-"`
+	Proxy          *Proxy `json:"-"`
 }
 
 // Validate rejects field values that would make every feed request fail at the transport layer.
@@ -69,6 +70,20 @@ func (f Feed) MarshalJSON() ([]byte, error) {
 
 type FeedSettingsJSON struct {
 	DownloadType FeedDownloadType `json:"download_type"`
+	CacheTTLDays int              `json:"cache_ttl_days"`
+}
+
+// DefaultFeedCacheTTLDays is the feed cache item TTL used when a feed has no explicit cache TTL configured.
+const DefaultFeedCacheTTLDays = 31
+
+// CacheTTL returns the expiry time for new feed cache items.
+func (f Feed) CacheTTL() time.Time {
+	days := DefaultFeedCacheTTLDays
+	if f.Settings != nil && f.Settings.CacheTTLDays > 0 {
+		days = f.Settings.CacheTTLDays
+	}
+
+	return time.Now().AddDate(0, 0, days)
 }
 
 type FeedIndexer struct {

@@ -126,7 +126,7 @@ func Test_trakt_smartList(t *testing.T) {
 		},
 	}
 
-	err := svc.trakt(context.Background(), list)
+	err := svc.trakt(t.Context(), list)
 	require.NoError(t, err)
 
 	require.NotNil(t, mockFilter.updatedFilter.Shows)

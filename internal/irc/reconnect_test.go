@@ -4,12 +4,14 @@
 package irc
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 	"sync"
 	"testing"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/events"
 
 	"github.com/alphadose/haxmap"
 	"github.com/ergochat/irc-go/ircmsg"
@@ -17,9 +19,9 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type noopNotificationSender struct{}
+type noopEventBus struct{}
 
-func (noopNotificationSender) Send(_ domain.NotificationEvent, _ domain.NotificationPayload) {}
+func (noopEventBus) EmitIRC(_ context.Context, _ events.IRCEvent) {}
 
 // mockSSEServer records published events so tests can assert what was broadcast.
 type mockSSEServer struct {
@@ -102,13 +104,13 @@ func stateEventHasError(m *mockSSEServer, channel, state, substr string) bool {
 func newTestHandler() (*Handler, *mockSSEServer) {
 	sseMock := &mockSSEServer{}
 	h := &Handler{
-		log:                 zerolog.Nop(),
-		sse:                 sseMock,
-		network:             &domain.IrcNetwork{ID: 1, Name: "TestNet", Server: "irc.example.test"},
-		notificationService: noopNotificationSender{},
-		definitions:         map[string]*domain.IndexerDefinition{},
-		channels:            haxmap.New[string, *Channel](),
-		clientState:         ircLive,
+		log:         zerolog.Nop(),
+		sse:         sseMock,
+		network:     &domain.IrcNetwork{ID: 1, Name: "TestNet", Server: "irc.example.test"},
+		eventBus:    noopEventBus{},
+		definitions: map[string]*domain.IndexerDefinition{},
+		channels:    haxmap.New[string, *Channel](),
+		clientState: ircLive,
 	}
 	h.stateMachine = NewConnectionStateMachine(h)
 	return h, sseMock

@@ -59,6 +59,7 @@ type Release struct {
 	TorrentDataRawBytes                []byte                `json:"-"`
 	TorrentHash                        string                `json:"-"`
 	TorrentName                        string                `json:"name"`            // full release name
+	RawVars                            map[string]string     `json:"-"`               // raw announce vars from indexer definition
 	NormalizedHash                     string                `json:"normalized_hash"` // normalized torrent name and md5 hashed
 	Size                               uint64                `json:"size"`
 	Title                              string                `json:"title"`     // Parsed title
@@ -496,21 +497,6 @@ func ValidReleasePushStatus(s string) bool {
 	}
 }
 
-// ValidDeletableReleasePushStatus checks if a status is valid for deletion operations.
-// Excludes PENDING status as it's not applicable for completed release deletions.
-func ValidDeletableReleasePushStatus(s string) bool {
-	switch s {
-	case string(ReleasePushStatusApproved):
-		return true
-	case string(ReleasePushStatusRejected):
-		return true
-	case string(ReleasePushStatusErr):
-		return true
-	default:
-		return false
-	}
-}
-
 // ReleaseCleanupStatus represents the status of a cleanup job execution
 type ReleaseCleanupStatus string
 
@@ -558,10 +544,9 @@ func (j *ReleaseCleanupJob) Validate() error {
 
 	// Validate statuses if provided
 	if j.Statuses != "" {
-		statuses := strings.Split(j.Statuses, ",")
-		for _, status := range statuses {
+		for status := range strings.SplitSeq(j.Statuses, ",") {
 			status = strings.TrimSpace(status)
-			if status != "" && !ValidDeletableReleasePushStatus(status) {
+			if status != "" && !ValidReleasePushStatus(status) {
 				return errors.New("invalid status: %s", status)
 			}
 		}
@@ -719,7 +704,9 @@ func (r *Release) ParseString(title string) {
 	r.Codec = rel.Codec
 	r.Container = rel.Container
 	r.HDR = rel.HDR
-	r.Artists = rel.Artist
+	if rel.Artist != "" {
+		r.Artists = rel.Artist
+	}
 
 	if rel.Other != nil {
 		r.Other = rel.Other
@@ -1135,6 +1122,13 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error 
 		r.Category = category
 	}
 
+	if subCategory, ok := getStringMapValue(varMap, "subCategory"); ok {
+		if r.Category != "" {
+			mainCategory := r.Category
+			r.Category = fmt.Sprintf("%s/%s", mainCategory, subCategory)
+		}
+	}
+
 	if announceType, ok := getStringMapValue(varMap, "announceType"); ok {
 		annType, parseErr := ParseAnnounceType(announceType)
 		if parseErr == nil {
@@ -1272,8 +1266,7 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error 
 	if tags, ok := getStringMapValue(varMap, "tags"); ok {
 		if tags != "" && tags != "*" {
 			tagsArr := []string{}
-			s := strings.Split(tags, ",")
-			for _, t := range s {
+			for t := range strings.SplitSeq(tags, ",") {
 				tagsArr = append(tagsArr, strings.Trim(t, " "))
 			}
 			r.Tags = tagsArr
@@ -1284,6 +1277,10 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error 
 		if title != "" && title != "*" {
 			r.Title = title
 		}
+	}
+
+	if v, ok := getStringMapValue(varMap, "author"); ok {
+		r.Artists = v
 	}
 
 	// handle releaseTags. Most of them are redundant but some are useful
@@ -1304,6 +1301,14 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error 
 		r.Episode = episode
 	}
 
+	if language, ok := getStringMapValue(varMap, "language"); ok {
+		r.Language = append(r.Language, language)
+	}
+
+	if v, ok := getStringMapValue(varMap, "container"); ok {
+		r.Container = v
+	}
+
 	if metaId, ok := getStringMapValue(varMap, "imdb"); ok && metaId != "" {
 		if !strings.HasPrefix(metaId, "tt") {
 			metaId = "tt" + metaId
@@ -1316,6 +1321,8 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error 
 			r.MetaTMDB = tmdbId
 		}
 	}
+
+	r.RawVars = varMap
 
 	return nil
 }

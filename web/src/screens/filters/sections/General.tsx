@@ -4,9 +4,10 @@
  */
 
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { useFormikContext } from "formik";
 import { useTranslation } from "react-i18next";
 
-import { downloadsPerUnitOptions } from "@domain/constants";
+import { downloadsPerUnitOptions, getWindowTypeOptions } from "@domain/constants";
 import { IndexersOptionsQueryOptions, ReleaseProfileDuplicateList } from "@api/queries";
 
 import { DocsLink } from "@components/ExternalLink";
@@ -33,13 +34,20 @@ const MapReleaseProfile = (profile: ReleaseProfileDuplicate) => (
 
 export const General = () => {
   const { t } = useTranslation(["options", "filters"]);
+  const { values } = useFormikContext<Filter>();
+
   const indexersQuery = useSuspenseQuery(IndexersOptionsQueryOptions())
-  const indexerOptions = indexersQuery.data && indexersQuery.data.map(MapIndexer)
+
+  // deprecated indexers stay listed while still selected so they can be unticked individually
+  const selectedIndexerIds = new Set((values.indexers || []).map((indexer) => indexer.id));
+  const indexerOptions = indexersQuery.data && indexersQuery.data
+    .filter((indexer) => !indexer.archived || selectedIndexerIds.has(indexer.id))
+    .map((indexer) => indexer.archived
+      ? { label: t("filters:general.deprecatedIndexer", { name: indexer.name }), value: indexer.id } as MultiSelectOption
+      : MapIndexer(indexer))
 
   const duplicateProfilesQuery = useSuspenseQuery(ReleaseProfileDuplicateList())
   const duplicateProfilesOptions = duplicateProfilesQuery.data && duplicateProfilesQuery.data.map(MapReleaseProfile)
-
-  // const indexerOptions = data?.map(MapIndexer) ?? [];
 
   return (
     <FilterPage>
@@ -138,6 +146,34 @@ export const General = () => {
               </div>
             }
           />
+          {values.max_downloads_unit !== "" && values.max_downloads_unit !== "EVER" && (
+            <Select
+              name="max_downloads_window_type"
+              label={t("filters:general.maxDownloadsWindowType")}
+              options={getWindowTypeOptions(t)}
+              optionDefaultText={t("filters:general.selectWindowType")}
+              tooltip={
+                <div>
+                  <p>{t("filters:general.maxDownloadsWindowTypeTooltip")}</p>
+                  <DocsLink href="https://autobrr.com/filters#rules" />
+                </div>
+              }
+            />
+          )}
+          {values.max_downloads_unit !== "" && values.max_downloads_unit !== "EVER" && values.max_downloads_window_type === "ROLLING" && (
+            <NumberField
+              name="max_downloads_period"
+              label={t("filters:general.maxDownloadsPeriod")}
+              min={1}
+              placeholder="1"
+              tooltip={
+                <div>
+                  <p>{t("filters:general.maxDownloadsPeriodTooltip")}</p>
+                  <DocsLink href="https://autobrr.com/filters#rules" />
+                </div>
+              }
+            />
+          )}
           <Select
             name={`release_profile_duplicate_id`}
             label={t("filters:general.skipDuplicatesProfile")}

@@ -57,7 +57,7 @@ func (s *Service) readarr(ctx context.Context, action *domain.Action, release *d
 
 	rejections, err := arr.Push(ctx, r)
 	if err != nil {
-		return nil, errors.Wrap(err, "readarr: failed to push release: %v", r)
+		return nil, errors.Wrap(err, "readarr: failed to push release: %s", r.Title)
 	}
 
 	if rejections != nil {

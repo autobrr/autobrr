@@ -39,33 +39,35 @@ const BreakdownTable = ({ title, nameHeader, rows, isLoading, isError }: Breakdo
       ) : isError ? (
         <ChartError heightClass="h-56" />
       ) : (
-        <table className="min-w-full mt-2">
-          <thead>
-            <tr>
-              <th className="py-2 pr-3 text-xs font-medium tracking-wider uppercase text-left text-gray-600 dark:text-gray-400">{nameHeader}</th>
-              <th className="py-2 px-3 text-xs font-medium tracking-wider uppercase text-right text-gray-600 dark:text-gray-400">{t("dashboardCharts.matches")}</th>
-              <th className="py-2 px-3 text-xs font-medium tracking-wider uppercase text-right text-gray-600 dark:text-gray-400">{t("dashboardCharts.approved")}</th>
-              <th className="py-2 pl-3 w-28"><span className="sr-only">{t("dashboardCharts.approved")}</span></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-150 dark:divide-gray-750">
-            {rows.map((row) => (
-              <tr key={row.name}>
-                <td className="py-2 pr-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-300 truncate max-w-40">{row.name}</td>
-                <td className="py-2 px-3 text-sm text-right tabular-nums text-gray-600 dark:text-gray-400">{row.matched.toLocaleString()}</td>
-                <td className="py-2 px-3 text-sm text-right tabular-nums text-gray-900 dark:text-gray-300">{row.approved.toLocaleString()}</td>
-                <td className="py-2 pl-3">
-                  <div className="h-1.5 w-full rounded-full" style={{ backgroundColor: trackColor }}>
-                    <div
-                      className="h-1.5 rounded-full"
-                      style={{ backgroundColor: barColor, width: `${Math.max((row.approved / maxApproved) * 100, 2)}%` }}
-                    />
-                  </div>
-                </td>
+        <div className="mt-2 min-h-56 min-w-0 flex-1">
+          <table className="w-full table-fixed">
+            <thead>
+              <tr>
+                <th className="py-2 pr-3 text-xs font-medium tracking-wider uppercase text-left text-gray-600 dark:text-gray-400">{nameHeader}</th>
+                <th className="w-20 px-2 py-2 text-right text-xs font-medium uppercase tracking-wider text-gray-600 sm:px-3 dark:text-gray-400">{t("dashboardCharts.matches")}</th>
+                <th className="w-20 px-2 py-2 text-right text-xs font-medium uppercase tracking-wider text-gray-600 sm:px-3 dark:text-gray-400">{t("dashboardCharts.approved")}</th>
+                <th className="hidden w-28 py-2 pl-3 sm:table-cell"><span className="sr-only">{t("dashboardCharts.approved")}</span></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-gray-150 dark:divide-gray-750">
+              {rows.map((row) => (
+                <tr key={row.name}>
+                  <td className="max-w-0 truncate whitespace-nowrap py-2 pr-3 text-sm font-medium text-gray-900 dark:text-gray-300">{row.name}</td>
+                  <td className="px-2 py-2 text-right text-sm tabular-nums text-gray-600 sm:px-3 dark:text-gray-400">{row.matched.toLocaleString()}</td>
+                  <td className="px-2 py-2 text-right text-sm tabular-nums text-gray-900 sm:px-3 dark:text-gray-300">{row.approved.toLocaleString()}</td>
+                  <td className="hidden py-2 pl-3 sm:table-cell">
+                    <div className="h-1.5 w-full rounded-full" style={{ backgroundColor: trackColor }}>
+                      <div
+                        className="h-1.5 rounded-full"
+                        style={{ backgroundColor: barColor, width: `${Math.max((row.approved / maxApproved) * 100, 2)}%` }}
+                      />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </ChartCard>
   );

@@ -782,9 +782,15 @@ func (r *ActionRepo) Delete(ctx context.Context, req *domain.DeleteActionRequest
 		return errors.Wrap(err, "error building query")
 	}
 
-	_, err = r.db.Handler.ExecContext(ctx, query, args...)
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing query")
+	}
+
+	if rowsAffected, err := result.RowsAffected(); err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	} else if rowsAffected == 0 {
+		return domain.ErrRecordNotFound
 	}
 
 	r.log.Debug().Int("action_id", req.ActionId).Msg("action delete")
@@ -968,8 +974,15 @@ func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	if _, err := r.db.Handler.ExecContext(ctx, query, args...); err != nil {
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
+	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
+	}
+
+	if rowsAffected, err := result.RowsAffected(); err != nil {
+		return nil, errors.Wrap(err, "error getting rows affected")
+	} else if rowsAffected == 0 {
+		return nil, domain.ErrRecordNotFound
 	}
 
 	r.log.Debug().Int("action_id", action.ID).Msg("action update")

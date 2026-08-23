@@ -54,7 +54,7 @@ func (s *Service) sportarr(ctx context.Context, action *domain.Action, release *
 
 	rejections, err := arrClient.Push(ctx, r)
 	if err != nil {
-		return nil, errors.Wrap(err, "sportarr: failed to push release: %v", r)
+		return nil, errors.Wrap(err, "sportarr: failed to push release: %s", r.Title)
 	}
 
 	if rejections != nil {

@@ -11,6 +11,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "test": "node --test 'test/**/*.test.ts'",
     "lint": "eslint . --report-unused-disable-directives --max-warnings 0 --color",
     "lint:ci": "node ./scripts/eslint-to-sarif.cjs src/ > ../results.sarif || [ $? -eq 1 ]",
     "preview": "vite preview",

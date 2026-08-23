@@ -34,14 +34,114 @@ func nickServNotice(nick, text string) ircmsg.Message {
 	}
 }
 
-// withNickServAuth configures a handler for NICKSERV auth with a bot nick that
-// differs from the account, i.e. the setup in issue #2528.
+// withNickServAuth configures a handler waiting for a NICKSERV reply with a bot
+// nick that differs from the account, i.e. the setup in issue #2528.
 func withNickServAuth(h *Handler, account string) {
 	h.network.Nick = "user_bot"
 	h.network.Auth = domain.IRCAuth{
 		Mechanism: domain.IRCAuthMechanismNickServ,
 		Account:   account,
 		Password:  "hunter2",
+	}
+	h.identifyOutstanding = true
+}
+
+func TestAuthenticateGatesNickServOnMechanism(t *testing.T) {
+	tests := []struct {
+		name              string
+		auth              domain.IRCAuth
+		saslauthed        bool
+		wantAuthenticated bool
+	}{
+		{
+			name:              "none ignores leftover password",
+			auth:              domain.IRCAuth{Mechanism: domain.IRCAuthMechanismNone, Password: "hunter2"},
+			wantAuthenticated: true,
+		},
+		{
+			name: "nickserv password only identifies",
+			auth: domain.IRCAuth{Mechanism: domain.IRCAuthMechanismNickServ, Password: "hunter2"},
+		},
+		{
+			name: "sasl falls back when negotiation did not complete",
+			auth: domain.IRCAuth{Mechanism: domain.IRCAuthMechanismSASLPlain, Account: "test_bot", Password: "hunter2"},
+		},
+		{
+			name:              "sasl success skips nickserv",
+			auth:              domain.IRCAuth{Mechanism: domain.IRCAuthMechanismSASLPlain, Account: "test_bot", Password: "hunter2"},
+			saslauthed:        true,
+			wantAuthenticated: true,
+		},
+		{
+			name:              "legacy empty mechanism keeps password behavior",
+			auth:              domain.IRCAuth{Password: "hunter2"},
+			wantAuthenticated: false,
+		},
+		{
+			name:              "unknown mechanism never identifies",
+			auth:              domain.IRCAuth{Mechanism: "TYPO", Password: "hunter2"},
+			wantAuthenticated: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h, _ := newTestHandler()
+			h.network.Auth = tt.auth
+			h.saslauthed = tt.saslauthed
+
+			h.authenticate()
+
+			if h.authenticated != tt.wantAuthenticated {
+				t.Fatalf("authenticated = %v, want %v", h.authenticated, tt.wantAuthenticated)
+			}
+			if tt.wantAuthenticated && h.identifyOutstanding {
+				t.Fatal("authentication that skips NickServ must not leave an IDENTIFY outstanding")
+			}
+		})
+	}
+}
+
+func TestHandleNickServRequiresOutstandingIdentify(t *testing.T) {
+	tests := []struct {
+		name  string
+		setup func(*Handler)
+	}{
+		{name: "none", setup: func(h *Handler) { h.network.Auth.Mechanism = domain.IRCAuthMechanismNone }},
+		{name: "not outstanding", setup: func(h *Handler) { h.identifyOutstanding = false }},
+		{name: "already authenticated", setup: func(h *Handler) { h.authenticated = true }},
+		{name: "authenticated over sasl", setup: func(h *Handler) { h.saslauthed = true }},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h, _ := newTestHandler()
+			withNickServAuth(h, "test_bot")
+			tt.setup(h)
+
+			h.handleNickServ(nickServNotice("user_bot", "Password incorrect."))
+
+			if h.Stopped() {
+				t.Fatal("unsolicited NickServ notice stopped the network")
+			}
+			if len(h.connectionErrors) != 0 {
+				t.Fatalf("unsolicited NickServ notice added errors: %v", h.connectionErrors)
+			}
+		})
+	}
+}
+
+func TestOnConnectedSkipsNickServForNone(t *testing.T) {
+	h, _ := newTestHandler()
+	h.network.Auth = domain.IRCAuth{
+		Mechanism: domain.IRCAuthMechanismNone,
+		Password:  "leftover",
+	}
+
+	h.stateMachine.OnConnected()
+
+	if state := h.stateMachine.GetState(); state == StateAuthenticating {
+		t.Fatal("mechanism NONE entered the NickServ authentication state")
 	}
 }
 
@@ -205,6 +305,7 @@ func TestIdentifyFormIsStickyPerNetwork(t *testing.T) {
 	withNickServAuth(h, "test_bot")
 
 	h.handleNickServ(nickServNotice("user_bot", "Nick user_bot isn't registered."))
+	h.identifyOutstanding = true
 	h.handleNickServ(nickServNotice("user_bot", "Password accepted - you are now recognized."))
 
 	if !h.authenticated {
@@ -342,6 +443,7 @@ func TestHandleNickServStopsWhenAccountUnknownAfterEscalation(t *testing.T) {
 	withNickServAuth(h, "test_bot")
 
 	h.handleNickServ(nickServNotice("user_bot", "Nick user_bot isn't registered."))
+	h.identifyOutstanding = true
 	h.handleNickServ(nickServNotice("user_bot", "Nick test_bot isn't registered."))
 
 	if !h.Stopped() {
@@ -362,6 +464,7 @@ func TestHandleNickServBadCredentialsAfterEscalation(t *testing.T) {
 	withNickServAuth(h, "test_bot")
 
 	h.handleNickServ(nickServNotice("user_bot", "Your nick isn't registered."))
+	h.identifyOutstanding = true
 	h.handleNickServ(nickServNotice("user_bot", "Password incorrect."))
 
 	if !h.Stopped() {

@@ -4,6 +4,7 @@
 package irc
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/json"
 	stdErr "errors"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/announce"
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/alphadose/haxmap"
@@ -58,6 +60,14 @@ const (
 	ircLive                       // (Handler.client) is non-nil and valid
 )
 
+// irc-go invokes disconnect callbacks only for registered sessions, so the
+// breaker does not count dial or registration failures handled by Run.
+const (
+	flappingSessionMinLifetime = 30 * time.Second
+	flappingStopThreshold      = 5
+	flappingWindow             = 15 * time.Minute
+)
+
 // identifyForm is the argument form of the outstanding NickServ IDENTIFY.
 //
 // The bare form is the default because its failures are always loud and are
@@ -76,24 +86,26 @@ const (
 type Handler struct {
 	m sync.RWMutex
 
-	log                 zerolog.Logger
-	sse                 sseServer
-	network             *domain.IrcNetwork
-	releaseSvc          releaseService
-	notificationService notificationSender
-	announceProcessors  map[string]announce.Processor
-	definitions         map[string]*domain.IndexerDefinition
+	log                zerolog.Logger
+	eventBus           eventBus
+	sse                sseServer
+	network            *domain.IrcNetwork
+	releaseSvc         releaseService
+	announceProcessors map[string]announce.Processor
+	definitions        map[string]*domain.IndexerDefinition
 
 	client           *ircevent.Connection
 	clientState      ircState
 	connectedSince   time.Time
 	haveDisconnected bool
+	shortSessionEnds []time.Time
 	authenticated    bool
 	saslauthed       bool
 
 	identifyAttempt     identifyForm
 	identifyEscalated   bool
 	identifyFormLearned identifyForm
+	identifyOutstanding bool
 
 	channels *haxmap.Map[string, *Channel]
 
@@ -107,20 +119,20 @@ type Handler struct {
 	stateMachine *ConnectionStateMachine
 }
 
-func NewHandler(log zerolog.Logger, sse sseServer, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc releaseService, notificationSvc notificationSender) *Handler {
+func NewHandler(log zerolog.Logger, eventBus eventBus, sse sseServer, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc releaseService) *Handler {
 	h := &Handler{
-		log:                 log.With().Str("network", network.Server).Logger(),
-		sse:                 sse,
-		client:              nil,
-		clientState:         ircStopped,
-		network:             &network,
-		releaseSvc:          releaseSvc,
-		notificationService: notificationSvc,
-		definitions:         map[string]*domain.IndexerDefinition{},
-		authenticated:       false,
-		saslauthed:          false,
-		connectionErrors:    []string{},
-		channels:            haxmap.New[string, *Channel](),
+		log:              log.With().Str("network", network.Server).Logger(),
+		eventBus:         eventBus,
+		sse:              sse,
+		client:           nil,
+		clientState:      ircStopped,
+		network:          &network,
+		releaseSvc:       releaseSvc,
+		definitions:      map[string]*domain.IndexerDefinition{},
+		authenticated:    false,
+		saslauthed:       false,
+		connectionErrors: []string{},
+		channels:         haxmap.New[string, *Channel](),
 	}
 
 	// init state machine
@@ -377,7 +389,9 @@ func (h *Handler) Run() (err error) {
 	}
 
 	client.AddConnectCallback(h.onConnect)
-	client.AddDisconnectCallback(h.onDisconnect)
+	client.AddDisconnectCallback(func(msg ircmsg.Message) {
+		h.onClientDisconnect(client, msg)
+	})
 
 	client.AddCallback("MODE", h.handleMode)
 	if network.BotMode {
@@ -570,6 +584,7 @@ func (h *Handler) SetNetwork(network *domain.IrcNetwork) {
 func (h *Handler) setNetworkLocked(network *domain.IrcNetwork) {
 	if h.network == nil || h.network.Auth != network.Auth {
 		h.identifyFormLearned = identifyFormBare
+		h.identifyOutstanding = false
 	}
 
 	h.network = network
@@ -592,6 +607,8 @@ func (h *Handler) resetChannelState() {
 func (h *Handler) Stop() {
 	h.m.Lock()
 	h.connectedSince = time.Time{}
+	h.resetFlappingBreakerLocked()
+	h.identifyOutstanding = false
 	client := h.client
 	h.clientState = ircStopped
 	h.client = nil
@@ -637,8 +654,10 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 	if reconnected {
 		h.log.Info().Msg("network re-connected after unexpected disconnect")
 
-		h.notificationService.Send(domain.NotificationEventIRCReconnected, domain.NotificationPayload{
-			Subject: "IRC Reconnected",
+		h.eventBus.EmitIRC(context.Background(), events.IRCEvent{
+			Event:   events.Event{Type: events.IRCReconnected},
+			Network: networkName,
+			State:   string(events.IRCReconnected),
 			Message: fmt.Sprintf("Network: %s", networkName),
 		})
 	}
@@ -651,13 +670,29 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 	h.stateMachine.OnConnected()
 }
 
-// onDisconnect is the disconnect callback
-func (h *Handler) onDisconnect(_ ircmsg.Message) {
+func (h *Handler) onDisconnect(msg ircmsg.Message) {
+	h.onClientDisconnect(h.getClient(), msg)
+}
+
+// onClientDisconnect handles a disconnect from the client that emitted it.
+func (h *Handler) onClientDisconnect(client *ircevent.Connection, _ ircmsg.Message) {
 	h.log.Debug().Msg("disconnect")
 
 	h.m.Lock()
+	if h.client != client {
+		if h.clientState == ircStopped && h.stateMachine.GetState() != StateDisconnected {
+			h.stateMachine.OnDisconnected()
+		}
+		h.m.Unlock()
+		return
+	}
 
-	// reset connectedSince
+	endedAt := time.Now()
+	sessionLifetime := time.Duration(0)
+	if !h.connectedSince.IsZero() {
+		sessionLifetime = endedAt.Sub(h.connectedSince)
+	}
+
 	h.connectedSince = time.Time{}
 
 	// reset authenticated
@@ -671,23 +706,91 @@ func (h *Handler) onDisconnect(_ ircmsg.Message) {
 
 	manuallyDisconnected := h.clientState == ircStopped
 	networkName := h.network.Name
+	stopForFlapping := !manuallyDisconnected && h.recordSessionEndLocked(sessionLifetime, endedAt)
+	var flappingError string
+	if stopForFlapping {
+		flappingError = fmt.Sprintf("connection flapping: %d sessions lasted under %s within %s; network stopped to avoid repeated reconnects", flappingStopThreshold, flappingSessionMinLifetime, flappingWindow)
+		if !slices.Contains(h.connectionErrors, flappingError) {
+			h.connectionErrors = append(h.connectionErrors, flappingError)
+		}
+		h.haveDisconnected = false
+		h.clientState = ircStopped
+		h.client = nil
+		h.resetFlappingBreakerLocked()
+		h.resetChannelState()
+		h.stateMachine.OnError(flappingError)
+	}
 
 	h.m.Unlock()
 
 	// reset channels monitored status and channel state machines so they
 	// rejoin cleanly on reconnect instead of getting stuck in Monitoring
-	h.resetChannelState()
+	if !stopForFlapping {
+		h.resetChannelState()
+	}
+
+	if stopForFlapping {
+		h.log.Error().
+			Int("sessions", flappingStopThreshold).
+			Dur("min_lifetime", flappingSessionMinLifetime).
+			Dur("window", flappingWindow).
+			Msg("connection flapping; stopping network")
+
+		h.eventBus.EmitIRC(context.Background(), events.IRCEvent{
+			Event:   events.Event{Type: events.IRCFlapping},
+			Network: networkName,
+			State:   string(events.IRCFlapping),
+			Message: fmt.Sprintf("Network: %s stopped after repeated short-lived connections; restart it after resolving the connection issue", networkName),
+		})
+
+		if client != nil {
+			client.Quit()
+		}
+
+		return
+	}
 
 	// check if we are responsible for disconnect
 	if !manuallyDisconnected {
 		// only send notification if we did not initiate disconnect/restart/stop
-		h.notificationService.Send(domain.NotificationEventIRCDisconnected, domain.NotificationPayload{
-			Subject: "IRC Disconnected unexpectedly",
+		h.eventBus.EmitIRC(context.Background(), events.IRCEvent{
+			Event:   events.Event{Type: events.IRCDisconnected},
+			Network: networkName,
+			State:   string(events.IRCDisconnected),
 			Message: fmt.Sprintf("Network: %s", networkName),
+			//Subject: "IRC Disconnected unexpectedly",
 		})
 	}
 
 	h.stateMachine.OnDisconnected()
+}
+
+// recordSessionEndLocked records one registered session and reports whether the
+// flapping threshold was reached. The caller must hold h.m.
+func (h *Handler) recordSessionEndLocked(lifetime time.Duration, endedAt time.Time) bool {
+	if lifetime >= flappingSessionMinLifetime {
+		h.resetFlappingBreakerLocked()
+		return false
+	}
+
+	keepFrom := 0
+	for keepFrom < len(h.shortSessionEnds) && endedAt.Sub(h.shortSessionEnds[keepFrom]) >= flappingWindow {
+		keepFrom++
+	}
+	h.shortSessionEnds = append(h.shortSessionEnds[keepFrom:], endedAt)
+
+	if len(h.shortSessionEnds) < flappingStopThreshold {
+		return false
+	}
+
+	h.resetFlappingBreakerLocked()
+	return true
+}
+
+// resetFlappingBreakerLocked clears the current short-session streak. The
+// caller must hold h.m.
+func (h *Handler) resetFlappingBreakerLocked() {
+	h.shortSessionEnds = nil
 }
 
 // onNotice handles NOTICE events
@@ -707,6 +810,13 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 	h.log.Trace().Interface("msg_params", msg.Params).Msg("NOTICE from nickserv")
 
 	if len(msg.Params) < 2 {
+		return
+	}
+
+	h.m.RLock()
+	expectingReply := h.identifyOutstanding && !h.authenticated && !h.saslauthed && h.network.Auth.NickServEnabled()
+	h.m.RUnlock()
+	if !expectingReply {
 		return
 	}
 
@@ -858,13 +968,21 @@ func (h *Handler) setBotMode() {
 // authenticate sends NickServIdentify if not authenticated
 func (h *Handler) authenticate() {
 	h.m.RLock()
-	shouldSendNickserv := !h.authenticated && !h.saslauthed && h.network.Auth.Password != ""
+	authenticated := h.authenticated
+	saslauthed := h.saslauthed
+	identifyOutstanding := h.identifyOutstanding
+	nickServEnabled := h.network.Auth.NickServEnabled()
 	h.m.RUnlock()
 
-	if shouldSendNickserv {
-		h.log.Trace().Msg("on connect not authenticated and password not empty: send nickserv identify")
+	switch {
+	case authenticated || saslauthed:
+		h.setAuthenticated()
+	case identifyOutstanding:
+		return
+	case nickServEnabled:
+		h.log.Trace().Msg("sending NickServ identify")
 		h.NickServIdentify()
-	} else {
+	default:
 		h.setAuthenticated()
 	}
 }
@@ -892,6 +1010,7 @@ func (h *Handler) handleLoggedIn(m ircmsg.Message) {
 func (h *Handler) handleSASLSuccess(_ ircmsg.Message) {
 	h.m.Lock()
 	h.saslauthed = true
+	h.identifyOutstanding = false
 	h.m.Unlock()
 }
 
@@ -938,6 +1057,7 @@ func (h *Handler) handleSASLFail(_ ircmsg.Message) {
 func (h *Handler) setAuthenticated() {
 	h.m.Lock()
 	alreadyAuthenticated := h.authenticated
+	h.identifyOutstanding = false
 	if !alreadyAuthenticated {
 		h.authenticated = true
 		h.connectionErrors = []string{}
@@ -1073,6 +1193,11 @@ func (h *Handler) onPrivMessage(msg ircmsg.Message) {
 
 	ircChannel, found := h.channels.Get(channel)
 	if !found {
+		if h.usesBouncer() {
+			h.log.Trace().Str("channel", channel).Msg("ignoring message from unmonitored bouncer channel")
+			return
+		}
+
 		h.log.Error().Str("channel", channel).Msg("channel not found")
 		return
 	}
@@ -1679,10 +1804,15 @@ func (h *Handler) handleInviteResponse(msg ircmsg.Message) {
 // account-qualified form.
 func (h *Handler) identifyCommand() string {
 	h.m.RLock()
+	defer h.m.RUnlock()
+
+	return h.identifyCommandLocked()
+}
+
+func (h *Handler) identifyCommandLocked() string {
 	form := h.identifyAttempt
 	account := h.network.Auth.Account
 	password := h.network.Auth.Password
-	h.m.RUnlock()
 
 	if form == identifyFormAccount && account != "" {
 		return fmt.Sprintf("IDENTIFY %s %s", account, password)
@@ -1695,7 +1825,21 @@ func (h *Handler) identifyCommand() string {
 // PRIVMSG parameter: split across parameters it lands past the message body,
 // where every ircd discards it.
 func (h *Handler) NickServIdentify() error {
-	if err := h.Send("PRIVMSG", "NickServ", h.identifyCommand()); err != nil {
+	h.m.Lock()
+	if h.authenticated || h.saslauthed || !h.network.Auth.NickServEnabled() {
+		h.identifyOutstanding = false
+		h.m.Unlock()
+		return nil
+	}
+
+	command := h.identifyCommandLocked()
+	h.identifyOutstanding = true
+	h.m.Unlock()
+
+	if err := h.Send("PRIVMSG", "NickServ", command); err != nil {
+		h.m.Lock()
+		h.identifyOutstanding = false
+		h.m.Unlock()
 		h.log.Error().Stack().Err(err).Msg("error identifying with nickserv")
 		return err
 	}
@@ -1716,7 +1860,7 @@ func (h *Handler) canEscalateIdentify(currentNick string) bool {
 		return false
 	}
 
-	if h.network.Auth.Account == "" || h.network.Auth.Password == "" {
+	if !h.network.Auth.NickServEnabled() || h.network.Auth.Account == "" {
 		return false
 	}
 
@@ -1779,6 +1923,7 @@ func (h *Handler) escalateIdentify() {
 func (h *Handler) resetIdentifyForm() {
 	h.identifyAttempt = h.identifyFormLearned
 	h.identifyEscalated = false
+	h.identifyOutstanding = false
 }
 
 // unlearnIdentifyForm drops a remembered account-qualified form once it has
@@ -1808,18 +1953,18 @@ func (h *Handler) NickChange(nick string) error {
 func (h *Handler) CurrentNick() string {
 	if client := h.getClient(); client != nil {
 		return client.CurrentNick()
-	} else {
-		return ""
 	}
+
+	return ""
 }
 
 // PreferredNick returns our preferred nick from settings
 func (h *Handler) PreferredNick() string {
 	if client := h.getClient(); client != nil {
 		return client.PreferredNick()
-	} else {
-		return ""
 	}
+
+	return ""
 }
 
 // listens for MODE events

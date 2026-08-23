@@ -15,7 +15,7 @@ import {
 import { z } from "zod";
 import { QueryClient } from "@tanstack/react-query";
 
-import { Actions, Advanced, External, General, MoviesTv, Music, Notifications } from "@screens/filters/sections";
+import { Actions, Advanced, Books, External, General, MoviesTv, Music, Notifications } from "@screens/filters/sections";
 import { APIClient } from "@api/APIClient";
 import { Login, Onboarding } from "@screens/auth";
 import ReleaseSettings from "@screens/settings/Releases";
@@ -118,6 +118,12 @@ export const FilterMusicRoute = createRoute({
   getParentRoute: () => FilterGetByIdRoute,
   path: 'music',
   component: Music
+});
+
+export const FilterBooksRoute = createRoute({
+  getParentRoute: () => FilterGetByIdRoute,
+  path: 'books',
+  component: Books
 });
 
 export const FilterAdvancedRoute = createRoute({
@@ -379,7 +385,7 @@ export const RootRoute = createRootRouteWithContext<{
   notFoundComponent: NotFound,
 });
 
-const filterRouteTree = FiltersRoute.addChildren([FilterIndexRoute, FilterGetByIdRoute.addChildren([FilterGeneralRoute, FilterMoviesTvRoute, FilterMusicRoute, FilterAdvancedRoute, FilterExternalRoute, FilterActionsRoute, FilterNotificationsRoute])])
+const filterRouteTree = FiltersRoute.addChildren([FilterIndexRoute, FilterGetByIdRoute.addChildren([FilterGeneralRoute, FilterMoviesTvRoute, FilterMusicRoute, FilterBooksRoute, FilterAdvancedRoute, FilterExternalRoute, FilterActionsRoute, FilterNotificationsRoute])])
 const settingsRouteTree = SettingsRoute.addChildren([SettingsIndexRoute, SettingsLogRoute, SettingsIndexersRoute, SettingsIrcRoute, SettingsListsRoute, SettingsFeedsRoute, SettingsClientsRoute, SettingsNotificationsRoute, SettingsApiRoute, SettingsProxiesRoute, SettingsReleasesRoute, SettingsAccountRoute])
 const authenticatedTree = AuthRoute.addChildren([AuthIndexRoute.addChildren([DashboardRoute, filterRouteTree, ReleasesRoute, settingsRouteTree, LogsRoute])])
 const routeTree = RootRoute.addChildren([

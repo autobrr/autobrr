@@ -110,7 +110,6 @@ export const ActivityChart = () => {
   return (
     <ChartCard
       title={t("dashboardCharts.activityTitle")}
-      className="mt-5"
       action={
         <RangeSelect
           options={RANGES.map((r) => ({ value: r.value, label: t(`dashboardCharts.range_${r.value}`) }))}

@@ -70,6 +70,14 @@ export const IndexersOptionsQueryOptions = () =>
     staleTime: Infinity
   });
 
+export const IndexerDeprecationsQueryOptions = () =>
+  queryOptions({
+    queryKey: IndexerKeys.deprecations(),
+    queryFn: () => APIClient.indexers.getDeprecations(),
+    refetchOnWindowFocus: false,
+    staleTime: Infinity
+  });
+
 export const IndexersSchemaQueryOptions = (enabled: boolean) =>
   queryOptions({
     queryKey: IndexerKeys.schema(),
@@ -218,12 +226,15 @@ export const ReleasesIndexersQueryOptions = () =>
     queryKey: ReleaseKeys.indexers(),
     queryFn: async () => {
       const indexersResponse: IndexerDefinition[] = await APIClient.indexers.getAll();
+      const deprecationsResponse: IndexerDeprecation[] = await APIClient.indexers.getDeprecations();
       const indexerOptionsResponse: string[] = await APIClient.release.indexerOptions();
-      
+
       const indexersMap = new Map(indexersResponse.map((indexer: IndexerDefinition) => [indexer.identifier, indexer.name]));
-      
+      // fall back to deprecation metadata so removed indexers still show a friendly name
+      const deprecationsMap = new Map(deprecationsResponse.map((d: IndexerDeprecation) => [d.identifier, d.name]));
+
       return indexerOptionsResponse.map((identifier: string) => ({
-        name: indexersMap.get(identifier) || identifier,
+        name: indexersMap.get(identifier) || deprecationsMap.get(identifier) || identifier,
         identifier: identifier
       }));
     },

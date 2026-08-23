@@ -3,13 +3,41 @@
 
 package utils
 
+import "slices"
+
 // StrSliceContains check if slice contains string
 func StrSliceContains(s []string, str string) bool {
-	for _, v := range s {
-		if v == str {
-			return true
-		}
+	return slices.Contains(s, str)
+}
+
+const TruncationMarker = " [...] "
+
+// TruncateStr shortens s to at most limit characters by dropping the
+// middle. A failed *arr push wraps its cause last, so keeping only the head
+// would discard the one part worth reading. Discord counts characters rather
+// than bytes.
+func TruncateStr(s string, limit int) string {
+	if limit <= 0 {
+		return ""
 	}
 
-	return false
+	if len(s) <= limit {
+		return s
+	}
+
+	runes := []rune(s)
+	if len(runes) <= limit {
+		return s
+	}
+
+	marker := []rune(TruncationMarker)
+	if limit <= len(marker) {
+		return string(runes[:limit])
+	}
+
+	keep := limit - len(marker)
+	head := (keep + 1) / 2
+	tail := keep - head
+
+	return string(runes[:head]) + TruncationMarker + string(runes[len(runes)-tail:])
 }

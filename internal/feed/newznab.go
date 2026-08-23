@@ -219,8 +219,7 @@ func (j *NewznabJob) getFeed(ctx context.Context) ([]newznab.FeedItem, error) {
 		return nil, errors.Wrap(err, "could not get existing items from cache")
 	}
 
-	// set ttl to 1 month
-	ttl := time.Now().AddDate(0, 1, 0)
+	ttl := j.Feed.CacheTTL()
 	toCache := make([]domain.FeedCacheItem, 0)
 
 	for _, guid := range guids {

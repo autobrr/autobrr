@@ -6,7 +6,6 @@ package http
 import (
 	"context"
 	"net/http"
-	"strconv"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -41,9 +40,9 @@ func (h *webhookHandler) refreshAll(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *webhookHandler) refreshByID(w http.ResponseWriter, r *http.Request) {
-	listID, err := strconv.Atoi(chi.URLParam(r, "listID"))
+	listID, err := parseURLParamInt(r, "listID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
