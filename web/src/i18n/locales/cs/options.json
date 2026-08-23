@@ -6,6 +6,10 @@
       "PROMO_GP": "Promo GP",
       "RESURRECTED": "Vzkříšený"
     },
+    "maxDownloadsWindowType": {
+      "FIXED": "Pevné (reset kalendáře)",
+      "ROLLING": "Klouzavé (klouzavé okno)"
+    },
     "downloadClient": {
       "QBITTORRENT": {
         "label": "qBittorrent",

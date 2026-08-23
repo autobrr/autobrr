@@ -21,38 +21,75 @@ import (
 type FilterRepo struct {
 	log zerolog.Logger
 	db  *DB
-
-	// database specific queries
-	filterDownloadQuery *EngineQuery
 }
 
 func NewFilterRepo(log zerolog.Logger, db *DB) *FilterRepo {
 	return &FilterRepo{
-		log:                 log.With().Str("repo", "filter").Logger(),
-		db:                  db,
-		filterDownloadQuery: NewEngineQuery(db.Driver, filterDownloadsSQLite, filterDownloadsPG),
+		log: log.With().Str("repo", "filter").Logger(),
+		db:  db,
 	}
 }
 
-const (
-	filterDownloadsSQLite = `SELECT
-	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', strftime('%Y-%m-%dT%H:00:00', datetime('now','localtime'))) AS INTEGER) THEN release_id END) as "hour_count",
-	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'start of day')) AS INTEGER) THEN release_id END) as "day_count",
-	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'weekday 0', '-7 days', 'start of day')) AS INTEGER) THEN release_id END) as "week_count",
-	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'start of month')) AS INTEGER) THEN release_id END) as "month_count",
-	COUNT(DISTINCT release_id) as "total_count"
-FROM release_action_status
-WHERE status IN ('PUSH_APPROVED', 'PENDING') AND filter_id = ?;`
+func clampPeriod(n int) int {
+	if n <= 0 {
+		return 1
+	}
 
-	filterDownloadsPG = `SELECT
-    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('hour', CURRENT_TIMESTAMP) THEN release_id END) as "hour_count",
-    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('day', CURRENT_DATE) THEN release_id END) as "day_count",
-    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('week', CURRENT_DATE) THEN release_id END) as "week_count",
-    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('month', CURRENT_DATE) THEN release_id END) as "month_count",
-    COUNT(DISTINCT release_id) as "total_count"
-FROM release_action_status
-WHERE status IN ('PUSH_APPROVED', 'PENDING') AND filter_id = $1;`
+	return n
+}
+
+func windowTypeOrFixed(w domain.FilterMaxDownloadsWindowType) domain.FilterMaxDownloadsWindowType {
+	if w == "" {
+		return domain.FilterMaxDownloadsWindowFixed
+	}
+
+	return w
+}
+
+var (
+	fixedWindowStartSQLite = map[domain.FilterMaxDownloadsUnit]string{
+		domain.FilterMaxDownloadsMinute: `strftime('%Y-%m-%d %H:%M:00', datetime('now', 'localtime'))`,
+		domain.FilterMaxDownloadsHour:   `strftime('%Y-%m-%d %H:00:00', datetime('now', 'localtime'))`,
+		domain.FilterMaxDownloadsDay:    `datetime('now', 'localtime', 'start of day')`,
+		domain.FilterMaxDownloadsWeek:   `datetime('now', 'localtime', 'weekday 0', '-7 days', 'start of day')`,
+		domain.FilterMaxDownloadsMonth:  `datetime('now', 'localtime', 'start of month')`,
+	}
+
+	fixedWindowStartPG = map[domain.FilterMaxDownloadsUnit]string{
+		domain.FilterMaxDownloadsMinute: `date_trunc('minute', CURRENT_TIMESTAMP)`,
+		domain.FilterMaxDownloadsHour:   `date_trunc('hour', CURRENT_TIMESTAMP)`,
+		domain.FilterMaxDownloadsDay:    `date_trunc('day', CURRENT_DATE)`,
+		domain.FilterMaxDownloadsWeek:   `date_trunc('week', CURRENT_DATE)`,
+		domain.FilterMaxDownloadsMonth:  `date_trunc('month', CURRENT_DATE)`,
+	}
 )
+
+// downloadsWindowStart returns the engine specific SQL expression for the start
+// of the filter's download window: the most recent calendar boundary for FIXED
+// windows, now minus the period for ROLLING windows. All parts are built from
+// fixed expressions and clamped integers, never user input.
+func (r *FilterRepo) downloadsWindowStart(filter *domain.Filter) string {
+	if filter.MaxDownloadsWindowType == domain.FilterMaxDownloadsWindowRolling {
+		n, unit := filter.DownloadPeriod()
+
+		if r.db.Driver == "postgres" {
+			return fmt.Sprintf("CURRENT_TIMESTAMP - INTERVAL '%d %s'", n, unit)
+		}
+
+		return fmt.Sprintf("datetime('now', 'localtime', '-%d %s')", n, unit)
+	}
+
+	boundaries := fixedWindowStartSQLite
+	if r.db.Driver == "postgres" {
+		boundaries = fixedWindowStartPG
+	}
+
+	if expr, ok := boundaries[filter.MaxDownloadsUnit]; ok {
+		return expr
+	}
+
+	return boundaries[domain.FilterMaxDownloadsDay]
+}
 
 func (r *FilterRepo) Find(ctx context.Context, params domain.FilterQueryParams) ([]*domain.Filter, error) {
 	return r.find(ctx, params)
@@ -82,6 +119,8 @@ func (r *FilterRepo) find(ctx context.Context, params domain.FilterQueryParams) 
 			"f.priority",
 			"f.max_downloads",
 			"f.max_downloads_unit",
+			"f.max_downloads_period",
+			"f.max_downloads_window_type",
 			"f.created_at",
 			"f.updated_at",
 		).
@@ -128,10 +167,10 @@ func (r *FilterRepo) find(ctx context.Context, params domain.FilterQueryParams) 
 	for rows.Next() {
 		var f domain.Filter
 
-		var maxDownloadsUnit sql.Null[string]
-		var maxDownloads sql.Null[int32]
+		var maxDownloadsUnit, maxDownloadsWindowType sql.Null[string]
+		var maxDownloads, maxDownloadsPeriod sql.Null[int32]
 
-		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Priority, &maxDownloads, &maxDownloadsUnit, &f.CreatedAt, &f.UpdatedAt, &f.ActionsCount, &f.ActionsEnabledCount, &f.IsAutoUpdated); err != nil {
+		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Priority, &maxDownloads, &maxDownloadsUnit, &maxDownloadsPeriod, &maxDownloadsWindowType, &f.CreatedAt, &f.UpdatedAt, &f.ActionsCount, &f.ActionsEnabledCount, &f.IsAutoUpdated); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -141,6 +180,14 @@ func (r *FilterRepo) find(ctx context.Context, params domain.FilterQueryParams) 
 
 		if maxDownloadsUnit.Valid {
 			f.MaxDownloadsUnit = domain.FilterMaxDownloadsUnit(maxDownloadsUnit.V)
+		}
+
+		if maxDownloadsPeriod.Valid {
+			f.MaxDownloadsPeriod = int(maxDownloadsPeriod.V)
+		}
+
+		if maxDownloadsWindowType.Valid {
+			f.MaxDownloadsWindowType = domain.FilterMaxDownloadsWindowType(maxDownloadsWindowType.V)
 		}
 
 		filters = append(filters, &f)
@@ -215,6 +262,8 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			"f.announce_types",
 			"f.max_downloads",
 			"f.max_downloads_unit",
+			"f.max_downloads_period",
+			"f.max_downloads_window_type",
 			"f.match_releases",
 			"f.except_releases",
 			"f.use_regex",
@@ -296,9 +345,9 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	var f domain.Filter
 
 	// filter
-	var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, months, days, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, matchRecordLabels, exceptRecordLabels, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
+	var minSize, maxSize, maxDownloadsUnit, maxDownloadsWindowType, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, months, days, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, matchRecordLabels, exceptRecordLabels, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
 	var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac sql.NullBool
-	var delay, maxDownloads, logScore sql.NullInt32
+	var delay, maxDownloads, maxDownloadsPeriod, logScore sql.NullInt32
 	var releaseProfileDuplicateId sql.NullInt64
 
 	err = row.Scan(
@@ -312,6 +361,8 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 		pq.Array(&f.AnnounceTypes),
 		&maxDownloads,
 		&maxDownloadsUnit,
+		&maxDownloadsPeriod,
+		&maxDownloadsWindowType,
 		&matchReleases,
 		&exceptReleases,
 		&useRegex,
@@ -386,6 +437,8 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	f.Delay = int(delay.Int32)
 	f.MaxDownloads = int(maxDownloads.Int32)
 	f.MaxDownloadsUnit = domain.FilterMaxDownloadsUnit(maxDownloadsUnit.String)
+	f.MaxDownloadsPeriod = int(maxDownloadsPeriod.Int32)
+	f.MaxDownloadsWindowType = domain.FilterMaxDownloadsWindowType(maxDownloadsWindowType.String)
 	f.MatchReleases = matchReleases.String
 	f.ExceptReleases = exceptReleases.String
 	f.MatchReleaseGroups = matchReleaseGroups.String
@@ -443,6 +496,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			"f.announce_types",
 			"f.max_downloads",
 			"f.max_downloads_unit",
+			"f.max_downloads_period",
+			"f.max_downloads_window_type",
 			"f.match_releases",
 			"f.except_releases",
 			"f.use_regex",
@@ -554,9 +609,9 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 	for rows.Next() {
 		var f domain.Filter
 
-		var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, months, days, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, matchRecordLabels, exceptRecordLabels, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
+		var minSize, maxSize, maxDownloadsUnit, maxDownloadsWindowType, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, months, days, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, matchRecordLabels, exceptRecordLabels, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
 		var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac sql.NullBool
-		var delay, maxDownloads, logScore sql.NullInt32
+		var delay, maxDownloads, maxDownloadsPeriod, logScore sql.NullInt32
 		var releaseProfileDuplicateID, rdpId sql.NullInt64
 
 		var rdpName sql.NullString
@@ -573,6 +628,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			pq.Array(&f.AnnounceTypes),
 			&maxDownloads,
 			&maxDownloadsUnit,
+			&maxDownloadsPeriod,
+			&maxDownloadsWindowType,
 			&matchReleases,
 			&exceptReleases,
 			&useRegex,
@@ -666,6 +723,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 		f.Delay = int(delay.Int32)
 		f.MaxDownloads = int(maxDownloads.Int32)
 		f.MaxDownloadsUnit = domain.FilterMaxDownloadsUnit(maxDownloadsUnit.String)
+		f.MaxDownloadsPeriod = int(maxDownloadsPeriod.Int32)
+		f.MaxDownloadsWindowType = domain.FilterMaxDownloadsWindowType(maxDownloadsWindowType.String)
 		f.MatchReleases = matchReleases.String
 		f.ExceptReleases = exceptReleases.String
 		f.MatchReleaseGroups = matchReleaseGroups.String
@@ -852,6 +911,10 @@ func (r *FilterRepo) findExternalFilters(ctx context.Context, filterIDs []int) (
 }
 
 func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
+	// normalize on the struct so the caller echoes what gets stored
+	filter.MaxDownloadsPeriod = clampPeriod(filter.MaxDownloadsPeriod)
+	filter.MaxDownloadsWindowType = windowTypeOrFixed(filter.MaxDownloadsWindowType)
+
 	queryBuilder := r.db.squirrel.
 		Insert("filter").
 		Columns(
@@ -864,6 +927,8 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			"announce_types",
 			"max_downloads",
 			"max_downloads_unit",
+			"max_downloads_period",
+			"max_downloads_window_type",
 			"match_releases",
 			"except_releases",
 			"use_regex",
@@ -933,6 +998,8 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			pq.Array(filter.AnnounceTypes),
 			filter.MaxDownloads,
 			filter.MaxDownloadsUnit,
+			filter.MaxDownloadsPeriod,
+			filter.MaxDownloadsWindowType,
 			filter.MatchReleases,
 			filter.ExceptReleases,
 			filter.UseRegex,
@@ -1007,6 +1074,10 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 }
 
 func (r *FilterRepo) Update(ctx context.Context, filter *domain.Filter) error {
+	// normalize on the struct so the caller echoes what gets stored
+	filter.MaxDownloadsPeriod = clampPeriod(filter.MaxDownloadsPeriod)
+	filter.MaxDownloadsWindowType = windowTypeOrFixed(filter.MaxDownloadsWindowType)
+
 	var err error
 
 	queryBuilder := r.db.squirrel.
@@ -1020,6 +1091,8 @@ func (r *FilterRepo) Update(ctx context.Context, filter *domain.Filter) error {
 		Set("announce_types", pq.Array(filter.AnnounceTypes)).
 		Set("max_downloads", filter.MaxDownloads).
 		Set("max_downloads_unit", filter.MaxDownloadsUnit).
+		Set("max_downloads_period", filter.MaxDownloadsPeriod).
+		Set("max_downloads_window_type", filter.MaxDownloadsWindowType).
 		Set("use_regex", filter.UseRegex).
 		Set("match_releases", filter.MatchReleases).
 		Set("except_releases", filter.ExceptReleases).
@@ -1131,6 +1204,12 @@ func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpda
 	}
 	if filter.MaxDownloadsUnit != nil {
 		q = q.Set("max_downloads_unit", filter.MaxDownloadsUnit)
+	}
+	if filter.MaxDownloadsPeriod != nil {
+		q = q.Set("max_downloads_period", clampPeriod(*filter.MaxDownloadsPeriod))
+	}
+	if filter.MaxDownloadsWindowType != nil {
+		q = q.Set("max_downloads_window_type", windowTypeOrFixed(*filter.MaxDownloadsWindowType))
 	}
 	if filter.UseRegex != nil {
 		q = q.Set("use_regex", filter.UseRegex)
@@ -1638,34 +1717,46 @@ func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
 }
 
 // GetFilterDownloadCount looks up how many `PENDING` or `PUSH_APPROVED`
-// releases there have been for the given filter in the current time window
-// starting at the start of the unit (since the beginning of the most recent
-// hour/day/week).
+// releases there have been for the given filter in its download window: since
+// the most recent calendar boundary for FIXED windows, within the last period
+// units for ROLLING windows, or over the filter's lifetime for EVER.
 //
 // See also
 // https://github.com/autobrr/autobrr/pull/1285#pullrequestreview-1795913581
-func (r *FilterRepo) GetFilterDownloadCount(ctx context.Context, filter *domain.Filter) (err error) {
-	query := r.filterDownloadQuery.Get()
+func (r *FilterRepo) GetFilterDownloadCount(ctx context.Context, filter *domain.Filter) error {
+	queryBuilder := r.db.squirrel.
+		Select("COUNT(DISTINCT release_id)").
+		From("release_action_status").
+		Where(sq.Eq{"status": []string{"PUSH_APPROVED", "PENDING"}, "filter_id": filter.ID})
 
-	row := r.db.Handler.QueryRowContext(ctx, query, filter.ID)
-	if err := row.Err(); err != nil {
-		return errors.Wrap(err, "error executing query")
+	if filter.MaxDownloadsUnit != domain.FilterMaxDownloadsEver {
+		windowStart := r.downloadsWindowStart(filter)
+
+		if r.db.Driver == "postgres" {
+			queryBuilder = queryBuilder.Where("timestamp >= " + windowStart)
+		} else {
+			// stored SQLite timestamps mix formats and offsets, so both sides
+			// are normalized through datetime() before comparing
+			queryBuilder = queryBuilder.Where("datetime(timestamp, 'localtime') >= " + windowStart)
+		}
+	}
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
 	}
 
 	var f domain.FilterDownloads
-	if err := row.Scan(&f.HourCount, &f.DayCount, &f.WeekCount, &f.MonthCount, &f.TotalCount); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return domain.ErrRecordNotFound
-		}
 
-		return errors.Wrap(err, "error scanning stats data sqlite")
+	if err := r.db.Handler.QueryRowContext(ctx, query, args...).Scan(&f.PeriodCount); err != nil {
+		return errors.Wrap(err, "error scanning row")
 	}
 
 	r.log.Trace().Int("filter_id", filter.ID).Interface("downloads", &f).Msg("filter downloads")
 
 	filter.Downloads = &f
 
-	return
+	return nil
 }
 
 func (r *FilterRepo) StoreFilterExternal(ctx context.Context, filterID int, externalFilters []domain.FilterExternal) error {

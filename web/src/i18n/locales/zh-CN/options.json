@@ -6,6 +6,10 @@
     "PROMO_GP": "促销 GP",
     "RESURRECTED": "复活"
   },
+  "maxDownloadsWindowType": {
+    "FIXED": "固定（按日历重置）",
+    "ROLLING": "滚动（滑动窗口）"
+  },
   "downloadClient": {
     "QBITTORRENT": {
       "label": "qBittorrent",
