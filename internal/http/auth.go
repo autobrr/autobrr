@@ -14,6 +14,7 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog"
 )
 
@@ -54,7 +55,9 @@ func newAuthHandler(encoder encoder, log zerolog.Logger, server *Server, config 
 }
 
 func (h *authHandler) Routes(r chi.Router) {
-	r.Post("/login", h.login)
+	// serialize login attempts so credential brute forcing cannot fan out over
+	// parallel argon2 comparisons; matches the throttle on the OIDC routes
+	r.With(middleware.ThrottleBacklog(1, 1, time.Second)).Post("/login", h.login)
 	r.Post("/onboard", h.onboard)
 	r.Get("/onboard", h.canOnboard)
 
