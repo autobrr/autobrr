@@ -58,9 +58,9 @@ irc:
       parse:
         type: single
         lines:
-          - pattern: '^SIMURG \| NEW \| Category=(?P<category>.*?) \| Leech=(?P<leechEnum>Normal|Freeleech|Naturaleech) \| Tags=(?P<releaseTags>.* \/ (?P<language>[^|]+?)) \| Size=(?P<torrentSize>.*?) \| Name=(?P<releaseName>.*?) \| GroupID=(?P<groupId>\d+) \| TorrentID=(?P<torrentId>\d+) \| URL=(?P<baseUrl>https?:\/\/[^\/]+\/)torrents\.php\?id=\d+&torrentid=\d+$'
+          - pattern: '^NEW \| Category=(?P<category>.*?) \| Leech=(?P<leechEnum>Normal|Freeleech|Naturaleech) \| Tags=(?P<releaseTags>.* \/ (?P<language>[^|]+?)) \| Size=(?P<torrentSize>.*?) \| Name=(?P<releaseName>.*?) \| URL=(?P<baseUrl>https?:\/\/[^\/]+\/)torrents\.php\?id=(?P<groupId>\d+)&torrentid=(?P<torrentId>\d+)$'
             tests:
-              - line: 'SIMURG | NEW | Category=E-Book | Leech=Freeleech | Tags=PDF / OCR / Turkish | Size=2.48 MiB | Name=Example Turkish Book by Example Author | GroupID=1001 | TorrentID=2001 | URL=https://simurg.world/torrents.php?id=1001&torrentid=2001'
+              - line: 'NEW | Category=E-Book | Leech=Freeleech | Tags=PDF / OCR / Turkish | Size=2.48 MiB | Name=Example Turkish Book by Example Author | URL=https://simurg.world/torrents.php?id=1001&torrentid=2001'
                 expect:
                   category: E-Book
                   leechEnum: Freeleech
@@ -68,11 +68,11 @@ irc:
                   language: Turkish
                   torrentSize: 2.48 MiB
                   releaseName: Example Turkish Book by Example Author
+                  baseUrl: https://simurg.world/
                   groupId: "1001"
                   torrentId: "2001"
-                  baseUrl: https://simurg.world/
 
-              - line: 'SIMURG | NEW | Category=Magazine | Leech=Freeleech | Tags=PDF / Scan / English | Size=461.16 MiB | Name=Example Magazine - 1954 Complete Year | GroupID=1002 | TorrentID=2002 | URL=https://simurg.world/torrents.php?id=1002&torrentid=2002'
+              - line: 'NEW | Category=Magazine | Leech=Freeleech | Tags=PDF / Scan / English | Size=461.16 MiB | Name=Example Magazine - 1954 Complete Year | URL=https://simurg.world/torrents.php?id=1002&torrentid=2002'
                 expect:
                   category: Magazine
                   leechEnum: Freeleech
@@ -80,11 +80,11 @@ irc:
                   language: English
                   torrentSize: 461.16 MiB
                   releaseName: Example Magazine - 1954 Complete Year
+                  baseUrl: https://simurg.world/
                   groupId: "1002"
                   torrentId: "2002"
-                  baseUrl: https://simurg.world/
 
-              - line: 'SIMURG | NEW | Category=Audiobook | Leech=Normal | Tags=MP3 / English | Size=1.20 GiB | Name=Example Audiobook | GroupID=1003 | TorrentID=2003 | URL=https://simurg.world/torrents.php?id=1003&torrentid=2003'
+              - line: 'NEW | Category=Audiobook | Leech=Normal | Tags=MP3 / English | Size=1.20 GiB | Name=Example Audiobook | URL=https://simurg.world/torrents.php?id=1003&torrentid=2003'
                 expect:
                   category: Audiobook
                   leechEnum: Normal
@@ -92,11 +92,11 @@ irc:
                   language: English
                   torrentSize: 1.20 GiB
                   releaseName: Example Audiobook
+                  baseUrl: https://simurg.world/
                   groupId: "1003"
                   torrentId: "2003"
-                  baseUrl: https://simurg.world/
 
-              - line: 'SIMURG | NEW | Category=Comics & Manga | Leech=Naturaleech | Tags=CBZ / English | Size=850.00 MiB | Name=Example Comic | GroupID=1004 | TorrentID=2004 | URL=https://simurg.world/torrents.php?id=1004&torrentid=2004'
+              - line: 'NEW | Category=Comics & Manga | Leech=Naturaleech | Tags=CBZ / English | Size=850.00 MiB | Name=Example Comic | URL=https://simurg.world/torrents.php?id=1004&torrentid=2004'
                 expect:
                   category: Comics & Manga
                   leechEnum: Naturaleech
@@ -104,9 +104,9 @@ irc:
                   language: English
                   torrentSize: 850.00 MiB
                   releaseName: Example Comic
+                  baseUrl: https://simurg.world/
                   groupId: "1004"
                   torrentId: "2004"
-                  baseUrl: https://simurg.world/
 
         mappings:
           leechEnum:
