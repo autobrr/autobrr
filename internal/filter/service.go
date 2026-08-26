@@ -52,6 +52,7 @@ type actionService interface {
 	StoreFilterActions(ctx context.Context, filterID int64, actions []*domain.Action) ([]*domain.Action, error)
 	FindByFilterID(ctx context.Context, filterID int, active *bool, withClient bool) ([]*domain.Action, error)
 	DeleteByFilterID(ctx context.Context, filterID int) error
+	RunAction(ctx context.Context, action *domain.Action, release *domain.Release) (rejections []string, err error)
 }
 
 type indexerService interface {
@@ -1027,6 +1028,42 @@ func (s *Service) RunExternalFilters(ctx context.Context, f *domain.Filter, exte
 			if statusCode != external.WebhookExpectStatus {
 				l.Debug().Int("expected_status", external.WebhookExpectStatus).Int("actual_status", statusCode).Msg("external webhook got unexpected status code")
 				f.RejectReasons.Add("external webhook status code", statusCode, external.WebhookExpectStatus)
+				return false, nil
+			}
+
+		default:
+			actionType, ok := external.Type.ActionType()
+			if !ok {
+				l.Warn().Str("type", string(external.Type)).Msg("unsupported external filter type")
+				continue
+			}
+
+			action := &domain.Action{
+				Name:                     external.Name,
+				Type:                     actionType,
+				ClientID:                 external.ClientID,
+				ExternalDownloadClientID: external.ExternalDownloadClientID,
+				ExternalDownloadClient:   external.ExternalDownloadClient,
+			}
+
+			rejections, err := s.actionService.RunAction(ctx, action, release)
+			if err != nil {
+				l.Error().Err(err).Msg("error running external filter action")
+
+				if external.OnError == domain.FilterExternalOnErrorContinue {
+					l.Debug().Msg("external filter action error, and OnError set to continue")
+					continue
+				}
+				return false, errors.Wrap(err, "error running external filter action")
+			}
+
+			if len(rejections) > 0 {
+				l.Debug().Strs("rejections", rejections).Msg("external filter action rejected release")
+
+				if external.OnError == domain.FilterExternalOnErrorContinue {
+					continue
+				}
+				f.RejectReasons.Add("external filter "+string(external.Type), strings.Join(rejections, ", "), "accepted")
 				return false, nil
 			}
 		}

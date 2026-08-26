@@ -155,7 +155,15 @@ export const WebHook = ({ idx }: ClientActionProps) => {
   );
 };
 
-export const Arr = ({ idx, action, clients }: ClientActionProps) => {
+interface ArrActionProps {
+  idx: number;
+  action: { type: string };
+  clients: DownloadClient[];
+  // field name prefix for the form, e.g. "actions" or "external" - defaults to "actions"
+  namePrefix?: string;
+}
+
+export const Arr = ({ idx, action, clients, namePrefix = "actions" }: ArrActionProps) => {
   const { t } = useTranslation("filters");
 
   return (
@@ -166,7 +174,7 @@ export const Arr = ({ idx, action, clients }: ClientActionProps) => {
     <FilterLayout>
       <FilterHalfRow>
         <DownloadClientSelect
-          name={`actions.${idx}.client_id`}
+          name={`${namePrefix}.${idx}.client_id`}
           action={action}
           clients={clients}
         />
@@ -175,14 +183,14 @@ export const Arr = ({ idx, action, clients }: ClientActionProps) => {
       <FilterHalfRow>
         <div className="">
           <TextField
-            name={`actions.${idx}.external_download_client`}
+            name={`${namePrefix}.${idx}.external_download_client`}
             label={t("actionComponents.arr.overrideClientName")}
             tooltip={
               <p>{t("actionComponents.arr.overrideClientNameTooltip")}</p>
             }
           />
           <NumberField
-            name={`actions.${idx}.external_download_client_id`}
+            name={`${namePrefix}.${idx}.external_download_client_id`}
             label={t("actionComponents.arr.overrideClientId")}
             className="mt-4"
             tooltip={

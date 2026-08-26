@@ -4,9 +4,12 @@ FROM node:24.19.0-alpine3.24 AS web-builder
 RUN npm install -g corepack@latest && \
     corepack enable
 
+# non-interactive build, pnpm otherwise aborts asking to confirm modules purge (no TTY)
+ENV CI=true
+
 WORKDIR /web
 
-COPY web/package.json web/pnpm-lock.yaml ./
+COPY web/package.json web/pnpm-lock.yaml web/pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY web ./

@@ -270,6 +270,9 @@ CREATE TABLE filter_external
     webhook_retry_attempts      INTEGER,
     webhook_retry_delay_seconds INTEGER,
     on_error                    TEXT DEFAULT 'REJECT',
+    client_id                   INTEGER,
+    external_download_client_id INTEGER,
+    external_download_client    TEXT,
     filter_id                   INTEGER NOT NULL,
     FOREIGN KEY (filter_id) REFERENCES filter (id) ON DELETE CASCADE
 );

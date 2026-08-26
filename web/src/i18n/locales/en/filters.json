@@ -422,7 +422,14 @@
     "close": "Close",
     "types": {
       "EXEC": "Exec",
-      "WEBHOOK": "Webhook"
+      "WEBHOOK": "Webhook",
+      "RADARR": "Radarr",
+      "SONARR": "Sonarr",
+      "LIDARR": "Lidarr",
+      "WHISPARR": "Whisparr (v2)",
+      "WHISPARR_V3": "Whisparr (v3)",
+      "READARR": "Readarr",
+      "SPORTARR": "Sportarr"
     },
     "onErrorOptions": {
       "REJECT": "Reject",

@@ -19,7 +19,7 @@ import { FilterByIdQueryOptions } from "@api/queries";
 import { FilterKeys } from "@api/query_keys";
 import { useToggle } from "@hooks/hooks";
 import { classNames } from "@utils";
-import { DOWNLOAD_CLIENTS, ExternalFilterOnErrorValues } from "@domain/constants";
+import { DOWNLOAD_CLIENTS, ARR_EXTERNAL_FILTER_TYPES, ExternalFilterOnErrorValues } from "@domain/constants";
 
 import { DEBUG } from "@components/debug";
 import { toast } from "@components/hot-toast";
@@ -241,7 +241,7 @@ const externalFilterSchema = z.object({
   enabled: z.boolean(),
   index: z.number(),
   name: z.string(),
-  type: z.enum(["EXEC", "WEBHOOK"]),
+  type: z.enum((["EXEC", "WEBHOOK", ...ARR_EXTERNAL_FILTER_TYPES] as [ExternalType, ...ExternalType[]])),
   on_error: z.enum([...ExternalFilterOnErrorValues]),
   exec_cmd: z.string().optional(),
   exec_args: z.string().optional(),
@@ -254,6 +254,9 @@ const externalFilterSchema = z.object({
   webhook_retry_status: z.string().optional(),
   webhook_retry_attempts: z.number().optional(),
   webhook_retry_delay_seconds: z.number().optional(),
+  client_id: z.number().optional(),
+  external_download_client_id: z.number().optional(),
+  external_download_client: z.string().optional(),
 }).superRefine((value, ctx) => {
   if (!value.name) {
     ctx.addIssue({
@@ -293,6 +296,16 @@ const externalFilterSchema = z.object({
         message: "Must have exec cmd",
         code: "custom",
         path: ["exec_cmd"]
+      });
+    }
+  }
+
+  if ((ARR_EXTERNAL_FILTER_TYPES as string[]).includes(value.type)) {
+    if (!value.client_id) {
+      ctx.addIssue({
+        message: i18n.t("filters:details.mustSelectClient"),
+        code: "custom",
+        path: ["client_id"]
       });
     }
   }

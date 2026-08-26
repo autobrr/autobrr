@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -260,4 +261,89 @@ func TestService_UpdateNotifications_ValidatesBeforePersisting(t *testing.T) {
 
 	assert.ErrorIs(t, err, domain.ErrNotificationNotFound)
 	assert.Zero(t, notificationSvc.storedFilterID)
+}
+
+type actionSvcRunActionStub struct {
+	actionService
+	rejections []string
+	err        error
+	calls      int
+}
+
+func (s *actionSvcRunActionStub) RunAction(_ context.Context, _ *domain.Action, _ *domain.Release) ([]string, error) {
+	s.calls++
+	return s.rejections, s.err
+}
+
+func newArrFilter() *domain.Filter {
+	return &domain.Filter{Name: "filter", RejectReasons: domain.NewRejectionReasons()}
+}
+
+func TestService_RunExternalFilters_ArrAccepted(t *testing.T) {
+	actionSvc := &actionSvcRunActionStub{}
+	svc := &Service{log: zerolog.Nop(), actionService: actionSvc}
+
+	ok, err := svc.RunExternalFilters(t.Context(), newArrFilter(), []domain.FilterExternal{
+		{Name: "sonarr", Enabled: true, Type: domain.ExternalFilterTypeSonarr, ClientID: 1, OnError: domain.FilterExternalOnErrorReject},
+	}, &domain.Release{})
+
+	assert.NoError(t, err)
+	assert.True(t, ok)
+	assert.Equal(t, 1, actionSvc.calls)
+}
+
+func TestService_RunExternalFilters_ArrRejected(t *testing.T) {
+	t.Run("OnError REJECT stops and rejects the filter", func(t *testing.T) {
+		actionSvc := &actionSvcRunActionStub{rejections: []string{"not wanted"}}
+		svc := &Service{log: zerolog.Nop(), actionService: actionSvc}
+		f := newArrFilter()
+
+		ok, err := svc.RunExternalFilters(t.Context(), f, []domain.FilterExternal{
+			{Name: "sonarr", Enabled: true, Type: domain.ExternalFilterTypeSonarr, ClientID: 1, OnError: domain.FilterExternalOnErrorReject},
+		}, &domain.Release{})
+
+		assert.NoError(t, err)
+		assert.False(t, ok)
+		assert.Positive(t, f.RejectReasons.Len())
+	})
+
+	t.Run("OnError CONTINUE skips to the next entry", func(t *testing.T) {
+		actionSvc := &actionSvcRunActionStub{rejections: []string{"not wanted"}}
+		svc := &Service{log: zerolog.Nop(), actionService: actionSvc}
+		f := newArrFilter()
+
+		ok, err := svc.RunExternalFilters(t.Context(), f, []domain.FilterExternal{
+			{Name: "sonarr", Enabled: true, Type: domain.ExternalFilterTypeSonarr, ClientID: 1, OnError: domain.FilterExternalOnErrorContinue},
+		}, &domain.Release{})
+
+		assert.NoError(t, err)
+		assert.True(t, ok)
+		assert.Zero(t, f.RejectReasons.Len())
+	})
+}
+
+func TestService_RunExternalFilters_ArrTransportError(t *testing.T) {
+	t.Run("OnError REJECT (default) returns an error", func(t *testing.T) {
+		actionSvc := &actionSvcRunActionStub{err: errors.New("client unreachable")}
+		svc := &Service{log: zerolog.Nop(), actionService: actionSvc}
+
+		ok, err := svc.RunExternalFilters(t.Context(), newArrFilter(), []domain.FilterExternal{
+			{Name: "sonarr", Enabled: true, Type: domain.ExternalFilterTypeSonarr, ClientID: 1, OnError: domain.FilterExternalOnErrorReject},
+		}, &domain.Release{})
+
+		assert.Error(t, err)
+		assert.False(t, ok)
+	})
+
+	t.Run("OnError CONTINUE skips to the next entry", func(t *testing.T) {
+		actionSvc := &actionSvcRunActionStub{err: errors.New("client unreachable")}
+		svc := &Service{log: zerolog.Nop(), actionService: actionSvc}
+
+		ok, err := svc.RunExternalFilters(t.Context(), newArrFilter(), []domain.FilterExternal{
+			{Name: "sonarr", Enabled: true, Type: domain.ExternalFilterTypeSonarr, ClientID: 1, OnError: domain.FilterExternalOnErrorContinue},
+		}, &domain.Release{})
+
+		assert.NoError(t, err)
+		assert.True(t, ok)
+	})
 }

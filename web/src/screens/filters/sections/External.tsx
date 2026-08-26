@@ -4,6 +4,7 @@
  */
 
 import { useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
 import { ArrowDownIcon, ArrowUpIcon, SquaresPlusIcon } from "@heroicons/react/24/outline";
 import { Field, FieldArray, FieldArrayRenderProps, FieldProps, useFormikContext } from "formik";
@@ -14,11 +15,14 @@ import { useToggle } from "@hooks/hooks";
 import { TextAreaAutoResize } from "@components/inputs/input";
 import { EmptyListState } from "@components/emptystates";
 import { NumberField, Select, TextField } from "@components/inputs";
+import { DownloadClientsQueryOptions } from "@api/queries";
 import {
+  ARR_EXTERNAL_FILTER_TYPES,
   ExternalFilterOnErrorOptions,
   ExternalFilterTypeOptions,
   ExternalFilterWebhookMethodOptions
 } from "@domain/constants";
+import { Arr } from "@screens/filters/sections/action_components";
 
 import { DeleteModal } from "@components/modals";
 import { DocsLink } from "@components/ExternalLink";
@@ -29,6 +33,8 @@ import { FilterLayout, FilterPage, FilterSection } from "@screens/filters/sectio
 export function External() {
   const { t } = useTranslation("filters");
   const { values } = useFormikContext<Filter>();
+
+  const { data: clients } = useQuery(DownloadClientsQueryOptions());
 
   const newItem: ExternalFilter = {
     id: values.external.length + 1,
@@ -73,6 +79,7 @@ export function External() {
                     initialEdit
                     external={external}
                     idx={index}
+                    clients={clients ?? []}
                     remove={remove}
                     move={move}
                   />
@@ -92,11 +99,12 @@ interface FilterExternalItemProps {
   external: ExternalFilter;
   idx: number;
   initialEdit: boolean;
+  clients: DownloadClient[];
   remove: <T>(index: number) => T | undefined;
   move: (from: number, to: number) => void;
 }
 
-function FilterExternalItem({ idx, external, initialEdit, remove, move }: FilterExternalItemProps) {
+function FilterExternalItem({ idx, external, initialEdit, clients, remove, move }: FilterExternalItemProps) {
   const { t } = useTranslation("filters");
   const { values, setFieldValue } = useFormikContext<Filter>();
   const cancelButtonRef = useRef(null);
@@ -237,7 +245,7 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
               </FilterLayout>
             </FilterSection>
 
-            <TypeForm external={external} idx={idx} />
+            <TypeForm external={external} idx={idx} clients={clients} />
 
             <div className="pt-6 pb-4 space-x-2 flex justify-between">
               <button
@@ -267,10 +275,16 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
 interface TypeFormProps {
   external: ExternalFilter;
   idx: number;
+  clients: DownloadClient[];
 }
 
-const TypeForm = ({ external, idx }: TypeFormProps) => {
+const TypeForm = ({ external, idx, clients }: TypeFormProps) => {
   const { t } = useTranslation("filters");
+
+  if ((ARR_EXTERNAL_FILTER_TYPES as string[]).includes(external.type)) {
+    return <Arr idx={idx} action={external} clients={clients} namePrefix="external" />;
+  }
+
   switch (external.type) {
   case "EXEC": {
     return (

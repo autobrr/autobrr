@@ -133,7 +133,7 @@ type ActionPriorityLayout = "MAX" | "MIN" | "";
 
 type ActionType = "TEST" | "EXEC" | "WATCH_FOLDER" | "WEBHOOK" | DownloadClientType;
 
-type ExternalType = "EXEC" | "WEBHOOK";
+type ExternalType = "EXEC" | "WEBHOOK" | "SONARR" | "RADARR" | "LIDARR" | "READARR" | "WHISPARR" | "WHISPARR_V3" | "SPORTARR";
 
 type WebhookMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -158,6 +158,9 @@ interface ExternalFilter {
   webhook_retry_attempts?: number;
   webhook_retry_delay_seconds?: number;
   on_error: ExternalFilterOnError;
+  client_id?: number;
+  external_download_client_id?: number;
+  external_download_client?: string;
   filter_id?: number;
 }
 

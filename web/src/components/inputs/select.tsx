@@ -149,7 +149,7 @@ export const IndexerMultiSelect = ({
 
 interface DownloadClientSelectProps {
   name: string;
-  action: Action;
+  action: { type: string };
   clients: DownloadClient[];
 }
 

@@ -978,13 +978,39 @@ export const tagsMatchLogicOptions: OptionBasic[] = [
 
 export const ExternalFilterTypeOptions: RadioFieldsetOption[] = [
   { label: "Exec", description: "Run a custom command", value: "EXEC" },
-  { label: "Webhook", description: "Run webhook", value: "WEBHOOK" }
+  { label: "Webhook", description: "Run webhook", value: "WEBHOOK" },
+  { label: "Radarr", description: "Send to Radarr and let it decide", value: "RADARR" },
+  { label: "Sonarr", description: "Send to Sonarr and let it decide", value: "SONARR" },
+  { label: "Lidarr", description: "Send to Lidarr and let it decide", value: "LIDARR" },
+  { label: "Whisparr (v2)", description: "Send to Whisparr and let it decide", value: "WHISPARR" },
+  { label: "Whisparr (v3)", description: "Send to Whisparr and let it decide", value: "WHISPARR_V3" },
+  { label: "Readarr", description: "Send to Readarr and let it decide", value: "READARR" },
+  { label: "Sportarr", description: "Send to Sportarr and let it decide", value: "SPORTARR" }
 ];
 
 export const ExternalFilterTypeNameMap = {
   "EXEC": "Exec",
-  "WEBHOOK": "Webhook"
+  "WEBHOOK": "Webhook",
+  "RADARR": "Radarr",
+  "SONARR": "Sonarr",
+  "LIDARR": "Lidarr",
+  "WHISPARR": "Whisparr (v2)",
+  "WHISPARR_V3": "Whisparr (v3)",
+  "READARR": "Readarr",
+  "SPORTARR": "Sportarr"
 };
+
+// External filter types that gate on an *arr instance's accept/reject decision -
+// share the same client_id/external_download_client(_id) fields as their Action counterparts.
+export const ARR_EXTERNAL_FILTER_TYPES: ExternalType[] = [
+  "RADARR",
+  "SONARR",
+  "LIDARR",
+  "WHISPARR",
+  "WHISPARR_V3",
+  "READARR",
+  "SPORTARR"
+];
 
 export const ExternalFilterOnErrorValues: ExternalFilterOnError[] = ["REJECT", "CONTINUE"];
 

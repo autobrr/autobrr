@@ -838,6 +838,9 @@ func (r *FilterRepo) findExternalFilters(ctx context.Context, filterIDs []int) (
 			"fe.webhook_retry_attempts",
 			"fe.webhook_retry_delay_seconds",
 			"fe.on_error",
+			"fe.client_id",
+			"fe.external_download_client_id",
+			"fe.external_download_client",
 		).
 		From("filter_external fe").
 		Where(sq.Eq{"fe.filter_id": filterIDs}).
@@ -861,8 +864,8 @@ func (r *FilterRepo) findExternalFilters(ctx context.Context, filterIDs []int) (
 		var external domain.FilterExternal
 
 		// filter external
-		var extExecCmd, extExecArgs, extWebhookHost, extWebhookMethod, extWebhookHeaders, extWebhookData, extWebhookRetryStatus sql.NullString
-		var extWebhookStatus, extWebhookRetryAttempts, extWebhookDelaySeconds, extExecStatus sql.NullInt32
+		var extExecCmd, extExecArgs, extWebhookHost, extWebhookMethod, extWebhookHeaders, extWebhookData, extWebhookRetryStatus, extExternalDownloadClient sql.NullString
+		var extWebhookStatus, extWebhookRetryAttempts, extWebhookDelaySeconds, extExecStatus, extClientID, extExternalDownloadClientID sql.NullInt32
 
 		if err := rows.Scan(
 			&filterID,
@@ -883,6 +886,9 @@ func (r *FilterRepo) findExternalFilters(ctx context.Context, filterIDs []int) (
 			&extWebhookRetryAttempts,
 			&extWebhookDelaySeconds,
 			&external.OnError,
+			&extClientID,
+			&extExternalDownloadClientID,
+			&extExternalDownloadClient,
 		); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
@@ -899,6 +905,10 @@ func (r *FilterRepo) findExternalFilters(ctx context.Context, filterIDs []int) (
 		external.WebhookRetryStatus = extWebhookRetryStatus.String
 		external.WebhookRetryAttempts = int(extWebhookRetryAttempts.Int32)
 		external.WebhookRetryDelaySeconds = int(extWebhookDelaySeconds.Int32)
+
+		external.ClientID = extClientID.Int32
+		external.ExternalDownloadClientID = extExternalDownloadClientID.Int32
+		external.ExternalDownloadClient = extExternalDownloadClient.String
 
 		externalFilters[filterID] = append(externalFilters[filterID], external)
 	}
@@ -1808,6 +1818,9 @@ func (r *FilterRepo) StoreFilterExternal(ctx context.Context, filterID int, exte
 			"webhook_retry_attempts",
 			"webhook_retry_delay_seconds",
 			"on_error",
+			"client_id",
+			"external_download_client_id",
+			"external_download_client",
 			"filter_id",
 		)
 
@@ -1829,6 +1842,9 @@ func (r *FilterRepo) StoreFilterExternal(ctx context.Context, filterID int, exte
 			toNullInt32(int32(external.WebhookRetryAttempts)),
 			toNullInt32(int32(external.WebhookRetryDelaySeconds)),
 			external.OnError,
+			toNullInt32(external.ClientID),
+			toNullInt32(external.ExternalDownloadClientID),
+			toNullString(external.ExternalDownloadClient),
 			filterID,
 		)
 	}

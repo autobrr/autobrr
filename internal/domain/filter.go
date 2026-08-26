@@ -220,7 +220,12 @@ type FilterExternal struct {
 	WebhookRetryAttempts     int                   `json:"webhook_retry_attempts,omitempty"`
 	WebhookRetryDelaySeconds int                   `json:"webhook_retry_delay_seconds,omitempty"`
 	OnError                  FilterExternalOnError `json:"on_error"`
-	FilterId                 int                   `json:"-"`
+	// ClientID, ExternalDownloadClientID and ExternalDownloadClient configure the
+	// *arr external filter types below; same fields as Action's arr config.
+	ClientID                 int32  `json:"client_id,omitempty"`
+	ExternalDownloadClientID int32  `json:"external_download_client_id,omitempty"`
+	ExternalDownloadClient   string `json:"external_download_client,omitempty"`
+	FilterId                 int    `json:"-"`
 }
 
 // macroFields returns the external filter fields that get macro expanded and
@@ -248,7 +253,47 @@ type FilterExternalType string
 const (
 	ExternalFilterTypeExec    FilterExternalType = "EXEC"
 	ExternalFilterTypeWebhook FilterExternalType = "WEBHOOK"
+	// The *arr types below reuse an Action's push-and-decide behavior as a gate:
+	// RunExternalFilters builds a domain.Action from the external filter's
+	// ClientID/ExternalDownloadClient(ID) and calls actionService.RunAction,
+	// treating any returned rejections as this external filter rejecting the
+	// release (subject to OnError, same as the EXEC/WEBHOOK types).
+	//
+	// Extending this to other ActionTypes (torrent/usenet clients, watch
+	// folder, ...) is possible but not implemented: those need many more
+	// fields than the arr suite's three (save path, category/label/tags,
+	// limits, priority, reannounce, ...) - see the per-type action_components
+	// forms in web/src/screens/filters/sections/action_components/ for the
+	// full field set each would require - and their "rejections" mean
+	// client-side throttling rather than an external accept/reject decision,
+	// so the semantics would need reconsidering too.
+	ExternalFilterTypeSonarr     FilterExternalType = "SONARR"
+	ExternalFilterTypeRadarr     FilterExternalType = "RADARR"
+	ExternalFilterTypeLidarr     FilterExternalType = "LIDARR"
+	ExternalFilterTypeReadarr    FilterExternalType = "READARR"
+	ExternalFilterTypeWhisparr   FilterExternalType = "WHISPARR"
+	ExternalFilterTypeWhisparrV3 FilterExternalType = "WHISPARR_V3"
+	ExternalFilterTypeSportarr   FilterExternalType = "SPORTARR"
 )
+
+// arrExternalFilterTypes maps the arr FilterExternalType values to their
+// corresponding ActionType, so RunExternalFilters can build a domain.Action.
+var arrExternalFilterTypes = map[FilterExternalType]ActionType{
+	ExternalFilterTypeSonarr:     ActionTypeSonarr,
+	ExternalFilterTypeRadarr:     ActionTypeRadarr,
+	ExternalFilterTypeLidarr:     ActionTypeLidarr,
+	ExternalFilterTypeReadarr:    ActionTypeReadarr,
+	ExternalFilterTypeWhisparr:   ActionTypeWhisparr,
+	ExternalFilterTypeWhisparrV3: ActionTypeWhisparrV3,
+	ExternalFilterTypeSportarr:   ActionTypeSportarr,
+}
+
+// ActionType returns the ActionType to dispatch to for arr external filter
+// types, and whether this type is one of them.
+func (t FilterExternalType) ActionType() (ActionType, bool) {
+	actionType, ok := arrExternalFilterTypes[t]
+	return actionType, ok
+}
 
 type FilterNotification struct {
 	FilterID       int      `json:"filter_id"`
@@ -371,6 +416,12 @@ func (f *Filter) Validate() error {
 				if err != nil {
 					return errors.Wrap(err, "could not find external exec command: %s", external.ExecCmd)
 				}
+			}
+		}
+
+		if _, ok := external.Type.ActionType(); ok {
+			if external.Enabled && external.ClientID == 0 {
+				return errors.New("validation: external filter %s is missing a client", external.Name)
 			}
 		}
 	}
