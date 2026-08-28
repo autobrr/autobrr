@@ -47,6 +47,48 @@ func TestConnectJoinAnnounce(t *testing.T) {
 	require.Equal(t, "Some.Release.2024.1080p.BluRay.x264-GRP", rls.TorrentName)
 }
 
+// TestBouncerWildcardEndOfNames exercises soju's wildcard 366 target. Without
+// the bouncer-specific self-target handling the channel never reaches Monitoring
+// and no announces can be processed.
+func TestBouncerWildcardEndOfNames(t *testing.T) {
+	srv := ircd.New(t, ircd.WildcardEndOfNames())
+	srv.AddChannel("#bouncer", ircd.Announcer("announcer"))
+
+	def := harness.MinimalDefinition("bouncer", "#bouncer", "announcer")
+	network := harness.Network(srv, "autobrr", harness.None(), harness.Channel("#bouncer"))
+	network.UseBouncer = true
+
+	inst := harness.Start(t, network, harness.Defs(def))
+	inst.WaitForMonitoring("#bouncer", 10*time.Second)
+
+	srv.Announce("#bouncer", "announcer", "New torrent: Bouncer.Release.2026.1080p.WEB-DL.x264-GRP in TV")
+	if _, ok := inst.Releases.Wait(5 * time.Second); !ok {
+		t.Fatal("no release produced after wildcard end-of-NAMES")
+	}
+}
+
+// TestMixedCaseSelfNickChange covers irc-go's exact source-nick comparison: the
+// server may use an equivalent case variant in the NICK prefix, and autobrr must
+// still track the server-selected new nick.
+func TestMixedCaseSelfNickChange(t *testing.T) {
+	srv := ircd.New(t)
+	srv.AddChannel("#nick", ircd.Announcer("announcer"))
+
+	def := harness.MinimalDefinition("nick", "#nick", "announcer")
+	network := harness.Network(srv, "AutoBrr", harness.None(), harness.Channel("#nick"))
+	inst := harness.Start(t, network, harness.Defs(def))
+	inst.WaitForMonitoring("#nick", 10*time.Second)
+
+	srv.SendNickChange("AutoBrr", "AUTOBRR", "AutoBrr_")
+	deadline := time.Now().Add(5 * time.Second)
+	for inst.Handler.CurrentNick() != "AutoBrr_" && time.Now().Before(deadline) {
+		time.Sleep(10 * time.Millisecond)
+	}
+	if got := inst.Handler.CurrentNick(); got != "AutoBrr_" {
+		t.Fatalf("current nick = %q after mixed-case NICK event", got)
+	}
+}
+
 // ---- auth
 
 // TestSASLAuth verifies a SASL PLAIN login: the +r (registered-only) channel can
@@ -246,6 +288,24 @@ func TestInviteRejectedParks(t *testing.T) {
 
 	inst.WaitForState("#inv", "InviteFailed", 15*time.Second)
 	require.Contains(t, inst.LastError("#inv"), "Invalid IRCKEY", "expected the bot's rejection reason to be surfaced")
+}
+
+// TestInviteBotCaseVariantDMTarget verifies a bot DM is still recognized when
+// the server uses different casing for our nick in the message target.
+func TestInviteBotCaseVariantDMTarget(t *testing.T) {
+	srv := ircd.New(t)
+	srv.AddChannel("#inv", ircd.InviteOnly(), ircd.Announcer("Gatekeeper"))
+	srv.AddBot("Gatekeeper", func(b *ircd.Bot, from, text string) {
+		b.Privmsg(strings.ToLower(from), "Invalid IRCKEY - request denied")
+	})
+
+	def := harness.InviteDefinition("inv", "#inv", "Gatekeeper", "Gatekeeper")
+	net := harness.Network(srv, "AutoBrr", harness.None(), harness.Channel("#inv"))
+	net.InviteCommand = inviteCmd
+	net.UseBouncer = true
+
+	inst := harness.Start(t, net, harness.Defs(def))
+	inst.WaitForState("#inv", "InviteFailed", 15*time.Second)
 }
 
 // TestInviteBotAbsentRetries verifies the counterpart: when the gatekeeper is not

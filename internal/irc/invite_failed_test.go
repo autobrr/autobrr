@@ -217,6 +217,24 @@ func TestHandleInviteResponseIgnoresUnrelatedNick(t *testing.T) {
 	require.Falsef(t, sm.channel.HasConnectionErrors(), "DM from an unrelated nick must not raise an invite failure: %v", sm.channel.ConnectionErrorsCopy())
 }
 
+func TestBouncerIgnoresInviteResponseAddressedToStaleNick(t *testing.T) {
+	h, _ := newTestHandler()
+	h.network.UseBouncer = true
+	h.setCurrentNick("autobrr-new")
+	sm := addAwaitingInviteChannel(h, "#chan", "voyager autobot user key")
+
+	h.handleInviteResponse(ircmsg.Message{
+		Source:  "Voyager!bot@irc.example.test",
+		Command: "NOTICE",
+		Params:  []string{"autobrr-old", "invalid IRC key"},
+	})
+
+	time.Sleep(3 * testInviteGrace)
+	if sm.channel.HasConnectionErrors() {
+		t.Fatalf("bouncer playback for an old nick raised an invite failure: %v", sm.channel.ConnectionErrorsCopy())
+	}
+}
+
 // TestHandleInviteResponseIgnoresNonAwaitingChannel verifies a channel that is not
 // awaiting an invite (e.g. already monitoring) is not touched by a bot DM.
 func TestHandleInviteResponseIgnoresNonAwaitingChannel(t *testing.T) {

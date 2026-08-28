@@ -356,14 +356,14 @@ func (s *Service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 	var channelsToJoin = make([]domain.IrcChannel, 0)
 	var channelsToUpdate = make([]domain.IrcChannel, 0)
 
-	// create map of expected channels (keyed lowercase to match handler storage)
+	// create map of expected channels using the handler's stable storage keys
 	for _, channel := range network.Channels {
-		expectedChannels[strings.ToLower(channel.Name)] = struct{}{}
+		expectedChannels[channelMapKey(channel.Name)] = struct{}{}
 	}
 
 	// check current channels of currentNetwork against expected
 	for _, handlerChan := range currentNetwork.Channels {
-		name := strings.ToLower(handlerChan.Name)
+		name := channelMapKey(handlerChan.Name)
 		handlerChannels[name] = struct{}{}
 
 		if _, ok := expectedChannels[name]; ok {
@@ -378,7 +378,7 @@ func (s *Service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 	// check new channels against currentNetwork: join the new ones, reconcile the
 	// config (password/enabled) of the ones we already track
 	for _, channel := range network.Channels {
-		if _, ok := handlerChannels[strings.ToLower(channel.Name)]; ok {
+		if _, ok := handlerChannels[channelMapKey(channel.Name)]; ok {
 			channelsToUpdate = append(channelsToUpdate, channel)
 			continue
 		}
@@ -502,7 +502,7 @@ func (s *Service) ManualProcessAnnounce(ctx context.Context, req *domain.IRCManu
 	}
 
 	// send to channels announce processor
-	channel, foundChannel := handler.channels.Get(req.Channel)
+	channel, _, foundChannel := handler.getChannel(req.Channel)
 	if !foundChannel {
 		return errors.Wrap(domain.ErrIRCChannelNotFound, "channel: %s", req.Channel)
 	}
@@ -675,7 +675,7 @@ func (s *Service) GetMessageHistory(_ context.Context, networkID int64, channel 
 		return nil, domain.ErrIRCNetworkHandlerNotFound
 	}
 
-	channelInstance, ok := handler.channels.Get(channel)
+	channelInstance, _, ok := handler.getChannel(channel)
 	if !ok {
 		return nil, errors.New("could not find channel")
 	}

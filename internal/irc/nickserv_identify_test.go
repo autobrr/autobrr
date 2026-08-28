@@ -48,6 +48,19 @@ func withNickServAuth(h *Handler, account string) {
 	h.identifyOutstanding = true
 }
 
+func TestOnNoticeMatchesNickServCaseInsensitively(t *testing.T) {
+	h, _ := newTestHandler()
+	withNickServAuth(h, "test_bot")
+
+	msg := nickServNotice("user_bot", "Password accepted - you are now recognized.")
+	msg.Source = "NICKSERV!services@services.example.test"
+	h.onNotice(msg)
+
+	if !h.authenticated {
+		t.Fatal("case-variant NickServ notice did not authenticate the connection")
+	}
+}
+
 func TestAuthenticateGatesNickServOnMechanism(t *testing.T) {
 	tests := []struct {
 		name              string
@@ -198,6 +211,19 @@ func TestCanEscalateIdentify(t *testing.T) {
 			account:     "User_Bot",
 			currentNick: "user_bot",
 			want:        false,
+		},
+		{
+			name:        "account equals nick under rfc1459",
+			account:     "User[Bot]",
+			currentNick: "user{bot}",
+			want:        false,
+		},
+		{
+			name:        "ascii keeps bracket variants distinct",
+			account:     "User[Bot]",
+			currentNick: "user{bot}",
+			setup:       func(h *Handler) { h.caseMapping = ircCaseMappingASCII },
+			want:        true,
 		},
 		{
 			name:        "no account configured",
@@ -507,7 +533,7 @@ func TestHandleLoggedIn(t *testing.T) {
 	}{
 		{
 			name:   "our nick",
-			params: []string{"", "user_bot!user_bot@host", "test_bot", "You are now logged in as test_bot"},
+			params: []string{"user_bot", "user_bot!user_bot@host", "test_bot", "You are now logged in as test_bot"},
 			want:   true,
 		},
 		{
@@ -527,7 +553,6 @@ func TestHandleLoggedIn(t *testing.T) {
 			h, _ := newTestHandler()
 			withNickServAuth(h, "test_bot")
 
-			// CurrentNick is "" without a live client, so address the message to it
 			params := append([]string(nil), tt.params...)
 
 			h.handleLoggedIn(ircmsg.Message{

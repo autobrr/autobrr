@@ -9,6 +9,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 
+	"github.com/ergochat/irc-go/ircmsg"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -162,4 +163,113 @@ func TestInitIndexersNoDefinitionsRegistersConfiguredChannels(t *testing.T) {
 	assert.Equal(t, "secret", ch.Password)
 	assert.NotNil(t, ch.StateMachine(), "configured channel #nordicbytes should have a state machine")
 	assert.Nil(t, ch.announceProcessor, "channel without a matching definition should have no announce processor")
+}
+
+func TestInitIndexersMatchesInviteBotNickExactly(t *testing.T) {
+	tests := []struct {
+		name           string
+		inviteCommand  string
+		defaultCommand string
+		want           string
+	}{
+		{
+			name:           "case-insensitive exact match",
+			inviteCommand:  "vOyAgEr enter user key",
+			defaultCommand: "Voyager enter USER IRCKEY",
+			want:           "vOyAgEr enter user key",
+		},
+		{
+			name:           "prefix is a different nick",
+			inviteCommand:  "voy enter user key",
+			defaultCommand: "voyager enter USER IRCKEY",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h, _ := newTestHandler()
+			h.network.InviteCommand = tt.inviteCommand
+			h.network.Channels = []domain.IrcChannel{{Name: "#chan", Enabled: true}}
+
+			definition := defWithChannel("test", h.network.Server, "#chan", "announcer")
+			definition.IRC.Settings = []domain.IndexerSetting{{Name: "invite_command", Default: tt.defaultCommand}}
+			h.InitIndexers([]*domain.IndexerDefinition{definition})
+
+			channel, _, found := h.getChannel("#chan")
+			if !found {
+				t.Fatal("configured channel was not registered")
+			}
+			if got := channel.InviteCommand(); got != tt.want {
+				t.Errorf("invite command = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCaseMappingChangeReassociatesInviteCommand(t *testing.T) {
+	h, _ := newTestHandler()
+	h.network.InviteCommand = "Gate~ enter user key"
+	h.network.Channels = []domain.IrcChannel{{Name: "#chan", Enabled: true}}
+
+	definition := defWithChannel("test", h.network.Server, "#chan", "announcer")
+	definition.IRC.Settings = []domain.IndexerSetting{{Name: "invite_command", Default: "Gate^ enter USER IRCKEY"}}
+	h.InitIndexers([]*domain.IndexerDefinition{definition})
+
+	channel, _, found := h.getChannel("#chan")
+	if !found {
+		t.Fatal("configured channel was not registered")
+	}
+	if got := channel.InviteCommand(); got != h.network.InviteCommand {
+		t.Fatalf("RFC1459 invite command = %q, want %q", got, h.network.InviteCommand)
+	}
+
+	h.handleISupport(ircmsg.Message{
+		Command: "005",
+		Params:  []string{"autobrr", "CASEMAPPING=rfc1459-strict", "are supported"},
+	})
+	if got := channel.InviteCommand(); got != "" {
+		t.Fatalf("strict RFC1459 retained non-equivalent invite bot command %q", got)
+	}
+	if got := channel.StateMachine().inviteCommand; got != "" {
+		t.Fatalf("state machine retained non-equivalent invite bot command %q", got)
+	}
+
+	h.handleISupport(ircmsg.Message{
+		Command: "005",
+		Params:  []string{"autobrr", "CASEMAPPING=rfc1459", "are supported"},
+	})
+	if got := channel.InviteCommand(); got != h.network.InviteCommand {
+		t.Fatalf("restored RFC1459 invite command = %q, want %q", got, h.network.InviteCommand)
+	}
+	if got := channel.StateMachine().inviteCommand; got != h.network.InviteCommand {
+		t.Fatalf("state machine RFC1459 invite command = %q, want %q", got, h.network.InviteCommand)
+	}
+}
+
+func TestInviteCommandOwnerStaysWithSelectedChannelDefinition(t *testing.T) {
+	h, _ := newTestHandler()
+	h.network.InviteCommand = "FirstBot enter one,SecondBot enter two"
+	h.network.Channels = []domain.IrcChannel{{Name: "#shared", Enabled: true}}
+
+	first := defWithChannel("first", h.network.Server, "#shared", "announcer")
+	first.IRC.Settings = []domain.IndexerSetting{{Name: "invite_command", Default: "FirstBot enter USER IRCKEY"}}
+	second := defWithChannel("second", h.network.Server, "#shared", "announcer")
+	second.IRC.Settings = []domain.IndexerSetting{{Name: "invite_command", Default: "SecondBot enter USER IRCKEY"}}
+	h.InitIndexers([]*domain.IndexerDefinition{first, second})
+
+	channel, _, found := h.getChannel("#shared")
+	if !found {
+		t.Fatal("shared channel was not registered")
+	}
+	if got, want := channel.InviteCommand(), "SecondBot enter two"; got != want {
+		t.Fatalf("initial invite command = %q, want %q", got, want)
+	}
+
+	h.handleISupport(ircmsg.Message{
+		Command: "005",
+		Params:  []string{"autobrr", "CASEMAPPING=ascii", "are supported"},
+	})
+	if got, want := channel.InviteCommand(), "SecondBot enter two"; got != want {
+		t.Fatalf("invite command after remap = %q, want %q", got, want)
+	}
 }
