@@ -48,6 +48,7 @@ func (s *Service) sonarr(ctx context.Context, action *domain.Action, release *do
 		DownloadProtocol: release.Protocol.String(),
 		Protocol:         release.Protocol.String(),
 		PublishDate:      time.Now().Format(time.RFC3339),
+		ImdbID:           release.MetaIMDB,
 	}
 
 	if action.ExternalDownloadClientID > 0 {
