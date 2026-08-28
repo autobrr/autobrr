@@ -138,27 +138,35 @@ func (db *DB) migrateSQLite() error {
 	return nil
 }
 
+// startProgressLogger logs a heartbeat until the returned stop func is called,
+// so long-running maintenance operations do not look like a hang at startup.
+func (db *DB) startProgressLogger(op string) func() {
+	start := time.Now()
+	done := make(chan struct{})
+
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-done:
+				return
+			case <-ticker.C:
+				db.log.Info().Msgf("%s still running, elapsed: %s", op, time.Since(start).Round(time.Second))
+			}
+		}
+	}()
+
+	return func() { close(done) }
+}
+
 func (db *DB) databaseConsistencyCheckSQLite() error {
 	db.log.Info().Msg("Database integrity check..")
 
-	rows, err := db.Handler.Query("PRAGMA integrity_check;")
+	results, err := db.sqliteIntegrityCheck()
 	if err != nil {
-		return errors.Wrap(err, "failed to query integrity check")
-	}
-	defer rows.Close()
-
-	var results []string
-	for rows.Next() {
-		var result string
-		if err := rows.Scan(&result); err != nil {
-			return errors.Wrap(err, "backup integrity unexpected state")
-		}
-
-		results = append(results, result)
-	}
-
-	if err := rows.Err(); err != nil {
-		return errors.Wrap(err, "backup integrity unexpected state")
+		return err
 	}
 
 	if len(results) == 1 && results[0] == "ok" {
@@ -172,20 +180,47 @@ func (db *DB) databaseConsistencyCheckSQLite() error {
 
 	db.log.Info().Msg("Database integrity check post re-indexing..")
 
-	row := db.Handler.QueryRow("PRAGMA integrity_check;")
-
-	var status string
-	if err := row.Scan(&status); err != nil {
-		return errors.Wrap(err, "backup integrity unexpected state")
+	results, err = db.sqliteIntegrityCheck()
+	if err != nil {
+		return err
 	}
 
-	db.log.Info().Str("status", status).Msg("database integrity check")
+	status := strings.Join(results, "; ")
 
-	if status != "ok" {
+	db.log.Info().Msgf("database integrity check status: %s", status)
+
+	if len(results) != 1 || results[0] != "ok" {
 		return errors.New("backup integrity check failed: %q", status)
 	}
 
 	return nil
+}
+
+func (db *DB) sqliteIntegrityCheck() ([]string, error) {
+	stop := db.startProgressLogger("database integrity check")
+	defer stop()
+
+	rows, err := db.Handler.Query("PRAGMA integrity_check;")
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to query integrity check")
+	}
+	defer rows.Close()
+
+	var results []string
+	for rows.Next() {
+		var result string
+		if err := rows.Scan(&result); err != nil {
+			return nil, errors.Wrap(err, "backup integrity unexpected state")
+		}
+
+		results = append(results, result)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "backup integrity unexpected state")
+	}
+
+	return results, nil
 }
 
 // sqlitePerformReIndexing try to reindex bad indexes
@@ -215,12 +250,15 @@ func (db *DB) sqlitePerformReIndexing(results []string) error {
 		return errors.New("found no indexes to reindex")
 	}
 
+	stop := db.startProgressLogger("database re-indexing")
+	defer stop()
+
 	for _, index := range badIndexes {
 		db.log.Info().Str("index", index).Msg("database attempt to re-index")
 
 		_, err := db.Handler.Exec(fmt.Sprintf("REINDEX %s;", index))
 		if err != nil {
-			return errors.Wrap(err, "failed to backup database")
+			return errors.Wrap(err, "could not reindex %s", index)
 		}
 	}
 
@@ -239,7 +277,10 @@ func (db *DB) backupSQLiteDatabase() error {
 
 	db.log.Info().Str("path", backupFile).Msg("creating database backup")
 
+	stop := db.startProgressLogger("database backup")
 	_, err := db.Handler.Exec("VACUUM INTO ?;", backupFile)
+	stop()
+
 	if err != nil {
 		return errors.Wrap(err, "failed to backup database")
 	}
