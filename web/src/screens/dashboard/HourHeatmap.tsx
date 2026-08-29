@@ -23,6 +23,8 @@ const squareCellChartAspectRatio = 3.15;
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const DISPLAY_DOWS = [1, 2, 3, 4, 5, 6, 0];
+const DISPLAY_DAYS = DISPLAY_DOWS.map((dow) => DAY_LABELS[dow]);
+const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
 
 // The API grid is UTC-indexed (dow*24+hour); shift whole cells into the
 // browser's timezone so the evening peak lands where the user expects it.
@@ -79,12 +81,12 @@ export const HourHeatmap = () => {
         })
       ],
       x: {
-        scale: scaleBand,
+        scale: scaleBand<number>().domain(HOURS),
         grid: false,
         format: (value: number) => (value % 3 === 0 ? String(value).padStart(2, "0") : "")
       },
       y: {
-        scale: scaleBand,
+        scale: scaleBand<string>().domain(DISPLAY_DAYS),
         grid: false
       },
       color: {
