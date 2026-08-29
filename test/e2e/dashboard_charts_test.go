@@ -66,7 +66,7 @@ func TestDashboardChartInteractions(t *testing.T) {
 			previousX = box.X
 		}
 
-		offsetValue, err := page.Evaluate("() => Math.round(-new Date().getTimezoneOffset() / 60)")
+		offsetValue, err := page.Evaluate("() => Math.round(-new Date().getTimezoneOffset() / 60) || 0")
 		require.NoError(t, err)
 		offset, ok := offsetValue.(int)
 		require.True(t, ok)
