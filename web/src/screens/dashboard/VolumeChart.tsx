@@ -49,6 +49,7 @@ export const VolumeChart = () => {
         format: (value: number) => humanFileSize(value)
       },
       theme: chartTheme(isDark),
+      focus: "nearest-x",
       tooltip: {
         content: (points) => {
           const point = points[0];
