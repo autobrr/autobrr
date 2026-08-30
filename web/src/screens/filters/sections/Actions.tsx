@@ -8,12 +8,13 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Field, FieldArray, useFormikContext } from "formik";
 import type { FieldProps, FieldArrayRenderProps } from "formik";
 import { ChevronRightIcon, BoltIcon } from "@heroicons/react/24/solid";
+import { ArrowDownIcon, ArrowUpIcon } from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
 
 import { classNames } from "@utils";
 import { useToggle } from "@hooks/hooks";
 import { APIClient } from "@api/APIClient";
-import { DOWNLOAD_CLIENTS, getActionTypeNameMap, getActionTypeOptions } from "@domain/constants";
+import { ActionOnErrorOptions, DOWNLOAD_CLIENTS, getActionTypeNameMap, getActionTypeOptions } from "@domain/constants";
 
 import { Select, TextField } from "@components/inputs";
 import { DeleteModal } from "@components/modals";
@@ -51,9 +52,13 @@ export function Actions() {
   const { data } = useQuery(DownloadClientsQueryOptions());
 
   const newAction: Action = {
-    id: 0,
+    // unique negative id so unsaved actions have stable, distinct React keys
+    // (a non-positive id still takes the insert path on the backend)
+    id: Math.min(0, ...values.actions.map((a) => a.id)) - 1,
     name: "new action",
+    position: values.actions.length,
     enabled: true,
+    on_error: "CONTINUE",
     type: "TEST",
     watch_folder: "",
     exec_cmd: "",
@@ -90,7 +95,7 @@ export function Actions() {
   return (
     <div className="mt-5">
       <FieldArray name="actions">
-        {({ remove, push }: FieldArrayRenderProps) => (
+        {({ remove, push, move }: FieldArrayRenderProps) => (
           <>
             <div className="-ml-4 -mt-4 mb-6 flex justify-between items-center flex-wrap sm:flex-nowrap">
               <TitleSubtitle
@@ -124,6 +129,7 @@ export function Actions() {
                     idx={index}
                     initialEdit={values.actions.length === 1}
                     remove={remove}
+                    move={move}
                   />
                 ))}
               </ul>
@@ -203,15 +209,27 @@ interface FilterActionsItemProps {
   idx: number;
   initialEdit: boolean;
   remove: <T>(index: number) => T | undefined;
+  move: (from: number, to: number) => void;
 }
 
-function FilterActionsItem({ action, actionTypeOptions, clients, idx, initialEdit, remove }: FilterActionsItemProps) {
+function FilterActionsItem({ action, actionTypeOptions, clients, idx, initialEdit, remove, move }: FilterActionsItemProps) {
   const { t } = useTranslation(["options", "filters"]);
+  const { values, setFieldValue } = useFormikContext<Filter>();
   const cancelButtonRef = useRef(null);
   const actionTypeNameMap = getActionTypeNameMap(t);
 
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
   const [edit, toggleEdit] = useToggle(initialEdit);
+
+  const moveUp = () => {
+    move(idx, idx - 1);
+    setFieldValue(`actions.${idx}.position`, idx - 1);
+  };
+
+  const moveDown = () => {
+    move(idx, idx + 1);
+    setFieldValue(`actions.${idx}.position`, idx + 1);
+  };
 
   const removeMutation = useMutation({
     mutationFn: (id: number) => APIClient.actions.delete(id),
@@ -240,6 +258,28 @@ function FilterActionsItem({ action, actionTypeOptions, clients, idx, initialEdi
           "flex items-center transition px-2 sm:px-6 rounded-md my-1 border border-gray-150 dark:border-gray-750 hover:bg-gray-200 dark:hover:bg-gray-850"
         )}
       >
+        {((idx > 0) || (idx < values.actions.length - 1)) ? (
+          <div className="flex flex-col pr-3 justify-between">
+            {idx > 0 && (
+              <button type="button" className="cursor-pointer" onClick={moveUp}>
+                <ArrowUpIcon
+                  className="p-0.5 h-4 w-4 text-gray-700 dark:text-gray-400"
+                  aria-hidden="true"
+                />
+              </button>
+            )}
+
+            {idx < values.actions.length - 1 && (
+              <button type="button" className="cursor-pointer" onClick={moveDown}>
+                <ArrowDownIcon
+                  className="p-0.5 h-4 w-4 text-gray-700 dark:text-gray-400"
+                  aria-hidden="true"
+                />
+              </button>
+            )}
+          </div>
+        ) : null}
+
         <Field name={`actions.${idx}.enabled`} type="checkbox">
           {({
             field,
@@ -309,6 +349,16 @@ function FilterActionsItem({ action, actionTypeOptions, clients, idx, initialEdi
 
                 <FilterHalfRow>
                   <TextField name={`actions.${idx}.name`} label={t("filters:actionsSection.name")} />
+                </FilterHalfRow>
+
+                <FilterHalfRow>
+                  <Select
+                    name={`actions.${idx}.on_error`}
+                    label={t("filters:actionsSection.onError")}
+                    optionDefaultText={t("filters:actionsSection.selectOnError")}
+                    options={ActionOnErrorOptions}
+                    tooltip={<div><p>{t("filters:actionsSection.onErrorTooltip")}</p></div>}
+                  />
                 </FilterHalfRow>
               </FilterLayout>
             </FilterSection>

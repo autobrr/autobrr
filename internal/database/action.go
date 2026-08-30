@@ -12,6 +12,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/lib/pq"
 	"github.com/rs/zerolog"
 )
 
@@ -71,9 +72,18 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, filterID int, active *b
 			"a.external_client_id",
 			"a.external_client",
 			"a.client_id",
+			"a.webhook_headers",
+			"a.exec_expect_status",
+			"a.webhook_expect_status",
+			"a.webhook_retry_status",
+			"a.webhook_retry_attempts",
+			"a.webhook_retry_delay_seconds",
+			"a.on_error",
+			"a.position",
 		).
 		From("action a").
-		Where(sq.Eq{"a.filter_id": filterID})
+		Where(sq.Eq{"a.filter_id": filterID}).
+		OrderBy("a.position ASC", "a.id ASC")
 
 	if active != nil {
 		queryBuilder = queryBuilder.Where(sq.Eq{"enabled": *active})
@@ -102,7 +112,10 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, filterID int, active *b
 		var externalClientID, clientID sql.NullInt32
 		var paused, ignoreRules sql.NullBool
 
-		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &downloadPath, &paused, &ignoreRules, &a.FirstLastPiecePrio, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID); err != nil {
+		var webhookRetryStatus, onError sql.NullString
+		var execExpectStatus, webhookExpectStatus, webhookRetryAttempts, webhookRetryDelaySeconds, position sql.NullInt32
+
+		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &downloadPath, &paused, &ignoreRules, &a.FirstLastPiecePrio, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID, pq.Array(&a.WebhookHeaders), &execExpectStatus, &webhookExpectStatus, &webhookRetryStatus, &webhookRetryAttempts, &webhookRetryDelaySeconds, &onError, &position); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -132,6 +145,14 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, filterID int, active *b
 		a.ExternalDownloadClientID = externalClientID.Int32
 		a.ExternalDownloadClient = externalClient.String
 		a.ClientID = clientID.Int32
+
+		a.ExecExpectStatus = int(execExpectStatus.Int32)
+		a.WebhookExpectStatus = int(webhookExpectStatus.Int32)
+		a.WebhookRetryStatus = webhookRetryStatus.String
+		a.WebhookRetryAttempts = int(webhookRetryAttempts.Int32)
+		a.WebhookRetryDelaySeconds = int(webhookRetryDelaySeconds.Int32)
+		a.OnError = domain.ActionOnError(onError.String)
+		a.Position = int(position.Int32)
 
 		actions = append(actions, &a)
 	}
@@ -179,6 +200,14 @@ func (r *ActionRepo) findByFilterIDWithClient(ctx context.Context, filterID int,
 			"a.external_client_id",
 			"a.external_client",
 			"a.client_id",
+			"a.webhook_headers",
+			"a.exec_expect_status",
+			"a.webhook_expect_status",
+			"a.webhook_retry_status",
+			"a.webhook_retry_attempts",
+			"a.webhook_retry_delay_seconds",
+			"a.on_error",
+			"a.position",
 			"c.id",
 			"c.name",
 			"c.type",
@@ -193,7 +222,8 @@ func (r *ActionRepo) findByFilterIDWithClient(ctx context.Context, filterID int,
 		).
 		From("action a").
 		Join("client c ON a.client_id = c.id").
-		Where(sq.Eq{"a.filter_id": filterID})
+		Where(sq.Eq{"a.filter_id": filterID}).
+		OrderBy("a.position ASC", "a.id ASC")
 
 	if active != nil {
 		queryBuilder = queryBuilder.Where(sq.Eq{"enabled": *active})
@@ -223,11 +253,14 @@ func (r *ActionRepo) findByFilterIDWithClient(ctx context.Context, filterID int,
 		var externalClientID, clientID sql.NullInt32
 		var paused, ignoreRules sql.NullBool
 
+		var webhookRetryStatus, onError sql.NullString
+		var execExpectStatus, webhookExpectStatus, webhookRetryAttempts, webhookRetryDelaySeconds, position sql.NullInt32
+
 		var clientClientId, clientPort sql.Null[int32]
 		var clientName, clientType, clientHost, clientUsername, clientPassword, clientSettings sql.Null[string]
 		var clientEnabled, clientTLS, clientTLSSkip sql.Null[bool]
 
-		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &downloadPath, &paused, &ignoreRules, &a.FirstLastPiecePrio, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID, &clientClientId, &clientName, &clientType, &clientEnabled, &clientHost, &clientPort, &clientTLS, &clientTLSSkip, &clientUsername, &clientPassword, &clientSettings); err != nil {
+		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &downloadPath, &paused, &ignoreRules, &a.FirstLastPiecePrio, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID, pq.Array(&a.WebhookHeaders), &execExpectStatus, &webhookExpectStatus, &webhookRetryStatus, &webhookRetryAttempts, &webhookRetryDelaySeconds, &onError, &position, &clientClientId, &clientName, &clientType, &clientEnabled, &clientHost, &clientPort, &clientTLS, &clientTLSSkip, &clientUsername, &clientPassword, &clientSettings); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -257,6 +290,14 @@ func (r *ActionRepo) findByFilterIDWithClient(ctx context.Context, filterID int,
 		a.ExternalDownloadClientID = externalClientID.Int32
 		a.ExternalDownloadClient = externalClient.String
 		a.ClientID = clientID.Int32
+
+		a.ExecExpectStatus = int(execExpectStatus.Int32)
+		a.WebhookExpectStatus = int(webhookExpectStatus.Int32)
+		a.WebhookRetryStatus = webhookRetryStatus.String
+		a.WebhookRetryAttempts = int(webhookRetryAttempts.Int32)
+		a.WebhookRetryDelaySeconds = int(webhookRetryDelaySeconds.Int32)
+		a.OnError = domain.ActionOnError(onError.String)
+		a.Position = int(position.Int32)
 
 		c.ID = clientClientId.V
 		c.Name = clientName.V
@@ -355,9 +396,18 @@ func (r *ActionRepo) findByFilterIDTx(ctx context.Context, tx *Tx, filterID int,
 			"external_client_id",
 			"external_client",
 			"client_id",
+			"webhook_headers",
+			"exec_expect_status",
+			"webhook_expect_status",
+			"webhook_retry_status",
+			"webhook_retry_attempts",
+			"webhook_retry_delay_seconds",
+			"on_error",
+			"position",
 		).
 		From("action").
-		Where(sq.Eq{"filter_id": filterID})
+		Where(sq.Eq{"filter_id": filterID}).
+		OrderBy("position ASC", "id ASC")
 
 	if active != nil {
 		queryBuilder = queryBuilder.Where(sq.Eq{"enabled": *active})
@@ -386,7 +436,10 @@ func (r *ActionRepo) findByFilterIDTx(ctx context.Context, tx *Tx, filterID int,
 		var externalClientID, clientID sql.NullInt32
 		var paused, ignoreRules sql.NullBool
 
-		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &downloadPath, &paused, &ignoreRules, &a.FirstLastPiecePrio, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID); err != nil {
+		var webhookRetryStatus, onError sql.NullString
+		var execExpectStatus, webhookExpectStatus, webhookRetryAttempts, webhookRetryDelaySeconds, position sql.NullInt32
+
+		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &downloadPath, &paused, &ignoreRules, &a.FirstLastPiecePrio, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID, pq.Array(&a.WebhookHeaders), &execExpectStatus, &webhookExpectStatus, &webhookRetryStatus, &webhookRetryAttempts, &webhookRetryDelaySeconds, &onError, &position); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -416,6 +469,14 @@ func (r *ActionRepo) findByFilterIDTx(ctx context.Context, tx *Tx, filterID int,
 		a.ExternalDownloadClientID = externalClientID.Int32
 		a.ExternalDownloadClient = externalClient.String
 		a.ClientID = clientID.Int32
+
+		a.ExecExpectStatus = int(execExpectStatus.Int32)
+		a.WebhookExpectStatus = int(webhookExpectStatus.Int32)
+		a.WebhookRetryStatus = webhookRetryStatus.String
+		a.WebhookRetryAttempts = int(webhookRetryAttempts.Int32)
+		a.WebhookRetryDelaySeconds = int(webhookRetryDelaySeconds.Int32)
+		a.OnError = domain.ActionOnError(onError.String)
+		a.Position = int(position.Int32)
 
 		actions = append(actions, &a)
 	}
@@ -512,6 +573,14 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 			"external_client_id",
 			"external_client",
 			"client_id",
+			"webhook_headers",
+			"exec_expect_status",
+			"webhook_expect_status",
+			"webhook_retry_status",
+			"webhook_retry_attempts",
+			"webhook_retry_delay_seconds",
+			"on_error",
+			"position",
 		).
 		From("action")
 
@@ -537,7 +606,10 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 		var externalClientID, clientID sql.NullInt32
 		var paused, ignoreRules sql.NullBool
 
-		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &downloadPath, &paused, &ignoreRules, &a.FirstLastPiecePrio, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID); err != nil {
+		var webhookRetryStatus, onError sql.NullString
+		var execExpectStatus, webhookExpectStatus, webhookRetryAttempts, webhookRetryDelaySeconds, position sql.NullInt32
+
+		if err := rows.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &downloadPath, &paused, &ignoreRules, &a.FirstLastPiecePrio, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID, pq.Array(&a.WebhookHeaders), &execExpectStatus, &webhookExpectStatus, &webhookRetryStatus, &webhookRetryAttempts, &webhookRetryDelaySeconds, &onError, &position); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -564,6 +636,14 @@ func (r *ActionRepo) List(ctx context.Context) ([]domain.Action, error) {
 		a.ExternalDownloadClientID = externalClientID.Int32
 		a.ExternalDownloadClient = externalClient.String
 		a.ClientID = clientID.Int32
+
+		a.ExecExpectStatus = int(execExpectStatus.Int32)
+		a.WebhookExpectStatus = int(webhookExpectStatus.Int32)
+		a.WebhookRetryStatus = webhookRetryStatus.String
+		a.WebhookRetryAttempts = int(webhookRetryAttempts.Int32)
+		a.WebhookRetryDelaySeconds = int(webhookRetryDelaySeconds.Int32)
+		a.OnError = domain.ActionOnError(onError.String)
+		a.Position = int(position.Int32)
 
 		actions = append(actions, a)
 
@@ -611,6 +691,14 @@ func (r *ActionRepo) Get(ctx context.Context, req *domain.GetActionRequest) (*do
 			"external_client_id",
 			"external_client",
 			"client_id",
+			"webhook_headers",
+			"exec_expect_status",
+			"webhook_expect_status",
+			"webhook_retry_status",
+			"webhook_retry_attempts",
+			"webhook_retry_delay_seconds",
+			"on_error",
+			"position",
 			"filter_id",
 		).
 		From("action").
@@ -634,7 +722,10 @@ func (r *ActionRepo) Get(ctx context.Context, req *domain.GetActionRequest) (*do
 	var externalClientID, clientID, filterID sql.NullInt32
 	var paused, ignoreRules sql.NullBool
 
-	if err := row.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &downloadPath, &paused, &ignoreRules, &a.FirstLastPiecePrio, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID, &filterID); err != nil {
+	var webhookRetryStatus, onError sql.NullString
+	var execExpectStatus, webhookExpectStatus, webhookRetryAttempts, webhookRetryDelaySeconds, position sql.NullInt32
+
+	if err := row.Scan(&a.ID, &a.Name, &a.Type, &a.Enabled, &execCmd, &execArgs, &watchFolder, &category, &tags, &label, &savePath, &downloadPath, &paused, &ignoreRules, &a.FirstLastPiecePrio, &a.SkipHashCheck, &contentLayout, &priorityLayout, &limitDl, &limitUl, &limitRatio, &limitSeedTime, &a.ReAnnounceSkip, &a.ReAnnounceDelete, &a.ReAnnounceInterval, &a.ReAnnounceMaxAttempts, &webhookHost, &webhookType, &webhookMethod, &webhookData, &externalClientID, &externalClient, &clientID, pq.Array(&a.WebhookHeaders), &execExpectStatus, &webhookExpectStatus, &webhookRetryStatus, &webhookRetryAttempts, &webhookRetryDelaySeconds, &onError, &position, &filterID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRecordNotFound
 		}
@@ -669,6 +760,14 @@ func (r *ActionRepo) Get(ctx context.Context, req *domain.GetActionRequest) (*do
 	a.ExternalDownloadClient = externalClient.String
 	a.ClientID = clientID.Int32
 	a.FilterID = int(filterID.Int32)
+
+	a.ExecExpectStatus = int(execExpectStatus.Int32)
+	a.WebhookExpectStatus = int(webhookExpectStatus.Int32)
+	a.WebhookRetryStatus = webhookRetryStatus.String
+	a.WebhookRetryAttempts = int(webhookRetryAttempts.Int32)
+	a.WebhookRetryDelaySeconds = int(webhookRetryDelaySeconds.Int32)
+	a.OnError = domain.ActionOnError(onError.String)
+	a.Position = int(position.Int32)
 
 	return &a, nil
 }
@@ -756,6 +855,14 @@ func (r *ActionRepo) Store(ctx context.Context, action *domain.Action) error {
 			"external_client",
 			"client_id",
 			"filter_id",
+			"webhook_headers",
+			"exec_expect_status",
+			"webhook_expect_status",
+			"webhook_retry_status",
+			"webhook_retry_attempts",
+			"webhook_retry_delay_seconds",
+			"on_error",
+			"position",
 		).
 		Values(
 			action.Name,
@@ -791,6 +898,14 @@ func (r *ActionRepo) Store(ctx context.Context, action *domain.Action) error {
 			toNullString(action.ExternalDownloadClient),
 			toNullInt32(action.ClientID),
 			toNullInt32(int32(action.FilterID)),
+			pq.Array(action.WebhookHeaders),
+			toNullInt32(int32(action.ExecExpectStatus)),
+			toNullInt32(int32(action.WebhookExpectStatus)),
+			toNullString(action.WebhookRetryStatus),
+			toNullInt32(int32(action.WebhookRetryAttempts)),
+			toNullInt32(int32(action.WebhookRetryDelaySeconds)),
+			action.OnError,
+			action.Position,
 		).
 		Suffix("RETURNING id").RunWith(r.db.Handler)
 
@@ -844,6 +959,14 @@ func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.
 		Set("external_client", toNullString(action.ExternalDownloadClient)).
 		Set("client_id", toNullInt32(action.ClientID)).
 		Set("filter_id", toNullInt32(int32(action.FilterID))).
+		Set("webhook_headers", pq.Array(action.WebhookHeaders)).
+		Set("exec_expect_status", toNullInt32(int32(action.ExecExpectStatus))).
+		Set("webhook_expect_status", toNullInt32(int32(action.WebhookExpectStatus))).
+		Set("webhook_retry_status", toNullString(action.WebhookRetryStatus)).
+		Set("webhook_retry_attempts", toNullInt32(int32(action.WebhookRetryAttempts))).
+		Set("webhook_retry_delay_seconds", toNullInt32(int32(action.WebhookRetryDelaySeconds))).
+		Set("on_error", action.OnError).
+		Set("position", action.Position).
 		Where(sq.Eq{"id": action.ID})
 
 	query, args, err := queryBuilder.ToSql()
@@ -875,7 +998,7 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, filterID int64, act
 
 	defer tx.Rollback()
 
-	for _, action := range actions {
+	for i, action := range actions {
 		if action.ID > 0 {
 			queryBuilder := r.db.squirrel.
 				Update("action").
@@ -912,6 +1035,14 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, filterID int64, act
 				Set("external_client", toNullString(action.ExternalDownloadClient)).
 				Set("client_id", toNullInt32(action.ClientID)).
 				Set("filter_id", toNullInt64(filterID)).
+				Set("webhook_headers", pq.Array(action.WebhookHeaders)).
+				Set("exec_expect_status", toNullInt32(int32(action.ExecExpectStatus))).
+				Set("webhook_expect_status", toNullInt32(int32(action.WebhookExpectStatus))).
+				Set("webhook_retry_status", toNullString(action.WebhookRetryStatus)).
+				Set("webhook_retry_attempts", toNullInt32(int32(action.WebhookRetryAttempts))).
+				Set("webhook_retry_delay_seconds", toNullInt32(int32(action.WebhookRetryDelaySeconds))).
+				Set("on_error", action.OnError).
+				Set("position", i).
 				Where(sq.Eq{"id": action.ID})
 
 			query, args, err := queryBuilder.ToSql()
@@ -962,6 +1093,14 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, filterID int64, act
 					"external_client",
 					"client_id",
 					"filter_id",
+					"webhook_headers",
+					"exec_expect_status",
+					"webhook_expect_status",
+					"webhook_retry_status",
+					"webhook_retry_attempts",
+					"webhook_retry_delay_seconds",
+					"on_error",
+					"position",
 				).
 				Values(
 					action.Name,
@@ -997,6 +1136,14 @@ func (r *ActionRepo) StoreFilterActions(ctx context.Context, filterID int64, act
 					toNullString(action.ExternalDownloadClient),
 					toNullInt32(action.ClientID),
 					toNullInt64(filterID),
+					pq.Array(action.WebhookHeaders),
+					toNullInt32(int32(action.ExecExpectStatus)),
+					toNullInt32(int32(action.WebhookExpectStatus)),
+					toNullString(action.WebhookRetryStatus),
+					toNullInt32(int32(action.WebhookRetryAttempts)),
+					toNullInt32(int32(action.WebhookRetryDelaySeconds)),
+					action.OnError,
+					i,
 				).
 				Suffix("RETURNING id").RunWith(tx)
 

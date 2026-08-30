@@ -92,10 +92,13 @@ interface Filter {
 interface Action {
   id: number;
   name: string;
+  position?: number;
   type: ActionType;
   enabled: boolean;
+  on_error?: ActionOnError;
   exec_cmd?: string;
   exec_args?: string;
+  exec_expect_status?: number;
   watch_folder?: string;
   category?: string;
   tags?: string;
@@ -121,6 +124,10 @@ interface Action {
   webhook_method: string;
   webhook_data: string,
   webhook_headers: string[];
+  webhook_expect_status?: number;
+  webhook_retry_status?: string;
+  webhook_retry_attempts?: number;
+  webhook_retry_delay_seconds?: number;
   external_download_client_id?: number;
   external_download_client?: string;
   client_id?: number;
@@ -128,6 +135,8 @@ interface Action {
 }
 
 type ActionContentLayout = "ORIGINAL" | "SUBFOLDER_CREATE" | "SUBFOLDER_NONE" | "";
+
+type ActionOnError = "CONTINUE" | "STOP";
 
 type ActionPriorityLayout = "MAX" | "MIN" | "";
 

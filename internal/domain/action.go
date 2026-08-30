@@ -12,10 +12,12 @@ import (
 type Action struct {
 	ID                       int                 `json:"id"`
 	Name                     string              `json:"name"`
+	Position                 int                 `json:"position"`
 	Type                     ActionType          `json:"type"`
 	Enabled                  bool                `json:"enabled"`
 	ExecCmd                  string              `json:"exec_cmd,omitempty"`
 	ExecArgs                 string              `json:"exec_args,omitempty"`
+	ExecExpectStatus         int                 `json:"exec_expect_status,omitempty"`
 	WatchFolder              string              `json:"watch_folder,omitempty"`
 	Category                 string              `json:"category,omitempty"`
 	Tags                     string              `json:"tags,omitempty"`
@@ -41,12 +43,27 @@ type Action struct {
 	WebhookMethod            string              `json:"webhook_method,omitempty"`
 	WebhookData              string              `json:"webhook_data,omitempty"`
 	WebhookHeaders           []string            `json:"webhook_headers,omitempty"`
+	WebhookExpectStatus      int                 `json:"webhook_expect_status,omitempty"`
+	WebhookRetryStatus       string              `json:"webhook_retry_status,omitempty"`
+	WebhookRetryAttempts     int                 `json:"webhook_retry_attempts,omitempty"`
+	WebhookRetryDelaySeconds int                 `json:"webhook_retry_delay_seconds,omitempty"`
+	OnError                  ActionOnError       `json:"on_error"`
 	ExternalDownloadClientID int32               `json:"external_download_client_id,omitempty"`
 	ExternalDownloadClient   string              `json:"external_download_client,omitempty"`
 	FilterID                 int                 `json:"filter_id,omitempty"`
 	ClientID                 int32               `json:"client_id,omitempty"`
 	Client                   *DownloadClient     `json:"client,omitempty"`
 }
+
+// ActionOnError controls what happens to the remaining actions of a release
+// when an action fails. CONTINUE (default) logs the error and runs the next
+// action, STOP aborts the rest of the action chain for that release.
+type ActionOnError string
+
+const (
+	ActionOnErrorContinue ActionOnError = "CONTINUE"
+	ActionOnErrorStop     ActionOnError = "STOP"
+)
 
 // NeedsTorrentDownloaded check if the action type uploads the torrent itself.
 // These are resolved up front so a release with several actions fetches the

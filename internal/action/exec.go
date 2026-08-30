@@ -41,8 +41,20 @@ func (s *Service) execCmd(ctx context.Context, action *domain.Action, release *d
 	// execute command
 	output, err := command.CombinedOutput()
 	if err != nil {
-		// everything other than exit 0 is considered an error
-		return errors.Wrap(err, "error executing command: %s args: %s", cmd, args)
+		var exitErr *exec.ExitError
+		if !errors.As(err, &exitErr) {
+			// not an exit error (e.g. the command could not be started) - hard error
+			return errors.Wrap(err, "error executing command: %s args: %s", cmd, args)
+		}
+
+		// the command ran but exited with a non-zero code, only treat it as an
+		// error when it does not match the configured expected exit status.
+		if exitCode := exitErr.ExitCode(); exitCode != action.ExecExpectStatus {
+			return errors.Wrap(err, "command exited with unexpected exit code: %d (expected %d) command: %s args: %s", exitCode, action.ExecExpectStatus, cmd, args)
+		}
+	} else if action.ExecExpectStatus != 0 {
+		// the command exited 0 but a non-zero exit status was expected
+		return errors.New("command exited with code 0 but expected %d - command: %s args: %s", action.ExecExpectStatus, cmd, args)
 	}
 
 	l.Trace().Str("output", string(output)).Msg("executed command")

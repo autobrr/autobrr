@@ -1164,9 +1164,7 @@ func basicContainsMatch(tags []string, filters []string) bool {
 }
 
 func checkFreeleechPercent(announcePercent int, filterPercent string) bool {
-	filters := strings.Split(filterPercent, ",")
-
-	for _, filter := range filters {
+	for filter := range strings.SplitSeq(filterPercent, ",") {
 		filter = strings.Replace(filter, "%", "", -1)
 		filter = strings.TrimSpace(filter)
 
@@ -1195,6 +1193,9 @@ func checkFreeleechPercent(announcePercent int, filterPercent string) bool {
 					}
 				}
 			}
+
+			// continue to next filter entry, otherwise the ParseInt below fails on the range token
+			continue
 		}
 
 		filterPercentInt, err := strconv.ParseInt(filter, 10, 32)

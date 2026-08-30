@@ -11,13 +11,16 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/utils"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
+	"github.com/avast/retry-go/v4"
 	"github.com/rs/zerolog"
 )
 
@@ -201,7 +204,17 @@ func (s *Service) webhook(ctx context.Context, action *domain.Action) error {
 
 	l.Trace().Str("host", action.WebhookHost).Str("payload", truncString(action.WebhookData, 1024)).Msg("running Webhook action")
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, action.WebhookHost, bytes.NewBufferString(action.WebhookData))
+	if action.WebhookHost == "" {
+		return errors.New("webhook action: missing host for webhook")
+	}
+
+	// default to POST but allow the method to be configured per action
+	method := http.MethodPost
+	if action.WebhookMethod != "" {
+		method = action.WebhookMethod
+	}
+
+	req, err := http.NewRequestWithContext(ctx, method, action.WebhookHost, nil)
 	if err != nil {
 		return errors.Wrap(err, "could not build request for webhook")
 	}
@@ -209,13 +222,75 @@ func (s *Service) webhook(ctx context.Context, action *domain.Action) error {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "autobrr")
 
+	// custom headers in the form of "Key=Value"
+	for _, header := range action.WebhookHeaders {
+		h := strings.SplitN(header, "=", 2)
+		if len(h) != 2 {
+			continue
+		}
+
+		// go already canonicalizes the provided header key.
+		req.Header.Set(strings.TrimSpace(h[0]), strings.TrimSpace(h[1]))
+	}
+
+	retryAttempts := action.WebhookRetryAttempts
+	if retryAttempts == 0 {
+		retryAttempts = 1
+	}
+
+	opts := []retry.Option{
+		retry.DelayType(retry.FixedDelay),
+		retry.LastErrorOnly(true),
+		retry.Attempts(uint(retryAttempts)),
+	}
+
+	if action.WebhookRetryDelaySeconds > 0 {
+		opts = append(opts, retry.Delay(time.Duration(action.WebhookRetryDelaySeconds)*time.Second))
+	}
+
+	var retryStatusCodes []string
+	if action.WebhookRetryStatus != "" {
+		retryStatusCodes = strings.Split(strings.ReplaceAll(action.WebhookRetryStatus, " ", ""), ",")
+	}
+
 	start := time.Now()
-	res, err := s.httpClient.Do(req)
+
+	statusCode, err := retry.DoWithData(
+		func() (int, error) {
+			clonereq := req.Clone(ctx)
+			if action.WebhookData != "" {
+				// set Body, ContentLength and GetBody explicitly so the request is
+				// sent with a Content-Length header (not chunked) and can be replayed.
+				clonereq.Body = io.NopCloser(bytes.NewBufferString(action.WebhookData))
+				clonereq.ContentLength = int64(len(action.WebhookData))
+				clonereq.GetBody = func() (io.ReadCloser, error) {
+					return io.NopCloser(bytes.NewBufferString(action.WebhookData)), nil
+				}
+			}
+
+			res, err := s.httpClient.Do(clonereq)
+			if err != nil {
+				return 0, errors.Wrap(err, "could not make request for webhook")
+			}
+
+			defer sharedhttp.DrainAndClose(res)
+
+			// if the status code is in the retry list, return an error to trigger a retry
+			if utils.StrSliceContains(retryStatusCodes, strconv.Itoa(res.StatusCode)) {
+				return 0, errors.New("webhook got unwanted status code: %d", res.StatusCode)
+			}
+
+			return res.StatusCode, nil
+		},
+		opts...)
 	if err != nil {
 		return errors.Wrap(err, "could not make request for webhook")
 	}
 
-	defer sharedhttp.DrainAndClose(res)
+	// if an expected status code is configured, treat a mismatch as a failure
+	if action.WebhookExpectStatus > 0 && statusCode != action.WebhookExpectStatus {
+		return errors.New("webhook action '%s' got unexpected status code: %d (expected %d)", action.Name, statusCode, action.WebhookExpectStatus)
+	}
 
 	l.Info().Str("host", action.WebhookHost).Str("payload", truncString(action.WebhookData, 256)).Dur("duration", time.Since(start)).Msg("webhook action executed")
 

@@ -993,6 +993,11 @@ export const ExternalFilterOnErrorOptions: SelectGenericOption<ExternalFilterOnE
   { label: "Continue to next", description: "Continue on error", value: "CONTINUE" },
 ];
 
+export const ActionOnErrorOptions: SelectGenericOption<ActionOnError>[] = [
+  { label: "Continue to next", description: "Log the error and continue with the next action, default", value: "CONTINUE" },
+  { label: "Stop", description: "Stop processing the remaining actions on error", value: "STOP" },
+];
+
 export const ExternalFilterWebhookMethodOptions: OptionBasicTyped<WebhookMethod>[] = [
   { label: "GET", value: "GET" },
   { label: "POST", value: "POST" },

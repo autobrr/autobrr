@@ -2497,6 +2497,35 @@ func Test_containsIntStrings(t *testing.T) {
 	}
 }
 
+func Test_checkFreeleechPercent(t *testing.T) {
+	t.Parallel()
+	type args struct {
+		announcePercent int
+		filterPercent   string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{name: "test_1", args: args{announcePercent: 100, filterPercent: "100"}, want: true},
+		{name: "test_2", args: args{announcePercent: 100, filterPercent: "100%"}, want: true},
+		{name: "test_3", args: args{announcePercent: 50, filterPercent: "100"}, want: false},
+		{name: "test_4", args: args{announcePercent: 75, filterPercent: "50-100"}, want: true},
+		{name: "test_5", args: args{announcePercent: 100, filterPercent: "50-90"}, want: false},
+		{name: "test_6", args: args{announcePercent: 100, filterPercent: "50-90,100"}, want: true},
+		{name: "test_7", args: args{announcePercent: 100, filterPercent: "25-50,75-90,100%"}, want: true},
+		{name: "test_8", args: args{announcePercent: 80, filterPercent: "25-50,75-100"}, want: true},
+		{name: "test_9", args: args{announcePercent: 60, filterPercent: "25-50,75-100"}, want: false},
+		{name: "test_10", args: args{announcePercent: 100, filterPercent: "invalid"}, want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, checkFreeleechPercent(tt.args.announcePercent, tt.args.filterPercent), "checkFreeleechPercent(%v, %v)", tt.args.announcePercent, tt.args.filterPercent)
+		})
+	}
+}
+
 func Test_matchRegex(t *testing.T) {
 	t.Parallel()
 	type args struct {
