@@ -270,8 +270,8 @@ func retryableRequest(httpClient *http.Client, req *http.Request, r *domain.Rele
 		}
 
 		resetTmpFile := func() {
-			tmpFile.Seek(0, io.SeekStart)
-			tmpFile.Truncate(0)
+			_, _ = tmpFile.Seek(0, io.SeekStart)
+			_ = tmpFile.Truncate(0)
 		}
 
 		// Read the body into bytes

@@ -95,20 +95,20 @@ func (d *httpProxyDialer) DialContext(ctx context.Context, network, addr string)
 		deadline = ctxDeadline
 	}
 	if err := proxyConn.SetDeadline(deadline); err != nil {
-		proxyConn.Close()
+		_ = proxyConn.Close()
 		return nil, errors.Wrap(err, "failed to reset deadline")
 	}
 
 	// Send the CONNECT request
 	if _, err := proxyConn.Write([]byte(connectReq)); err != nil {
-		proxyConn.Close()
+		_ = proxyConn.Close()
 		return nil, errors.Wrap(err, "failed to send CONNECT request")
 	}
 
 	reader := bufio.NewReader(proxyConn)
 	resp, err := http.ReadResponse(reader, &http.Request{Method: "CONNECT"})
 	if err != nil {
-		proxyConn.Close()
+		_ = proxyConn.Close()
 		return nil, errors.Wrap(err, "failed to read CONNECT response")
 	}
 
@@ -121,10 +121,10 @@ func (d *httpProxyDialer) DialContext(ctx context.Context, network, addr string)
 			if n > 0 {
 				errorBody = string(bodyBytes[:n])
 			}
-			resp.Body.Close()
+			_ = resp.Body.Close()
 		}
 
-		proxyConn.Close()
+		_ = proxyConn.Close()
 
 		err = errors.New("proxy CONNECT to %s failed with status: %s body: %s", addr, resp.Status, errorBody)
 
@@ -142,12 +142,12 @@ func (d *httpProxyDialer) DialContext(ctx context.Context, network, addr string)
 
 	// Close the response body for successful responses (should be empty for CONNECT)
 	if resp.Body != nil {
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}
 
 	// Reset the deadline
 	if err := proxyConn.SetDeadline(time.Time{}); err != nil {
-		proxyConn.Close()
+		_ = proxyConn.Close()
 		return nil, errors.Wrap(err, "failed to reset deadline")
 	}
 

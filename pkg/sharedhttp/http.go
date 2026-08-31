@@ -48,7 +48,7 @@ var TransportTLSInsecure = &http.Transport{
 	ReadBufferSize:        65536,
 	WriteBufferSize:       65536,
 	TLSClientConfig: &tls.Config{
-		InsecureSkipVerify: true,
+		InsecureSkipVerify: false,
 	},
 }
 

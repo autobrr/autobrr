@@ -1,0 +1,722 @@
+[
+  {
+    "severity": "LOW",
+    "confidence": "HIGH",
+    "cwe": {
+      "id": "703",
+      "url": "https://cwe.mitre.org/data/definitions/703.html"
+    },
+    "rule_id": "G104",
+    "details": "Errors unhandled",
+    "file": "/app/internal/config/config.go",
+    "code": "204: \t\t\tb := make([]byte, 4096)\n205: \t\t\tpd.Read(b)\n206: \t\t\tif strings.Contains(string(b), \"/docker\") || strings.Contains(string(b), \"/lxc\") {\n",
+    "line": "205",
+    "column": "4",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "HIGH",
+    "confidence": "MEDIUM",
+    "cwe": {
+      "id": "190",
+      "url": "https://cwe.mitre.org/data/definitions/190.html"
+    },
+    "rule_id": "G115",
+    "details": "integer overflow conversion int -> int32",
+    "file": "/app/internal/database/action.go",
+    "code": "840: \t\tSet(\"client_id\", toNullInt32(action.ClientID)).\n841: \t\tSet(\"filter_id\", toNullInt32(int32(action.FilterID))).\n842: \t\tWhere(sq.Eq{\"id\": action.ID})\n",
+    "line": "841",
+    "column": "37",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "HIGH",
+    "confidence": "MEDIUM",
+    "cwe": {
+      "id": "190",
+      "url": "https://cwe.mitre.org/data/definitions/190.html"
+    },
+    "rule_id": "G115",
+    "details": "integer overflow conversion int -> int32",
+    "file": "/app/internal/database/action.go",
+    "code": "787: \t\t\ttoNullInt32(action.ClientID),\n788: \t\t\ttoNullInt32(int32(action.FilterID)),\n789: \t\t).\n",
+    "line": "788",
+    "column": "21",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "HIGH",
+    "confidence": "MEDIUM",
+    "cwe": {
+      "id": "190",
+      "url": "https://cwe.mitre.org/data/definitions/190.html"
+    },
+    "rule_id": "G115",
+    "details": "integer overflow conversion int -> int32",
+    "file": "/app/internal/database/download_client.go",
+    "code": "166: \n167: \tclient.ID = int32(retID)\n168: \n",
+    "line": "167",
+    "column": "19",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "HIGH",
+    "confidence": "MEDIUM",
+    "cwe": {
+      "id": "190",
+      "url": "https://cwe.mitre.org/data/definitions/190.html"
+    },
+    "rule_id": "G115",
+    "details": "integer overflow conversion int -> int32",
+    "file": "/app/internal/database/filter.go",
+    "code": "1597: \t\t\ttoNullInt32(int32(external.WebhookRetryAttempts)),\n1598: \t\t\ttoNullInt32(int32(external.WebhookRetryDelaySeconds)),\n1599: \t\t\texternal.OnError,\n",
+    "line": "1598",
+    "column": "21",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "HIGH",
+    "confidence": "MEDIUM",
+    "cwe": {
+      "id": "190",
+      "url": "https://cwe.mitre.org/data/definitions/190.html"
+    },
+    "rule_id": "G115",
+    "details": "integer overflow conversion int -> int32",
+    "file": "/app/internal/database/filter.go",
+    "code": "1596: \t\t\ttoNullString(external.WebhookRetryStatus),\n1597: \t\t\ttoNullInt32(int32(external.WebhookRetryAttempts)),\n1598: \t\t\ttoNullInt32(int32(external.WebhookRetryDelaySeconds)),\n",
+    "line": "1597",
+    "column": "21",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "HIGH",
+    "confidence": "MEDIUM",
+    "cwe": {
+      "id": "190",
+      "url": "https://cwe.mitre.org/data/definitions/190.html"
+    },
+    "rule_id": "G115",
+    "details": "integer overflow conversion int -> int32",
+    "file": "/app/internal/database/filter.go",
+    "code": "1594: \t\t\ttoNullString(external.WebhookHeaders),\n1595: \t\t\ttoNullInt32(int32(external.WebhookExpectStatus)),\n1596: \t\t\ttoNullString(external.WebhookRetryStatus),\n",
+    "line": "1595",
+    "column": "21",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "HIGH",
+    "confidence": "MEDIUM",
+    "cwe": {
+      "id": "190",
+      "url": "https://cwe.mitre.org/data/definitions/190.html"
+    },
+    "rule_id": "G115",
+    "details": "integer overflow conversion int -> int32",
+    "file": "/app/internal/database/filter.go",
+    "code": "1589: \t\t\ttoNullString(external.ExecArgs),\n1590: \t\t\ttoNullInt32(int32(external.ExecExpectStatus)),\n1591: \t\t\ttoNullString(external.WebhookHost),\n",
+    "line": "1590",
+    "column": "21",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "HIGH",
+    "confidence": "MEDIUM",
+    "cwe": {
+      "id": "190",
+      "url": "https://cwe.mitre.org/data/definitions/190.html"
+    },
+    "rule_id": "G115",
+    "details": "integer overflow conversion int -> int32",
+    "file": "/app/internal/database/list.go",
+    "code": "226: \t\tSet(\"type\", list.Type).\n227: \t\tSet(\"client_id\", toNullInt32(int32(list.ClientID))).\n228: \t\tSet(\"url\", list.URL).\n",
+    "line": "227",
+    "column": "37",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "HIGH",
+    "confidence": "MEDIUM",
+    "cwe": {
+      "id": "190",
+      "url": "https://cwe.mitre.org/data/definitions/190.html"
+    },
+    "rule_id": "G115",
+    "details": "integer overflow conversion int -> int32",
+    "file": "/app/internal/database/list.go",
+    "code": "181: \t\t\tlist.Type,\n182: \t\t\ttoNullInt32(int32(list.ClientID)),\n183: \t\t\tlist.URL,\n",
+    "line": "182",
+    "column": "21",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "HIGH",
+    "confidence": "MEDIUM",
+    "cwe": {
+      "id": "190",
+      "url": "https://cwe.mitre.org/data/definitions/190.html"
+    },
+    "rule_id": "G115",
+    "details": "integer overflow conversion int64 -> uint64",
+    "file": "/app/internal/domain/release.go",
+    "code": "982: \t\tr.TorrentHash = meta.HashInfoBytes().String()\n983: \t\tr.Size = uint64(torrentMetaInfo.TotalLength())\n984: \n",
+    "line": "983",
+    "column": "18",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "LOW",
+    "confidence": "HIGH",
+    "cwe": {
+      "id": "703",
+      "url": "https://cwe.mitre.org/data/definitions/703.html"
+    },
+    "rule_id": "G104",
+    "details": "Errors unhandled",
+    "file": "/app/internal/domain/release.go",
+    "code": "935: \t\t\ttmpFile.Seek(0, io.SeekStart)\n936: \t\t\ttmpFile.Truncate(0)\n937: \t\t}\n",
+    "line": "936",
+    "column": "4",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "LOW",
+    "confidence": "HIGH",
+    "cwe": {
+      "id": "703",
+      "url": "https://cwe.mitre.org/data/definitions/703.html"
+    },
+    "rule_id": "G104",
+    "details": "Errors unhandled",
+    "file": "/app/internal/domain/release.go",
+    "code": "934: \t\tresetTmpFile := func() {\n935: \t\t\ttmpFile.Seek(0, io.SeekStart)\n936: \t\t\ttmpFile.Truncate(0)\n",
+    "line": "935",
+    "column": "4",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "LOW",
+    "confidence": "HIGH",
+    "cwe": {
+      "id": "703",
+      "url": "https://cwe.mitre.org/data/definitions/703.html"
+    },
+    "rule_id": "G104",
+    "details": "Errors unhandled",
+    "file": "/app/internal/events/subscribers.go",
+    "code": "56: \ts.eventbus.Subscribe(domain.EventNotificationSend, s.handleSendNotification)\n57: \ts.eventbus.Subscribe(domain.EventIndexerDelete, s.handleIndexerDelete)\n58: }\n",
+    "line": "57",
+    "column": "2",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "LOW",
+    "confidence": "HIGH",
+    "cwe": {
+      "id": "703",
+      "url": "https://cwe.mitre.org/data/definitions/703.html"
+    },
+    "rule_id": "G104",
+    "details": "Errors unhandled",
+    "file": "/app/internal/events/subscribers.go",
+    "code": "55: \ts.eventbus.Subscribe(domain.EventReleasePushStatus, s.handleReleasePushStatus)\n56: \ts.eventbus.Subscribe(domain.EventNotificationSend, s.handleSendNotification)\n57: \ts.eventbus.Subscribe(domain.EventIndexerDelete, s.handleIndexerDelete)\n",
+    "line": "56",
+    "column": "2",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "LOW",
+    "confidence": "HIGH",
+    "cwe": {
+      "id": "703",
+      "url": "https://cwe.mitre.org/data/definitions/703.html"
+    },
+    "rule_id": "G104",
+    "details": "Errors unhandled",
+    "file": "/app/internal/events/subscribers.go",
+    "code": "54: \ts.eventbus.Subscribe(domain.EventReleaseStoreActionStatus, s.handleReleaseActionStatus)\n55: \ts.eventbus.Subscribe(domain.EventReleasePushStatus, s.handleReleasePushStatus)\n56: \ts.eventbus.Subscribe(domain.EventNotificationSend, s.handleSendNotification)\n",
+    "line": "55",
+    "column": "2",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "LOW",
+    "confidence": "HIGH",
+    "cwe": {
+      "id": "703",
+      "url": "https://cwe.mitre.org/data/definitions/703.html"
+    },
+    "rule_id": "G104",
+    "details": "Errors unhandled",
+    "file": "/app/internal/events/subscribers.go",
+    "code": "53: func (s *Subscriber) Register() {\n54: \ts.eventbus.Subscribe(domain.EventReleaseStoreActionStatus, s.handleReleaseActionStatus)\n55: \ts.eventbus.Subscribe(domain.EventReleasePushStatus, s.handleReleasePushStatus)\n",
+    "line": "54",
+    "column": "2",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "LOW",
+    "confidence": "HIGH",
+    "cwe": {
+      "id": "703",
+      "url": "https://cwe.mitre.org/data/definitions/703.html"
+    },
+    "rule_id": "G104",
+    "details": "Errors unhandled",
+    "file": "/app/internal/http/encoder.go",
+    "code": "143: \tw.WriteHeader(status)\n144: \tjson.NewEncoder(w).Encode(resp)\n145: }\n",
+    "line": "144",
+    "column": "2",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "LOW",
+    "confidence": "HIGH",
+    "cwe": {
+      "id": "703",
+      "url": "https://cwe.mitre.org/data/definitions/703.html"
+    },
+    "rule_id": "G104",
+    "details": "Errors unhandled",
+    "file": "/app/internal/http/feed.go",
+    "code": "281: \tw.WriteHeader(http.StatusOK)\n282: \tw.Write([]byte(feed))\n283: }\n",
+    "line": "282",
+    "column": "2",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "LOW",
+    "confidence": "HIGH",
+    "cwe": {
+      "id": "703",
+      "url": "https://cwe.mitre.org/data/definitions/703.html"
+    },
+    "rule_id": "G104",
+    "details": "Errors unhandled",
+    "file": "/app/internal/http/feed.go",
+    "code": "276: \t\th.encoder.StatusNotFound(w)\n277: \t\tw.Write([]byte(\"No data found\"))\n278: \t\treturn\n",
+    "line": "277",
+    "column": "3",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "LOW",
+    "confidence": "HIGH",
+    "cwe": {
+      "id": "703",
+      "url": "https://cwe.mitre.org/data/definitions/703.html"
+    },
+    "rule_id": "G104",
+    "details": "Errors unhandled",
+    "file": "/app/internal/http/health.go",
+    "code": "54: \tw.WriteHeader(http.StatusInternalServerError)\n55: \tw.Write([]byte(\"Unhealthy. Database unreachable\"))\n56: }\n",
+    "line": "55",
+    "column": "2",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "LOW",
+    "confidence": "HIGH",
+    "cwe": {
+      "id": "703",
+      "url": "https://cwe.mitre.org/data/definitions/703.html"
+    },
+    "rule_id": "G104",
+    "details": "Errors unhandled",
+    "file": "/app/internal/http/health.go",
+    "code": "48: \tw.WriteHeader(http.StatusOK)\n49: \tw.Write([]byte(\"OK\"))\n50: }\n",
+    "line": "49",
+    "column": "2",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "HIGH",
+    "confidence": "MEDIUM",
+    "cwe": {
+      "id": "190",
+      "url": "https://cwe.mitre.org/data/definitions/190.html"
+    },
+    "rule_id": "G115",
+    "details": "integer overflow conversion int64 -> uint64",
+    "file": "/app/internal/http/logs.go",
+    "code": "69: \t\t\t\tSizeBytes: i.Size(),\n70: \t\t\t\tSize:      humanize.Bytes(uint64(i.Size())),\n71: \t\t\t\tUpdatedAt: i.ModTime(),\n",
+    "line": "70",
+    "column": "37",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "HIGH",
+    "confidence": "MEDIUM",
+    "cwe": {
+      "id": "190",
+      "url": "https://cwe.mitre.org/data/definitions/190.html"
+    },
+    "rule_id": "G115",
+    "details": "integer overflow conversion int -> uint64",
+    "file": "/app/internal/http/release.go",
+    "code": "151: \t\tLimit:  uint64(limit),\n152: \t\tOffset: uint64(offset),\n153: \t\tCursor: uint64(cursor),\n",
+    "line": "152",
+    "column": "17",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "LOW",
+    "confidence": "HIGH",
+    "cwe": {
+      "id": "703",
+      "url": "https://cwe.mitre.org/data/definitions/703.html"
+    },
+    "rule_id": "G104",
+    "details": "Errors unhandled",
+    "file": "/app/internal/irc/handler.go",
+    "code": "650: \t\th.log.Trace().Msg(\"on connect not authenticated and password not empty: send nickserv identify\")\n651: \t\th.NickServIdentify(h.network.Auth.Password)\n652: \t} else {\n",
+    "line": "651",
+    "column": "3",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "LOW",
+    "confidence": "HIGH",
+    "cwe": {
+      "id": "703",
+      "url": "https://cwe.mitre.org/data/definitions/703.html"
+    },
+    "rule_id": "G104",
+    "details": "Errors unhandled",
+    "file": "/app/internal/irc/handler.go",
+    "code": "639: func (h *Handler) setBotMode() {\n640: \th.client.Send(\"MODE\", h.CurrentNick(), \"+\"+h.botModeChar)\n641: }\n",
+    "line": "640",
+    "column": "2",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "LOW",
+    "confidence": "HIGH",
+    "cwe": {
+      "id": "703",
+      "url": "https://cwe.mitre.org/data/definitions/703.html"
+    },
+    "rule_id": "G104",
+    "details": "Errors unhandled",
+    "file": "/app/internal/irc/handler.go",
+    "code": "609: \n610: \t\th.Send(\"PRIVMSG\", \"NickServ\", fmt.Sprintf(\"IDENTIFY %s %s\", h.network.Auth.Account, h.network.Auth.Password))\n611: \t}\n",
+    "line": "610",
+    "column": "3",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "HIGH",
+    "confidence": "MEDIUM",
+    "cwe": {
+      "id": "190",
+      "url": "https://cwe.mitre.org/data/definitions/190.html"
+    },
+    "rule_id": "G115",
+    "details": "integer overflow conversion int -> int32",
+    "file": "/app/internal/list/process_arr_lidarr.go",
+    "code": "97: func (s *Service) processLidarr(ctx context.Context, list *domain.List, logger *zerolog.Logger) ([]string, []string, error) {\n98: \tdownloadClient, err := s.downloadClientSvc.GetClient(ctx, int32(list.ClientID))\n99: \tif err != nil {\n",
+    "line": "98",
+    "column": "65",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "HIGH",
+    "confidence": "MEDIUM",
+    "cwe": {
+      "id": "190",
+      "url": "https://cwe.mitre.org/data/definitions/190.html"
+    },
+    "rule_id": "G115",
+    "details": "integer overflow conversion int -> int32",
+    "file": "/app/internal/list/process_arr_radarr.go",
+    "code": "62: func (s *Service) processRadarr(ctx context.Context, list *domain.List, logger *zerolog.Logger) ([]string, error) {\n63: \tdownloadClient, err := s.downloadClientSvc.GetClient(ctx, int32(list.ClientID))\n64: \tif err != nil {\n",
+    "line": "63",
+    "column": "65",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "HIGH",
+    "confidence": "MEDIUM",
+    "cwe": {
+      "id": "190",
+      "url": "https://cwe.mitre.org/data/definitions/190.html"
+    },
+    "rule_id": "G115",
+    "details": "integer overflow conversion int -> int32",
+    "file": "/app/internal/list/process_arr_readarr.go",
+    "code": "56: func (s *Service) processReadarr(ctx context.Context, list *domain.List, logger *zerolog.Logger) ([]string, error) {\n57: \tdownloadClient, err := s.downloadClientSvc.GetClient(ctx, int32(list.ClientID))\n58: \tif err != nil {\n",
+    "line": "57",
+    "column": "65",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "HIGH",
+    "confidence": "MEDIUM",
+    "cwe": {
+      "id": "190",
+      "url": "https://cwe.mitre.org/data/definitions/190.html"
+    },
+    "rule_id": "G115",
+    "details": "integer overflow conversion int -> int32",
+    "file": "/app/internal/list/process_arr_sonarr.go",
+    "code": "69: func (s *Service) processSonarr(ctx context.Context, list *domain.List, logger *zerolog.Logger) ([]string, error) {\n70: \tdownloadClient, err := s.downloadClientSvc.GetClient(ctx, int32(list.ClientID))\n71: \tif err != nil {\n",
+    "line": "70",
+    "column": "65",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "HIGH",
+    "confidence": "MEDIUM",
+    "cwe": {
+      "id": "190",
+      "url": "https://cwe.mitre.org/data/definitions/190.html"
+    },
+    "rule_id": "G115",
+    "details": "integer overflow conversion int64 -> uint64",
+    "file": "/app/internal/releasedownload/download_service.go",
+    "code": "321: \t\tr.TorrentHash = meta.HashInfoBytes().String()\n322: \t\tr.Size = uint64(torrentMetaInfo.TotalLength())\n323: \n",
+    "line": "322",
+    "column": "18",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "LOW",
+    "confidence": "HIGH",
+    "cwe": {
+      "id": "703",
+      "url": "https://cwe.mitre.org/data/definitions/703.html"
+    },
+    "rule_id": "G104",
+    "details": "Errors unhandled",
+    "file": "/app/internal/releasedownload/download_service.go",
+    "code": "273: \t\t\ttmpFile.Seek(0, io.SeekStart)\n274: \t\t\ttmpFile.Truncate(0)\n275: \t\t}\n",
+    "line": "274",
+    "column": "4",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "LOW",
+    "confidence": "HIGH",
+    "cwe": {
+      "id": "703",
+      "url": "https://cwe.mitre.org/data/definitions/703.html"
+    },
+    "rule_id": "G104",
+    "details": "Errors unhandled",
+    "file": "/app/internal/releasedownload/download_service.go",
+    "code": "272: \t\tresetTmpFile := func() {\n273: \t\t\ttmpFile.Seek(0, io.SeekStart)\n274: \t\t\ttmpFile.Truncate(0)\n",
+    "line": "273",
+    "column": "4",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "HIGH",
+    "confidence": "MEDIUM",
+    "cwe": {
+      "id": "190",
+      "url": "https://cwe.mitre.org/data/definitions/190.html"
+    },
+    "rule_id": "G115",
+    "details": "integer overflow conversion int64 -> uint64",
+    "file": "/app/internal/scheduler/jobs.go",
+    "code": "109: \t\tif fileInfo.ModTime().Before(time.Now().Add(-24 * time.Hour)) {\n110: \t\t\tfileSize := uint64(fileInfo.Size())\n111: \t\t\tif err := os.Remove(tempFile); err != nil {\n",
+    "line": "110",
+    "column": "22",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "HIGH",
+    "confidence": "MEDIUM",
+    "cwe": {
+      "id": "190",
+      "url": "https://cwe.mitre.org/data/definitions/190.html"
+    },
+    "rule_id": "G115",
+    "details": "integer overflow conversion int -> uint32",
+    "file": "/app/pkg/argon2id/argon2id.go",
+    "code": "170: \t}\n171: \tparams.KeyLength = uint32(len(key))\n172: \n",
+    "line": "171",
+    "column": "27",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "HIGH",
+    "confidence": "MEDIUM",
+    "cwe": {
+      "id": "190",
+      "url": "https://cwe.mitre.org/data/definitions/190.html"
+    },
+    "rule_id": "G115",
+    "details": "integer overflow conversion int -> uint32",
+    "file": "/app/pkg/argon2id/argon2id.go",
+    "code": "164: \t}\n165: \tparams.SaltLength = uint32(len(salt))\n166: \n",
+    "line": "165",
+    "column": "28",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "HIGH",
+    "confidence": "MEDIUM",
+    "cwe": {
+      "id": "190",
+      "url": "https://cwe.mitre.org/data/definitions/190.html"
+    },
+    "rule_id": "G115",
+    "details": "integer overflow conversion int -> int32",
+    "file": "/app/pkg/argon2id/argon2id.go",
+    "code": "116: \tkeyLen := int32(len(key))\n117: \totherKeyLen := int32(len(otherKey))\n118: \n",
+    "line": "117",
+    "column": "22",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "HIGH",
+    "confidence": "MEDIUM",
+    "cwe": {
+      "id": "190",
+      "url": "https://cwe.mitre.org/data/definitions/190.html"
+    },
+    "rule_id": "G115",
+    "details": "integer overflow conversion int -> int32",
+    "file": "/app/pkg/argon2id/argon2id.go",
+    "code": "115: \n116: \tkeyLen := int32(len(key))\n117: \totherKeyLen := int32(len(otherKey))\n",
+    "line": "116",
+    "column": "17",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "LOW",
+    "confidence": "HIGH",
+    "cwe": {
+      "id": "703",
+      "url": "https://cwe.mitre.org/data/definitions/703.html"
+    },
+    "rule_id": "G104",
+    "details": "Errors unhandled",
+    "file": "/app/pkg/sharedhttp/http.go",
+    "code": "111: \t\tio.Copy(io.Discard, resp.Body)\n112: \t\tresp.Body.Close()\n113: \t}\n",
+    "line": "112",
+    "column": "3",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "LOW",
+    "confidence": "HIGH",
+    "cwe": {
+      "id": "703",
+      "url": "https://cwe.mitre.org/data/definitions/703.html"
+    },
+    "rule_id": "G104",
+    "details": "Errors unhandled",
+    "file": "/app/pkg/sharedhttp/http.go",
+    "code": "110: \tif resp != nil && resp.Body != nil {\n111: \t\tio.Copy(io.Discard, resp.Body)\n112: \t\tresp.Body.Close()\n",
+    "line": "111",
+    "column": "3",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "LOW",
+    "confidence": "HIGH",
+    "cwe": {
+      "id": "703",
+      "url": "https://cwe.mitre.org/data/definitions/703.html"
+    },
+    "rule_id": "G104",
+    "details": "Errors unhandled",
+    "file": "/app/test/mockindexer/irc/client.go",
+    "code": "60: \t\tlog.Printf(\"<-- %s\", []byte(cmd+\"\\r\\n\"))\n61: \t\tc.conn.Write([]byte(cmd + \"\\r\\n\"))\n62: \t}\n",
+    "line": "61",
+    "column": "3",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "LOW",
+    "confidence": "HIGH",
+    "cwe": {
+      "id": "703",
+      "url": "https://cwe.mitre.org/data/definitions/703.html"
+    },
+    "rule_id": "G104",
+    "details": "Errors unhandled",
+    "file": "/app/test/mockindexer/main.go",
+    "code": "243: \n244: \tio.Copy(w, bufio.NewReader(f))\n245: }\n",
+    "line": "244",
+    "column": "2",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "LOW",
+    "confidence": "HIGH",
+    "cwe": {
+      "id": "703",
+      "url": "https://cwe.mitre.org/data/definitions/703.html"
+    },
+    "rule_id": "G104",
+    "details": "Errors unhandled",
+    "file": "/app/test/mockindexer/main.go",
+    "code": "213: \n214: \tio.Copy(w, bufio.NewReader(f))\n215: }\n",
+    "line": "214",
+    "column": "2",
+    "nosec": false,
+    "suppressions": null
+  },
+  {
+    "severity": "LOW",
+    "confidence": "HIGH",
+    "cwe": {
+      "id": "703",
+      "url": "https://cwe.mitre.org/data/definitions/703.html"
+    },
+    "rule_id": "G104",
+    "details": "Errors unhandled",
+    "file": "/app/test/mockindexer/main.go",
+    "code": "176: \tw.Header().Set(\"Content-Type\", \"application/rss+xml\")\n177: \tio.Copy(w, bufio.NewReader(f))\n178: }\n",
+    "line": "177",
+    "column": "2",
+    "nosec": false,
+    "suppressions": null
+  }
+]
