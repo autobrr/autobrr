@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/xml"
+	"math"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -321,7 +322,11 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 		if val, ok := extParent["seeds"]; ok {
 			if len(val) > 0 {
 				if parsedValue, err := strconv.ParseUint(val[0].Value, 10, 64); err == nil {
-					rls.Seeders = int(parsedValue)
+					if parsedValue > math.MaxInt {
+						rls.Seeders = math.MaxInt
+					} else {
+						rls.Seeders = int(parsedValue)
+					}
 				}
 			}
 		}
@@ -329,7 +334,11 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 		if val, ok := extParent["peers"]; ok {
 			if len(val) > 0 {
 				if parsedValue, err := strconv.ParseUint(val[0].Value, 10, 64); err == nil {
-					rls.Leechers = int(parsedValue) - rls.Seeders
+					if parsedValue > math.MaxInt {
+						rls.Leechers = math.MaxInt - rls.Seeders
+					} else {
+						rls.Leechers = int(parsedValue) - rls.Seeders
+					}
 				}
 			}
 		}
@@ -337,7 +346,11 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 		if val, ok := extParent["leechers"]; ok {
 			if len(val) > 0 {
 				if parsedValue, err := strconv.ParseUint(val[0].Value, 10, 64); err == nil {
-					rls.Leechers = int(parsedValue)
+					if parsedValue > math.MaxInt {
+						rls.Leechers = math.MaxInt
+					} else {
+						rls.Leechers = int(parsedValue)
+					}
 				}
 			}
 		}
