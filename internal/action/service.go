@@ -9,7 +9,9 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/downloader"
 	"github.com/autobrr/autobrr/internal/events"
+	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/rs/zerolog"
@@ -29,7 +31,7 @@ type actionRepo interface {
 
 type clientService interface {
 	FindByID(ctx context.Context, id int32) (*domain.DownloadClient, error)
-	GetClient(ctx context.Context, clientId int32) (*domain.DownloadClient, error)
+	GetInstance(ctx context.Context, clientId int32) (*downloader.Instance, error)
 }
 
 type downloadService interface {
@@ -117,4 +119,27 @@ func (s *Service) DeleteByFilterID(ctx context.Context, filterID int) error {
 
 func (s *Service) ToggleEnabled(actionID int) error {
 	return s.repo.ToggleEnabled(actionID)
+}
+
+func (s *Service) getClientInstance[T any](ctx context.Context, clientID int32) (*T, error) {
+	downloadClient, err := s.clientSvc.GetInstance(ctx, clientID)
+	if err != nil {
+		return nil, err
+	}
+
+	cfg := downloadClient.Config()
+	if cfg == nil {
+		return nil, errors.New("client %d has no config", clientID)
+	}
+
+	if !cfg.Enabled {
+		return nil, errors.New("client %s %s not enabled", cfg.Type, cfg.Name)
+	}
+
+	client, err := downloader.ClientAs[T](downloadClient)
+	if err != nil {
+		return nil, err
+	}
+
+	return &client, nil
 }

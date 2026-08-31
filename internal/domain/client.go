@@ -24,9 +24,6 @@ type DownloadClient struct {
 	Username      string                 `json:"username"`
 	Password      string                 `json:"password"`
 	Settings      DownloadClientSettings `json:"settings,omitempty"`
-
-	// cached http client
-	Client any `json:"-"`
 }
 
 func (c DownloadClient) MarshalJSON() ([]byte, error) {
@@ -115,6 +112,11 @@ func (dcs *DownloadClientSettings) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type DownloaderInstance struct {
+	config *DownloadClient
+	client any
+}
+
 type DownloadClientAuthType string
 
 const (
@@ -195,13 +197,39 @@ const (
 	DownloadClientTypeNzbget       DownloadClientType = "NZBGET"
 )
 
+func (t DownloadClientType) Valid() error {
+	switch t {
+	case DownloadClientTypeQbittorrent,
+		DownloadClientTypeDelugeV1,
+		DownloadClientTypeDelugeV2,
+		DownloadClientTypeRTorrent,
+		DownloadClientTypeTransmission,
+		DownloadClientTypePorla,
+		DownloadClientTypeAria2,
+		DownloadClientTypeNzbget,
+		DownloadClientTypeSabnzbd,
+		DownloadClientTypeLidarr,
+		DownloadClientTypeRadarr,
+		DownloadClientTypeReadarr,
+		DownloadClientTypeSonarr,
+		DownloadClientTypeSportarr,
+		DownloadClientTypeWhisparr,
+		DownloadClientTypeWhisparrV3:
+		return nil
+	default:
+		return errors.New("invalid download client type")
+	}
+}
+
 // Validate basic validation of client
 func (c DownloadClient) Validate() error {
 	// basic validation of client
 	if c.Host == "" {
 		return errors.New("validation error: missing host")
-	} else if c.Type == "" {
-		return errors.New("validation error: missing type")
+	}
+
+	if err := c.Type.Valid(); err != nil {
+		return err
 	}
 
 	return nil

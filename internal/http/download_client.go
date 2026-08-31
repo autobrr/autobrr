@@ -20,8 +20,8 @@ type downloadClientService interface {
 	Store(ctx context.Context, client *domain.DownloadClient) error
 	Update(ctx context.Context, client *domain.DownloadClient) error
 	Delete(ctx context.Context, clientID int32) error
-	Test(ctx context.Context, client domain.DownloadClient) error
-	GetArrTags(ctx context.Context, id int32) ([]*domain.ArrTag, error)
+	Test(ctx context.Context, client *domain.DownloadClient) error
+	GetArrTags(ctx context.Context, id int32) ([]domain.ArrTag, error)
 }
 
 type downloadClientHandler struct {
@@ -119,7 +119,7 @@ func (h downloadClientHandler) store(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h downloadClientHandler) test(w http.ResponseWriter, r *http.Request) {
-	var data domain.DownloadClient
+	var data *domain.DownloadClient
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return

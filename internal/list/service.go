@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/downloader"
 
 	"github.com/pkg/errors"
 	"github.com/robfig/cron/v3"
@@ -28,8 +29,8 @@ type listRepo interface {
 	GetAllListFilters(ctx context.Context) (map[int64][]domain.ListFilter, error)
 }
 
-type clientService interface {
-	GetClient(ctx context.Context, clientId int32) (*domain.DownloadClient, error)
+type downloaderService interface {
+	GetInstance(ctx context.Context, clientId int32) (*downloader.Instance, error)
 }
 
 type filterService interface {
@@ -44,22 +45,22 @@ type Service struct {
 	log  zerolog.Logger
 	repo listRepo
 
-	httpClient        *http.Client
-	scheduler         schedulerService
-	downloadClientSvc clientService
-	filterSvc         filterService
+	httpClient    *http.Client
+	scheduler     schedulerService
+	downloaderSvc downloaderService
+	filterSvc     filterService
 }
 
-func NewService(log zerolog.Logger, repo listRepo, downloadClientSvc clientService, filterSvc filterService, schedulerSvc schedulerService) *Service {
+func NewService(log zerolog.Logger, repo listRepo, downloadClientSvc downloaderService, filterSvc filterService, schedulerSvc schedulerService) *Service {
 	return &Service{
 		log:  log.With().Str("module", "list").Logger(),
 		repo: repo,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
-		downloadClientSvc: downloadClientSvc,
-		filterSvc:         filterSvc,
-		scheduler:         schedulerSvc,
+		downloaderSvc: downloadClientSvc,
+		filterSvc:     filterSvc,
+		scheduler:     schedulerSvc,
 	}
 }
 
@@ -227,77 +228,12 @@ func (s *Service) refreshAll(ctx context.Context, lists []*domain.List) error {
 }
 
 func (s *Service) refreshList(ctx context.Context, listItem *domain.List) error {
-	s.log.Debug().Str("type", string(listItem.Type)).Str("list", listItem.Name).Msg("refresh list")
+	s.log.Debug().Stringer("type", listItem.Type).Str("list", listItem.Name).Msg("refresh list")
 
-	var err error
-
-	switch listItem.Type {
-	case domain.ListTypeRadarr:
-		err = s.radarr(ctx, listItem)
-
-	case domain.ListTypeSonarr:
-		err = s.sonarr(ctx, listItem)
-
-	case domain.ListTypeWhisparr, domain.ListTypeWhisparrV3:
-		err = s.whisparr(ctx, listItem)
-
-	case domain.ListTypeReadarr:
-		err = s.readarr(ctx, listItem)
-
-	case domain.ListTypeLidarr:
-		err = s.lidarr(ctx, listItem)
-
-	case domain.ListTypeSportarr:
-		err = s.sportarr(ctx, listItem)
-
-	case domain.ListTypeMDBList:
-		err = s.mdblist(ctx, listItem)
-
-	case domain.ListTypeMetacritic:
-		err = s.metacritic(ctx, listItem)
-
-	case domain.ListTypeSteam:
-		err = s.steam(ctx, listItem)
-
-	case domain.ListTypeTrakt:
-		err = s.trakt(ctx, listItem)
-
-	case domain.ListTypePlaintext:
-		err = s.plaintext(ctx, listItem)
-
-	case domain.ListTypeAniList:
-		err = s.anilist(ctx, listItem)
-
-	default:
-		err = errors.Errorf("unsupported list type: %s", listItem.Type)
-	}
-
-	if err != nil {
-		s.log.Error().Err(err).Str("type", string(listItem.Type)).Str("list", listItem.Name).Msg("error refreshing list")
-
-		// update last run for list and set errs and status
-		listItem.LastRefreshStatus = domain.ListRefreshStatusError
-		listItem.LastRefreshData = err.Error()
-		listItem.LastRefreshTime = time.Now()
-
-		if updateErr := s.repo.UpdateLastRefresh(ctx, listItem); updateErr != nil {
-			s.log.Error().Err(updateErr).Str("type", string(listItem.Type)).Str("list", listItem.Name).Msg("error updating last refresh for list")
-			return updateErr
-		}
-
+	if err := s.Process(ctx, listItem); err != nil {
+		s.log.Error().Err(err).Str("list", listItem.Name).Msg("could not process list")
 		return err
 	}
-
-	listItem.LastRefreshStatus = domain.ListRefreshStatusSuccess
-	//listItem.LastRefreshData = err.Error()
-	listItem.LastRefreshTime = time.Now()
-
-	if updateErr := s.repo.UpdateLastRefresh(ctx, listItem); updateErr != nil {
-		s.log.Error().Err(updateErr).Str("type", string(listItem.Type)).Str("list", listItem.Name).Msg("error updating last refresh for list")
-		return updateErr
-	}
-
-	s.log.Debug().Str("list", listItem.Name).Msg("successfully refreshed list")
 
 	return nil
 }
@@ -323,7 +259,7 @@ func (s *Service) RefreshArrLists(ctx context.Context) error {
 
 	var selectedLists []*domain.List
 	for _, list := range lists {
-		if list.ListTypeArr() && list.Enabled {
+		if list.Type.ArrClient() && list.Enabled {
 			selectedLists = append(selectedLists, list)
 		}
 	}
@@ -343,7 +279,7 @@ func (s *Service) RefreshOtherLists(ctx context.Context) error {
 
 	var selectedLists []*domain.List
 	for _, list := range lists {
-		if list.ListTypeList() && list.Enabled {
+		if list.Type.RegularList() && list.Enabled {
 			selectedLists = append(selectedLists, list)
 		}
 	}

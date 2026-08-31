@@ -104,7 +104,7 @@ func Test_service_execCmd(t *testing.T) {
 				repo:      nil,
 				clientSvc: nil,
 			}
-			s.execCmd(t.Context(), tt.args.action, &tt.args.release)
+			s.runExecCmd(t.Context(), tt.args.action, &tt.args.release)
 		})
 	}
 }

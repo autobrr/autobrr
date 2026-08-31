@@ -20,7 +20,7 @@ import (
 	"github.com/autobrr/autobrr/internal/database"
 	"github.com/autobrr/autobrr/internal/diagnostics"
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/download_client"
+	"github.com/autobrr/autobrr/internal/downloader"
 	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/internal/feed"
 	"github.com/autobrr/autobrr/internal/filter"
@@ -167,7 +167,7 @@ func main() {
 		proxyService          = proxy.NewService(log, proxyRepo)
 		indexerAPIService     = indexer.NewAPIService(log, proxyService)
 		downloadService       = releasedownload.NewDownloadService(log, indexerRepo, proxyService)
-		downloadClientService = download_client.NewService(log, downloadClientRepo)
+		downloadClientService = downloader.NewService(log, downloadClientRepo)
 		actionService         = action.NewService(log, eventBus, actionRepo, downloadClientService, downloadService)
 		indexerService        = indexer.NewService(log, eventBus, cfg.Config, indexerRepo, releaseRepo, indexerAPIService)
 		filterService         = filter.NewService(log, filterRepo, actionService, releaseRepo, indexerAPIService, indexerService, downloadService, notificationService)

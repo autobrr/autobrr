@@ -8,33 +8,38 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/downloader"
 	"github.com/autobrr/autobrr/pkg/arr/sportarr"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/rs/zerolog"
 )
 
-func (s *Service) sportarr(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error) {
+func (s *Service) runSportarr(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error) {
 	l := zerolog.Ctx(ctx)
 
 	l.Trace().Msg("running Sportarr action")
 
-	client, err := s.clientSvc.GetClient(ctx, action.ClientID)
+	instance, err := s.clientSvc.GetInstance(ctx, action.ClientID)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not get client with id %d", action.ClientID)
-	}
-	action.Client = client
-
-	if !client.Enabled {
-		return nil, errors.New("client %s %s not enabled", client.Type, client.Name)
+		return nil, err
 	}
 
-	arrClient, ok := client.Client.(*sportarr.Client)
-	if !ok {
-		return nil, errors.New("invalid client type")
+	cfg := instance.Config()
+	if cfg == nil {
+		return nil, errors.New("client %d has no config", action.ClientID)
 	}
 
-	r := sportarr.ReleasePushRequest{
+	if !cfg.Enabled {
+		return nil, errors.New("client %s %s not enabled", cfg.Type, cfg.Name)
+	}
+
+	client, err := downloader.ClientAs[*sportarr.Client](instance)
+	if err != nil {
+		return nil, err
+	}
+
+	req := sportarr.ReleasePushRequest{
 		Title:            release.TorrentName,
 		InfoUrl:          release.InfoURL,
 		DownloadUrl:      release.DownloadURL,
@@ -50,20 +55,20 @@ func (s *Service) sportarr(ctx context.Context, action *domain.Action, release *
 		FreeleechPercent: release.FreeleechPercent,
 		Origin:           release.Origin,
 	})
-	r.IndexerFlags = int(indexerFlags)
+	req.IndexerFlags = int(indexerFlags)
 
-	rejections, err := arrClient.Push(ctx, r)
+	rejections, err := client.Push(ctx, req)
 	if err != nil {
-		return nil, errors.Wrap(err, "sportarr: failed to push release: %s", r.Title)
+		return nil, errors.Wrap(err, "sportarr: failed to push release: %s", req.Title)
 	}
 
 	if rejections != nil {
-		l.Debug().Str("indexer", r.Indexer).Str("host", client.Host).Strs("rejections", rejections).Msg("client rejected the release")
+		l.Debug().Str("indexer", req.Indexer).Str("host", cfg.Host).Strs("rejections", rejections).Msg("client rejected the release")
 
 		return rejections, nil
 	}
 
-	l.Info().Str("indexer", r.Indexer).Str("host", client.Host).Msg("release successfully added to client")
+	l.Info().Str("indexer", req.Indexer).Str("host", cfg.Host).Msg("release successfully added to client")
 
 	return nil, nil
 }

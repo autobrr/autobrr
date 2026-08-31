@@ -1,14 +1,7 @@
 // Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-package utils
-
-import "slices"
-
-// StrSliceContains check if slice contains string
-func StrSliceContains(s []string, str string) bool {
-	return slices.Contains(s, str)
-}
+package stringutils
 
 const TruncationMarker = " [...] "
 

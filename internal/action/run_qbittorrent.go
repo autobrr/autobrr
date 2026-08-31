@@ -9,32 +9,40 @@ import (
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/downloader"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/autobrr/go-qbittorrent"
 	"github.com/rs/zerolog"
 )
 
-func (s *Service) qbittorrent(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error) {
+func (s *Service) runQbittorrent(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error) {
 	l := zerolog.Ctx(ctx)
 
 	l.Debug().Msg("running qBittorrent action")
 
-	client, err := s.clientSvc.GetClient(ctx, action.ClientID)
+	instance, err := s.clientSvc.GetInstance(ctx, action.ClientID)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not get client with id %d", action.ClientID)
-	}
-	action.Client = client
-
-	if !client.Enabled {
-		return nil, errors.New("client %s %s not enabled", client.Type, client.Name)
+		return nil, err
 	}
 
-	qbtClient := client.Client.(*qbittorrent.Client)
+	cfg := instance.Config()
+	if cfg == nil {
+		return nil, errors.New("client %d has no config", action.ClientID)
+	}
 
-	if client.Settings.Rules.Enabled && !action.IgnoreRules {
+	if !cfg.Enabled {
+		return nil, errors.New("client %s %s not enabled", cfg.Type, cfg.Name)
+	}
+
+	client, err := downloader.ClientAs[*qbittorrent.Client](instance)
+	if err != nil {
+		return nil, err
+	}
+
+	if cfg.Settings.Rules.Enabled && !action.IgnoreRules {
 		// check for active downloads and other rules
-		rejections, err := s.qbittorrentCheckRulesCanDownload(ctx, action, client.Settings.Rules, qbtClient)
+		rejections, err := s.qbittorrentCheckRulesCanDownload(ctx, action, cfg.Settings.Rules, client)
 		if err != nil {
 			return nil, errors.Wrap(err, "error checking client rules: %s", action.Name)
 		}
@@ -44,19 +52,19 @@ func (s *Service) qbittorrent(ctx context.Context, action *domain.Action, releas
 		}
 	}
 
+	options, err := s.prepareQbitOptions(action)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not prepare options")
+	}
+
+	l.Trace().Interface("options", options).Msg("action qbittorrent options")
+
 	if release.HasMagnetUri() {
-		options, err := s.prepareQbitOptions(action)
-		if err != nil {
-			return nil, errors.Wrap(err, "could not prepare options")
+		if _, err = client.AddTorrentFromUrlCtx(ctx, release.MagnetURI, options); err != nil {
+			return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.MagnetURI, cfg.Name)
 		}
 
-		l.Trace().Interface("options", options).Msg("action qbittorrent options")
-
-		if _, err = qbtClient.AddTorrentFromUrlCtx(ctx, release.MagnetURI, options); err != nil {
-			return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.MagnetURI, client.Name)
-		}
-
-		l.Info().Str("client", client.Name).Msg("release successfully added to client")
+		l.Info().Str("client", cfg.Name).Msg("release successfully added to client")
 
 		return nil, nil
 	}
@@ -65,44 +73,37 @@ func (s *Service) qbittorrent(ctx context.Context, action *domain.Action, releas
 		return nil, errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
 	}
 
-	options, err := s.prepareQbitOptions(action)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not prepare options")
-	}
-
-	l.Trace().Interface("options", options).Msg("action qbittorrent options")
-
-	if _, err = qbtClient.AddTorrentFromMemoryCtx(ctx, release.TorrentDataRawBytes, options); err != nil {
-		return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentName, client.Name)
+	if _, err = client.AddTorrentFromMemoryCtx(ctx, release.TorrentDataRawBytes, options); err != nil {
+		return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentName, cfg.Name)
 	}
 
 	if release.TorrentHash != "" {
 		// check if torrent queueing is enabled if priority is set
 		switch action.PriorityLayout {
 		case domain.PriorityLayoutMax, domain.PriorityLayoutMin:
-			prefs, err := qbtClient.GetAppPreferencesCtx(ctx)
+			prefs, err := client.GetAppPreferencesCtx(ctx)
 			if err != nil {
-				return nil, errors.Wrap(err, "could not get application preferences from client: '%s'", client.Name)
+				return nil, errors.Wrap(err, "could not get application preferences from client: '%s'", cfg.Name)
 			}
 			// enable queueing if it's disabled
 			if !prefs.QueueingEnabled {
-				if err := qbtClient.SetPreferencesQueueingEnabled(true); err != nil {
+				if err := client.SetPreferencesQueueingEnabled(true); err != nil {
 					return nil, errors.Wrap(err, "could not enable torrent queueing")
 				}
-				l.Trace().Str("client", client.Name).Msg("torrent queueing was disabled, now enabled in client")
+				l.Trace().Str("client", cfg.Name).Msg("torrent queueing was disabled, now enabled in client")
 			}
 			// set priority if queueing is enabled
 			if action.PriorityLayout == domain.PriorityLayoutMax {
-				if err := qbtClient.SetMaxPriorityCtx(ctx, []string{release.TorrentHash}); err != nil {
+				if err := client.SetMaxPriorityCtx(ctx, []string{release.TorrentHash}); err != nil {
 					return nil, errors.Wrap(err, "could not set torrent %s to max priority", release.TorrentHash)
 				}
-				l.Debug().Str("hash", release.TorrentHash).Str("client", client.Name).Msg("torrent set to max priority in client")
+				l.Debug().Str("hash", release.TorrentHash).Str("client", cfg.Name).Msg("torrent set to max priority in client")
 
 			} else { // domain.PriorityLayoutMin
-				if err := qbtClient.SetMinPriorityCtx(ctx, []string{release.TorrentHash}); err != nil {
+				if err := client.SetMinPriorityCtx(ctx, []string{release.TorrentHash}); err != nil {
 					return nil, errors.Wrap(err, "could not set torrent %s to min priority", release.TorrentHash)
 				}
-				l.Debug().Str("hash", release.TorrentHash).Str("client", client.Name).Msg("torrent set to min priority in client")
+				l.Debug().Str("hash", release.TorrentHash).Str("client", cfg.Name).Msg("torrent set to min priority in client")
 			}
 
 		case domain.PriorityLayoutDefault:
@@ -122,7 +123,7 @@ func (s *Service) qbittorrent(ctx context.Context, action *domain.Action, releas
 			DeleteOnFailure: action.ReAnnounceDelete,
 		}
 
-		if err := qbtClient.ReannounceTorrentWithRetry(ctx, release.TorrentHash, &opts); err != nil {
+		if err := client.ReannounceTorrentWithRetry(ctx, release.TorrentHash, &opts); err != nil {
 			if errors.Is(err, qbittorrent.ErrReannounceTookTooLong) {
 				return []string{fmt.Sprintf("re-announce took too long for hash: %s", release.TorrentHash)}, nil
 			}
@@ -131,7 +132,7 @@ func (s *Service) qbittorrent(ctx context.Context, action *domain.Action, releas
 		}
 	}
 
-	l.Info().Str("hash", release.TorrentHash).Str("client", client.Name).Msg("release successfully added to client")
+	l.Info().Str("hash", release.TorrentHash).Str("client", cfg.Name).Msg("release successfully added to client")
 
 	return nil, nil
 }

@@ -10,43 +10,46 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/downloader"
 	"github.com/autobrr/autobrr/pkg/arr/radarr"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/rs/zerolog"
 )
 
-func (s *Service) radarr(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error) {
+func (s *Service) runRadarr(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error) {
 	l := zerolog.Ctx(ctx)
 
 	l.Trace().Msg("running Radarr action")
 
-	// TODO validate data
-
-	client, err := s.clientSvc.GetClient(ctx, action.ClientID)
+	instance, err := s.clientSvc.GetInstance(ctx, action.ClientID)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not get client with id %d", action.ClientID)
-	}
-	action.Client = client
-
-	if !client.Enabled {
-		return nil, errors.New("client %s %s not enabled", client.Type, client.Name)
+		return nil, err
 	}
 
-	arr, ok := client.Client.(*radarr.Client)
-	if !ok {
-		return nil, errors.New("invalid client type")
+	cfg := instance.Config()
+	if cfg == nil {
+		return nil, errors.New("client %d has no config", action.ClientID)
 	}
 
-	r := radarr.ReleasePushRequest{
+	if !cfg.Enabled {
+		return nil, errors.New("client %s %s not enabled", cfg.Type, cfg.Name)
+	}
+
+	client, err := downloader.ClientAs[*radarr.Client](instance)
+	if err != nil {
+		return nil, err
+	}
+
+	req := radarr.ReleasePushRequest{
 		Title:            release.TorrentName,
 		InfoUrl:          release.InfoURL,
 		DownloadUrl:      release.DownloadURL,
 		MagnetUrl:        release.MagnetURI,
 		Size:             release.Size,
 		Indexer:          release.Indexer.GetExternalIdentifier(),
-		DownloadClientId: client.Settings.ExternalDownloadClientId,
-		DownloadClient:   client.Settings.ExternalDownloadClient,
+		DownloadClientId: cfg.Settings.ExternalDownloadClientId,
+		DownloadClient:   cfg.Settings.ExternalDownloadClient,
 		DownloadProtocol: release.Protocol.String(),
 		Protocol:         release.Protocol.String(),
 		PublishDate:      time.Now().Format(time.RFC3339),
@@ -65,31 +68,31 @@ func (s *Service) radarr(ctx context.Context, action *domain.Action, release *do
 	}
 
 	if action.ExternalDownloadClientID > 0 {
-		r.DownloadClientId = int(action.ExternalDownloadClientID)
+		req.DownloadClientId = int(action.ExternalDownloadClientID)
 	}
 
 	if action.ExternalDownloadClient != "" {
-		r.DownloadClient = action.ExternalDownloadClient
+		req.DownloadClient = action.ExternalDownloadClient
 	}
 
 	indexerFlags := radarr.BuildIndexerFlags(radarr.ReleaseMeta{
 		FreeleechPercent: release.FreeleechPercent,
 		Origin:           release.Origin,
 	})
-	r.IndexerFlags = int(indexerFlags)
+	req.IndexerFlags = int(indexerFlags)
 
-	rejections, err := arr.Push(ctx, r)
+	rejections, err := client.Push(ctx, req)
 	if err != nil {
-		return nil, errors.Wrap(err, "radarr failed to push release: %s", r.Title)
+		return nil, errors.Wrap(err, "radarr failed to push release: %s", req.Title)
 	}
 
 	if rejections != nil {
-		l.Debug().Str("indexer", r.Indexer).Str("host", client.Host).Strs("rejections", rejections).Msg("client rejected the release")
+		l.Debug().Str("indexer", req.Indexer).Str("host", cfg.Host).Strs("rejections", rejections).Msg("client rejected the release")
 
 		return rejections, nil
 	}
 
-	l.Info().Str("indexer", r.Indexer).Str("host", client.Host).Msg("release successfully added to client")
+	l.Info().Str("indexer", req.Indexer).Str("host", cfg.Host).Msg("release successfully added to client")
 
 	return nil, nil
 }

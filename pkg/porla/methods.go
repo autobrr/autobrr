@@ -5,8 +5,8 @@ package porla
 
 import "context"
 
-func (c *Client) Version() (*SysVersionsPorla, error) {
-	response, err := c.rpcClient.Call("sys.versions")
+func (c *Client) Version(ctx context.Context) (*SysVersionsPorla, error) {
+	response, err := c.rpcClient.CallCtx(ctx, "sys.versions")
 	if err != nil {
 		return nil, err
 	}

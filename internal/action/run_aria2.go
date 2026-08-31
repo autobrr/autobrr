@@ -8,30 +8,38 @@ import (
 	"strconv"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/downloader"
 	"github.com/autobrr/autobrr/pkg/aria2"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/rs/zerolog"
 )
 
-func (s *Service) aria2(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error) {
+func (s *Service) runAria2(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error) {
 	l := zerolog.Ctx(ctx)
 
 	l.Debug().Msg("running aria2 action")
 
-	client, err := s.clientSvc.GetClient(ctx, action.ClientID)
+	instance, err := s.clientSvc.GetInstance(ctx, action.ClientID)
 	if err != nil {
-		return nil, errors.Wrap(err, "could not get client with id %d", action.ClientID)
-	}
-	action.Client = client
-
-	if !client.Enabled {
-		return nil, errors.New("client %s %s not enabled", client.Type, client.Name)
+		return nil, err
 	}
 
-	ar := client.Client.(*aria2.Client)
+	cfg := instance.Config()
+	if cfg == nil {
+		return nil, errors.New("client %d has no config", action.ClientID)
+	}
 
-	rejections, err := s.aria2CheckRulesCanDownload(ctx, action, client, ar)
+	if !cfg.Enabled {
+		return nil, errors.New("client %s %s not enabled", cfg.Type, cfg.Name)
+	}
+
+	client, err := downloader.ClientAs[*aria2.Client](instance)
+	if err != nil {
+		return nil, err
+	}
+
+	rejections, err := s.aria2CheckRulesCanDownload(ctx, action, cfg, client)
 	if err != nil {
 		return nil, errors.Wrap(err, "error checking aria2 client rules: %s", action.Name)
 	}
@@ -46,23 +54,25 @@ func (s *Service) aria2(ctx context.Context, action *domain.Action, release *dom
 
 	var gid string
 
-	if release.HasMagnetUri() {
-		gid, err = ar.AddURI(ctx, []string{release.MagnetURI}, options)
+	switch {
+	case release.HasMagnetUri():
+		gid, err = client.AddURI(ctx, []string{release.MagnetURI}, options)
 		if err != nil {
-			return nil, errors.Wrap(err, "could not add torrent from magnet %s to client: %s", release.MagnetURI, client.Name)
+			return nil, errors.Wrap(err, "could not add torrent from magnet %s to client: %s", release.MagnetURI, cfg.Name)
 		}
-	} else {
+
+	default:
 		if err := s.downloadSvc.DownloadRelease(ctx, release); err != nil {
 			return nil, errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
 		}
 
-		gid, err = ar.AddTorrent(ctx, release.TorrentDataRawBytes, options)
+		gid, err = client.AddTorrent(ctx, release.TorrentDataRawBytes, options)
 		if err != nil {
-			return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentName, client.Name)
+			return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentName, cfg.Name)
 		}
 	}
 
-	l.Info().Str("gid", gid).Str("hash", release.TorrentHash).Str("client", client.Name).Msg("release successfully added to client")
+	l.Info().Str("gid", gid).Str("hash", release.TorrentHash).Str("client", cfg.Name).Msg("release successfully added to client")
 
 	return nil, nil
 }
