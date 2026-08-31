@@ -6,6 +6,10 @@
       "PROMO_GP": "Promo GP",
       "RESURRECTED": "Vzkříšený"
     },
+    "maxDownloadsWindowType": {
+      "FIXED": "Pevné (reset kalendáře)",
+      "ROLLING": "Klouzavé (klouzavé okno)"
+    },
     "downloadClient": {
       "QBITTORRENT": {
         "label": "qBittorrent",
@@ -31,6 +35,10 @@
         "label": "Porla",
         "description": "Přidat torrenty přímo do Porla"
       },
+      "ARIA2": {
+        "label": "aria2",
+        "description": "Přidat torrenty přímo do aria2"
+      },
       "RADARR": {
         "label": "Radarr",
         "description": "Odeslat do Radarr a nechat ho rozhodnout"
@@ -44,7 +52,11 @@
         "description": "Odeslat do Lidarr a nechat ho rozhodnout"
       },
       "WHISPARR": {
-        "label": "Whisparr",
+        "label": "Whisparr (v2)",
+        "description": "Odeslat do Whisparr a nechat ho rozhodnout"
+      },
+      "WHISPARR_V3": {
+        "label": "Whisparr (v3)",
         "description": "Odeslat do Whisparr a nechat ho rozhodnout"
       },
       "READARR": {
@@ -101,6 +113,10 @@
         "label": "Porla",
         "description": "Přidat torrenty přímo do Porla"
       },
+      "ARIA2": {
+        "label": "aria2",
+        "description": "Přidat torrenty přímo do aria2"
+      },
       "RADARR": {
         "label": "Radarr",
         "description": "Odeslat do Radarr a nechat ho rozhodnout"
@@ -114,7 +130,11 @@
         "description": "Odeslat do Lidarr a nechat ho rozhodnout"
       },
       "WHISPARR": {
-        "label": "Whisparr",
+        "label": "Whisparr (v2)",
+        "description": "Odeslat do Whisparr a nechat ho rozhodnout"
+      },
+      "WHISPARR_V3": {
+        "label": "Whisparr (v3)",
         "description": "Odeslat do Whisparr a nechat ho rozhodnout"
       },
       "READARR": {

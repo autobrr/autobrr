@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -22,38 +21,75 @@ import (
 type FilterRepo struct {
 	log zerolog.Logger
 	db  *DB
-
-	// database specific queries
-	filterDownloadQuery *EngineQuery
 }
 
-func NewFilterRepo(log logger.Logger, db *DB) *FilterRepo {
+func NewFilterRepo(log zerolog.Logger, db *DB) *FilterRepo {
 	return &FilterRepo{
-		log:                 log.With().Str("repo", "filter").Logger(),
-		db:                  db,
-		filterDownloadQuery: NewEngineQuery(db.Driver, filterDownloadsSQLite, filterDownloadsPG),
+		log: log.With().Str("repo", "filter").Logger(),
+		db:  db,
 	}
 }
 
-const (
-	filterDownloadsSQLite = `SELECT
-	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', strftime('%Y-%m-%dT%H:00:00', datetime('now','localtime'))) AS INTEGER) THEN release_id END) as "hour_count",
-	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'start of day')) AS INTEGER) THEN release_id END) as "day_count",
-	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'weekday 0', '-7 days', 'start of day')) AS INTEGER) THEN release_id END) as "week_count",
-	COUNT(DISTINCT CASE WHEN CAST(strftime('%s', datetime(timestamp, 'localtime')) AS INTEGER) >= CAST(strftime('%s', datetime('now', 'localtime', 'start of month')) AS INTEGER) THEN release_id END) as "month_count",
-	COUNT(DISTINCT release_id) as "total_count"
-FROM release_action_status
-WHERE status IN ('PUSH_APPROVED', 'PENDING') AND filter_id = ?;`
+func clampPeriod(n int) int {
+	if n <= 0 {
+		return 1
+	}
 
-	filterDownloadsPG = `SELECT
-    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('hour', CURRENT_TIMESTAMP) THEN release_id END) as "hour_count",
-    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('day', CURRENT_DATE) THEN release_id END) as "day_count",
-    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('week', CURRENT_DATE) THEN release_id END) as "week_count",
-    COUNT(DISTINCT CASE WHEN timestamp >= date_trunc('month', CURRENT_DATE) THEN release_id END) as "month_count",
-    COUNT(DISTINCT release_id) as "total_count"
-FROM release_action_status
-WHERE status IN ('PUSH_APPROVED', 'PENDING') AND filter_id = $1;`
+	return n
+}
+
+func windowTypeOrFixed(w domain.FilterMaxDownloadsWindowType) domain.FilterMaxDownloadsWindowType {
+	if w == "" {
+		return domain.FilterMaxDownloadsWindowFixed
+	}
+
+	return w
+}
+
+var (
+	fixedWindowStartSQLite = map[domain.FilterMaxDownloadsUnit]string{
+		domain.FilterMaxDownloadsMinute: `strftime('%Y-%m-%d %H:%M:00', datetime('now', 'localtime'))`,
+		domain.FilterMaxDownloadsHour:   `strftime('%Y-%m-%d %H:00:00', datetime('now', 'localtime'))`,
+		domain.FilterMaxDownloadsDay:    `datetime('now', 'localtime', 'start of day')`,
+		domain.FilterMaxDownloadsWeek:   `datetime('now', 'localtime', 'weekday 0', '-7 days', 'start of day')`,
+		domain.FilterMaxDownloadsMonth:  `datetime('now', 'localtime', 'start of month')`,
+	}
+
+	fixedWindowStartPG = map[domain.FilterMaxDownloadsUnit]string{
+		domain.FilterMaxDownloadsMinute: `date_trunc('minute', CURRENT_TIMESTAMP)`,
+		domain.FilterMaxDownloadsHour:   `date_trunc('hour', CURRENT_TIMESTAMP)`,
+		domain.FilterMaxDownloadsDay:    `date_trunc('day', CURRENT_DATE)`,
+		domain.FilterMaxDownloadsWeek:   `date_trunc('week', CURRENT_DATE)`,
+		domain.FilterMaxDownloadsMonth:  `date_trunc('month', CURRENT_DATE)`,
+	}
 )
+
+// downloadsWindowStart returns the engine specific SQL expression for the start
+// of the filter's download window: the most recent calendar boundary for FIXED
+// windows, now minus the period for ROLLING windows. All parts are built from
+// fixed expressions and clamped integers, never user input.
+func (r *FilterRepo) downloadsWindowStart(filter *domain.Filter) string {
+	if filter.MaxDownloadsWindowType == domain.FilterMaxDownloadsWindowRolling {
+		n, unit := filter.DownloadPeriod()
+
+		if r.db.Driver == "postgres" {
+			return fmt.Sprintf("CURRENT_TIMESTAMP - INTERVAL '%d %s'", n, unit)
+		}
+
+		return fmt.Sprintf("datetime('now', 'localtime', '-%d %s')", n, unit)
+	}
+
+	boundaries := fixedWindowStartSQLite
+	if r.db.Driver == "postgres" {
+		boundaries = fixedWindowStartPG
+	}
+
+	if expr, ok := boundaries[filter.MaxDownloadsUnit]; ok {
+		return expr
+	}
+
+	return boundaries[domain.FilterMaxDownloadsDay]
+}
 
 func (r *FilterRepo) Find(ctx context.Context, params domain.FilterQueryParams) ([]*domain.Filter, error) {
 	return r.find(ctx, params)
@@ -83,6 +119,8 @@ func (r *FilterRepo) find(ctx context.Context, params domain.FilterQueryParams) 
 			"f.priority",
 			"f.max_downloads",
 			"f.max_downloads_unit",
+			"f.max_downloads_period",
+			"f.max_downloads_window_type",
 			"f.created_at",
 			"f.updated_at",
 		).
@@ -129,10 +167,10 @@ func (r *FilterRepo) find(ctx context.Context, params domain.FilterQueryParams) 
 	for rows.Next() {
 		var f domain.Filter
 
-		var maxDownloadsUnit sql.Null[string]
-		var maxDownloads sql.Null[int32]
+		var maxDownloadsUnit, maxDownloadsWindowType sql.Null[string]
+		var maxDownloads, maxDownloadsPeriod sql.Null[int32]
 
-		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Priority, &maxDownloads, &maxDownloadsUnit, &f.CreatedAt, &f.UpdatedAt, &f.ActionsCount, &f.ActionsEnabledCount, &f.IsAutoUpdated); err != nil {
+		if err := rows.Scan(&f.ID, &f.Enabled, &f.Name, &f.Priority, &maxDownloads, &maxDownloadsUnit, &maxDownloadsPeriod, &maxDownloadsWindowType, &f.CreatedAt, &f.UpdatedAt, &f.ActionsCount, &f.ActionsEnabledCount, &f.IsAutoUpdated); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -142,6 +180,14 @@ func (r *FilterRepo) find(ctx context.Context, params domain.FilterQueryParams) 
 
 		if maxDownloadsUnit.Valid {
 			f.MaxDownloadsUnit = domain.FilterMaxDownloadsUnit(maxDownloadsUnit.V)
+		}
+
+		if maxDownloadsPeriod.Valid {
+			f.MaxDownloadsPeriod = int(maxDownloadsPeriod.V)
+		}
+
+		if maxDownloadsWindowType.Valid {
+			f.MaxDownloadsWindowType = domain.FilterMaxDownloadsWindowType(maxDownloadsWindowType.V)
 		}
 
 		filters = append(filters, &f)
@@ -216,6 +262,8 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			"f.announce_types",
 			"f.max_downloads",
 			"f.max_downloads_unit",
+			"f.max_downloads_period",
+			"f.max_downloads_window_type",
 			"f.match_releases",
 			"f.except_releases",
 			"f.use_regex",
@@ -297,9 +345,9 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	var f domain.Filter
 
 	// filter
-	var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, months, days, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, matchRecordLabels, exceptRecordLabels, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
+	var minSize, maxSize, maxDownloadsUnit, maxDownloadsWindowType, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, months, days, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, matchRecordLabels, exceptRecordLabels, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
 	var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac sql.NullBool
-	var delay, maxDownloads, logScore sql.NullInt32
+	var delay, maxDownloads, maxDownloadsPeriod, logScore sql.NullInt32
 	var releaseProfileDuplicateId sql.NullInt64
 
 	err = row.Scan(
@@ -313,6 +361,8 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 		pq.Array(&f.AnnounceTypes),
 		&maxDownloads,
 		&maxDownloadsUnit,
+		&maxDownloadsPeriod,
+		&maxDownloadsWindowType,
 		&matchReleases,
 		&exceptReleases,
 		&useRegex,
@@ -387,6 +437,8 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	f.Delay = int(delay.Int32)
 	f.MaxDownloads = int(maxDownloads.Int32)
 	f.MaxDownloadsUnit = domain.FilterMaxDownloadsUnit(maxDownloadsUnit.String)
+	f.MaxDownloadsPeriod = int(maxDownloadsPeriod.Int32)
+	f.MaxDownloadsWindowType = domain.FilterMaxDownloadsWindowType(maxDownloadsWindowType.String)
 	f.MatchReleases = matchReleases.String
 	f.ExceptReleases = exceptReleases.String
 	f.MatchReleaseGroups = matchReleaseGroups.String
@@ -444,6 +496,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			"f.announce_types",
 			"f.max_downloads",
 			"f.max_downloads_unit",
+			"f.max_downloads_period",
+			"f.max_downloads_window_type",
 			"f.match_releases",
 			"f.except_releases",
 			"f.use_regex",
@@ -534,6 +588,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 		LeftJoin("release_profile_duplicate rdp ON rdp.id = f.release_profile_duplicate_id").
 		Where(sq.Eq{"i.identifier": indexer}).
 		Where(sq.Eq{"i.enabled": true}).
+		Where(sq.Eq{"i.archived": false}).
 		Where(sq.Eq{"f.enabled": true}).
 		OrderBy("f.priority DESC")
 
@@ -554,9 +609,9 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 	for rows.Next() {
 		var f domain.Filter
 
-		var minSize, maxSize, maxDownloadsUnit, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, months, days, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, matchRecordLabels, exceptRecordLabels, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
+		var minSize, maxSize, maxDownloadsUnit, maxDownloadsWindowType, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, months, days, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, matchRecordLabels, exceptRecordLabels, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
 		var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac sql.NullBool
-		var delay, maxDownloads, logScore sql.NullInt32
+		var delay, maxDownloads, maxDownloadsPeriod, logScore sql.NullInt32
 		var releaseProfileDuplicateID, rdpId sql.NullInt64
 
 		var rdpName sql.NullString
@@ -573,6 +628,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			pq.Array(&f.AnnounceTypes),
 			&maxDownloads,
 			&maxDownloadsUnit,
+			&maxDownloadsPeriod,
+			&maxDownloadsWindowType,
 			&matchReleases,
 			&exceptReleases,
 			&useRegex,
@@ -666,6 +723,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 		f.Delay = int(delay.Int32)
 		f.MaxDownloads = int(maxDownloads.Int32)
 		f.MaxDownloadsUnit = domain.FilterMaxDownloadsUnit(maxDownloadsUnit.String)
+		f.MaxDownloadsPeriod = int(maxDownloadsPeriod.Int32)
+		f.MaxDownloadsWindowType = domain.FilterMaxDownloadsWindowType(maxDownloadsWindowType.String)
 		f.MatchReleases = matchReleases.String
 		f.ExceptReleases = exceptReleases.String
 		f.MatchReleaseGroups = matchReleaseGroups.String
@@ -741,8 +800,27 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 }
 
 func (r *FilterRepo) FindExternalFiltersByID(ctx context.Context, filterId int) ([]domain.FilterExternal, error) {
+	externalFilters, err := r.findExternalFilters(ctx, []int{filterId})
+	if err != nil {
+		return nil, err
+	}
+
+	return externalFilters[filterId], nil
+}
+
+// FindExternalFiltersByFilterIDs returns external filters for the given filters grouped by filter id.
+func (r *FilterRepo) FindExternalFiltersByFilterIDs(ctx context.Context, filterIDs []int) (map[int][]domain.FilterExternal, error) {
+	return r.findExternalFilters(ctx, filterIDs)
+}
+
+func (r *FilterRepo) findExternalFilters(ctx context.Context, filterIDs []int) (map[int][]domain.FilterExternal, error) {
+	if len(filterIDs) == 0 {
+		return map[int][]domain.FilterExternal{}, nil
+	}
+
 	queryBuilder := r.db.squirrel.
 		Select(
+			"fe.filter_id",
 			"fe.id",
 			"fe.name",
 			"fe.idx",
@@ -762,8 +840,8 @@ func (r *FilterRepo) FindExternalFiltersByID(ctx context.Context, filterId int) 
 			"fe.on_error",
 		).
 		From("filter_external fe").
-		Where(sq.Eq{"fe.filter_id": filterId}).
-		OrderBy("fe.idx DESC")
+		Where(sq.Eq{"fe.filter_id": filterIDs}).
+		OrderBy("fe.filter_id", "fe.idx DESC")
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -772,16 +850,14 @@ func (r *FilterRepo) FindExternalFiltersByID(ctx context.Context, filterId int) 
 
 	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, domain.ErrRecordNotFound
-		}
 		return nil, errors.Wrap(err, "error executing query")
 	}
 	defer rows.Close()
 
-	var externalFilters []domain.FilterExternal
+	externalFilters := make(map[int][]domain.FilterExternal)
 
 	for rows.Next() {
+		var filterID int
 		var external domain.FilterExternal
 
 		// filter external
@@ -789,6 +865,7 @@ func (r *FilterRepo) FindExternalFiltersByID(ctx context.Context, filterId int) 
 		var extWebhookStatus, extWebhookRetryAttempts, extWebhookDelaySeconds, extExecStatus sql.NullInt32
 
 		if err := rows.Scan(
+			&filterID,
 			&external.ID,
 			&external.Name,
 			&external.Index,
@@ -823,13 +900,21 @@ func (r *FilterRepo) FindExternalFiltersByID(ctx context.Context, filterId int) 
 		external.WebhookRetryAttempts = int(extWebhookRetryAttempts.Int32)
 		external.WebhookRetryDelaySeconds = int(extWebhookDelaySeconds.Int32)
 
-		externalFilters = append(externalFilters, external)
+		externalFilters[filterID] = append(externalFilters[filterID], external)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "error scanning rows")
 	}
 
 	return externalFilters, nil
 }
 
 func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
+	// normalize on the struct so the caller echoes what gets stored
+	filter.MaxDownloadsPeriod = clampPeriod(filter.MaxDownloadsPeriod)
+	filter.MaxDownloadsWindowType = windowTypeOrFixed(filter.MaxDownloadsWindowType)
+
 	queryBuilder := r.db.squirrel.
 		Insert("filter").
 		Columns(
@@ -842,6 +927,8 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			"announce_types",
 			"max_downloads",
 			"max_downloads_unit",
+			"max_downloads_period",
+			"max_downloads_window_type",
 			"match_releases",
 			"except_releases",
 			"use_regex",
@@ -911,6 +998,8 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			pq.Array(filter.AnnounceTypes),
 			filter.MaxDownloads,
 			filter.MaxDownloadsUnit,
+			filter.MaxDownloadsPeriod,
+			filter.MaxDownloadsWindowType,
 			filter.MatchReleases,
 			filter.ExceptReleases,
 			filter.UseRegex,
@@ -985,6 +1074,10 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 }
 
 func (r *FilterRepo) Update(ctx context.Context, filter *domain.Filter) error {
+	// normalize on the struct so the caller echoes what gets stored
+	filter.MaxDownloadsPeriod = clampPeriod(filter.MaxDownloadsPeriod)
+	filter.MaxDownloadsWindowType = windowTypeOrFixed(filter.MaxDownloadsWindowType)
+
 	var err error
 
 	queryBuilder := r.db.squirrel.
@@ -998,6 +1091,8 @@ func (r *FilterRepo) Update(ctx context.Context, filter *domain.Filter) error {
 		Set("announce_types", pq.Array(filter.AnnounceTypes)).
 		Set("max_downloads", filter.MaxDownloads).
 		Set("max_downloads_unit", filter.MaxDownloadsUnit).
+		Set("max_downloads_period", filter.MaxDownloadsPeriod).
+		Set("max_downloads_window_type", filter.MaxDownloadsWindowType).
 		Set("use_regex", filter.UseRegex).
 		Set("match_releases", filter.MatchReleases).
 		Set("except_releases", filter.ExceptReleases).
@@ -1109,6 +1204,12 @@ func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpda
 	}
 	if filter.MaxDownloadsUnit != nil {
 		q = q.Set("max_downloads_unit", filter.MaxDownloadsUnit)
+	}
+	if filter.MaxDownloadsPeriod != nil {
+		q = q.Set("max_downloads_period", clampPeriod(*filter.MaxDownloadsPeriod))
+	}
+	if filter.MaxDownloadsWindowType != nil {
+		q = q.Set("max_downloads_window_type", windowTypeOrFixed(*filter.MaxDownloadsWindowType))
 	}
 	if filter.UseRegex != nil {
 		q = q.Set("use_regex", filter.UseRegex)
@@ -1337,6 +1438,10 @@ func (r *FilterRepo) ToggleEnabled(ctx context.Context, filterID int, enabled bo
 	return nil
 }
 
+// StoreIndexerConnections syncs the filter_indexer connections for the filter
+// to the given indexers, deleting stale connections and inserting missing ones.
+// Archived indexers already connected to the filter are kept; adding new
+// archived connections is rejected.
 func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, indexers []domain.Indexer) error {
 	tx, err := r.db.Handler.BeginTx(ctx, nil)
 	if err != nil {
@@ -1345,11 +1450,86 @@ func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, 
 
 	defer tx.Rollback()
 
-	deleteQueryBuilder := r.db.squirrel.
-		Delete("filter_indexer").
-		Where(sq.Eq{"filter_id": filterID})
+	uniqueIDs := make(map[int64]struct{}, len(indexers))
+	for _, indexer := range indexers {
+		uniqueIDs[indexer.ID] = struct{}{}
+	}
 
-	deleteQuery, deleteArgs, err := deleteQueryBuilder.ToSql()
+	indexerIDs := make([]int64, 0, len(uniqueIDs))
+	for id := range uniqueIDs {
+		indexerIDs = append(indexerIDs, id)
+	}
+
+	if len(indexerIDs) > 0 {
+		connectedQuery, connectedArgs, err := r.db.squirrel.
+			Select("indexer_id").
+			From("filter_indexer").
+			Where(sq.Eq{"filter_id": filterID}).
+			ToSql()
+		if err != nil {
+			return errors.Wrap(err, "error building query")
+		}
+
+		connectedRows, err := tx.QueryContext(ctx, connectedQuery, connectedArgs...)
+		if err != nil {
+			return errors.Wrap(err, "error executing query")
+		}
+
+		connected := make(map[int64]struct{})
+		for connectedRows.Next() {
+			var id int64
+			if err := connectedRows.Scan(&id); err != nil {
+				connectedRows.Close()
+				return errors.Wrap(err, "error scanning row")
+			}
+			connected[id] = struct{}{}
+		}
+		connectedRows.Close()
+		if err := connectedRows.Err(); err != nil {
+			return errors.Wrap(err, "error rows")
+		}
+
+		query, args, err := r.db.squirrel.
+			Select("id", "archived").
+			From("indexer").
+			Where(sq.Eq{"id": indexerIDs}).
+			ToSql()
+		if err != nil {
+			return errors.Wrap(err, "error building query")
+		}
+
+		rows, err := tx.QueryContext(ctx, query, args...)
+		if err != nil {
+			return errors.Wrap(err, "error executing query")
+		}
+
+		found := 0
+		for rows.Next() {
+			var id int64
+			var archived bool
+			if err := rows.Scan(&id, &archived); err != nil {
+				rows.Close()
+				return errors.Wrap(err, "error scanning row")
+			}
+			found++
+			if _, ok := connected[id]; archived && !ok {
+				rows.Close()
+				return errors.Wrap(domain.ErrIndexerArchived, "indexer with id %d is archived", id)
+			}
+		}
+		rows.Close()
+		if err := rows.Err(); err != nil {
+			return errors.Wrap(err, "error rows")
+		}
+		if found != len(indexerIDs) {
+			return domain.ErrIndexerNotFound
+		}
+	}
+
+	deleteQuery, deleteArgs, err := r.db.squirrel.
+		Delete("filter_indexer").
+		Where(sq.Eq{"filter_id": filterID}).
+		ToSql()
 	if err != nil {
 		return errors.Wrap(err, "error building query")
 	}
@@ -1359,41 +1539,49 @@ func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, 
 		return errors.Wrap(err, "error executing query")
 	}
 
-	if len(indexers) == 0 {
-		if err := tx.Commit(); err != nil {
-			return errors.Wrap(err, "error store indexers for filter: %d", filterID)
+	if len(indexerIDs) > 0 {
+		queryBuilder := r.db.squirrel.
+			Insert("filter_indexer").
+			Columns("filter_id", "indexer_id")
+
+		for _, indexerID := range indexerIDs {
+			queryBuilder = queryBuilder.Values(filterID, indexerID)
 		}
 
-		return nil
-	}
+		queryBuilder = queryBuilder.Suffix("ON CONFLICT DO NOTHING")
 
-	queryBuilder := r.db.squirrel.
-		Insert("filter_indexer").
-		Columns("filter_id", "indexer_id")
+		query, args, err := queryBuilder.ToSql()
+		if err != nil {
+			return errors.Wrap(err, "error building query")
+		}
 
-	for _, indexer := range indexers {
-		queryBuilder = queryBuilder.Values(filterID, indexer.ID)
-	}
-
-	query, args, err := queryBuilder.ToSql()
-	if err != nil {
-		return errors.Wrap(err, "error building query")
-	}
-
-	if _, err = tx.ExecContext(ctx, query, args...); err != nil {
-		return errors.Wrap(err, "error executing query")
+		if _, err = tx.ExecContext(ctx, query, args...); err != nil {
+			return errors.Wrap(err, "error executing query")
+		}
 	}
 
 	if err := tx.Commit(); err != nil {
 		return errors.Wrap(err, "error store indexers for filter: %d", filterID)
 	}
 
-	r.log.Debug().Msgf("filter.StoreIndexerConnections: indexers on filter: %d", filterID)
+	r.log.Debug().Int("filter_id", filterID).Msg("filter store indexer connections")
 
 	return nil
 }
 
 func (r *FilterRepo) StoreIndexerConnection(ctx context.Context, filterID int, indexerID int) error {
+	var archived bool
+	err := r.db.Handler.QueryRowContext(ctx, "SELECT archived FROM indexer WHERE id = $1", indexerID).Scan(&archived)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.ErrIndexerNotFound
+		}
+		return errors.Wrap(err, "could not find indexer")
+	}
+	if archived {
+		return errors.Wrap(domain.ErrIndexerArchived, "indexer with id %d is archived", indexerID)
+	}
+
 	queryBuilder := r.db.squirrel.
 		Insert("filter_indexer").Columns("filter_id", "indexer_id").
 		Values(filterID, indexerID)
@@ -1427,6 +1615,38 @@ func (r *FilterRepo) DeleteIndexerConnections(ctx context.Context, filterID int)
 	}
 
 	return nil
+}
+
+// DeleteArchivedIndexerConnections removes filter links to archived indexers.
+func (r *FilterRepo) DeleteArchivedIndexerConnections(ctx context.Context, identifiers []string) (int64, error) {
+	subBuilder := r.db.squirrel.
+		Select("id").
+		From("indexer").
+		Where(sq.Eq{"archived": true})
+	if len(identifiers) > 0 {
+		subBuilder = subBuilder.Where(sq.Eq{"identifier": identifiers})
+	}
+
+	subQuery, subArgs, err := subBuilder.ToSql()
+	if err != nil {
+		return 0, errors.Wrap(err, "error building query")
+	}
+
+	queryBuilder := r.db.squirrel.
+		Delete("filter_indexer").
+		Where("indexer_id IN ("+subQuery+")", subArgs...)
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return 0, errors.Wrap(err, "error building query")
+	}
+
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		return 0, errors.Wrap(err, "error executing query")
+	}
+
+	return result.RowsAffected()
 }
 
 func (r *FilterRepo) DeleteFilterExternal(ctx context.Context, filterID int) error {
@@ -1491,40 +1711,52 @@ func (r *FilterRepo) Delete(ctx context.Context, filterID int) error {
 		return errors.Wrap(err, "error storing list and filters")
 	}
 
-	r.log.Debug().Msgf("filter.delete: successfully deleted: %v", filterID)
+	r.log.Debug().Int("filter_id", filterID).Msg("filter successfully deleted")
 
 	return nil
 }
 
 // GetFilterDownloadCount looks up how many `PENDING` or `PUSH_APPROVED`
-// releases there have been for the given filter in the current time window
-// starting at the start of the unit (since the beginning of the most recent
-// hour/day/week).
+// releases there have been for the given filter in its download window: since
+// the most recent calendar boundary for FIXED windows, within the last period
+// units for ROLLING windows, or over the filter's lifetime for EVER.
 //
 // See also
 // https://github.com/autobrr/autobrr/pull/1285#pullrequestreview-1795913581
-func (r *FilterRepo) GetFilterDownloadCount(ctx context.Context, filter *domain.Filter) (err error) {
-	query := r.filterDownloadQuery.Get()
+func (r *FilterRepo) GetFilterDownloadCount(ctx context.Context, filter *domain.Filter) error {
+	queryBuilder := r.db.squirrel.
+		Select("COUNT(DISTINCT release_id)").
+		From("release_action_status").
+		Where(sq.Eq{"status": []string{"PUSH_APPROVED", "PENDING"}, "filter_id": filter.ID})
 
-	row := r.db.Handler.QueryRowContext(ctx, query, filter.ID)
-	if err := row.Err(); err != nil {
-		return errors.Wrap(err, "error executing query")
+	if filter.MaxDownloadsUnit != domain.FilterMaxDownloadsEver {
+		windowStart := r.downloadsWindowStart(filter)
+
+		if r.db.Driver == "postgres" {
+			queryBuilder = queryBuilder.Where("timestamp >= " + windowStart)
+		} else {
+			// stored SQLite timestamps mix formats and offsets, so both sides
+			// are normalized through datetime() before comparing
+			queryBuilder = queryBuilder.Where("datetime(timestamp, 'localtime') >= " + windowStart)
+		}
+	}
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
 	}
 
 	var f domain.FilterDownloads
-	if err := row.Scan(&f.HourCount, &f.DayCount, &f.WeekCount, &f.MonthCount, &f.TotalCount); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return domain.ErrRecordNotFound
-		}
 
-		return errors.Wrap(err, "error scanning stats data sqlite")
+	if err := r.db.Handler.QueryRowContext(ctx, query, args...).Scan(&f.PeriodCount); err != nil {
+		return errors.Wrap(err, "error scanning row")
 	}
 
-	r.log.Trace().Msgf("filter %v downloads: %+v", filter.ID, &f)
+	r.log.Trace().Int("filter_id", filter.ID).Interface("downloads", &f).Msg("filter downloads")
 
 	filter.Downloads = &f
 
-	return
+	return nil
 }
 
 func (r *FilterRepo) StoreFilterExternal(ctx context.Context, filterID int, externalFilters []domain.FilterExternal) error {
@@ -1615,7 +1847,7 @@ func (r *FilterRepo) StoreFilterExternal(ctx context.Context, filterID int, exte
 		return errors.Wrap(err, "error store external filters for filter: %d", filterID)
 	}
 
-	r.log.Debug().Msgf("filter.StoreFilterExternal: store external filters on filter: %d", filterID)
+	r.log.Debug().Int("filter_id", filterID).Msg("store external filters")
 
 	return nil
 }
@@ -1716,7 +1948,7 @@ func (r *FilterRepo) StoreFilterNotifications(ctx context.Context, filterID int,
 		return errors.Wrap(err, "error storing filter notifications for filter: %d", filterID)
 	}
 
-	r.log.Debug().Msgf("filter.StoreFilterNotifications: stored %d notifications for filter: %d", len(notifications), filterID)
+	r.log.Debug().Int("count", len(notifications)).Int("filter_id", filterID).Msg("store filter notifications")
 
 	return nil
 }
@@ -1741,7 +1973,7 @@ func (r *FilterRepo) DeleteFilterNotifications(ctx context.Context, filterID int
 		return errors.Wrap(err, "error getting rows affected")
 	}
 
-	r.log.Debug().Msgf("filter.DeleteFilterNotifications: deleted %d notifications for filter: %d", rowsAffected, filterID)
+	r.log.Debug().Int64("rows_affected", rowsAffected).Int("filter_id", filterID).Msg("filter notifications deleted")
 
 	return nil
 }

@@ -66,6 +66,7 @@ export const TextField = ({
         <>
           <input
             {...field}
+            id={name}
             name={name}
             type="text"
             defaultValue={defaultValue}
@@ -160,7 +161,7 @@ export const RegexField = ({
     try {
       new RegExp(pattern);
       return true;
-    } catch (e) {
+    } catch {
       return false;
     }
   };
@@ -301,7 +302,7 @@ export const RegexTextAreaField = ({
     try {
       new RegExp(pattern);
       return true;
-    } catch (e) {
+    } catch {
       return false;
     }
   };

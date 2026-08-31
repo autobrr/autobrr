@@ -55,13 +55,13 @@ function createRuleDescriptor(ruleId, meta) {
   };
 }
 
-function createResult(cwd, result, message, ruleIndexes) {
+function createResult(baseDir, result, message, ruleIndexes) {
   const ruleId = normalizeRuleId(message);
   const startLine = message.line || 1;
   const startColumn = message.column || 1;
   const endLine = message.endLine || startLine;
   const endColumn = message.endColumn || startColumn;
-  const uri = getRelativeUri(cwd, result.filePath);
+  const uri = getRelativeUri(baseDir, result.filePath);
 
   return {
     ruleId,
@@ -91,6 +91,9 @@ function createResult(cwd, result, message, ruleIndexes) {
 
 async function main() {
   const cwd = process.cwd();
+  // The SARIF is uploaded from the repo root, one level above web/, so
+  // result URIs must be relative to it for code scanning to resolve files.
+  const repoRoot = path.resolve(cwd, "..");
   const targets = process.argv.slice(2);
   const files = targets.length > 0 ? targets : ["src/"];
   const eslint = new ESLint({ cwd });
@@ -115,7 +118,7 @@ async function main() {
           },
         },
         results: results.flatMap((result) =>
-          result.messages.map((message) => createResult(cwd, result, message, ruleIndexes))
+          result.messages.map((message) => createResult(repoRoot, result, message, ruleIndexes))
         ),
       },
     ],

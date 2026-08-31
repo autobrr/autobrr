@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/version"
 
 	"github.com/rs/zerolog"
@@ -23,7 +22,7 @@ type Service struct {
 	latestRelease  *version.Release
 }
 
-func NewUpdate(log logger.Logger, config *domain.Config) *Service {
+func NewUpdate(log zerolog.Logger, config *domain.Config) *Service {
 	return &Service{
 		log:            log.With().Str("module", "update").Logger(),
 		config:         config,
@@ -56,7 +55,7 @@ func (s *Service) CheckUpdateAvailable(ctx context.Context) (*version.Release, e
 	}
 
 	if newAvailable {
-		s.log.Info().Msgf("autobrr outdated, found newer release: %s", newVersion.TagName)
+		s.log.Info().Str("version", newVersion.TagName).Msg("found newer release")
 
 		s.m.Lock()
 		defer s.m.Unlock()

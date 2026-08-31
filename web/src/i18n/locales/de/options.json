@@ -6,6 +6,10 @@
     "PROMO_GP": "Promo GP",
     "RESURRECTED": "Wiederbelebt"
   },
+  "maxDownloadsWindowType": {
+    "FIXED": "Fest (Kalender-Reset)",
+    "ROLLING": "Gleitend (gleitendes Fenster)"
+  },
   "downloadClient": {
     "QBITTORRENT": {
       "label": "qBittorrent",
@@ -31,6 +35,10 @@
       "label": "Porla",
       "description": "Torrents direkt zu Porla hinzufügen"
     },
+    "ARIA2": {
+      "label": "aria2",
+      "description": "Torrents direkt zu aria2 hinzufügen"
+    },
     "RADARR": {
       "label": "Radarr",
       "description": "An Radarr senden und entscheiden lassen"
@@ -44,7 +52,11 @@
       "description": "An Lidarr senden und entscheiden lassen"
     },
     "WHISPARR": {
-      "label": "Whisparr",
+      "label": "Whisparr (v2)",
+      "description": "An Whisparr senden und entscheiden lassen"
+    },
+    "WHISPARR_V3": {
+      "label": "Whisparr (v3)",
       "description": "An Whisparr senden und entscheiden lassen"
     },
     "READARR": {
@@ -101,6 +113,10 @@
       "label": "Porla",
       "description": "Torrents direkt zu Porla hinzufügen"
     },
+    "ARIA2": {
+      "label": "aria2",
+      "description": "Torrents direkt zu aria2 hinzufügen"
+    },
     "RADARR": {
       "label": "Radarr",
       "description": "An Radarr senden und entscheiden lassen"
@@ -114,7 +130,11 @@
       "description": "An Lidarr senden und entscheiden lassen"
     },
     "WHISPARR": {
-      "label": "Whisparr",
+      "label": "Whisparr (v2)",
+      "description": "An Whisparr senden und entscheiden lassen"
+    },
+    "WHISPARR_V3": {
+      "label": "Whisparr (v3)",
       "description": "An Whisparr senden und entscheiden lassen"
     },
     "READARR": {

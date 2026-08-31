@@ -6,6 +6,10 @@
     "PROMO_GP": "Промо GP",
     "RESURRECTED": "Воскрешён"
   },
+  "maxDownloadsWindowType": {
+    "FIXED": "Фиксированное (сброс по календарю)",
+    "ROLLING": "Скользящее (скользящее окно)"
+  },
   "downloadClient": {
     "QBITTORRENT": {
       "label": "qBittorrent",
@@ -31,6 +35,10 @@
       "label": "Porla",
       "description": "Добавить торренты напрямую в Porla"
     },
+    "ARIA2": {
+      "label": "aria2",
+      "description": "Добавить торренты напрямую в aria2"
+    },
     "RADARR": {
       "label": "Radarr",
       "description": "Отправить в Radarr, пусть он решает"
@@ -44,7 +52,11 @@
       "description": "Отправить в Lidarr, пусть он решает"
     },
     "WHISPARR": {
-      "label": "Whisparr",
+      "label": "Whisparr (v2)",
+      "description": "Отправить в Whisparr, пусть он решает"
+    },
+    "WHISPARR_V3": {
+      "label": "Whisparr (v3)",
       "description": "Отправить в Whisparr, пусть он решает"
     },
     "READARR": {
@@ -101,6 +113,10 @@
       "label": "Porla",
       "description": "Добавить торренты напрямую в Porla"
     },
+    "ARIA2": {
+      "label": "aria2",
+      "description": "Добавить торренты напрямую в aria2"
+    },
     "RADARR": {
       "label": "Radarr",
       "description": "Отправить в Radarr, пусть он решает"
@@ -114,7 +130,11 @@
       "description": "Отправить в Lidarr, пусть он решает"
     },
     "WHISPARR": {
-      "label": "Whisparr",
+      "label": "Whisparr (v2)",
+      "description": "Отправить в Whisparr, пусть он решает"
+    },
+    "WHISPARR_V3": {
+      "label": "Whisparr (v3)",
       "description": "Отправить в Whisparr, пусть он решает"
     },
     "READARR": {

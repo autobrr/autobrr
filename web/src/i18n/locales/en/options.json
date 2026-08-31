@@ -6,6 +6,10 @@
     "PROMO_GP": "Promo GP",
     "RESURRECTED": "Resurrected"
   },
+  "maxDownloadsWindowType": {
+    "FIXED": "Fixed (calendar reset)",
+    "ROLLING": "Rolling (sliding window)"
+  },
   "downloadClient": {
     "QBITTORRENT": {
       "label": "qBittorrent",
@@ -31,6 +35,10 @@
       "label": "Porla",
       "description": "Add torrents directly to Porla"
     },
+    "ARIA2": {
+      "label": "aria2",
+      "description": "Add torrents directly to aria2"
+    },
     "RADARR": {
       "label": "Radarr",
       "description": "Send to Radarr and let it decide"
@@ -44,12 +52,20 @@
       "description": "Send to Lidarr and let it decide"
     },
     "WHISPARR": {
-      "label": "Whisparr",
+      "label": "Whisparr (v2)",
+      "description": "Send to Whisparr and let it decide"
+    },
+    "WHISPARR_V3": {
+      "label": "Whisparr (v3)",
       "description": "Send to Whisparr and let it decide"
     },
     "READARR": {
       "label": "Readarr",
       "description": "Send to Readarr and let it decide"
+    },
+    "SPORTARR": {
+      "label": "Sportarr",
+      "description": "Send to Sportarr and let it decide"
     },
     "SABNZBD": {
       "label": "SABnzbd",
@@ -101,6 +117,10 @@
       "label": "Porla",
       "description": "Add torrents directly to Porla"
     },
+    "ARIA2": {
+      "label": "aria2",
+      "description": "Add torrents directly to aria2"
+    },
     "RADARR": {
       "label": "Radarr",
       "description": "Send to Radarr and let it decide"
@@ -114,12 +134,20 @@
       "description": "Send to Lidarr and let it decide"
     },
     "WHISPARR": {
-      "label": "Whisparr",
+      "label": "Whisparr (v2)",
+      "description": "Send to Whisparr and let it decide"
+    },
+    "WHISPARR_V3": {
+      "label": "Whisparr (v3)",
       "description": "Send to Whisparr and let it decide"
     },
     "READARR": {
       "label": "Readarr",
       "description": "Send to Readarr and let it decide"
+    },
+    "SPORTARR": {
+      "label": "Sportarr",
+      "description": "Send to Sportarr and let it decide"
     },
     "SABNZBD": {
       "label": "SABnzbd",

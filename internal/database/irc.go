@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -21,7 +20,7 @@ type IrcRepo struct {
 	db  *DB
 }
 
-func NewIrcRepo(log logger.Logger, db *DB) *IrcRepo {
+func NewIrcRepo(log zerolog.Logger, db *DB) *IrcRepo {
 	return &IrcRepo{
 		log: log.With().Str("repo", "irc").Logger(),
 		db:  db,
@@ -38,7 +37,7 @@ func (r *IrcRepo) GetNetworkByID(ctx context.Context, id int64) (*domain.IrcNetw
 	if err != nil {
 		return nil, errors.Wrap(err, "error building query")
 	}
-	r.log.Trace().Str("database", "irc.check_existing_network").Msgf("query: '%s', args: '%v'", query, args)
+	r.log.Trace().Str("database", "irc.check_existing_network").Str("query", query).Interface("args", args).Msg("checking existing network")
 
 	var n domain.IrcNetwork
 
@@ -262,7 +261,7 @@ func (r *IrcRepo) CheckExistingNetwork(ctx context.Context, network *domain.IrcN
 	if err != nil {
 		return nil, errors.Wrap(err, "error building query")
 	}
-	r.log.Trace().Str("database", "irc.checkExistingNetwork").Msgf("query: '%s', args: '%v'", query, args)
+	r.log.Trace().Str("database", "irc.checkExistingNetwork").Str("query", query).Interface("args", args).Msg("checking existing network")
 
 	row := r.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {

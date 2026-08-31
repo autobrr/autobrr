@@ -5,15 +5,21 @@ package action
 
 import (
 	"context"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/arr/radarr"
 	"github.com/autobrr/autobrr/pkg/errors"
+
+	"github.com/rs/zerolog"
 )
 
-func (s *Service) radarr(ctx context.Context, action *domain.Action, release domain.Release) ([]string, error) {
-	s.log.Trace().Msg("action RADARR")
+func (s *Service) radarr(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error) {
+	l := zerolog.Ctx(ctx)
+
+	l.Trace().Msg("running Radarr action")
 
 	// TODO validate data
 
@@ -44,6 +50,18 @@ func (s *Service) radarr(ctx context.Context, action *domain.Action, release dom
 		DownloadProtocol: release.Protocol.String(),
 		Protocol:         release.Protocol.String(),
 		PublishDate:      time.Now().Format(time.RFC3339),
+		TmdbID:           release.MetaTMDB,
+	}
+
+	if release.MetaIMDB != "" {
+		if idStr, idOk := strings.CutPrefix(release.MetaIMDB, "tt"); idOk {
+			id, err := strconv.Atoi(idStr)
+			if err == nil {
+				r.ImdbID = id
+			} else {
+				s.log.Error().Err(err).Msg("could not parse IMDB ID from release")
+			}
+		}
 	}
 
 	if action.ExternalDownloadClientID > 0 {
@@ -62,16 +80,16 @@ func (s *Service) radarr(ctx context.Context, action *domain.Action, release dom
 
 	rejections, err := arr.Push(ctx, r)
 	if err != nil {
-		return nil, errors.Wrap(err, "radarr failed to push release: %v", r)
+		return nil, errors.Wrap(err, "radarr failed to push release: %s", r.Title)
 	}
 
 	if rejections != nil {
-		s.log.Debug().Msgf("radarr: release push rejected: %v, indexer %v to %v reasons: '%v'", r.Title, r.Indexer, client.Host, rejections)
+		l.Debug().Str("indexer", r.Indexer).Str("host", client.Host).Strs("rejections", rejections).Msg("client rejected the release")
 
 		return rejections, nil
 	}
 
-	s.log.Debug().Msgf("radarr: successfully pushed release: %v, indexer %v to %v", r.Title, r.Indexer, client.Host)
+	l.Info().Str("indexer", r.Indexer).Str("host", client.Host).Msg("release successfully added to client")
 
 	return nil, nil
 }

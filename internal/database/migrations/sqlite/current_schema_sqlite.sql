@@ -65,12 +65,28 @@ CREATE TABLE indexer
     proxy_id            INTEGER,
     created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    archived            BOOLEAN NOT NULL DEFAULT FALSE,
+    archived_at         TIMESTAMP,
     FOREIGN KEY (proxy_id) REFERENCES proxy (id) ON DELETE SET NULL,
     UNIQUE (identifier)
 );
 
 CREATE INDEX indexer_identifier_index
     ON indexer (identifier);
+
+CREATE INDEX indexer_archived_index
+    ON indexer (archived);
+
+CREATE TABLE indexer_deprecation
+(
+    id            INTEGER PRIMARY KEY,
+    identifier    TEXT NOT NULL UNIQUE,
+    name          TEXT,
+    reason        TEXT,
+    issue_url     TEXT,
+    alias_of      TEXT,
+    deprecated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 CREATE TABLE irc_network
 (
@@ -159,6 +175,8 @@ CREATE TABLE filter
     priority                     INTEGER   DEFAULT 0    NOT NULL,
     max_downloads                INTEGER   DEFAULT 0,
     max_downloads_unit           TEXT,
+    max_downloads_period         INTEGER   DEFAULT 1       NOT NULL,
+    max_downloads_window_type    TEXT      DEFAULT 'FIXED' NOT NULL,
     announce_types               TEXT []   DEFAULT '{}',
     match_releases               TEXT,
     except_releases              TEXT,
@@ -475,6 +493,9 @@ CREATE INDEX release_cut_index
 CREATE INDEX release_hybrid_index
     ON "release" (hybrid);
 
+CREATE INDEX release_filter_status_index
+    ON "release" (filter_status);
+
 CREATE TABLE release_action_status
 (
     id         INTEGER PRIMARY KEY,
@@ -502,11 +523,14 @@ CREATE TABLE release_action_status
 CREATE INDEX release_action_status_status_index
     ON release_action_status (status);
 
+CREATE INDEX release_action_status_timestamp_status_index
+    ON release_action_status (timestamp, status);
+
 CREATE INDEX release_action_status_release_id_index
     ON release_action_status (release_id);
 
-CREATE INDEX release_action_status_filter_id_index
-    ON release_action_status (filter_id);
+CREATE INDEX release_action_status_filter_id_status_index
+    ON release_action_status (filter_id, status);
 
 CREATE TABLE feed
 (
@@ -523,6 +547,7 @@ CREATE TABLE feed
     capabilities    TEXT      DEFAULT '{}' NOT NULL,
     api_key         TEXT,
     cookie          TEXT,
+    user_agent      TEXT,
     tls_skip_verify BOOLEAN DEFAULT FALSE,
     settings        TEXT,
     indexer_id      INTEGER,

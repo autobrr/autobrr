@@ -6,7 +6,6 @@
 package database
 
 import (
-	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -56,7 +55,10 @@ func getMockIrcNetwork() domain.IrcNetwork {
 }
 
 func TestIrcRepo_StoreNetwork(t *testing.T) {
-	for dbType, db := range testDBs {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 
 		repo := NewIrcRepo(log, db)
@@ -68,20 +70,23 @@ func TestIrcRepo_StoreNetwork(t *testing.T) {
 			assert.NotNil(t, mockData)
 
 			// Execute
-			err := repo.StoreNetwork(context.Background(), &mockData)
+			err := repo.StoreNetwork(ctx, &mockData)
 			assert.NoError(t, err)
 
 			// Verify
 			assert.NotEqual(t, int64(0), mockData.ID)
 
 			// Cleanup
-			_ = repo.DeleteNetwork(context.Background(), int64(int(mockData.ID)))
+			_ = repo.DeleteNetwork(ctx, int64(int(mockData.ID)))
 		})
 	}
 }
 
 func TestIrcRepo_StoreChannel(t *testing.T) {
-	for dbType, db := range testDBs {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 
 		repo := NewIrcRepo(log, db)
@@ -91,11 +96,11 @@ func TestIrcRepo_StoreChannel(t *testing.T) {
 
 		t.Run(fmt.Sprintf("StoreChannel_Insert_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			err := repo.StoreNetwork(context.Background(), &mockNetwork)
+			err := repo.StoreNetwork(ctx, &mockNetwork)
 			assert.NoError(t, err)
 
 			// Execute
-			err = repo.StoreChannel(context.Background(), mockNetwork.ID, &mockChannel)
+			err = repo.StoreChannel(ctx, mockNetwork.ID, &mockChannel)
 			assert.NoError(t, err)
 
 			// Verify
@@ -106,7 +111,7 @@ func TestIrcRepo_StoreChannel(t *testing.T) {
 
 		t.Run(fmt.Sprintf("StoreChannel_Update_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			err := repo.StoreChannel(context.Background(), mockNetwork.ID, &mockChannel)
+			err := repo.StoreChannel(ctx, mockNetwork.ID, &mockChannel)
 			assert.NoError(t, err)
 
 			// Update mockChannel fields
@@ -114,7 +119,7 @@ func TestIrcRepo_StoreChannel(t *testing.T) {
 			mockChannel.Name = "updated_name"
 
 			// Execute
-			err = repo.StoreChannel(context.Background(), mockNetwork.ID, &mockChannel)
+			err = repo.StoreChannel(ctx, mockNetwork.ID, &mockChannel)
 			assert.NoError(t, err)
 
 			// Verify
@@ -124,13 +129,16 @@ func TestIrcRepo_StoreChannel(t *testing.T) {
 			assert.Equal(t, mockChannel.Name, fetchedChannel[0].Name)
 
 			// Cleanup
-			_ = repo.DeleteNetwork(context.Background(), mockNetwork.ID)
+			_ = repo.DeleteNetwork(ctx, mockNetwork.ID)
 		})
 	}
 }
 
 func TestIrcRepo_UpdateNetwork(t *testing.T) {
-	for dbType, db := range testDBs {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 
 		repo := NewIrcRepo(log, db)
@@ -140,7 +148,7 @@ func TestIrcRepo_UpdateNetwork(t *testing.T) {
 		t.Run(fmt.Sprintf("UpdateNetwork_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
 			assert.NotNil(t, mockData)
-			err := repo.StoreNetwork(context.Background(), &mockData)
+			err := repo.StoreNetwork(ctx, &mockData)
 			assert.NoError(t, err)
 			assert.NotEqual(t, int64(0), mockData.ID)
 
@@ -149,23 +157,26 @@ func TestIrcRepo_UpdateNetwork(t *testing.T) {
 			mockData.Name = "UpdatedNetworkName"
 
 			// Execute
-			err = repo.UpdateNetwork(context.Background(), &mockData)
+			err = repo.UpdateNetwork(ctx, &mockData)
 			assert.NoError(t, err)
 
 			// Verify
-			updatedNetwork, fetchErr := repo.GetNetworkByID(context.Background(), mockData.ID)
+			updatedNetwork, fetchErr := repo.GetNetworkByID(ctx, mockData.ID)
 			assert.NoError(t, fetchErr)
 			assert.Equal(t, mockData.Enabled, updatedNetwork.Enabled)
 			assert.Equal(t, mockData.Name, updatedNetwork.Name)
 
 			// Cleanup
-			_ = repo.DeleteNetwork(context.Background(), mockData.ID)
+			_ = repo.DeleteNetwork(ctx, mockData.ID)
 		})
 	}
 }
 
 func TestIrcRepo_GetNetworkByID(t *testing.T) {
-	for dbType, db := range testDBs {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 
 		repo := NewIrcRepo(log, db)
@@ -175,12 +186,12 @@ func TestIrcRepo_GetNetworkByID(t *testing.T) {
 		t.Run(fmt.Sprintf("GetNetworkByID_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
 			assert.NotNil(t, mockData)
-			err := repo.StoreNetwork(context.Background(), &mockData)
+			err := repo.StoreNetwork(ctx, &mockData)
 			assert.NoError(t, err)
 			assert.NotEqual(t, int64(0), mockData.ID)
 
 			// Execute
-			fetchedNetwork, err := repo.GetNetworkByID(context.Background(), mockData.ID)
+			fetchedNetwork, err := repo.GetNetworkByID(ctx, mockData.ID)
 			assert.NoError(t, err)
 
 			// Verify
@@ -190,13 +201,16 @@ func TestIrcRepo_GetNetworkByID(t *testing.T) {
 			assert.Equal(t, mockData.Name, fetchedNetwork.Name)
 
 			// Cleanup
-			_ = repo.DeleteNetwork(context.Background(), mockData.ID)
+			_ = repo.DeleteNetwork(ctx, mockData.ID)
 		})
 	}
 }
 
 func TestIrcRepo_DeleteNetwork(t *testing.T) {
-	for dbType, db := range testDBs {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 
 		repo := NewIrcRepo(log, db)
@@ -206,16 +220,16 @@ func TestIrcRepo_DeleteNetwork(t *testing.T) {
 		t.Run(fmt.Sprintf("DeleteNetwork_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
 			assert.NotNil(t, mockData)
-			err := repo.StoreNetwork(context.Background(), &mockData)
+			err := repo.StoreNetwork(ctx, &mockData)
 			assert.NoError(t, err)
 			assert.NotEqual(t, int64(0), mockData.ID)
 
 			// Execute
-			err = repo.DeleteNetwork(context.Background(), mockData.ID)
+			err = repo.DeleteNetwork(ctx, mockData.ID)
 			assert.NoError(t, err)
 
 			// Verify
-			fetchedNetwork, fetchErr := repo.GetNetworkByID(context.Background(), mockData.ID)
+			fetchedNetwork, fetchErr := repo.GetNetworkByID(ctx, mockData.ID)
 			assert.Error(t, fetchErr)
 			assert.Nil(t, fetchedNetwork)
 		})
@@ -223,7 +237,10 @@ func TestIrcRepo_DeleteNetwork(t *testing.T) {
 }
 
 func TestIrcRepo_FindActiveNetworks(t *testing.T) {
-	for dbType, db := range testDBs {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 
 		repo := NewIrcRepo(log, db)
@@ -240,13 +257,13 @@ func TestIrcRepo_FindActiveNetworks(t *testing.T) {
 
 		t.Run(fmt.Sprintf("FindActiveNetworks_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			err := repo.StoreNetwork(context.Background(), &mockData1)
+			err := repo.StoreNetwork(ctx, &mockData1)
 			assert.NoError(t, err)
-			err = repo.StoreNetwork(context.Background(), &mockData2)
+			err = repo.StoreNetwork(ctx, &mockData2)
 			assert.NoError(t, err)
 
 			// Execute
-			activeNetworks, err := repo.FindActiveNetworks(context.Background())
+			activeNetworks, err := repo.FindActiveNetworks(ctx)
 			assert.NoError(t, err)
 
 			// Verify
@@ -255,14 +272,17 @@ func TestIrcRepo_FindActiveNetworks(t *testing.T) {
 			assert.True(t, activeNetworks[0].Enabled)
 
 			// Cleanup
-			_ = repo.DeleteNetwork(context.Background(), mockData1.ID)
-			_ = repo.DeleteNetwork(context.Background(), mockData2.ID)
+			_ = repo.DeleteNetwork(ctx, mockData1.ID)
+			_ = repo.DeleteNetwork(ctx, mockData2.ID)
 		})
 	}
 }
 
 func TestIrcRepo_ListNetworks(t *testing.T) {
-	for dbType, db := range testDBs {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 
 		repo := NewIrcRepo(log, db)
@@ -278,13 +298,13 @@ func TestIrcRepo_ListNetworks(t *testing.T) {
 
 		t.Run(fmt.Sprintf("ListNetworks_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			err := repo.StoreNetwork(context.Background(), &mockData1)
+			err := repo.StoreNetwork(ctx, &mockData1)
 			assert.NoError(t, err)
-			err = repo.StoreNetwork(context.Background(), &mockData2)
+			err = repo.StoreNetwork(ctx, &mockData2)
 			assert.NoError(t, err)
 
 			// Execute
-			listedNetworks, err := repo.ListNetworks(context.Background())
+			listedNetworks, err := repo.ListNetworks(ctx)
 			assert.NoError(t, err)
 
 			// Verify
@@ -296,14 +316,17 @@ func TestIrcRepo_ListNetworks(t *testing.T) {
 			assert.Equal(t, "ZNetwork", listedNetworks[1].Name)
 
 			// Cleanup
-			_ = repo.DeleteNetwork(context.Background(), mockData1.ID)
-			_ = repo.DeleteNetwork(context.Background(), mockData2.ID)
+			_ = repo.DeleteNetwork(ctx, mockData1.ID)
+			_ = repo.DeleteNetwork(ctx, mockData2.ID)
 		})
 	}
 }
 
 func TestIrcRepo_ListChannels(t *testing.T) {
-	for dbType, db := range testDBs {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 
 		repo := NewIrcRepo(log, db)
@@ -312,10 +335,10 @@ func TestIrcRepo_ListChannels(t *testing.T) {
 
 		t.Run(fmt.Sprintf("ListChannels_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			err := repo.StoreNetwork(context.Background(), &mockNetwork)
+			err := repo.StoreNetwork(ctx, &mockNetwork)
 			assert.NoError(t, err)
 
-			err = repo.StoreChannel(context.Background(), mockNetwork.ID, &mockChannel)
+			err = repo.StoreChannel(ctx, mockNetwork.ID, &mockChannel)
 			assert.NoError(t, err)
 
 			// Execute
@@ -327,13 +350,16 @@ func TestIrcRepo_ListChannels(t *testing.T) {
 			assert.Len(t, listedChannels, 1)
 
 			// Cleanup
-			_ = repo.DeleteNetwork(context.Background(), mockNetwork.ID)
+			_ = repo.DeleteNetwork(ctx, mockNetwork.ID)
 		})
 	}
 }
 
 func TestIrcRepo_CheckExistingNetwork(t *testing.T) {
-	for dbType, db := range testDBs {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 
 		repo := NewIrcRepo(log, db)
@@ -341,7 +367,7 @@ func TestIrcRepo_CheckExistingNetwork(t *testing.T) {
 
 		t.Run(fmt.Sprintf("CheckExistingNetwork_NoMatch [%s]", dbType), func(t *testing.T) {
 			// Execute
-			existingNetwork, err := repo.CheckExistingNetwork(context.Background(), &mockNetwork)
+			existingNetwork, err := repo.CheckExistingNetwork(ctx, &mockNetwork)
 			assert.NoError(t, err)
 
 			// Verify
@@ -350,11 +376,11 @@ func TestIrcRepo_CheckExistingNetwork(t *testing.T) {
 
 		t.Run(fmt.Sprintf("CheckExistingNetwork_MatchFound [%s]", dbType), func(t *testing.T) {
 			// Setup
-			err := repo.StoreNetwork(context.Background(), &mockNetwork)
+			err := repo.StoreNetwork(ctx, &mockNetwork)
 			assert.NoError(t, err)
 
 			// Execute
-			existingNetwork, err := repo.CheckExistingNetwork(context.Background(), &mockNetwork)
+			existingNetwork, err := repo.CheckExistingNetwork(ctx, &mockNetwork)
 			assert.NoError(t, err)
 
 			// Verify
@@ -364,13 +390,16 @@ func TestIrcRepo_CheckExistingNetwork(t *testing.T) {
 			assert.Equal(t, mockNetwork.Nick, existingNetwork.Nick)
 
 			// Cleanup
-			_ = repo.DeleteNetwork(context.Background(), mockNetwork.ID)
+			_ = repo.DeleteNetwork(ctx, mockNetwork.ID)
 		})
 	}
 }
 
 func TestIrcRepo_StoreNetworkChannels(t *testing.T) {
-	for dbType, db := range testDBs {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 
 		repo := NewIrcRepo(log, db)
@@ -379,14 +408,14 @@ func TestIrcRepo_StoreNetworkChannels(t *testing.T) {
 
 		t.Run(fmt.Sprintf("StoreNetworkChannels_DeleteOldChannels [%s]", dbType), func(t *testing.T) {
 			// Setup
-			err := repo.StoreNetwork(context.Background(), &mockNetwork)
+			err := repo.StoreNetwork(ctx, &mockNetwork)
 			assert.NoError(t, err)
 
-			err = repo.StoreNetworkChannels(context.Background(), mockNetwork.ID, mockChannels)
+			err = repo.StoreNetworkChannels(ctx, mockNetwork.ID, mockChannels)
 			assert.NoError(t, err)
 
 			// Execute
-			err = repo.StoreNetworkChannels(context.Background(), mockNetwork.ID, []domain.IrcChannel{})
+			err = repo.StoreNetworkChannels(ctx, mockNetwork.ID, []domain.IrcChannel{})
 			assert.NoError(t, err)
 
 			// Verify
@@ -395,16 +424,16 @@ func TestIrcRepo_StoreNetworkChannels(t *testing.T) {
 			assert.Len(t, existingChannels, 0)
 
 			// Cleanup
-			_ = repo.DeleteNetwork(context.Background(), mockNetwork.ID)
+			_ = repo.DeleteNetwork(ctx, mockNetwork.ID)
 		})
 
 		t.Run(fmt.Sprintf("StoreNetworkChannels_InsertNewChannels [%s]", dbType), func(t *testing.T) {
 			// Setup
-			err := repo.StoreNetwork(context.Background(), &mockNetwork)
+			err := repo.StoreNetwork(ctx, &mockNetwork)
 			assert.NoError(t, err)
 
 			// Execute
-			err = repo.StoreNetworkChannels(context.Background(), mockNetwork.ID, mockChannels)
+			err = repo.StoreNetworkChannels(ctx, mockNetwork.ID, mockChannels)
 			assert.NoError(t, err)
 
 			// Verify
@@ -413,13 +442,16 @@ func TestIrcRepo_StoreNetworkChannels(t *testing.T) {
 			assert.Len(t, existingChannels, len(mockChannels))
 
 			// Cleanup
-			_ = repo.DeleteNetwork(context.Background(), mockNetwork.ID)
+			_ = repo.DeleteNetwork(ctx, mockNetwork.ID)
 		})
 	}
 }
 
 func TestIrcRepo_UpdateChannel(t *testing.T) {
-	for dbType, db := range testDBs {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 
 		repo := NewIrcRepo(log, db)
@@ -428,10 +460,10 @@ func TestIrcRepo_UpdateChannel(t *testing.T) {
 
 		t.Run(fmt.Sprintf("UpdateChannel_Success [%s]", dbType), func(t *testing.T) {
 			// Setup
-			err := repo.StoreNetwork(context.Background(), &mockNetwork)
+			err := repo.StoreNetwork(ctx, &mockNetwork)
 			assert.NoError(t, err)
 
-			err = repo.StoreChannel(context.Background(), mockNetwork.ID, &mockChannel)
+			err = repo.StoreChannel(ctx, mockNetwork.ID, &mockChannel)
 			assert.NoError(t, err)
 
 			// Update mockChannel properties
@@ -454,13 +486,16 @@ func TestIrcRepo_UpdateChannel(t *testing.T) {
 			assert.Equal(t, updatedChannel.Password, fetchedChannel.Password)
 
 			// Cleanup
-			_ = repo.DeleteNetwork(context.Background(), mockNetwork.ID)
+			_ = repo.DeleteNetwork(ctx, mockNetwork.ID)
 		})
 	}
 }
 
 func TestIrcRepo_UpdateInviteCommand(t *testing.T) {
-	for dbType, db := range testDBs {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		db := testDb.db
 		log := setupLoggerForTest()
 
 		repo := NewIrcRepo(log, db)
@@ -468,7 +503,7 @@ func TestIrcRepo_UpdateInviteCommand(t *testing.T) {
 
 		t.Run(fmt.Sprintf("UpdateInviteCommand_Success [%s]", dbType), func(t *testing.T) {
 			// Setup
-			err := repo.StoreNetwork(context.Background(), &mockNetwork)
+			err := repo.StoreNetwork(ctx, &mockNetwork)
 			assert.NoError(t, err)
 
 			// Update invite_command
@@ -477,13 +512,13 @@ func TestIrcRepo_UpdateInviteCommand(t *testing.T) {
 			assert.NoError(t, err)
 
 			// Verify
-			updatedNetwork, err := repo.ListNetworks(context.Background())
+			updatedNetwork, err := repo.ListNetworks(ctx)
 			assert.NoError(t, err)
 
 			assert.Equal(t, newInviteCommand, updatedNetwork[0].InviteCommand)
 
 			// Cleanup
-			_ = repo.DeleteNetwork(context.Background(), mockNetwork.ID)
+			_ = repo.DeleteNetwork(ctx, mockNetwork.ID)
 		})
 	}
 }

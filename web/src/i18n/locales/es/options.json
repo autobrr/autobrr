@@ -6,6 +6,10 @@
     "PROMO_GP": "Promo GP",
     "RESURRECTED": "Resucitado"
   },
+  "maxDownloadsWindowType": {
+    "FIXED": "Fija (reinicio de calendario)",
+    "ROLLING": "Deslizante (ventana deslizante)"
+  },
   "downloadClient": {
     "QBITTORRENT": {
       "label": "qBittorrent",
@@ -31,6 +35,10 @@
       "label": "Porla",
       "description": "Agregar torrents directamente a Porla"
     },
+    "ARIA2": {
+      "label": "aria2",
+      "description": "Agregar torrents directamente a aria2"
+    },
     "RADARR": {
       "label": "Radarr",
       "description": "Enviar a Radarr y dejar que decida"
@@ -44,7 +52,11 @@
       "description": "Enviar a Lidarr y dejar que decida"
     },
     "WHISPARR": {
-      "label": "Whisparr",
+      "label": "Whisparr (v2)",
+      "description": "Enviar a Whisparr y dejar que decida"
+    },
+    "WHISPARR_V3": {
+      "label": "Whisparr (v3)",
       "description": "Enviar a Whisparr y dejar que decida"
     },
     "READARR": {
@@ -101,6 +113,10 @@
       "label": "Porla",
       "description": "Agregar torrents directamente a Porla"
     },
+    "ARIA2": {
+      "label": "aria2",
+      "description": "Agregar torrents directamente a aria2"
+    },
     "RADARR": {
       "label": "Radarr",
       "description": "Enviar a Radarr y dejar que decida"
@@ -114,7 +130,11 @@
       "description": "Enviar a Lidarr y dejar que decida"
     },
     "WHISPARR": {
-      "label": "Whisparr",
+      "label": "Whisparr (v2)",
+      "description": "Enviar a Whisparr y dejar que decida"
+    },
+    "WHISPARR_V3": {
+      "label": "Whisparr (v3)",
       "description": "Enviar a Whisparr y dejar que decida"
     },
     "READARR": {

@@ -66,6 +66,7 @@ type Macro struct {
 	LogScore                  int
 	MagnetURI                 string
 	MetaIMDB                  string
+	MetaTMDB                  int
 	Origin                    string
 	Other                     []string
 	PreTime                   string
@@ -94,6 +95,7 @@ type Macro struct {
 	Type                      string
 	Uploader                  string
 	RecordLabel               string
+	RawVars                   map[string]string
 	Website                   string
 	Year                      int
 	Month                     int
@@ -147,6 +149,7 @@ func NewMacro(release Release) Macro {
 		LogScore:                  release.LogScore,
 		MagnetURI:                 release.MagnetURI,
 		MetaIMDB:                  release.MetaIMDB,
+		MetaTMDB:                  release.MetaTMDB,
 		Origin:                    release.Origin,
 		Other:                     release.Other,
 		PreTime:                   release.PreTime,
@@ -176,6 +179,7 @@ func NewMacro(release Release) Macro {
 		Uploader:                  release.Uploader,
 		RecordLabel:               release.RecordLabel,
 		Website:                   release.Website,
+		RawVars:                   release.RawVars,
 		Year:                      release.Year,
 		Month:                     release.Month,
 		Day:                       release.Day,

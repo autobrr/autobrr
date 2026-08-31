@@ -18,9 +18,16 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// StreamLogs is the sse stream the log writer publishes to.
+const StreamLogs = "logs"
+
+type sseServer interface {
+	TryPublish(id string, event *sse.Event) bool
+}
+
 type SSEWriter struct {
 	// SSE
-	SSE *sse.Server
+	SSE sseServer
 
 	// TimeFormat specifies the format for timestamp in output.
 	TimeFormat string
@@ -29,7 +36,7 @@ type SSEWriter struct {
 	PartsOrder []string
 }
 
-func NewSSEWriter(sse *sse.Server, options ...func(w *SSEWriter)) SSEWriter {
+func NewSSEWriter(sse sseServer, options ...func(w *SSEWriter)) SSEWriter {
 	w := SSEWriter{
 		SSE:        sse,
 		TimeFormat: defaultTimeFormat,
@@ -59,7 +66,7 @@ func (m LogMessage) Bytes() ([]byte, error) {
 
 func (w SSEWriter) Write(p []byte) (n int, err error) {
 	if w.SSE == nil {
-		return 0, nil
+		return len(p), nil
 	}
 
 	var evt map[string]interface{}
@@ -87,9 +94,15 @@ func (w SSEWriter) Write(p []byte) (n int, err error) {
 		return n, err
 	}
 
+	// an event without a timestamp would panic a type assertion here, and a
+	// panic in the log writer takes down whichever goroutine happened to log
+	ts, ok := evt[zerolog.TimestampFieldName].(string)
+	if !ok {
+		ts = time.Now().Format(zerolog.TimeFieldFormat)
+	}
+
 	m := LogMessage{
-		//Time:    w.formatTime(evt),
-		Time:    evt["time"].(string),
+		Time:    ts,
 		Level:   w.formatLevel(evt),
 		Message: buf.String(),
 	}
@@ -99,12 +112,16 @@ func (w SSEWriter) Write(p []byte) (n int, err error) {
 		return n, err
 	}
 
-	// publish too logs topic
-	w.SSE.Publish("logs", &sse.Event{
+	// Publish blocks until the stream buffer drains, and a subscriber that
+	// stopped reading without disconnecting stalls that indefinitely, which
+	// would block every goroutine in the process that logs. Dropping the line
+	// is the only safe option, and it cannot be reported from here because
+	// logging inside the log writer recurses.
+	w.SSE.TryPublish(StreamLogs, &sse.Event{
 		Data: data,
 	})
 
-	return len(p), err
+	return len(p), nil
 }
 
 // writeFields appends formatted key-value pairs to buf.
@@ -218,21 +235,6 @@ func (w SSEWriter) formatLevel(evt map[string]interface{}) string {
 	f = defaultFormatLevel()
 
 	var s = f(evt["level"])
-
-	if len(s) > 0 {
-		return s
-	}
-
-	return ""
-}
-
-// formatTime format time to string
-func (w SSEWriter) formatTime(evt map[string]interface{}) string {
-	var f Formatter
-
-	f = defaultFormatTimestamp(w.TimeFormat)
-
-	var s = f(evt["time"])
 
 	if len(s) > 0 {
 		return s

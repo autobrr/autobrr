@@ -1233,7 +1233,7 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Artists:         "Artist",
 					PerfectFlac:     true,
 				},
-				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "perfect flac", got: []string{"320", "MP3"}, want: "Cue, Log, Log Score 100, FLAC and 24bit Lossless"}}},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "perfect flac", got: "SINGLE MP3 320 (log: false, score: 0)", want: "wanted Format FLAC, got MP3, wanted Bitrate Lossless / 24bit Lossless, got 320, wanted Source CD (100% log) or Vinyl/WEB/DVD/Soundboard/Cassette/SACD/Blu-ray/DAT, got SINGLE"}}},
 			},
 			want: false,
 		},
@@ -1251,9 +1251,9 @@ func TestFilter_CheckFilter(t *testing.T) {
 					Artists:         "Artist",
 					PerfectFlac:     true,
 				},
-				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "perfect flac", got: []string{"FLAC", "Lossless", "Log100", "Log"}, want: "Cue, Log, Log Score 100, FLAC and 24bit Lossless"}}},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			},
-			want: false,
+			want: true,
 		},
 		{
 			name: "match_music_4",
@@ -1909,7 +1909,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				MaxDownloads:     1,
 				MaxDownloadsUnit: FilterMaxDownloadsMonth,
 				Downloads: &FilterDownloads{
-					MonthCount: 0,
+					PeriodCount: 0,
 				},
 			},
 			args:             args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
@@ -1922,12 +1922,11 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				MaxDownloads:     10,
 				MaxDownloadsUnit: FilterMaxDownloadsMonth,
 				Downloads: &FilterDownloads{
-					TotalCount: 10,
-					MonthCount: 10,
+					PeriodCount: 10,
 				},
 			},
 			args:             args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
-			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Hour: 0, Day: 0, Week: 0, Month: 10, Total: 10", want: "reached 10 per MONTH", format: "[max downloads] reached 10 per MONTH"}}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Period: 10", want: "reached 10 per MONTH", format: "[max downloads] reached 10 per MONTH"}}},
 			wantMatch:        false,
 		},
 		{
@@ -1936,12 +1935,11 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				MaxDownloads:     10,
 				MaxDownloadsUnit: FilterMaxDownloadsMonth,
 				Downloads: &FilterDownloads{
-					TotalCount: 50,
-					MonthCount: 50,
+					PeriodCount: 50,
 				},
 			},
 			args:             args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
-			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Hour: 0, Day: 0, Week: 0, Month: 50, Total: 50", want: "reached 10 per MONTH", format: "[max downloads] reached 10 per MONTH"}}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Period: 50", want: "reached 10 per MONTH", format: "[max downloads] reached 10 per MONTH"}}},
 			wantMatch:        false,
 		},
 		{
@@ -1950,15 +1948,11 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				MaxDownloads:     15,
 				MaxDownloadsUnit: FilterMaxDownloadsHour,
 				Downloads: &FilterDownloads{
-					TotalCount: 50,
-					MonthCount: 50,
-					WeekCount:  50,
-					DayCount:   25,
-					HourCount:  20,
+					PeriodCount: 20,
 				},
 			},
 			args:             args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
-			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Hour: 20, Day: 25, Week: 50, Month: 50, Total: 50", want: "reached 15 per HOUR", format: "[max downloads] reached 15 per HOUR"}}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Period: 20", want: "reached 15 per HOUR", format: "[max downloads] reached 15 per HOUR"}}},
 			wantMatch:        false,
 		},
 		{
@@ -1967,8 +1961,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				MaxDownloads:     15,
 				MaxDownloadsUnit: FilterMaxDownloadsHour,
 				Downloads: &FilterDownloads{
-					HourCount:  14,
-					MonthCount: 50,
+					PeriodCount: 14,
 				},
 			},
 			args:             args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
@@ -2056,73 +2049,192 @@ func TestFilter_CheckFilter1(t *testing.T) {
 			rejectionReasons: &RejectionReasons{data: []Rejection{}},
 			wantMatch:        true,
 		},
+		{
+			name: "test_period_below",
+			fields: fields{
+				MaxDownloads:           10,
+				MaxDownloadsUnit:       FilterMaxDownloadsHour,
+				MaxDownloadsPeriod:     2,
+				MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling,
+				Downloads: &FilterDownloads{
+					PeriodCount: 9,
+				},
+			},
+			args:             args{&Release{TorrentName: "Show.Name.S01.2160p.WEB-DL.x265-GROUP"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
+		},
+		{
+			name: "test_period_reached",
+			fields: fields{
+				MaxDownloads:           10,
+				MaxDownloadsUnit:       FilterMaxDownloadsHour,
+				MaxDownloadsPeriod:     2,
+				MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling,
+				Downloads: &FilterDownloads{
+					PeriodCount: 10,
+				},
+			},
+			args:             args{&Release{TorrentName: "Show.Name.S01.2160p.WEB-DL.x265-GROUP"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Period: 10", want: "reached 10 per 2 HOUR", format: "[max downloads] reached 10 per 2 HOUR"}}},
+			wantMatch:        false,
+		},
+		{
+			name: "test_period_day_reached",
+			fields: fields{
+				MaxDownloads:           5,
+				MaxDownloadsUnit:       FilterMaxDownloadsDay,
+				MaxDownloadsPeriod:     3,
+				MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling,
+				Downloads: &FilterDownloads{
+					PeriodCount: 15,
+				},
+			},
+			args:             args{&Release{TorrentName: "Show.Name.S01.2160p.WEB-DL.x265-GROUP"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Period: 15", want: "reached 5 per 3 DAY", format: "[max downloads] reached 5 per 3 DAY"}}},
+			wantMatch:        false,
+		},
+		{
+			name: "test_period_fixed_ignored",
+			fields: fields{
+				MaxDownloads:       10,
+				MaxDownloadsUnit:   FilterMaxDownloadsMonth,
+				MaxDownloadsPeriod: 3,
+				Downloads: &FilterDownloads{
+					PeriodCount: 10,
+				},
+			},
+			args:             args{&Release{TorrentName: "Show.Name.S01.2160p.WEB-DL.x265-GROUP"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Period: 10", want: "reached 10 per MONTH", format: "[max downloads] reached 10 per MONTH"}}},
+			wantMatch:        false,
+		},
+		{
+			name: "test_period_default_zero",
+			fields: fields{
+				MaxDownloads:           10,
+				MaxDownloadsUnit:       FilterMaxDownloadsHour,
+				MaxDownloadsPeriod:     0,
+				MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling,
+				Downloads: &FilterDownloads{
+					PeriodCount: 5,
+				},
+			},
+			args:             args{&Release{TorrentName: "Show.Name.S01.2160p.WEB-DL.x265-GROUP"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
+		},
+		{
+			name: "test_minute_period_below",
+			fields: fields{
+				MaxDownloads:           5,
+				MaxDownloadsUnit:       FilterMaxDownloadsMinute,
+				MaxDownloadsPeriod:     2,
+				MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling,
+				Downloads: &FilterDownloads{
+					PeriodCount: 4,
+				},
+			},
+			args:             args{&Release{TorrentName: "Show.Name.S01.2160p.WEB-DL.x265-GROUP"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
+		},
+		{
+			name: "test_minute_period_reached",
+			fields: fields{
+				MaxDownloads:           5,
+				MaxDownloadsUnit:       FilterMaxDownloadsMinute,
+				MaxDownloadsPeriod:     2,
+				MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling,
+				Downloads: &FilterDownloads{
+					PeriodCount: 5,
+				},
+			},
+			args:             args{&Release{TorrentName: "Show.Name.S01.2160p.WEB-DL.x265-GROUP"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Period: 5", want: "reached 5 per 2 MINUTE", format: "[max downloads] reached 5 per 2 MINUTE"}}},
+			wantMatch:        false,
+		},
+		{
+			name: "test_minute_single",
+			fields: fields{
+				MaxDownloads:     3,
+				MaxDownloadsUnit: FilterMaxDownloadsMinute,
+				Downloads: &FilterDownloads{
+					PeriodCount: 2,
+				},
+			},
+			args:             args{&Release{TorrentName: "Show.Name.S01.2160p.WEB-DL.x265-GROUP"}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			wantMatch:        true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			f := Filter{
-				ID:                   tt.fields.ID,
-				Name:                 tt.fields.Name,
-				Enabled:              tt.fields.Enabled,
-				CreatedAt:            tt.fields.CreatedAt,
-				UpdatedAt:            tt.fields.UpdatedAt,
-				MinSize:              tt.fields.MinSize,
-				MaxSize:              tt.fields.MaxSize,
-				Delay:                tt.fields.Delay,
-				Priority:             tt.fields.Priority,
-				MaxDownloads:         tt.fields.MaxDownloads,
-				MaxDownloadsUnit:     tt.fields.MaxDownloadsUnit,
-				MatchReleases:        tt.fields.MatchReleases,
-				ExceptReleases:       tt.fields.ExceptReleases,
-				UseRegex:             tt.fields.UseRegex,
-				MatchReleaseGroups:   tt.fields.MatchReleaseGroups,
-				ExceptReleaseGroups:  tt.fields.ExceptReleaseGroups,
-				MatchReleaseTags:     tt.fields.MatchReleaseTags,
-				ExceptReleaseTags:    tt.fields.ExceptReleaseTags,
-				UseRegexReleaseTags:  tt.fields.UseRegexReleaseTags,
-				MatchDescription:     tt.fields.MatchDescription,
-				ExceptDescription:    tt.fields.ExceptDescription,
-				UseRegexDescription:  tt.fields.UseRegexDescription,
-				Scene:                tt.fields.Scene,
-				Origins:              tt.fields.Origins,
-				ExceptOrigins:        tt.fields.ExceptOrigins,
-				Freeleech:            tt.fields.Freeleech,
-				FreeleechPercent:     tt.fields.FreeleechPercent,
-				Shows:                tt.fields.Shows,
-				Seasons:              tt.fields.Seasons,
-				Episodes:             tt.fields.Episodes,
-				Resolutions:          tt.fields.Resolutions,
-				Codecs:               tt.fields.Codecs,
-				Sources:              tt.fields.Sources,
-				Containers:           tt.fields.Containers,
-				MatchHDR:             tt.fields.MatchHDR,
-				ExceptHDR:            tt.fields.ExceptHDR,
-				Years:                tt.fields.Years,
-				Months:               tt.fields.Months,
-				Days:                 tt.fields.Days,
-				Artists:              tt.fields.Artists,
-				Albums:               tt.fields.Albums,
-				MatchReleaseTypes:    tt.fields.MatchReleaseTypes,
-				ExceptReleaseTypes:   tt.fields.ExceptReleaseTypes,
-				Formats:              tt.fields.Formats,
-				Quality:              tt.fields.Quality,
-				Media:                tt.fields.Media,
-				PerfectFlac:          tt.fields.PerfectFlac,
-				Cue:                  tt.fields.Cue,
-				Log:                  tt.fields.Log,
-				LogScore:             tt.fields.LogScore,
-				MatchOther:           tt.fields.MatchOther,
-				ExceptOther:          tt.fields.ExceptOther,
-				MatchCategories:      tt.fields.MatchCategories,
-				ExceptCategories:     tt.fields.ExceptCategories,
-				MatchUploaders:       tt.fields.MatchUploaders,
-				ExceptUploaders:      tt.fields.ExceptUploaders,
-				Tags:                 tt.fields.Tags,
-				ExceptTags:           tt.fields.ExceptTags,
-				TagsMatchLogic:       tt.fields.TagsMatchLogic,
-				ExceptTagsMatchLogic: tt.fields.ExceptTagsMatchLogic,
-				Actions:              tt.fields.Actions,
-				Indexers:             tt.fields.Indexers,
-				Downloads:            tt.fields.Downloads,
+				ID:                     tt.fields.ID,
+				Name:                   tt.fields.Name,
+				Enabled:                tt.fields.Enabled,
+				CreatedAt:              tt.fields.CreatedAt,
+				UpdatedAt:              tt.fields.UpdatedAt,
+				MinSize:                tt.fields.MinSize,
+				MaxSize:                tt.fields.MaxSize,
+				Delay:                  tt.fields.Delay,
+				Priority:               tt.fields.Priority,
+				MaxDownloads:           tt.fields.MaxDownloads,
+				MaxDownloadsUnit:       tt.fields.MaxDownloadsUnit,
+				MaxDownloadsPeriod:     tt.fields.MaxDownloadsPeriod,
+				MaxDownloadsWindowType: tt.fields.MaxDownloadsWindowType,
+				MatchReleases:          tt.fields.MatchReleases,
+				ExceptReleases:         tt.fields.ExceptReleases,
+				UseRegex:               tt.fields.UseRegex,
+				MatchReleaseGroups:     tt.fields.MatchReleaseGroups,
+				ExceptReleaseGroups:    tt.fields.ExceptReleaseGroups,
+				MatchReleaseTags:       tt.fields.MatchReleaseTags,
+				ExceptReleaseTags:      tt.fields.ExceptReleaseTags,
+				UseRegexReleaseTags:    tt.fields.UseRegexReleaseTags,
+				MatchDescription:       tt.fields.MatchDescription,
+				ExceptDescription:      tt.fields.ExceptDescription,
+				UseRegexDescription:    tt.fields.UseRegexDescription,
+				Scene:                  tt.fields.Scene,
+				Origins:                tt.fields.Origins,
+				ExceptOrigins:          tt.fields.ExceptOrigins,
+				Freeleech:              tt.fields.Freeleech,
+				FreeleechPercent:       tt.fields.FreeleechPercent,
+				Shows:                  tt.fields.Shows,
+				Seasons:                tt.fields.Seasons,
+				Episodes:               tt.fields.Episodes,
+				Resolutions:            tt.fields.Resolutions,
+				Codecs:                 tt.fields.Codecs,
+				Sources:                tt.fields.Sources,
+				Containers:             tt.fields.Containers,
+				MatchHDR:               tt.fields.MatchHDR,
+				ExceptHDR:              tt.fields.ExceptHDR,
+				Years:                  tt.fields.Years,
+				Months:                 tt.fields.Months,
+				Days:                   tt.fields.Days,
+				Artists:                tt.fields.Artists,
+				Albums:                 tt.fields.Albums,
+				MatchReleaseTypes:      tt.fields.MatchReleaseTypes,
+				ExceptReleaseTypes:     tt.fields.ExceptReleaseTypes,
+				Formats:                tt.fields.Formats,
+				Quality:                tt.fields.Quality,
+				Media:                  tt.fields.Media,
+				PerfectFlac:            tt.fields.PerfectFlac,
+				Cue:                    tt.fields.Cue,
+				Log:                    tt.fields.Log,
+				LogScore:               tt.fields.LogScore,
+				MatchOther:             tt.fields.MatchOther,
+				ExceptOther:            tt.fields.ExceptOther,
+				MatchCategories:        tt.fields.MatchCategories,
+				ExceptCategories:       tt.fields.ExceptCategories,
+				MatchUploaders:         tt.fields.MatchUploaders,
+				ExceptUploaders:        tt.fields.ExceptUploaders,
+				Tags:                   tt.fields.Tags,
+				ExceptTags:             tt.fields.ExceptTags,
+				TagsMatchLogic:         tt.fields.TagsMatchLogic,
+				ExceptTagsMatchLogic:   tt.fields.ExceptTagsMatchLogic,
+				Actions:                tt.fields.Actions,
+				Indexers:               tt.fields.Indexers,
+				Downloads:              tt.fields.Downloads,
 			}
 
 			f.Sanitize()
@@ -2130,6 +2242,56 @@ func TestFilter_CheckFilter1(t *testing.T) {
 			rejections, match := f.CheckFilter(tt.args.r)
 			assert.Equalf(t, tt.rejectionReasons, rejections, "CheckFilter(%v)", tt.args.r)
 			assert.Equalf(t, tt.wantMatch, match, "CheckFilter(%v)", tt.args.r)
+		})
+	}
+}
+
+func TestFilter_DownloadPeriod(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name     string
+		filter   Filter
+		wantN    int
+		wantUnit string
+	}{
+		{name: "rolling_minute", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsMinute, MaxDownloadsPeriod: 2, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}, wantN: 2, wantUnit: "minutes"},
+		{name: "rolling_hour", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsHour, MaxDownloadsPeriod: 6, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}, wantN: 6, wantUnit: "hours"},
+		{name: "rolling_day", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsDay, MaxDownloadsPeriod: 3, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}, wantN: 3, wantUnit: "days"},
+		{name: "rolling_week", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsWeek, MaxDownloadsPeriod: 2, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}, wantN: 14, wantUnit: "days"},
+		{name: "rolling_month", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsMonth, MaxDownloadsPeriod: 2, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}, wantN: 2, wantUnit: "months"},
+		{name: "rolling_zero_period", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsHour, MaxDownloadsPeriod: 0, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}, wantN: 1, wantUnit: "hours"},
+		{name: "fixed_ignores_period", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsDay, MaxDownloadsPeriod: 3}, wantN: 1, wantUnit: "days"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			n, unit := tt.filter.DownloadPeriod()
+			assert.Equal(t, tt.wantN, n)
+			assert.Equal(t, tt.wantUnit, unit)
+		})
+	}
+}
+
+func TestFilter_ValidateMaxDownloads(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name    string
+		filter  Filter
+		wantErr bool
+	}{
+		{name: "valid_rolling", filter: Filter{Name: "test", MaxDownloadsUnit: FilterMaxDownloadsDay, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}},
+		{name: "valid_empty", filter: Filter{Name: "test"}},
+		{name: "invalid_unit", filter: Filter{Name: "test", MaxDownloadsUnit: "YEAR"}, wantErr: true},
+		{name: "invalid_unit_case", filter: Filter{Name: "test", MaxDownloadsUnit: "day"}, wantErr: true},
+		{name: "invalid_window_type", filter: Filter{Name: "test", MaxDownloadsWindowType: "rolling"}, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.filter.Validate()
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
 		})
 	}
 }
@@ -2438,6 +2600,98 @@ func Test_containsFuzzy(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equalf(t, tt.want, containsFuzzy(tt.args.tag, tt.args.filter), "containsFuzzy(%v, %v)", tt.args.tag, tt.args.filter)
+		})
+	}
+}
+
+func TestFilter_IsPerfectFLAC(t *testing.T) {
+	t.Parallel()
+	tests := []struct {
+		name           string
+		release        *Release
+		wantRejections []string
+		wantOk         bool
+	}{
+		{
+			name:    "cd_log_100_lossless",
+			release: &Release{Source: "CD", AudioFormat: "FLAC", Bitrate: "Lossless", HasLog: true, LogScore: 100},
+			wantOk:  true,
+		},
+		{
+			name:    "cd_log_100_24bit_lossless",
+			release: &Release{Source: "CD", AudioFormat: "FLAC", Bitrate: "24bit Lossless", HasLog: true, LogScore: 100},
+			wantOk:  true,
+		},
+		{
+			name:           "cd_missing_log",
+			release:        &Release{Source: "CD", AudioFormat: "FLAC", Bitrate: "Lossless", HasLog: false, LogScore: 0},
+			wantRejections: []string{"wanted Log, got false", "wanted Log Score 100, got 0"},
+			wantOk:         false,
+		},
+		{
+			name:           "cd_log_score_99",
+			release:        &Release{Source: "CD", AudioFormat: "FLAC", Bitrate: "Lossless", HasLog: true, LogScore: 99},
+			wantRejections: []string{"wanted Log Score 100, got 99"},
+			wantOk:         false,
+		},
+		{
+			name:    "web_lossless",
+			release: &Release{Source: "WEB", AudioFormat: "FLAC", Bitrate: "Lossless"},
+			wantOk:  true,
+		},
+		{
+			name:    "vinyl_24bit_lossless",
+			release: &Release{Source: "Vinyl", AudioFormat: "FLAC", Bitrate: "24bit Lossless"},
+			wantOk:  true,
+		},
+		{
+			name:    "sacd_lossless",
+			release: &Release{Source: "SACD", AudioFormat: "FLAC", Bitrate: "Lossless"},
+			wantOk:  true,
+		},
+		{
+			name:    "blu_ray_lossless",
+			release: &Release{Source: "Blu-Ray", AudioFormat: "FLAC", Bitrate: "24bit Lossless"},
+			wantOk:  true,
+		},
+		{
+			name:    "dat_lossless",
+			release: &Release{Source: "DAT", AudioFormat: "FLAC", Bitrate: "Lossless"},
+			wantOk:  true,
+		},
+		{
+			name:           "web_mp3_320",
+			release:        &Release{Source: "WEB", AudioFormat: "MP3", Bitrate: "320"},
+			wantRejections: []string{"wanted Format FLAC, got MP3", "wanted Bitrate Lossless / 24bit Lossless, got 320"},
+			wantOk:         false,
+		},
+		{
+			name:           "unknown_source",
+			release:        &Release{Source: "Unknown", AudioFormat: "FLAC", Bitrate: "Lossless"},
+			wantRejections: []string{"wanted Source CD (100% log) or Vinyl/WEB/DVD/Soundboard/Cassette/SACD/Blu-ray/DAT, got Unknown"},
+			wantOk:         false,
+		},
+		{
+			name:    "empty_release",
+			release: &Release{},
+			wantRejections: []string{
+				"wanted Format FLAC, got ",
+				"wanted Bitrate Lossless / 24bit Lossless, got ",
+				"wanted Source CD (100% log) or Vinyl/WEB/DVD/Soundboard/Cassette/SACD/Blu-ray/DAT, got ",
+			},
+			wantOk: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := Filter{}
+			rejections, ok := f.IsPerfectFLAC(tt.release)
+			assert.Equal(t, tt.wantOk, ok)
+			if tt.wantRejections == nil {
+				assert.Empty(t, rejections)
+			} else {
+				assert.Equal(t, tt.wantRejections, rejections)
+			}
 		})
 	}
 }

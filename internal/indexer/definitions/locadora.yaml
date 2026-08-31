@@ -51,7 +51,7 @@ irc:
       parse:
         type: single
         lines:
-          - pattern: '\[(?P<category>.+)\] \[(?P<releaseTags>.+)\] \[(?P<resolution>.+)\] \[(?P<releaseName>.+?)\] \[(?P<baseUrl>https?\:\/\/.+\/).+\/(?P<torrentId>\d+)\] \[(?P<torrentSize>.+?)\] \[(?P<freeleechPercent>.+?)\] \[Internal:(?P<internal>\d)\] \[[a-z]+-(?P<tags>\d+)\]'
+          - pattern: '\[(?P<category>.+)\] \[(?P<releaseTags>.+)\] \[(?P<resolution>.+)\] \[(?P<releaseName>.+?)\] \[(?P<baseUrl>https?\:\/\/.+\/).+\/(?P<torrentId>\d+)\] \[(?P<torrentSize>.+?)\] \[(?P<freeleechPercent>.+?)\] \[Internal:(?P<internal>\d)\] \[[a-z]+-(?P<tmdb>\d+)\]'
             tests:
               - line: '[Filmes] [WEB-DL] [1080p] [Paul 2011 1080p AMZN WEB-DL DDP5.1 H.264 pt-BR ENG-LCD / Portuguese (BR) English (US)] [https://locadora.cc/torrents/28808] [7.61 GiB] [100%] [Internal:1] [tmdb-39513]'
                 expect:
@@ -64,7 +64,7 @@ irc:
                   torrentSize: 7.61 GiB
                   freeleechPercent: 100%
                   internal: "1"
-                  tags: "39513"
+                  tmdb: "39513"
 
         match:
           infourl: "/torrents/{{ .torrentId }}"

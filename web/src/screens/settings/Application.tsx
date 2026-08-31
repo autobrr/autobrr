@@ -127,6 +127,7 @@ function ApplicationSettings() {
         <RowItem label={t("settings:application.database")} value={data?.database} />
         <div className="py-0.5">
           <Checkbox
+            name="debug"
             label={t("settings:application.webuiDebugMode")}
             value={settings.debug}
             className="p-4 sm:px-6"
@@ -139,6 +140,7 @@ function ApplicationSettings() {
           />
         </div>
         <Checkbox
+          name="check_for_updates"
           label={t("settings:application.checkForUpdates")}
           description={t("settings:application.checkForUpdatesDescription")}
           value={data?.check_for_updates ?? true}

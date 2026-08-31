@@ -126,7 +126,7 @@ func main() {
 		cfg := config.New(configPath, version)
 
 		// init new logger
-		l := logger.New(cfg.Config)
+		l := logger.New(cfg.Config, nil)
 
 		// open database connection
 		db, _ := database.NewDB(cfg.Config, l)
@@ -176,7 +176,7 @@ func main() {
 		cfg := config.New(configPath, version)
 
 		// init new logger
-		l := logger.New(cfg.Config)
+		l := logger.New(cfg.Config, nil)
 
 		// open database connection
 		db, _ := database.NewDB(cfg.Config, l)
@@ -257,7 +257,7 @@ func main() {
 			ExcludeTables: strings.Split(excludeTables, ","),
 		}
 
-		l := logger.New(&domain.Config{LogLevel: "TRACE", Version: "dev"})
+		l := logger.New(&domain.Config{LogLevel: "TRACE", Version: "dev"}, nil)
 
 		c := tools.NewConverter(l, sqliteDBPath, postgresDBURL)
 		if err := c.Convert(ctx, opts); err != nil {
@@ -327,7 +327,7 @@ func main() {
 		cfg := config.New(configPath, version)
 
 		// init new logger
-		l := logger.New(cfg.Config)
+		l := logger.New(cfg.Config, nil)
 
 		// open database connection
 		db, _ := database.NewDB(cfg.Config, l)
@@ -440,14 +440,16 @@ func CreateHtpasswdHash(password string) (string, error) {
 // FilterExport contains all the fields of domain.Filter useful for export
 type FilterExport struct {
 	// Basic fields
-	Name             string `json:"name,omitempty"`
-	Enabled          bool   `json:"enabled,omitempty"`
-	MinSize          string `json:"min_size,omitempty"`
-	MaxSize          string `json:"max_size,omitempty"`
-	Delay            int    `json:"delay,omitempty"`
-	Priority         int32  `json:"priority,omitempty"`
-	MaxDownloads     int    `json:"max_downloads,omitempty"`
-	MaxDownloadsUnit string `json:"max_downloads_unit,omitempty"`
+	Name                   string `json:"name,omitempty"`
+	Enabled                bool   `json:"enabled,omitempty"`
+	MinSize                string `json:"min_size,omitempty"`
+	MaxSize                string `json:"max_size,omitempty"`
+	Delay                  int    `json:"delay,omitempty"`
+	Priority               int32  `json:"priority,omitempty"`
+	MaxDownloads           int    `json:"max_downloads,omitempty"`
+	MaxDownloadsUnit       string `json:"max_downloads_unit,omitempty"`
+	MaxDownloadsPeriod     int    `json:"max_downloads_period,omitempty"`
+	MaxDownloadsWindowType string `json:"max_downloads_window_type,omitempty"`
 
 	// Release matching fields
 	MatchReleases       string   `json:"match_releases,omitempty"`
@@ -541,73 +543,75 @@ func prepareFilterForExport(filter domain.Filter, externalFilters []domain.Filte
 	filterExport := FilterExport{
 		// Copy all relevant fields from filter to filterExport
 		//Name:                 filter.Name,
-		Enabled:              filter.Enabled,
-		MinSize:              filter.MinSize,
-		MaxSize:              filter.MaxSize,
-		Delay:                filter.Delay,
-		Priority:             filter.Priority,
-		MaxDownloads:         filter.MaxDownloads,
-		MaxDownloadsUnit:     string(filter.MaxDownloadsUnit),
-		MatchReleases:        filter.MatchReleases,
-		ExceptReleases:       filter.ExceptReleases,
-		UseRegex:             filter.UseRegex,
-		MatchReleaseGroups:   filter.MatchReleaseGroups,
-		ExceptReleaseGroups:  filter.ExceptReleaseGroups,
-		MatchReleaseTags:     filter.MatchReleaseTags,
-		ExceptReleaseTags:    filter.ExceptReleaseTags,
-		UseRegexReleaseTags:  filter.UseRegexReleaseTags,
-		MatchDescription:     filter.MatchDescription,
-		ExceptDescription:    filter.ExceptDescription,
-		UseRegexDescription:  filter.UseRegexDescription,
-		Scene:                filter.Scene,
-		Origins:              filter.Origins,
-		ExceptOrigins:        filter.ExceptOrigins,
-		AnnounceTypes:        filter.AnnounceTypes,
-		Freeleech:            filter.Freeleech,
-		FreeleechPercent:     filter.FreeleechPercent,
-		Shows:                filter.Shows,
-		Seasons:              filter.Seasons,
-		Episodes:             filter.Episodes,
-		Resolutions:          filter.Resolutions,
-		Codecs:               filter.Codecs,
-		Sources:              filter.Sources,
-		Containers:           filter.Containers,
-		MatchHDR:             filter.MatchHDR,
-		ExceptHDR:            filter.ExceptHDR,
-		MatchOther:           filter.MatchOther,
-		ExceptOther:          filter.ExceptOther,
-		Years:                filter.Years,
-		Months:               filter.Months,
-		Days:                 filter.Days,
-		Artists:              filter.Artists,
-		Albums:               filter.Albums,
-		MatchReleaseTypes:    filter.MatchReleaseTypes,
-		ExceptReleaseTypes:   filter.ExceptReleaseTypes,
-		Formats:              filter.Formats,
-		Quality:              filter.Quality,
-		Media:                filter.Media,
-		PerfectFlac:          filter.PerfectFlac,
-		Cue:                  filter.Cue,
-		Log:                  filter.Log,
-		LogScore:             filter.LogScore,
-		MatchCategories:      filter.MatchCategories,
-		ExceptCategories:     filter.ExceptCategories,
-		MatchUploaders:       filter.MatchUploaders,
-		ExceptUploaders:      filter.ExceptUploaders,
-		MatchRecordLabels:    filter.MatchRecordLabels,
-		ExceptRecordLabels:   filter.ExceptRecordLabels,
-		MatchLanguage:        filter.MatchLanguage,
-		ExceptLanguage:       filter.ExceptLanguage,
-		Tags:                 filter.Tags,
-		ExceptTags:           filter.ExceptTags,
-		TagsAny:              filter.TagsAny,
-		ExceptTagsAny:        filter.ExceptTagsAny,
-		TagsMatchLogic:       filter.TagsMatchLogic,
-		ExceptTagsMatchLogic: filter.ExceptTagsMatchLogic,
-		MinSeeders:           filter.MinSeeders,
-		MaxSeeders:           filter.MaxSeeders,
-		MinLeechers:          filter.MinLeechers,
-		MaxLeechers:          filter.MaxLeechers,
+		Enabled:                filter.Enabled,
+		MinSize:                filter.MinSize,
+		MaxSize:                filter.MaxSize,
+		Delay:                  filter.Delay,
+		Priority:               filter.Priority,
+		MaxDownloads:           filter.MaxDownloads,
+		MaxDownloadsUnit:       string(filter.MaxDownloadsUnit),
+		MaxDownloadsPeriod:     filter.MaxDownloadsPeriod,
+		MaxDownloadsWindowType: string(filter.MaxDownloadsWindowType),
+		MatchReleases:          filter.MatchReleases,
+		ExceptReleases:         filter.ExceptReleases,
+		UseRegex:               filter.UseRegex,
+		MatchReleaseGroups:     filter.MatchReleaseGroups,
+		ExceptReleaseGroups:    filter.ExceptReleaseGroups,
+		MatchReleaseTags:       filter.MatchReleaseTags,
+		ExceptReleaseTags:      filter.ExceptReleaseTags,
+		UseRegexReleaseTags:    filter.UseRegexReleaseTags,
+		MatchDescription:       filter.MatchDescription,
+		ExceptDescription:      filter.ExceptDescription,
+		UseRegexDescription:    filter.UseRegexDescription,
+		Scene:                  filter.Scene,
+		Origins:                filter.Origins,
+		ExceptOrigins:          filter.ExceptOrigins,
+		AnnounceTypes:          filter.AnnounceTypes,
+		Freeleech:              filter.Freeleech,
+		FreeleechPercent:       filter.FreeleechPercent,
+		Shows:                  filter.Shows,
+		Seasons:                filter.Seasons,
+		Episodes:               filter.Episodes,
+		Resolutions:            filter.Resolutions,
+		Codecs:                 filter.Codecs,
+		Sources:                filter.Sources,
+		Containers:             filter.Containers,
+		MatchHDR:               filter.MatchHDR,
+		ExceptHDR:              filter.ExceptHDR,
+		MatchOther:             filter.MatchOther,
+		ExceptOther:            filter.ExceptOther,
+		Years:                  filter.Years,
+		Months:                 filter.Months,
+		Days:                   filter.Days,
+		Artists:                filter.Artists,
+		Albums:                 filter.Albums,
+		MatchReleaseTypes:      filter.MatchReleaseTypes,
+		ExceptReleaseTypes:     filter.ExceptReleaseTypes,
+		Formats:                filter.Formats,
+		Quality:                filter.Quality,
+		Media:                  filter.Media,
+		PerfectFlac:            filter.PerfectFlac,
+		Cue:                    filter.Cue,
+		Log:                    filter.Log,
+		LogScore:               filter.LogScore,
+		MatchCategories:        filter.MatchCategories,
+		ExceptCategories:       filter.ExceptCategories,
+		MatchUploaders:         filter.MatchUploaders,
+		ExceptUploaders:        filter.ExceptUploaders,
+		MatchRecordLabels:      filter.MatchRecordLabels,
+		ExceptRecordLabels:     filter.ExceptRecordLabels,
+		MatchLanguage:          filter.MatchLanguage,
+		ExceptLanguage:         filter.ExceptLanguage,
+		Tags:                   filter.Tags,
+		ExceptTags:             filter.ExceptTags,
+		TagsAny:                filter.TagsAny,
+		ExceptTagsAny:          filter.ExceptTagsAny,
+		TagsMatchLogic:         filter.TagsMatchLogic,
+		ExceptTagsMatchLogic:   filter.ExceptTagsMatchLogic,
+		MinSeeders:             filter.MinSeeders,
+		MaxSeeders:             filter.MaxSeeders,
+		MinLeechers:            filter.MinLeechers,
+		MaxLeechers:            filter.MaxLeechers,
 	}
 
 	// Add external filters if they exist

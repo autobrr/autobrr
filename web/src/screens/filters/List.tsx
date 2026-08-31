@@ -29,7 +29,8 @@ import {
   PencilSquareIcon,
   PlusIcon, SparklesIcon,
   TrashIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  ArchiveBoxXMarkIcon
 } from "@heroicons/react/24/outline";
 import { ArrowDownTrayIcon } from "@heroicons/react/24/solid";
 
@@ -285,76 +286,71 @@ interface FilterItemDropdownProps {
   onToggle: (newState: boolean) => void;
 }
 
+class FilterExportPreparationError extends Error {
+  constructor(cause: unknown) {
+    super("Could not prepare filter export", { cause });
+  }
+}
+
+function prepareFilterExport(completeFilter: Filter, discordFormat: boolean): string {
+  const exportData: Partial<Filter> = { ...completeFilter };
+  const title = exportData.name;
+
+  delete exportData.name;
+  delete exportData.id;
+  delete exportData.created_at;
+  delete exportData.updated_at;
+  delete exportData.actions_count;
+  delete exportData.actions_enabled_count;
+  delete exportData.indexers;
+  delete exportData.actions;
+
+  ["enabled", "priority", "smart_episode", "resolutions", "sources", "codecs", "containers", "tags_match_logic", "except_tags_match_logic"].forEach((key) => {
+    const value = exportData[key as keyof Filter];
+    if (["enabled", "priority", "smart_episode"].includes(key) && (value === false || value === 0)) {
+      delete exportData[key as keyof Filter];
+    } else if (["resolutions", "sources", "codecs", "containers"].includes(key) && Array.isArray(value) && value.length === 0) {
+      delete exportData[key as keyof Filter];
+    } else if (["tags_match_logic", "except_tags_match_logic"].includes(key) && value === "ANY") {
+      delete exportData[key as keyof Filter];
+    }
+  });
+
+  const json = JSON.stringify(
+    {
+      name: title,
+      version: "1.0",
+      data: exportData,
+    },
+    null,
+    4,
+  );
+
+  return discordFormat ? `\`\`\`JSON\n${json}\n\`\`\`` : json;
+}
+
 const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
   const { t } = useTranslation("filters");
 
-  // This function handles the export of a filter to a JSON string
-  const handleExportJson = useCallback(async (discordFormat = false) => {
-    try {
-      type CompleteFilterType = {
-        id: number;
-        name: string;
-        created_at: Date;
-        updated_at: Date;
-        indexers: any;
-        actions: any;
-        actions_count: any;
-        actions_enabled_count: number;
-      };
-
-      const completeFilter = await APIClient.filters.getByID(filter.id) as Partial<CompleteFilterType>;
-
-      // Extract the filter name and remove unwanted properties
-      const title = completeFilter.name;
-      delete completeFilter.name;
-      delete completeFilter.id;
-      delete completeFilter.created_at;
-      delete completeFilter.updated_at;
-      delete completeFilter.actions_count;
-      delete completeFilter.actions_enabled_count;
-      delete completeFilter.indexers;
-      delete completeFilter.actions;
-
-      // Remove properties with default values from the exported filter to minimize the size of the JSON string
-      ["enabled", "priority", "smart_episode", "resolutions", "sources", "codecs", "containers", "tags_match_logic", "except_tags_match_logic"].forEach((key) => {
-        const value = completeFilter[key as keyof CompleteFilterType];
-        if (["enabled", "priority", "smart_episode"].includes(key) && (value === false || value === 0)) {
-          delete completeFilter[key as keyof CompleteFilterType];
-        } else if (["resolutions", "sources", "codecs", "containers"].includes(key) && Array.isArray(value) && value.length === 0) {
-          delete completeFilter[key as keyof CompleteFilterType];
-        } else if (["tags_match_logic", "except_tags_match_logic"].includes(key) && value === "ANY") {
-          delete completeFilter[key as keyof CompleteFilterType];
-        }
+  const handleExportJson = useCallback((discordFormat = false) => {
+    const exportText = APIClient.filters.getByID(filter.id)
+      .then((completeFilter) => prepareFilterExport(completeFilter, discordFormat))
+      .catch((error: unknown) => {
+        throw new FilterExportPreparationError(error);
       });
 
-      // Create a JSON string from the filter data, including a name and version
-      const json = JSON.stringify(
-        {
-          "name": title,
-          "version": "1.0",
-          data: completeFilter
-        },
-        null,
-        4
-      );
+    CopyTextToClipboard(exportText)
+      .then(() => {
+        toast.custom((toastInstance) => <Toast type="success" body={t("list.copied")} t={toastInstance} />);
+      })
+      .catch((error: unknown) => {
+        console.error("Could not export filter to clipboard", error);
 
-      const finalJson = discordFormat ? "```JSON\n" + json + "\n```" : json;
-
-      // Asynchronously call copyTextToClipboard
-      CopyTextToClipboard(finalJson)
-        .then(() => {
-          toast.custom((toastInstance) => <Toast type="success" body={t("list.copied")} t={toastInstance} />);
-
-        })
-        .catch((err) => {
-          console.error("could not copy filter to clipboard", err);
-
-          toast.custom((toastInstance) => <Toast type="error" body={t("list.copyFailed")} t={toastInstance} />);
-        });
-    } catch (error) {
-      console.error(error);
-      toast.custom((toastInstance) => <Toast type="error" body={t("list.fetchFailed")} t={toastInstance} />);
-    }
+        const message = error instanceof FilterExportPreparationError
+          ? t("list.fetchFailed")
+          : t("list.copyFailed");
+        toast.custom((toastInstance) => <Toast type="error" body={message} t={toastInstance} />);
+      });
   }, [filter, t]);
 
   const cancelModalButtonRef = useRef(null);
@@ -557,17 +553,27 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
   const { t } = useTranslation("filters");
   const queryClient = useQueryClient();
 
-  // Check if this filter uses any disabled indexers and get their names
   const disabledIndexersInfo = useMemo(() => {
     if (!filter.enabled || !filter.indexers || filter.indexers.length === 0) {
       return { hasDisabled: false, names: [] };
     }
-    const disabled = filter.indexers.filter(indexer => !indexer.enabled);
+    const disabled = filter.indexers.filter(indexer => !indexer.enabled && !indexer.archived);
     return {
       hasDisabled: disabled.length > 0,
       names: disabled.map(indexer => indexer.name)
     };
   }, [filter.enabled, filter.indexers]);
+
+  const deprecatedIndexersInfo = useMemo(() => {
+    if (!filter.indexers || filter.indexers.length === 0) {
+      return { hasDeprecated: false, names: [] };
+    }
+    const deprecated = filter.indexers.filter(indexer => indexer.archived);
+    return {
+      hasDeprecated: deprecated.length > 0,
+      names: deprecated.map(indexer => indexer.name)
+    };
+  }, [filter.indexers]);
 
   const updateMutation = useMutation({
     mutationFn: (status: boolean) => APIClient.filters.toggleEnable(filter.id, status),
@@ -608,6 +614,7 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
         className="pl-2 pr-4 sm:px-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-100"
       >
         <Checkbox
+          name="enabled"
           value={filter.enabled}
           setValue={toggleActive}
         />
@@ -672,18 +679,26 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
           </span>
           {filter.max_downloads_unit !== "" && filter.downloads !== undefined && (
             <span className="ml-2 whitespace-nowrap text-xs font-medium text-gray-600 dark:text-gray-400">
-              {t("list.downloads")}: {renderMaxDownloads(filter.max_downloads_unit, filter.downloads)}/{filter.max_downloads} {t("list.per")} {filter.max_downloads_unit}
+              {t("list.downloads")}: {filter.downloads.period_count}/{filter.max_downloads} {t("list.per")} {filter.max_downloads_unit !== "EVER" && filter.max_downloads_window_type === "ROLLING" && filter.max_downloads_period > 1 ? `${filter.max_downloads_period} ` : ""}{filter.max_downloads_unit}
             </span>
           )}
         </div>
       </div>
-      <span className="hidden md:flex items-center justify-center py-4">
+      <span className="hidden md:flex items-center justify-center gap-x-1 py-4">
         {disabledIndexersInfo.hasDisabled && (
           <span
             className="inline-flex items-center"
             title={t("list.usesDisabledIndexers", { names: disabledIndexersInfo.names.join(", ") })}
           >
             <ExclamationTriangleIcon className="w-4 h-4 text-red-500 dark:text-red-400 relative top-px" aria-hidden="true"/>
+          </span>
+        )}
+        {deprecatedIndexersInfo.hasDeprecated && (
+          <span
+            className="inline-flex items-center"
+            title={t("list.usesDeprecatedIndexers", { names: deprecatedIndexersInfo.names.join(", ") })}
+          >
+            <ArchiveBoxXMarkIcon className="w-4 h-4 text-amber-500 dark:text-amber-400 relative top-px" aria-hidden="true"/>
           </span>
         )}
       </span>
@@ -698,23 +713,6 @@ function FilterListItem({ filter, idx }: FilterListItemProps) {
       </span>
     </li>
   );
-}
-
-function renderMaxDownloads(unit: string, downloads: FilterDownloads): number {
-  switch (unit) {
-    case "HOUR":
-      return downloads.hour_count
-    case "DAY":
-      return downloads.day_count
-    case "WEEK":
-      return downloads.week_count
-    case "MONTH":
-      return downloads.month_count
-    case "EVER":
-      return downloads.total_count
-    default:
-      return 0
-  }
 }
 
 interface IndexerTagProps {

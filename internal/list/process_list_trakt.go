@@ -6,7 +6,9 @@ package list
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -15,6 +17,28 @@ import (
 	"github.com/pkg/errors"
 )
 
+var (
+	traktSmartListWebRegex  = regexp.MustCompile(`(?i)^(?:https?://)?(?:app\.|www\.)?trakt\.tv/lists/smart/view/([^/?#]+)`)
+	traktUserListWebRegex   = regexp.MustCompile(`(?i)^(?:https?://)?(?:app\.|www\.)?trakt\.tv/users/([^/]+)/lists/([^/?#]+)`)
+	traktUserWatchlistRegex = regexp.MustCompile(`(?i)^(?:https?://)?(?:app\.|www\.)?trakt\.tv/users/([^/]+)/watchlist`)
+)
+
+func transformTraktURL(rawURL string) string {
+	if matches := traktSmartListWebRegex.FindStringSubmatch(rawURL); len(matches) == 2 {
+		return fmt.Sprintf("https://api.trakt.tv/smart-lists/%s/items", matches[1])
+	}
+
+	if matches := traktUserListWebRegex.FindStringSubmatch(rawURL); len(matches) == 3 {
+		return fmt.Sprintf("https://api.trakt.tv/users/%s/lists/%s/items", matches[1], matches[2])
+	}
+
+	if matches := traktUserWatchlistRegex.FindStringSubmatch(rawURL); len(matches) == 2 {
+		return fmt.Sprintf("https://api.trakt.tv/users/%s/watchlist/items", matches[1])
+	}
+
+	return rawURL
+}
+
 func (s *Service) trakt(ctx context.Context, list *domain.List) error {
 	l := s.log.With().Str("type", "trakt").Str("list", list.Name).Logger()
 
@@ -22,11 +46,13 @@ func (s *Service) trakt(ctx context.Context, list *domain.List) error {
 		return errors.Errorf("no URL provided for trakt: %s", list.Name)
 	}
 
-	l.Debug().Msgf("fetching titles from %s", list.URL)
+	reqURL := transformTraktURL(list.URL)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, list.URL, nil)
+	l.Debug().Str("url", reqURL).Msg("fetching titles")
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, nil)
 	if err != nil {
-		return errors.Wrapf(err, "could not make new request for URL: %s", list.URL)
+		return errors.Wrapf(err, "could not make new request for URL: %s", reqURL)
 	}
 
 	req.Header.Set("trakt-api-version", "2")
@@ -37,21 +63,19 @@ func (s *Service) trakt(ctx context.Context, list *domain.List) error {
 
 	list.SetRequestHeaders(req)
 
-	//setUserAgent(req)
-
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
-		return errors.Wrapf(err, "failed to fetch titles from URL: %s", list.URL)
+		return errors.Wrapf(err, "failed to fetch titles from URL: %s", reqURL)
 	}
 	defer sharedhttp.DrainAndClose(resp)
 
 	if resp.StatusCode != http.StatusOK {
-		return errors.Errorf("failed to fetch titles from URL: %s", list.URL)
+		return errors.Errorf("failed to fetch titles from URL: %s", reqURL)
 	}
 
 	contentType := resp.Header.Get("Content-Type")
 	if !strings.HasPrefix(contentType, "application/json") {
-		return errors.Errorf("invalid content type for URL: %s, content type should be application/json", list.URL)
+		return errors.Errorf("invalid content type for URL: %s, content type should be application/json", reqURL)
 	}
 
 	var data []struct {
@@ -65,12 +89,14 @@ func (s *Service) trakt(ctx context.Context, list *domain.List) error {
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return errors.Wrapf(err, "failed to decode JSON data from URL: %s", list.URL)
+		return errors.Wrapf(err, "failed to decode JSON data from URL: %s", reqURL)
 	}
 
 	var titles []string
 	for _, item := range data {
-		titles = append(titles, item.Title)
+		if item.Title != "" {
+			titles = append(titles, item.Title)
+		}
 		if item.Movie.Title != "" {
 			titles = append(titles, item.Movie.Title)
 		}
@@ -85,13 +111,13 @@ func (s *Service) trakt(ctx context.Context, list *domain.List) error {
 	}
 
 	if len(filterTitles) == 0 {
-		l.Debug().Msgf("no titles found to update for list: %v", list.Name)
+		l.Debug().Msg("no titles found to update list")
 		return nil
 	}
 
 	joinedTitles := strings.Join(filterTitles, ",")
 
-	l.Trace().Str("titles", joinedTitles).Msgf("found %d titles", len(joinedTitles))
+	l.Trace().Str("titles", joinedTitles).Int("count", len(filterTitles)).Msg("found titles")
 
 	filterUpdate := domain.FilterUpdate{Shows: &joinedTitles}
 
@@ -107,7 +133,7 @@ func (s *Service) trakt(ctx context.Context, list *domain.List) error {
 			return errors.Wrapf(err, "error updating filter: %v", filter.ID)
 		}
 
-		l.Debug().Msgf("successfully updated filter: %v", filter.ID)
+		l.Debug().Int("filter_id", filter.ID).Msg("successfully updated filter")
 	}
 
 	return nil

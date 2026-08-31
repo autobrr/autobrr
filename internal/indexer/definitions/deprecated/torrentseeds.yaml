@@ -1,0 +1,5 @@
+identifier: torrentseeds
+name: TorrentSeeds
+reason: Tracker shut down
+issue_url: https://github.com/autobrr/autobrr/pull/2040
+deprecated_at: 2025-04-22T00:00:00Z

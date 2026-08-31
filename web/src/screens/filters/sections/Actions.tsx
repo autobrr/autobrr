@@ -27,6 +27,7 @@ import { TitleSubtitle } from "@components/headings";
 import { DownloadClientsQueryOptions } from "@api/queries";
 import { FilterHalfRow, FilterLayout, FilterPage, FilterSection } from "@screens/filters/sections/_components.tsx";
 import {
+  Aria2,
   Arr,
   Deluge, Exec,
   NZBGet,
@@ -164,12 +165,16 @@ const TypeForm = (props: ClientActionProps) => {
     return <Transmission {...props} />;
   case "PORLA":
     return <Porla {...props} />;
+  case "ARIA2":
+    return <Aria2 {...props} />;
   // arrs
   case "RADARR":
   case "SONARR":
   case "LIDARR":
   case "WHISPARR":
+  case "WHISPARR_V3":
   case "READARR":
+  case "SPORTARR":
     return <Arr {...props} />;
   // nzb
   case "SABNZBD":

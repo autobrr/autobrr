@@ -1,0 +1,80 @@
+---
+version: 2
+#id: itatorrents
+name: ItaTorrents
+identifier: itatorrents
+description: ItaTorrents (ITT) is an ITALIAN private torrent tracker for MOVIES / TV / GENERAL
+language: it-IT
+urls:
+  - https://itatorrents.xyz/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key
+    help: "Go to your profile tab, Settings > RSS Keys, copy RSS Key"
+
+irc:
+  network: ItaTorrents
+  server: irc.itatorrents.xyz
+  port: 6697
+  tls: true
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Register with the same username and email as your site account.
+
+    - name: auth.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password. New accounts must be validated by an administrator.
+
+  channels:
+    - name: "#Announce"
+      announcers:
+        - ITTBot
+      parse:
+        type: single
+        lines:
+          - pattern: '\[ItaTorrents\] (?P<uploader>.*) has uploaded (?P<releaseName>.*) grab it now! \[Category: (?P<category>.*)\] \[Type: (?P<releaseTags>.*)\] \[Size: (?P<torrentSize>.*)\] \[Freeleech: (?P<freeleechPercent>\d+)%\].*\[Link: (?P<baseUrl>https?\:\/\/.*?\/).*\/(?P<torrentId>\d+)\]'
+            tests:
+              - line: "[ItaTorrents] hashdev has uploaded Maleficent 2014 1080p FullHD BluRay DD 5.1 ITA ENG SUBS SDR H.265 grab it now! [Category: Film] [Type: Encode] [Size: 5.67 GiB] [Freeleech: 0%] [TMDB vote average: 7.086] [TMDB vote count: 13545] [Link: https://itatorrents.xyz/torrents/66182]"
+                expect:
+                  uploader: hashdev
+                  releaseName: Maleficent 2014 1080p FullHD BluRay DD 5.1 ITA ENG SUBS SDR H.265
+                  category: Film
+                  releaseTags: Encode
+                  torrentSize: 5.67 GiB
+                  freeleechPercent: "0"
+                  baseUrl: https://itatorrents.xyz/
+                  torrentId: "66182"
+
+              - line: "[ItaTorrents] SeedBox has uploaded Poker Face S02E09 2160p UHD WEB-DL DD+ 5.1 ITA ENG SUBS HDR10 H.265 grab it now! [Category: Serie TV] [Type: WEB-DL] [Size: 5.12 GiB] [Freeleech: 100%] [TMDB vote average: 7.432] [TMDB vote count: 519] [Link: https://itatorrents.xyz/torrents/66176]"
+                expect:
+                  uploader: SeedBox
+                  releaseName: Poker Face S02E09 2160p UHD WEB-DL DD+ 5.1 ITA ENG SUBS HDR10 H.265
+                  category: Serie TV
+                  releaseTags: WEB-DL
+                  torrentSize: 5.12 GiB
+                  freeleechPercent: "100"
+                  baseUrl: https://itatorrents.xyz/
+                  torrentId: "66176"
+
+        match:
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

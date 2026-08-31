@@ -292,6 +292,7 @@ function CleanupJobListItem({ job }: CleanupJobListItemProps) {
       <div className="grid grid-cols-12 items-center py-1">
         <div className="col-span-1 flex pl-1 sm:pl-4 items-center">
           <Checkbox
+            name="enabled"
             value={job.enabled}
             setValue={(newValue) => toggleMutation.mutate(newValue)}
           />

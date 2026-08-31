@@ -43,16 +43,14 @@ export function Notifications() {
   const { t } = useTranslation("filters");
   const { values } = useFormikContext<Filter>();
 
-  // Fetch all available notifications
   const { data: availableNotifications = [] } = useSuspenseQuery({
     queryKey: NotificationKeys.lists(),
-    queryFn: () => APIClient.notifications.getAll(),
-    select: (data) => data.filter(n => n.enabled)
+    queryFn: () => APIClient.notifications.getAll()
   });
+  const enabledNotifications = availableNotifications.filter(notification => notification.enabled);
 
-  // Create a new notification object
   const createNewNotification = (): FilterNotification => {
-    const firstAvailable = availableNotifications.find(
+    const firstAvailable = enabledNotifications.find(
       n => !values.notifications?.some(sn => sn.notification_id === n.id)
     );
     
@@ -67,7 +65,7 @@ export function Notifications() {
     <div className="mt-5">
       <FieldArray name="notifications">
         {({ remove, push }: FieldArrayRenderProps) => {
-          const availableToAdd = availableNotifications.filter(
+          const availableToAdd = enabledNotifications.filter(
             n => !values.notifications?.some((sn: FilterNotification) => sn.notification_id === n.id)
           );
 
@@ -144,7 +142,6 @@ function NotificationItem({ notification, availableNotifications, idx, initialEd
     setFieldValue(`notifications.${idx}.events`, newEvents);
   };
 
-  // Update notification object when ID changes
   const currentNotificationId = values.notifications?.[idx]?.notification_id;
   useEffect(() => {
     if (currentNotificationId) {
@@ -160,8 +157,8 @@ function NotificationItem({ notification, availableNotifications, idx, initialEd
   );
 
   const availableOptions = availableNotifications
-    .filter(n => n.id === notification.notification_id || 
-      !values.notifications?.some((sn: FilterNotification) => sn.notification_id === n.id))
+    .filter(n => n.id === notification.notification_id || (n.enabled &&
+      !values.notifications?.some((sn: FilterNotification) => sn.notification_id === n.id)))
     .map(n => ({ label: `${n.name} (${NOTIFICATION_TYPE_MAP[n.type] || n.type})`, value: n.id }));
 
   return (
@@ -185,7 +182,8 @@ function NotificationItem({ notification, availableNotifications, idx, initialEd
               <div className="flex overflow-hidden -space-x-1">
                 <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
                   {NOTIFICATION_TYPE_MAP[selectedNotification?.type || ""] || selectedNotification?.type}
-                  {notification.events?.length === 0 ? ` • ${t("notificationsSection.muted")}` : notification.events?.length > 0 ? ` • ${t("notificationsSection.eventsCount", { count: notification.events.length })}` : ""}
+                  {selectedNotification && !selectedNotification.enabled ? ` • ${t("notificationsSection.serviceDisabled")}` : ""}
+                  {notification.events?.length === 0 ? ` • ${t("notificationsSection.notificationDisabled")}` : notification.events?.length > 0 ? ` • ${t("notificationsSection.eventsCount", { count: notification.events.length })}` : ""}
                 </span>
               </div>
             </div>
@@ -229,34 +227,31 @@ function NotificationItem({ notification, availableNotifications, idx, initialEd
                     {t("notificationsSection.notificationSettings")}
                   </label>
                   
-                  {/* Mute Switch */}
                   <div className="mb-6 p-4 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
                     <Checkbox
+                      name={`notifications.${idx}.disabled`}
                       value={notification.events?.length === 0}
-                      setValue={(muted) => {
-                        if (muted) {
-                          // Clear all events to mute
+                      setValue={(disabled) => {
+                        if (disabled) {
                           setFieldValue(`notifications.${idx}.events`, []);
                         } else {
-                          // Enable Push Approved by default when unmuting
                           setFieldValue(`notifications.${idx}.events`, ["PUSH_APPROVED"]);
                         }
                       }}
-                      label={t("notificationsSection.muteFilter")}
-                      description={t("notificationsSection.muteFilterDesc")}
+                      label={t("notificationsSection.disableNotification")}
+                      description={t("notificationsSection.disableNotificationDesc")}
                     />
                     
                     {notification.events?.length === 0 && (
                       <div className="mt-3 flex items-start">
                         <InformationCircleIcon className="h-5 w-5 text-yellow-400 flex-shrink-0 mt-0.5" />
                         <p className="ml-2 text-sm text-yellow-700 dark:text-yellow-300">
-                          {t("notificationsSection.mutedInfo")}
+                          {t("notificationsSection.notificationDisabledInfo")}
                         </p>
                       </div>
                     )}
                   </div>
 
-                  {/* Event Triggers - disabled when muted */}
                   <div className={notification.events?.length === 0 ? "opacity-50 pointer-events-none" : ""}>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       {t("notificationsSection.triggerEvents")}
@@ -265,6 +260,7 @@ function NotificationItem({ notification, availableNotifications, idx, initialEd
                       {EVENT_OPTIONS.map((event) => (
                         <Checkbox
                           key={event.value}
+                          name={`notifications.${idx}.events-${event.value}`}
                           value={notification.events?.includes(event.value) || false}
                           setValue={(checked) => handleEventToggle(event.value, checked)}
                           label={event.value === "PUSH_APPROVED" ? t("notificationsSection.pushApproved") : event.value === "PUSH_REJECTED" ? t("notificationsSection.pushRejected") : t("notificationsSection.pushError")}

@@ -14,19 +14,14 @@ import (
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sanitize"
 
-	"github.com/asaskevich/EventBus"
 	"github.com/gosimple/slug"
 	"github.com/rs/zerolog"
 	"gopkg.in/yaml.v3"
 )
-
-type schedulerService interface {
-	RemoveJobByIdentifier(id string) error
-}
 
 type releaseRepo interface {
 	UpdateBaseURL(ctx context.Context, indexer string, oldBaseURL, newBaseURL string) error
@@ -34,23 +29,29 @@ type releaseRepo interface {
 
 type indexerRepo interface {
 	Store(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error)
-	Update(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error)
+	Update(ctx context.Context, indexer *domain.Indexer) error
 	List(ctx context.Context) ([]domain.Indexer, error)
 	Delete(ctx context.Context, id int) error
+	DeleteArchived(ctx context.Context, id int) error
 	FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error)
 	FindByID(ctx context.Context, id int) (*domain.Indexer, error)
 	GetBy(ctx context.Context, req domain.GetIndexerRequest) (*domain.Indexer, error)
 	ToggleEnabled(ctx context.Context, indexerID int, enabled bool) error
+	ReconcileDeprecations(ctx context.Context, deprecations []domain.IndexerDeprecation, activeIdentifiers map[string]struct{}) error
+	ListDeprecations(ctx context.Context) ([]domain.IndexerDeprecation, error)
+}
+
+type eventBus interface {
+	EmitIndexer(ctx context.Context, event events.IndexerChangeEvent)
 }
 
 type Service struct {
 	log         zerolog.Logger
+	eventBus    eventBus
 	config      *domain.Config
 	repo        indexerRepo
 	releaseRepo releaseRepo
 	ApiService  apiService
-	scheduler   schedulerService
-	bus         EventBus.Bus
 
 	// contains all raw indexer definitions
 	definitions map[string]domain.IndexerDefinition
@@ -58,21 +59,17 @@ type Service struct {
 	mappedDefinitions map[string]*domain.IndexerDefinition
 	// map server:channel:announce to indexer.Identifier
 	lookupIRCServerDefinition map[string]map[string]*domain.IndexerDefinition
-	// feed indexers
-	feedIndexers map[string]*domain.IndexerDefinition
 }
 
-func NewService(log logger.Logger, config *domain.Config, bus EventBus.Bus, repo indexerRepo, releaseRepo releaseRepo, apiService apiService, scheduler schedulerService) *Service {
+func NewService(log zerolog.Logger, bus eventBus, config *domain.Config, repo indexerRepo, releaseRepo releaseRepo, apiService apiService) *Service {
 	return &Service{
 		log:                       log.With().Str("module", "indexer").Logger(),
+		eventBus:                  bus,
 		config:                    config,
 		repo:                      repo,
 		releaseRepo:               releaseRepo,
 		ApiService:                apiService,
-		scheduler:                 scheduler,
-		bus:                       bus,
 		lookupIRCServerDefinition: make(map[string]map[string]*domain.IndexerDefinition),
-		feedIndexers:              make(map[string]*domain.IndexerDefinition),
 		definitions:               make(map[string]domain.IndexerDefinition),
 		mappedDefinitions:         make(map[string]*domain.IndexerDefinition),
 	}
@@ -101,23 +98,26 @@ func (s *Service) Store(ctx context.Context, indexer domain.Indexer) (*domain.In
 
 	i, err := s.repo.Store(ctx, indexer)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("failed to store indexer: %s", indexer.Name)
+		s.log.Error().Err(err).Interface("indexer", indexer).Msg("failed to store indexer")
 		return nil, err
 	}
 
 	// add to indexerInstances
 	if err = s.addIndexer(*i); err != nil {
-		s.log.Error().Err(err).Msgf("failed to add indexer: %s", indexer.Name)
+		s.log.Error().Err(err).Str("indexer", indexer.Name).Msg("failed to add indexer")
 		return nil, err
 	}
 
 	return i, nil
 }
 
-func (s *Service) Update(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error) {
+func (s *Service) Update(ctx context.Context, indexer *domain.Indexer) error {
 	currentIndexer, err := s.repo.FindByID(ctx, int(indexer.ID))
 	if err != nil {
-		return nil, errors.Wrap(err, "could not find indexer by id: %v", indexer.ID)
+		return errors.Wrap(err, "could not find indexer by id: %v", indexer.ID)
+	}
+	if currentIndexer.Archived {
+		return domain.ErrIndexerArchived
 	}
 
 	// sanitize user input
@@ -127,7 +127,7 @@ func (s *Service) Update(ctx context.Context, indexer domain.Indexer) (*domain.I
 		if domain.IsRedactedString(val) {
 			currentVal, ok := currentIndexer.Settings[key]
 			if !ok {
-				return nil, errors.New("could not find setting in current indexer")
+				return errors.New("could not find setting in current indexer")
 			}
 			//indexer.Settings[key] = sanitize.String(currentVal)
 			indexer.Settings[key] = currentVal
@@ -137,10 +137,22 @@ func (s *Service) Update(ctx context.Context, indexer domain.Indexer) (*domain.I
 		indexer.Settings[key] = sanitize.String(val)
 	}
 
+	// settings are persisted wholesale, so an update that omits a saved credential would
+	// silently delete it; require the client to echo it back, redacted or not
+	for key, val := range currentIndexer.Settings {
+		if val == "" || !domain.IsSecretIndexerSetting(key) {
+			continue
+		}
+
+		if _, ok := indexer.Settings[key]; !ok {
+			return errors.New("update omits saved secret setting '%s'", key)
+		}
+	}
+
 	// only IRC indexers have baseURL set
 	if indexer.Implementation == domain.IndexerImplementationIRC {
 		if indexer.BaseURL == "" {
-			return nil, errors.New("indexer baseURL must not be empty")
+			return errors.New("indexer baseURL must not be empty")
 		}
 
 		// check if baseURL has been updated and update releases if it was
@@ -149,32 +161,39 @@ func (s *Service) Update(ctx context.Context, indexer domain.Indexer) (*domain.I
 			// update urls of releases
 			err = s.releaseRepo.UpdateBaseURL(ctx, indexer.Identifier, currentIndexer.BaseURL, indexer.BaseURL)
 			if err != nil {
-				return nil, errors.Wrap(err, "could not update release urls with new baseURL: %s", indexer.BaseURL)
+				return errors.Wrap(err, "could not update release urls with new baseURL: %s", indexer.BaseURL)
 			}
 		}
 	}
 
-	i, err := s.repo.Update(ctx, indexer)
-	if err != nil {
-		s.log.Error().Err(err).Msgf("could not update indexer: %+v", indexer)
-		return nil, err
+	if err := s.repo.Update(ctx, indexer); err != nil {
+		s.log.Error().Err(err).Interface("indexer", indexer).Msg("could not update indexer")
+		return err
 	}
 
 	// add to indexerInstances
-	if err = s.updateIndexer(*i); err != nil {
-		s.log.Error().Err(err).Msgf("failed to add indexer: %s", indexer.Name)
-		return nil, err
+	if err = s.updateIndexer(indexer); err != nil {
+		s.log.Error().Err(err).Str("indexer", indexer.Name).Msg("failed to add indexer")
+		return err
 	}
 
+	// always publish: a changed-gate computed from the pre-write snapshot misses racing
+	// opposite toggles, and the handler reconciles idempotently against persisted state.
+	// Publish the stored indexer, not the update payload, so the handler sees a populated
+	// Implementation regardless of what the request carried
 	if currentIndexer.ImplementationIsFeed() {
-		if currentIndexer.Enabled && !indexer.Enabled {
-			s.stopFeed(indexer.Identifier)
-		}
+		toggled := *currentIndexer
+		toggled.Enabled = indexer.Enabled
+
+		s.eventBus.EmitIndexer(ctx, events.IndexerChangeEvent{
+			Event:   events.Event{Type: events.IndexerToggleEnabled},
+			Indexer: &toggled,
+		})
 	}
 
-	s.log.Debug().Msgf("successfully updated indexer: %s", indexer.Name)
+	s.log.Debug().Str("indexer", indexer.Name).Msg("successfully updated indexer")
 
-	return i, nil
+	return nil
 }
 
 func (s *Service) Delete(ctx context.Context, id int) error {
@@ -182,9 +201,12 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 	if err != nil {
 		return err
 	}
+	if indexer.Archived {
+		return domain.ErrIndexerArchived
+	}
 
 	if err := s.repo.Delete(ctx, id); err != nil {
-		s.log.Error().Err(err).Msgf("could not delete indexer by id: %d", id)
+		s.log.Error().Err(err).Int("indexer_id", id).Msg("could not delete indexer")
 		return err
 	}
 
@@ -192,10 +214,23 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 	s.removeIndexer(*indexer)
 
 	if err := s.ApiService.RemoveClient(indexer.Identifier); err != nil {
-		s.log.Error().Err(err).Msgf("could not delete indexer api client: %s", indexer.Identifier)
+		s.log.Error().Err(err).Str("indexer", indexer.Name).Msg("could not delete indexer api client")
 	}
 
-	s.bus.Publish(domain.EventIndexerDelete, indexer)
+	s.eventBus.EmitIndexer(ctx, events.IndexerChangeEvent{
+		Event:   events.Event{Type: events.IndexerDeleted},
+		Indexer: indexer,
+	})
+
+	return nil
+}
+
+// DeleteArchived permanently removes an archived indexer whose filter links were pruned.
+func (s *Service) DeleteArchived(ctx context.Context, id int) error {
+	if err := s.repo.DeleteArchived(ctx, id); err != nil {
+		s.log.Error().Err(err).Int("indexer_id", id).Msg("could not delete archived indexer")
+		return err
+	}
 
 	return nil
 }
@@ -203,21 +238,21 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 func (s *Service) FindByFilterID(ctx context.Context, id int) ([]domain.Indexer, error) {
 	indexers, err := s.repo.FindByFilterID(ctx, id)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not find indexers by filter id: %d", id)
+		s.log.Error().Err(err).Int("filter_id", id).Msg("could not find indexers by filter id")
 		return nil, err
 	}
 
-	return indexers, err
+	return indexers, nil
 }
 
 func (s *Service) FindByID(ctx context.Context, id int) (*domain.Indexer, error) {
-	indexers, err := s.repo.FindByID(ctx, id)
+	indexer, err := s.repo.FindByID(ctx, id)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not find indexer by id: %d", id)
+		s.log.Error().Err(err).Int("indexer_id", id).Msg("could not find indexer by id")
 		return nil, err
 	}
 
-	return indexers, err
+	return indexer, nil
 }
 
 func (s *Service) List(ctx context.Context) ([]domain.Indexer, error) {
@@ -227,17 +262,17 @@ func (s *Service) List(ctx context.Context) ([]domain.Indexer, error) {
 		return nil, err
 	}
 
-	return indexers, err
+	return indexers, nil
 }
 
 func (s *Service) GetBy(ctx context.Context, req domain.GetIndexerRequest) (*domain.Indexer, error) {
 	indexer, err := s.repo.GetBy(ctx, req)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("could not get indexer by: %v", req)
+		s.log.Error().Err(err).Interface("indexer", req).Msg("could not get indexer")
 		return nil, err
 	}
 
-	return indexer, err
+	return indexer, nil
 }
 
 func (s *Service) GetAll() ([]*domain.IndexerDefinition, error) {
@@ -329,7 +364,7 @@ func (s *Service) mapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition,
 	return d, nil
 }
 
-func (s *Service) updateMapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition, error) {
+func (s *Service) updateMapIndexer(indexer *domain.Indexer) (*domain.IndexerDefinition, error) {
 	d, ok := s.mappedDefinitions[indexer.Identifier]
 	if !ok {
 		return nil, domain.ErrIndexerNotFound
@@ -385,6 +420,55 @@ func (s *Service) GetTemplates() ([]domain.IndexerDefinition, error) {
 	return ret, nil
 }
 
+// ListDeprecations returns the known indexer deprecations (removed/retired indexers) so the
+// UI can surface friendly names, reasons and cleanup affordances.
+func (s *Service) ListDeprecations(ctx context.Context) ([]domain.IndexerDeprecation, error) {
+	return s.repo.ListDeprecations(ctx)
+}
+
+// reconcileDeprecations projects bundled tombstones into the database before runtime indexers
+// are mapped. A custom or bundled active definition with the same identifier revives the row.
+func (s *Service) reconcileDeprecations(ctx context.Context, deprecations []domain.IndexerDeprecation) error {
+	registered := make(map[string]struct{}, len(deprecations))
+	for _, dep := range deprecations {
+		registered[dep.Identifier] = struct{}{}
+	}
+
+	indexers, err := s.repo.List(ctx)
+	if err != nil {
+		return err
+	}
+
+	activeIdentifiers := make(map[string]struct{}, len(indexers))
+	var untracked []string
+	for _, indexer := range indexers {
+		definitionName := indexer.Identifier
+		if indexer.ImplementationIsFeed() {
+			definitionName = string(indexer.Implementation)
+		}
+
+		if _, live := s.definitions[definitionName]; live {
+			activeIdentifiers[indexer.Identifier] = struct{}{}
+			continue
+		}
+		if _, known := registered[indexer.Identifier]; known {
+			continue
+		}
+		untracked = append(untracked, indexer.Identifier)
+	}
+
+	if err := s.repo.ReconcileDeprecations(ctx, deprecations, activeIdentifiers); err != nil {
+		return err
+	}
+
+	if len(untracked) > 0 {
+		sort.Strings(untracked)
+		s.log.Warn().Msgf("found %d indexer(s) with no active definition or bundled tombstone: %s - restore a custom definition or report the missing tombstone", len(untracked), strings.Join(untracked, ", "))
+	}
+
+	return nil
+}
+
 func (s *Service) Start() error {
 	// load all indexer definitions
 	if err := s.LoadIndexerDefinitions(); err != nil {
@@ -397,6 +481,15 @@ func (s *Service) Start() error {
 		if err := s.LoadCustomIndexerDefinitions(); err != nil {
 			return errors.Wrap(err, "could not load custom indexer definitions")
 		}
+	}
+
+	deprecations, err := LoadDeprecatedIndexerDefinitions()
+	if err != nil {
+		return err
+	}
+
+	if err := s.reconcileDeprecations(context.Background(), deprecations); err != nil {
+		return errors.Wrap(err, "could not reconcile indexer deprecations")
 	}
 
 	// load the indexers' setup by the user
@@ -414,28 +507,18 @@ func (s *Service) Start() error {
 			// check if it has api and add to api service
 			if indexer.Enabled && indexer.HasApi() {
 				if err := s.ApiService.AddClient(indexer.Identifier, indexer.SettingsMap, indexer.ProxyID, indexer.UseProxy); err != nil {
-					s.log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%s'", indexer.Identifier)
+					s.log.Error().Stack().Err(err).Str("indexer", indexer.Identifier).Msg("indexer.start: could not init indexer api client")
 				}
 			}
-
-		// handle feeds
-		case domain.IndexerImplementationRSS, domain.IndexerImplementationTorznab, domain.IndexerImplementationNewznab:
-			s.feedIndexers[indexer.Identifier] = indexer
 		}
 	}
 
-	s.log.Info().Msgf("Loaded %d indexers", len(indexerDefinitions))
+	s.log.Info().Int("count", len(indexerDefinitions)).Msg("Loaded indexers")
 
 	return nil
 }
 
 func (s *Service) removeIndexer(indexer domain.Indexer) {
-	// handle feeds
-	switch indexer.Implementation {
-	case domain.IndexerImplementationRSS, domain.IndexerImplementationTorznab, domain.IndexerImplementationNewznab:
-		delete(s.feedIndexers, indexer.Identifier)
-	}
-
 	// remove mapped definition
 	delete(s.mappedDefinitions, indexer.Identifier)
 }
@@ -458,13 +541,9 @@ func (s *Service) addIndexer(indexer domain.Indexer) error {
 		// check if it has api and add to api service
 		if indexerDefinition.HasApi() {
 			if err := s.ApiService.AddClient(indexerDefinition.Identifier, indexerDefinition.SettingsMap, indexerDefinition.ProxyID, indexerDefinition.UseProxy); err != nil {
-				s.log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%s'", indexer.Identifier)
+				s.log.Error().Stack().Err(err).Str("indexer", indexer.Identifier).Msg("indexer.addIndexer: could not init indexer api client")
 			}
 		}
-
-	// handle feeds
-	case domain.IndexerImplementationRSS, domain.IndexerImplementationTorznab, domain.IndexerImplementationNewznab:
-		s.feedIndexers[indexer.Identifier] = indexerDefinition
 	}
 
 	s.mappedDefinitions[indexer.Identifier] = indexerDefinition
@@ -472,7 +551,7 @@ func (s *Service) addIndexer(indexer domain.Indexer) error {
 	return nil
 }
 
-func (s *Service) updateIndexer(indexer domain.Indexer) error {
+func (s *Service) updateIndexer(indexer *domain.Indexer) error {
 	indexerDefinition, err := s.updateMapIndexer(indexer)
 	if err != nil {
 		return err
@@ -490,13 +569,9 @@ func (s *Service) updateIndexer(indexer domain.Indexer) error {
 		// check if it has api and add to api service
 		if indexerDefinition.HasApi() {
 			if err := s.ApiService.AddClient(indexerDefinition.Identifier, indexerDefinition.SettingsMap, indexerDefinition.ProxyID, indexerDefinition.UseProxy); err != nil {
-				s.log.Error().Stack().Err(err).Msgf("indexer.start: could not init api client for: '%s'", indexer.Identifier)
+				s.log.Error().Stack().Err(err).Str("indexer", indexer.Identifier).Msg("indexer.updateIndexer: could not init indexer api client")
 			}
 		}
-
-	// handle feeds
-	case domain.IndexerImplementationRSS, domain.IndexerImplementationTorznab, domain.IndexerImplementationNewznab:
-		s.feedIndexers[indexer.Identifier] = indexerDefinition
 	}
 
 	s.mappedDefinitions[indexer.Identifier] = indexerDefinition
@@ -538,7 +613,7 @@ func (s *Service) LoadIndexerDefinitions() error {
 
 		file := "definitions/" + entry.Name()
 
-		s.log.Trace().Msgf("parsing: %s", file)
+		s.log.Trace().Str("file", file).Msg("parsing indexer definition")
 
 		data, err := fs.ReadFile(Definitions, file)
 		if err != nil {
@@ -552,13 +627,16 @@ func (s *Service) LoadIndexerDefinitions() error {
 		if err = dec.Decode(&d); err != nil {
 			return errors.Wrap(err, "could not unmarshal indexer definition file: %s", file)
 		}
+		if err = d.ValidateIRCAuth(); err != nil {
+			return errors.Wrap(err, "invalid indexer definition file: %s", file)
+		}
 
 		d.Prepare()
 
 		s.definitions[d.Identifier] = d
 	}
 
-	s.log.Debug().Msgf("Loaded %d indexer definitions", len(s.definitions))
+	s.log.Debug().Int("count", len(s.definitions)).Msg("loaded indexer definitions")
 
 	return nil
 }
@@ -593,6 +671,9 @@ func OpenAndProcessDefinition(file string) (*domain.IndexerDefinition, error) {
 		if err := dec.Decode(&d); err != nil {
 			return nil, errors.Wrap(err, "could not decode definition file: %s", file)
 		}
+		if err := d.ValidateIRCAuth(); err != nil {
+			return nil, errors.Wrap(err, "invalid definition file: %s", file)
+		}
 
 		d.Prepare()
 
@@ -617,7 +698,12 @@ func OpenAndProcessDefinition(file string) (*domain.IndexerDefinition, error) {
 		d.Implementation = domain.IndexerImplementationIRC
 	}
 
-	return d.ToIndexerDefinition(), nil
+	definition := d.ToIndexerDefinition()
+	if err := definition.ValidateIRCAuth(); err != nil {
+		return nil, errors.Wrap(err, "invalid definition file: %s", file)
+	}
+
+	return definition, nil
 }
 
 func OpenAndDecodeDefinition(file string, data any) error {
@@ -649,8 +735,8 @@ func (s *Service) LoadCustomIndexerDefinitions() error {
 
 	outputDirRead, err := os.Open(s.config.CustomDefinitions)
 	if err != nil {
-		s.log.Error().Err(err).Msgf("failed opening custom definitions directory %s", s.config.CustomDefinitions)
-		return nil
+		s.log.Error().Err(err).Str("custom_definitions_path", s.config.CustomDefinitions).Msg("failed opening custom definitions directory")
+		return errors.Wrap(err, "could not open custom definitions directory: %s", s.config.CustomDefinitions)
 	}
 
 	defer outputDirRead.Close()
@@ -665,17 +751,17 @@ func (s *Service) LoadCustomIndexerDefinitions() error {
 	for _, entry := range entries {
 		ext := filepath.Ext(entry.Name())
 		if !isValidExtension(ext) {
-			s.log.Warn().Msgf("unsupported extension %s, definition file: %s", ext, entry.Name())
+			s.log.Warn().Str("ext", ext).Str("file", entry.Name()).Msg("unsupported extension for definition file")
 			continue
 		}
 
 		file := filepath.Join(s.config.CustomDefinitions, entry.Name())
 
-		s.log.Trace().Msgf("parsing custom definition: %s", file)
+		s.log.Trace().Str("file", file).Msg("parsing custom definition")
 
 		definition, err := OpenAndProcessDefinition(file)
 		if err != nil {
-			s.log.Error().Err(err).Msgf("could not open definition file: %s", file)
+			s.log.Error().Err(err).Str("file", file).Msg("could not open definition file")
 			continue
 		}
 
@@ -684,7 +770,7 @@ func (s *Service) LoadCustomIndexerDefinitions() error {
 		customCount++
 	}
 
-	s.log.Debug().Msgf("Loaded %d custom indexer definitions", customCount)
+	s.log.Debug().Int("count", customCount).Msg("Loaded custom indexer definitions")
 
 	return nil
 }
@@ -745,30 +831,13 @@ func (s *Service) GetMappedDefinitionByName(name string) (*domain.IndexerDefinit
 	return v, true
 }
 
-func (s *Service) stopFeed(indexer string) {
-	_, ok := s.feedIndexers[indexer]
-	if !ok {
-		return
-	}
-
-	if err := s.scheduler.RemoveJobByIdentifier(indexer); err != nil {
-		return
-	}
-}
-
 func (s *Service) TestApi(ctx context.Context, req domain.IndexerTestApiRequest) error {
 	indexer, err := s.FindByID(ctx, req.IndexerId)
 	if err != nil {
 		return err
 	}
-
-	if domain.IsRedactedString(req.ApiKey) {
-		apikey, ok := indexer.Settings["api_key"]
-		if !ok {
-			return errors.New("could not find apikey in indexer settings")
-		}
-
-		req.ApiKey = apikey
+	if indexer.Archived {
+		return domain.ErrIndexerArchived
 	}
 
 	def, ok := s.GetMappedDefinitionByName(indexer.Identifier)
@@ -780,16 +849,25 @@ func (s *Service) TestApi(ctx context.Context, req domain.IndexerTestApiRequest)
 		return errors.New("indexer (%s) does not support api", indexer.Identifier)
 	}
 
+	if domain.IsRedactedString(req.ApiKey) {
+		apikey, ok := indexer.Settings["api_key"]
+		if !ok {
+			return errors.New("could not find apikey in indexer settings")
+		}
+
+		req.ApiKey = apikey
+	}
+
 	req.Identifier = def.Identifier
 	req.ProxyID = def.ProxyID
 	req.UseProxy = def.UseProxy
 
 	if _, err = s.ApiService.TestConnection(ctx, req); err != nil {
-		s.log.Error().Err(err).Msgf("error testing api for: %s", indexer.Identifier)
+		s.log.Error().Err(err).Str("indexer", indexer.Identifier).Msg("error testing indexer api")
 		return err
 	}
 
-	s.log.Info().Msgf("successful api test for: %s", indexer.Identifier)
+	s.log.Info().Str("indexer", indexer.Identifier).Msg("indexer api test successful!")
 
 	return nil
 }
@@ -798,6 +876,9 @@ func (s *Service) ToggleEnabled(ctx context.Context, indexerID int, enabled bool
 	indexer, err := s.FindByID(ctx, indexerID)
 	if err != nil {
 		return err
+	}
+	if indexer.Archived {
+		return domain.ErrIndexerArchived
 	}
 
 	if err := s.repo.ToggleEnabled(ctx, int(indexer.ID), enabled); err != nil {
@@ -808,16 +889,22 @@ func (s *Service) ToggleEnabled(ctx context.Context, indexerID int, enabled bool
 	indexer.Enabled = enabled
 
 	// update indexerInstances
-	if err := s.updateIndexer(*indexer); err != nil {
-		s.log.Error().Err(err).Msgf("failed to add indexer: %s", indexer.Name)
+	if err := s.updateIndexer(indexer); err != nil {
+		s.log.Error().Err(err).Str("indexer", indexer.Name).Msg("failed to update indexer")
 		return err
 	}
 
-	if indexer.ImplementationIsFeed() && !enabled {
-		s.stopFeed(indexer.Identifier)
+	// feed jobs are stopped and started by the feed service via event because the feed service
+	// can't be imported here. Always published: a changed-gate computed from the pre-write
+	// snapshot misses racing opposite toggles, and the handler reconciles idempotently
+	if indexer.ImplementationIsFeed() {
+		s.eventBus.EmitIndexer(ctx, events.IndexerChangeEvent{
+			Event:   events.Event{Type: events.IndexerToggleEnabled},
+			Indexer: indexer,
+		})
 	}
 
-	s.log.Debug().Msgf("indexer.toggle_enabled: update indexer '%d' to '%v'", indexerID, enabled)
+	s.log.Debug().Str("indexer", indexer.Name).Int("indexer_id", indexerID).Bool("enabled", enabled).Msg("indexer.toggleEnabled: update indexer state")
 
 	return nil
 }

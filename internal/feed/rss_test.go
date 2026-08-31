@@ -560,9 +560,74 @@ func TestRSSJob_processItem(t *testing.T) {
 			got := j.processItem(tt.args.item)
 			if got != nil {
 				got.Timestamp = now // override to match
+				got.TraceID = ""    // random per release, override to match
 			}
 
 			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestRSSJob_processItemMagnet(t *testing.T) {
+	t.Parallel()
+
+	const (
+		magnetURI = "magnet:?xt=urn:btih:deadbeef"
+		detailURL = "https://fake-feed.com/details.php?id=00000"
+	)
+
+	magnetEnclosure := []*gofeed.Enclosure{{URL: magnetURI, Length: "1", Type: "application/x-bittorrent"}}
+
+	tests := []struct {
+		name            string
+		downloadType    domain.FeedDownloadType
+		item            *gofeed.Item
+		wantDownloadURL string
+		wantMagnetURI   string
+	}{
+		{
+			name:            "magnet type keeps the detail link as fallback",
+			downloadType:    domain.FeedDownloadTypeMagnet,
+			item:            &gofeed.Item{Link: detailURL, Enclosures: magnetEnclosure},
+			wantDownloadURL: detailURL,
+			wantMagnetURI:   magnetURI,
+		},
+		{
+			name:          "magnet in the link is not mangled into a relative url",
+			downloadType:  domain.FeedDownloadTypeMagnet,
+			item:          &gofeed.Item{Link: magnetURI},
+			wantMagnetURI: magnetURI,
+		},
+		{
+			name:          "magnet in the link is rescued without the magnet download type",
+			item:          &gofeed.Item{Link: magnetURI},
+			wantMagnetURI: magnetURI,
+		},
+		{
+			name:          "magnet in the enclosure is rescued without the magnet download type",
+			item:          &gofeed.Item{Enclosures: magnetEnclosure},
+			wantMagnetURI: magnetURI,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			j := &RSSJob{
+				Log: zerolog.Nop(),
+				URL: "https://fake-feed.com/rss",
+				Feed: &domain.Feed{
+					Indexer:  domain.IndexerMinimal{Name: "Mock Feed", Identifier: "mock-feed"},
+					Settings: &domain.FeedSettingsJSON{DownloadType: tt.downloadType},
+				},
+			}
+
+			tt.item.Title = "Some.Release.Title.2022.09.22.720p.WEB.h264-GROUP"
+
+			got := j.processItem(tt.item)
+			assert.NotNil(t, got)
+
+			assert.Equal(t, tt.wantDownloadURL, got.DownloadURL, "download url")
+			assert.Equal(t, tt.wantMagnetURI, got.MagnetURI, "magnet uri")
 		})
 	}
 }
