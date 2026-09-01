@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/autobrr/autobrr/pkg/regexcache"
+	"github.com/autobrr/go-cache/regexcache"
 
 	"github.com/rs/zerolog/log"
 )
