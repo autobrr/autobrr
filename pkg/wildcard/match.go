@@ -94,7 +94,7 @@ func MatchSlice(pattern []string, name string) (matched bool) {
 }
 
 func matchSlice(pattern []string, name string, simple bool) (matched bool) {
-	for i := 0; i < len(pattern); i++ {
+	for i := range pattern {
 		if match(pattern[i], name, simple) {
 			return true
 		}

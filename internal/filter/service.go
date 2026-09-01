@@ -5,6 +5,7 @@ package filter
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"fmt"
 	"io"
@@ -756,13 +757,8 @@ func (s *Service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, rel
 				release.Size = torrentSize
 			}
 
-			if release.Uploader == "" {
-				release.Uploader = torrentInfo.Uploader
-			}
-
-			if release.RecordLabel == "" {
-				release.RecordLabel = torrentInfo.RecordLabel
-			}
+			release.Uploader = cmp.Or(release.Uploader, torrentInfo.Uploader)
+			release.RecordLabel = cmp.Or(release.RecordLabel, torrentInfo.RecordLabel)
 		}
 
 	default:
@@ -841,13 +837,8 @@ func (s *Service) AdditionalUploaderCheck(ctx context.Context, f *domain.Filter,
 			release.Size = torrentSize
 		}
 
-		if release.RecordLabel == "" {
-			release.RecordLabel = torrentInfo.RecordLabel
-		}
-
-		if release.Uploader == "" {
-			release.Uploader = torrentInfo.Uploader
-		}
+		release.RecordLabel = cmp.Or(release.RecordLabel, torrentInfo.RecordLabel)
+		release.Uploader = cmp.Or(release.Uploader, torrentInfo.Uploader)
 
 	default:
 		return false, errors.New("additional uploader check not supported for this indexer: %s", release.Indexer.Identifier)
@@ -920,13 +911,8 @@ func (s *Service) AdditionalRecordLabelCheck(ctx context.Context, f *domain.Filt
 			release.Size = torrentSize
 		}
 
-		if release.Uploader == "" {
-			release.Uploader = torrentInfo.Uploader
-		}
-
-		if release.RecordLabel == "" {
-			release.RecordLabel = torrentInfo.RecordLabel
-		}
+		release.Uploader = cmp.Or(release.Uploader, torrentInfo.Uploader)
+		release.RecordLabel = cmp.Or(release.RecordLabel, torrentInfo.RecordLabel)
 
 	default:
 		return false, errors.New("additional record label check not supported for this indexer: %s", release.Indexer.Identifier)
@@ -1099,8 +1085,7 @@ func (s *Service) execCmd(_ context.Context, external domain.FilterExternal, rel
 
 	// Wait for the command to finish and check for any errors
 	if err := command.Wait(); err != nil {
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
+		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 			s.log.Debug().Int("exit_code", exitErr.ExitCode()).Msg("filter script exited with non-zero code")
 			return exitErr.ExitCode(), nil
 		}

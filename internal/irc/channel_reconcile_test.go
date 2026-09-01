@@ -178,8 +178,8 @@ func TestHandleJoinDoesNotPartRegisteredChannel(t *testing.T) {
 	msg := ircmsg.Message{
 		Command: "JOIN",
 		Params:  []string{"#known"},
+		Source:  "someuser!u@host",
 	}
-	msg.Source = "someuser!u@host"
 
 	h.handleJoin(msg) // must not panic and must leave the channel registered
 

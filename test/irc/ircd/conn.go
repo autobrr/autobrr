@@ -293,7 +293,7 @@ func (c *conn) handlePart(msg ircmsg.Message) {
 	if len(msg.Params) == 0 {
 		return
 	}
-	for _, name := range strings.Split(msg.Params[0], ",") {
+	for name := range strings.SplitSeq(msg.Params[0], ",") {
 		ch := c.srv.getOrCreateChannel(name)
 		c.srv.broadcast(ch, fmt.Sprintf(":%s!%s PART %s", c.nick, userHost, ch.name), nil)
 		c.srv.mu.Lock()

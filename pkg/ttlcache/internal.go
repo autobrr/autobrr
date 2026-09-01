@@ -3,7 +3,11 @@
 
 package ttlcache
 
-import "time"
+import (
+	"maps"
+	"slices"
+	"time"
+)
 
 func (c *Cache[K, V]) get(key K) (Item[V], bool) {
 	c.l.RLock()
@@ -75,12 +79,7 @@ func (c *Cache[K, V]) getkeys() []K {
 	c.l.RLock()
 	defer c.l.RUnlock()
 
-	keys := make([]K, len(c.m))
-	for k := range c.m {
-		keys = append(keys, k)
-	}
-
-	return keys
+	return slices.Collect(maps.Keys(c.m))
 }
 
 func (c *Cache[K, V]) close() {

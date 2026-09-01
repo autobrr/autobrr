@@ -7,7 +7,6 @@ import (
 	"context"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/downloader"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/go-rtorrent"
 	"github.com/rs/zerolog"
@@ -32,7 +31,7 @@ func (s *Service) runRTorrent(ctx context.Context, action *domain.Action, releas
 		return nil, errors.New("client %s %s not enabled", cfg.Type, cfg.Name)
 	}
 
-	client, err := downloader.ClientAs[*rtorrent.Client](instance)
+	client, err := instance.ClientAs[*rtorrent.Client]()
 	if err != nil {
 		return nil, err
 	}

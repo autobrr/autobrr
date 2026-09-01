@@ -7,11 +7,11 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/downloader"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/hekmon/transmissionrpc/v3"
@@ -44,7 +44,7 @@ func (s *Service) runTransmission(ctx context.Context, action *domain.Action, re
 		return nil, errors.New("client %s %s not enabled", cfg.Type, cfg.Name)
 	}
 
-	client, err := downloader.ClientAs[*transmissionrpc.Client](instance)
+	client, err := instance.ClientAs[*transmissionrpc.Client]()
 	if err != nil {
 		return nil, err
 	}
@@ -176,8 +176,6 @@ func (s *Service) transmissionReannounce(ctx context.Context, action *domain.Act
 		}
 
 		for _, tracker := range t[0].TrackerStats {
-			tracker := tracker
-
 			l.Trace().Interface("tracker", tracker).Msg("transmission tracker")
 
 			if tracker.IsBackup {
@@ -260,11 +258,7 @@ func isUnregistered(msg string) bool {
 
 	msg = strings.ToLower(msg)
 
-	for _, v := range words {
-		if strings.Contains(msg, v) {
-			return true
-		}
-	}
-
-	return false
+	return slices.ContainsFunc(words, func(w string) bool {
+		return strings.Contains(msg, w)
+	})
 }

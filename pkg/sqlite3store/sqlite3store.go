@@ -12,9 +12,9 @@ import (
 )
 
 type SqlDB interface {
-	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
-	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
-	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
 }
 
 type OptFunc func(*SQLite3Store)
@@ -177,17 +177,16 @@ func (p *SQLite3Store) AllCtx(ctx context.Context) (map[string][]byte, error) {
 }
 
 func (p *SQLite3Store) startCleanup(interval time.Duration) {
-	ticker := time.NewTicker(interval)
+	tick := time.Tick(interval)
 	for {
 		select {
-		case <-ticker.C:
+		case <-tick:
 			err := p.deleteExpired(context.Background())
 			if err != nil {
 				p.log.Error().Err(err).Msg("could not delete expired sessions")
 			}
 			p.pruneCache()
 		case <-p.stopCleanup:
-			ticker.Stop()
 			return
 		}
 	}

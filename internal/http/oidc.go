@@ -4,6 +4,7 @@
 package http
 
 import (
+	"cmp"
 	"context"
 	"crypto/rand"
 	"fmt"
@@ -256,10 +257,7 @@ func (h *OIDCHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 	frontendURL := h.config.BaseURL
 	if frontendURL == "/" {
 		if proto := r.Header.Get("X-Forwarded-Proto"); proto != "" {
-			host := r.Header.Get("X-Forwarded-Host")
-			if host == "" {
-				host = r.Host
-			}
+			host := cmp.Or(r.Header.Get("X-Forwarded-Host"), r.Host)
 			frontendURL = fmt.Sprintf("%s://%s", proto, host)
 		}
 	}

@@ -4,6 +4,7 @@
 package feed
 
 import (
+	"cmp"
 	"context"
 	"crypto/tls"
 	"fmt"
@@ -163,9 +164,7 @@ func (j *TorznabJob) processItems(items []torznab.FeedItem) ([]*domain.Release, 
 		// a magnet can not be fetched over http, so it never belongs in DownloadURL,
 		// whatever the feed is configured as
 		if strings.HasPrefix(rls.DownloadURL, domain.MagnetURIPrefix) {
-			if rls.MagnetURI == "" {
-				rls.MagnetURI = rls.DownloadURL
-			}
+			rls.MagnetURI = cmp.Or(rls.MagnetURI, rls.DownloadURL)
 
 			rls.DownloadURL = ""
 		}

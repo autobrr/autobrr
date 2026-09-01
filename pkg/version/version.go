@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"runtime"
+	"slices"
 	"strings"
 	"time"
 
@@ -177,11 +178,5 @@ func isDevelop(version string) bool {
 
 	tags := []string{"dev", "develop", "master", "latest", ""}
 
-	for _, tag := range tags {
-		if version == tag {
-			return true
-		}
-	}
-
-	return false
+	return slices.Contains(tags, version)
 }

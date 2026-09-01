@@ -328,7 +328,7 @@ func TestFilterRepo_ListFilters(t *testing.T) {
 
 		t.Run(fmt.Sprintf("ListFilters_ReturnsFilters [%s]", dbType), func(t *testing.T) {
 			// Setup
-			for i := 0; i < 10; i++ {
+			for range 10 {
 				err := repo.Store(ctx, mockData)
 				assert.NoError(t, err)
 			}
@@ -387,7 +387,7 @@ func TestFilterRepo_Find(t *testing.T) {
 
 		t.Run(fmt.Sprintf("Find_Sort [%s]", dbType), func(t *testing.T) {
 			// Setup
-			for i := 0; i < 10; i++ {
+			for i := range 10 {
 				mockData.Name = fmt.Sprintf("Test Filter %d", i)
 				err := repo.Store(ctx, mockData)
 				assert.NoError(t, err)
@@ -542,7 +542,6 @@ func TestFilterRepo_FindByIndexerIdentifier(t *testing.T) {
 			assert.NotNil(t, indexer)
 
 			for _, filter := range filtersData {
-				filter := filter
 				err := repo.Store(ctx, filter)
 				assert.NoError(t, err)
 
@@ -568,7 +567,6 @@ func TestFilterRepo_FindByIndexerIdentifier(t *testing.T) {
 			_ = indexerRepo.Delete(ctx, int(indexer.ID))
 
 			for _, filter := range filtersData {
-				filter := filter
 
 				_ = repo.Delete(ctx, filter.ID)
 			}
@@ -743,7 +741,7 @@ func TestFilterRepo_StoreIndexerConnections(t *testing.T) {
 
 			indexerMockData := getMockIndexer()
 			var indexers []domain.Indexer
-			for i := 0; i < 2; i++ {
+			for i := range 2 {
 				// identifier must be unique
 				indexerMockData.Identifier = fmt.Sprintf("indexer%d", i)
 				indexer, err := indexerRepo.Store(ctx, indexerMockData)

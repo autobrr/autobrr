@@ -247,7 +247,7 @@ func TestNotificationRepo_List(t *testing.T) {
 				_ = repo.Delete(ctx, notification.ID)
 			}
 
-			for i := 0; i < 10; i++ {
+			for range 10 {
 				err := repo.Store(ctx, &mockData)
 				assert.NoError(t, err)
 			}

@@ -931,7 +931,7 @@ func TestReleaseRepo_Delete(t *testing.T) {
 
 				case "Delete_All":
 					// Test delete all: create 3 releases with any variation
-					for i := 0; i < 3; i++ {
+					for range 3 {
 						mockRel := getMockRelease()
 						mockRel.FilterID = createdFilters[0].ID
 						err := repo.Store(ctx, mockRel)

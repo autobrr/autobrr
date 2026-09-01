@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/downloader"
 	"github.com/autobrr/autobrr/pkg/arr/readarr"
 	"github.com/autobrr/autobrr/pkg/errors"
 
@@ -34,7 +33,7 @@ func (s *Service) runReadarr(ctx context.Context, action *domain.Action, release
 		return nil, errors.New("client %s %s not enabled", cfg.Type, cfg.Name)
 	}
 
-	client, err := downloader.ClientAs[*readarr.Client](instance)
+	client, err := instance.ClientAs[*readarr.Client]()
 	if err != nil {
 		return nil, err
 	}

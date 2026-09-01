@@ -26,7 +26,7 @@ func (i *Instance) Config() *domain.Downloader {
 	return i.config
 }
 
-func ClientAs[T any](i *Instance) (T, error) {
+func (i *Instance) ClientAs[T any]() (T, error) {
 	var zero T
 
 	if i == nil {
