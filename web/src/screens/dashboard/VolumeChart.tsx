@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Chart } from "@tanstack/react-charts";
 import { defineChart, barY } from "@tanstack/charts";
+import { tooltip } from "@tanstack/charts/tooltip";
 import { scaleBand, scaleLinear } from "d3-scale";
 import { format } from "date-fns";
 
@@ -36,21 +37,32 @@ export const VolumeChart = () => {
           inset: 1
         })
       ],
-      x: {
-        scale: scaleBand,
-        grid: false,
-        format: (value: string) => (asDate(value).getUTCDay() === 1 ? format(asDate(value), "MMM d") : "")
-      },
-      y: {
-        scale: scaleLinear,
-        nice: true,
-        ticks: 4,
-        grid: true,
-        format: (value: number) => humanFileSize(value)
+      scales: {
+        x: {
+          scale: scaleBand,
+          grid: false,
+          axis: {
+            ticks: {
+              format: (value: string) => (asDate(value).getUTCDay() === 1 ? format(asDate(value), "MMM d") : "")
+            }
+          }
+        },
+        y: {
+          scale: scaleLinear,
+          nice: true,
+          grid: true,
+          axis: {
+            ticks: {
+              count: 4,
+              format: (value: number) => humanFileSize(value)
+            }
+          }
+        }
       },
       theme: chartTheme(isDark),
       focus: "nearest-x",
       tooltip: {
+        use: tooltip,
         content: (points) => {
           const point = points[0];
           if (!point) {

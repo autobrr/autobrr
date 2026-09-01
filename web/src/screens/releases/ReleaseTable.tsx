@@ -8,12 +8,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useSearch, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import {
-  useReactTable,
-  getCoreRowModel,
+  useTable,
   flexRender,
   ColumnDef,
   Column,
-  RowData,
   PaginationState,
   ColumnFiltersState,
   OnChangeFn,
@@ -33,15 +31,8 @@ import { RingResizeSpinner } from "@components/Icons";
 import { IndexerSelectColumnFilter, PushStatusSelectColumnFilter, SearchColumnFilter } from "./ReleaseFilters";
 import { EmptyListState } from "@components/emptystates";
 import { TableButton, TablePageButton, AgeCell, IndexerCell, LinksCell, NameCell, ReleaseStatusCell } from "@components/data-table";
+import { dataTableFeatures, type DataTableFeatures } from "@components/data-table/features";
 import { SettingsContext } from "@utils/Context";
-
-declare module '@tanstack/react-table' {
-  //allows us to define custom properties for our columns
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  interface ColumnMeta<TData extends RowData, TValue> {
-    filterVariant?: 'text' | 'range' | 'select' | 'search' | 'actionPushStatus' | 'indexerSelect';
-  }
-}
 
 const EmptyReleaseList = () => {
   const { t } = useTranslation("common");
@@ -66,7 +57,7 @@ const EmptyReleaseList = () => {
   );
 };
 
-function Filter({ column }: { column: Column<Release, unknown> }) {
+function Filter({ column }: { column: Column<DataTableFeatures, Release, unknown> }) {
   const { filterVariant } = column.columnDef.meta ?? {}
 
   switch (filterVariant) {
@@ -149,7 +140,7 @@ export const ReleaseTable = () => {
     });
   }, [pagination, navigate]);
 
-  const columns = React.useMemo<ColumnDef<Release, unknown>[]>(() => [
+  const columns = React.useMemo<ColumnDef<DataTableFeatures, Release, unknown>[]>(() => [
     {
       header: t("releaseTable.columns.age"),
       accessorKey: "timestamp",
@@ -233,13 +224,12 @@ export const ReleaseTable = () => {
   const defaultData = React.useMemo(() => [], [])
   const displayData = settings.incognitoMode ? modifiedData : [...(data?.data ?? defaultData)];
 
-  const tableInstance = useReactTable({
+  const tableInstance = useTable({
+    features: dataTableFeatures,
     columns,
     data: displayData,
-    getCoreRowModel: getCoreRowModel(),
     manualFiltering: true,
     manualPagination: true,
-    manualSorting: true,
     rowCount: data?.count,
     state: {
       columnFilters,
@@ -385,7 +375,7 @@ export const ReleaseTable = () => {
                   <div className="flex items-baseline gap-x-2">
                   <span className="text-sm text-gray-700 dark:text-gray-500">
                   {t("releaseTable.pageOf", {
-                    page: tableInstance.getState().pagination.pageIndex + 1,
+                    page: tableInstance.state.pagination.pageIndex + 1,
                     total: tableInstance.getPageCount()
                   })}
                   </span>
@@ -393,7 +383,7 @@ export const ReleaseTable = () => {
                       <span className="sr-only bg-gray-700">{t("releaseTable.itemsPerPage")}</span>
                       <select
                         className="py-1 pl-2 pr-8 text-sm block w-full border-gray-300 rounded-md shadow-xs cursor-pointer transition-colors dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:text-gray-200 focus:border-blue-300 focus:ring-3 focus:ring-blue-200 focus:ring-opacity-50"
-                        value={tableInstance.getState().pagination.pageSize}
+                        value={tableInstance.state.pagination.pageSize}
                         onChange={e => {
                           tableInstance.setPageSize(Number(e.target.value));
                         }}

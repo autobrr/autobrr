@@ -14,6 +14,7 @@ import { useTranslation } from "react-i18next";
 import { classNames } from "@utils";
 import { getPushStatusOptions } from "@domain/constants";
 import { ReleasesIndexersQueryOptions } from "@api/queries";
+import { type DataTableFeatures } from "@components/data-table/features";
 
 interface ListboxFilterProps {
     id: string;
@@ -68,7 +69,7 @@ const ListboxFilter = ({
   );
 };
 
-export const IndexerSelectColumnFilter = ({ column }: { column: Column<Release, unknown> }) => {
+export const IndexerSelectColumnFilter = ({ column }: { column: Column<DataTableFeatures, Release, unknown> }) => {
   const { t } = useTranslation("common");
   const { data, isSuccess } = useQuery(ReleasesIndexersQueryOptions());
 
@@ -165,7 +166,7 @@ const FilterOption = ({ label, value }: FilterOptionProps) => (
   </ListboxOption>
 );
 
-export const PushStatusSelectColumnFilter = ({ column }: { column: Column<Release, unknown> }) => {
+export const PushStatusSelectColumnFilter = ({ column }: { column: Column<DataTableFeatures, Release, unknown> }) => {
   const { t: tOptions } = useTranslation("options");
   const { t } = useTranslation("common");
   const pushStatusOptions = getPushStatusOptions(tOptions);
@@ -195,7 +196,7 @@ export const PushStatusSelectColumnFilter = ({ column }: { column: Column<Releas
   );
 };
 
-export const SearchColumnFilter = ({ column }: { column: Column<Release, unknown> }) => {
+export const SearchColumnFilter = ({ column }: { column: Column<DataTableFeatures, Release, unknown> }) => {
   const { t } = useTranslation("common");
   return (
     <div className="flex-1 mr-3 mt-1" key={column.id}>

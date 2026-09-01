@@ -65,7 +65,7 @@ const hoverRect = (svg: SVGSVGElement, rect: Element, insetX = 0, insetY = 0) =>
 };
 
 const heatmapCell = (svg: SVGSVGElement, hour: number, day: string) =>
-  svg.querySelector(`g[data-ts-key="rect-1"] rect[data-ts-key*='"number:${hour}"'][data-ts-key*='"string:${day}"']`);
+  svg.querySelector(`g[data-ts-key="rect-1"] rect[data-ts-key*='"number:${hour}"'][data-ts-key*='"string:${day.length}:${day}"']`);
 
 test("orders heatmap hours on the x axis", () => {
   renderChart(<HourHeatmap />, ReleaseKeys.statsHeatmap(30), heatmapStats());
