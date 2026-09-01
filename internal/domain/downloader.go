@@ -12,27 +12,27 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 )
 
-type DownloadClient struct {
-	ID            int32                  `json:"id"`
-	Name          string                 `json:"name"`
-	Type          DownloadClientType     `json:"type"`
-	Enabled       bool                   `json:"enabled"`
-	Host          string                 `json:"host"`
-	Port          int                    `json:"port"`
-	TLS           bool                   `json:"tls"`
-	TLSSkipVerify bool                   `json:"tls_skip_verify"`
-	Username      string                 `json:"username"`
-	Password      string                 `json:"password"`
-	Settings      DownloadClientSettings `json:"settings,omitempty"`
+type Downloader struct {
+	ID            int32              `json:"id"`
+	Name          string             `json:"name"`
+	Type          DownloaderType     `json:"type"`
+	Enabled       bool               `json:"enabled"`
+	Host          string             `json:"host"`
+	Port          int                `json:"port"`
+	TLS           bool               `json:"tls"`
+	TLSSkipVerify bool               `json:"tls_skip_verify"`
+	Username      string             `json:"username"`
+	Password      string             `json:"password"`
+	Settings      DownloaderSettings `json:"settings,omitempty"`
 }
 
-func (c DownloadClient) MarshalJSON() ([]byte, error) {
-	redactedSettings := DownloadClientSettings{
+func (c Downloader) MarshalJSON() ([]byte, error) {
+	redactedSettings := DownloaderSettings{
 		APIKey:                   RedactString(c.Settings.APIKey),
 		Rules:                    c.Settings.Rules,
 		ExternalDownloadClientId: c.Settings.ExternalDownloadClientId,
 		ExternalDownloadClient:   c.Settings.ExternalDownloadClient,
-		Auth: DownloadClientAuth{
+		Auth: DownloaderAuth{
 			Enabled:  c.Settings.Auth.Enabled,
 			Type:     c.Settings.Auth.Type,
 			Username: c.Settings.Auth.Username,
@@ -45,11 +45,11 @@ func (c DownloadClient) MarshalJSON() ([]byte, error) {
 		},
 	}
 
-	type Alias DownloadClient
+	type Alias Downloader
 	return json.Marshal(&struct {
 		*Alias
-		Password string                 `json:"password"`
-		Settings DownloadClientSettings `json:"settings"`
+		Password string             `json:"password"`
+		Settings DownloaderSettings `json:"settings"`
 	}{
 		Password: RedactString(c.Password),
 		Settings: redactedSettings,
@@ -57,28 +57,28 @@ func (c DownloadClient) MarshalJSON() ([]byte, error) {
 	})
 }
 
-type DownloadClientSettings struct {
-	APIKey                   string              `json:"apikey,omitempty"`
-	Basic                    BasicAuth           `json:"basic,omitempty"` // Deprecated: Use Auth instead
-	Rules                    DownloadClientRules `json:"rules,omitempty"`
-	ExternalDownloadClientId int                 `json:"external_download_client_id,omitempty"`
-	ExternalDownloadClient   string              `json:"external_download_client,omitempty"`
-	Auth                     DownloadClientAuth  `json:"auth,omitempty"`
+type DownloaderSettings struct {
+	APIKey                   string          `json:"apikey,omitempty"`
+	Basic                    BasicAuth       `json:"basic,omitempty"` // Deprecated: Use Auth instead
+	Rules                    DownloaderRules `json:"rules,omitempty"`
+	ExternalDownloadClientId int             `json:"external_download_client_id,omitempty"`
+	ExternalDownloadClient   string          `json:"external_download_client,omitempty"`
+	Auth                     DownloaderAuth  `json:"auth,omitempty"`
 }
 
 // MarshalJSON Custom method to translate Basic into Auth without including Basic in JSON output
-func (dcs *DownloadClientSettings) MarshalJSON() ([]byte, error) {
+func (dcs *DownloaderSettings) MarshalJSON() ([]byte, error) {
 	// Ensuring Auth is updated with Basic info before marshaling if Basic is set
 	if dcs.Basic.Username != "" || dcs.Basic.Password != "" {
-		dcs.Auth = DownloadClientAuth{
+		dcs.Auth = DownloaderAuth{
 			Enabled:  dcs.Basic.Auth,
-			Type:     DownloadClientAuthTypeBasic,
+			Type:     DownloaderAuthTypeBasic,
 			Username: dcs.Basic.Username,
 			Password: dcs.Basic.Password,
 		}
 	}
 
-	type Alias DownloadClientSettings
+	type Alias DownloaderSettings
 	return json.Marshal(&struct {
 		*Alias
 	}{
@@ -87,8 +87,8 @@ func (dcs *DownloadClientSettings) MarshalJSON() ([]byte, error) {
 }
 
 // UnmarshalJSON Custom method to translate Basic into Auth
-func (dcs *DownloadClientSettings) UnmarshalJSON(data []byte) error {
-	type Alias DownloadClientSettings
+func (dcs *DownloaderSettings) UnmarshalJSON(data []byte) error {
+	type Alias DownloaderSettings
 	aux := &struct {
 		*Alias
 	}{
@@ -101,9 +101,9 @@ func (dcs *DownloadClientSettings) UnmarshalJSON(data []byte) error {
 
 	// If Basic fields are not empty, populate Auth fields accordingly
 	if aux.Basic.Username != "" || aux.Basic.Password != "" {
-		dcs.Auth = DownloadClientAuth{
+		dcs.Auth = DownloaderAuth{
 			Enabled:  aux.Basic.Auth,
-			Type:     DownloadClientAuthTypeBasic,
+			Type:     DownloaderAuthTypeBasic,
 			Username: aux.Basic.Username,
 			Password: aux.Basic.Password,
 		}
@@ -112,28 +112,23 @@ func (dcs *DownloadClientSettings) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-type DownloaderInstance struct {
-	config *DownloadClient
-	client any
-}
-
-type DownloadClientAuthType string
+type DownloaderAuthType string
 
 const (
-	DownloadClientAuthTypeNone   = "NONE"
-	DownloadClientAuthTypeBasic  = "BASIC_AUTH"
-	DownloadClientAuthTypeDigest = "DIGEST_AUTH"
+	DownloaderAuthTypeNone   DownloaderAuthType = "NONE"
+	DownloaderAuthTypeBasic  DownloaderAuthType = "BASIC_AUTH"
+	DownloaderAuthTypeDigest DownloaderAuthType = "DIGEST_AUTH"
 )
 
-type DownloadClientAuth struct {
-	Enabled  bool                   `json:"enabled,omitempty"`
-	Type     DownloadClientAuthType `json:"type,omitempty"`
-	Username string                 `json:"username,omitempty"`
-	Password string                 `json:"password,omitempty"`
+type DownloaderAuth struct {
+	Enabled  bool               `json:"enabled,omitempty"`
+	Type     DownloaderAuthType `json:"type,omitempty"`
+	Username string             `json:"username,omitempty"`
+	Password string             `json:"password,omitempty"`
 }
 
-//func (d DownloadClientAuth) MarshalJSON() ([]byte, error) {
-//	type Alias DownloadClientAuth
+//func (d DownloaderAuth) MarshalJSON() ([]byte, error) {
+//	type Alias DownloaderAuth
 //	return json.Marshal(&struct {
 //		*Alias
 //		Password string `json:"password,omitempty"`
@@ -143,7 +138,7 @@ type DownloadClientAuth struct {
 //	})
 //}
 
-type DownloadClientRules struct {
+type DownloaderRules struct {
 	Enabled                     bool                        `json:"enabled"`
 	MaxActiveDownloads          int                         `json:"max_active_downloads"`
 	IgnoreSlowTorrents          bool                        `json:"ignore_slow_torrents"`
@@ -176,45 +171,45 @@ const (
 	IgnoreSlowTorrentsModeMaxReached IgnoreSlowTorrentsCondition = "MAX_DOWNLOADS_REACHED"
 )
 
-type DownloadClientType string
+type DownloaderType string
 
 const (
-	DownloadClientTypeQbittorrent  DownloadClientType = "QBITTORRENT"
-	DownloadClientTypeDelugeV1     DownloadClientType = "DELUGE_V1"
-	DownloadClientTypeDelugeV2     DownloadClientType = "DELUGE_V2"
-	DownloadClientTypeRTorrent     DownloadClientType = "RTORRENT"
-	DownloadClientTypeTransmission DownloadClientType = "TRANSMISSION"
-	DownloadClientTypePorla        DownloadClientType = "PORLA"
-	DownloadClientTypeAria2        DownloadClientType = "ARIA2"
-	DownloadClientTypeRadarr       DownloadClientType = "RADARR"
-	DownloadClientTypeSonarr       DownloadClientType = "SONARR"
-	DownloadClientTypeLidarr       DownloadClientType = "LIDARR"
-	DownloadClientTypeWhisparr     DownloadClientType = "WHISPARR"
-	DownloadClientTypeWhisparrV3   DownloadClientType = "WHISPARR_V3"
-	DownloadClientTypeReadarr      DownloadClientType = "READARR"
-	DownloadClientTypeSportarr     DownloadClientType = "SPORTARR"
-	DownloadClientTypeSabnzbd      DownloadClientType = "SABNZBD"
-	DownloadClientTypeNzbget       DownloadClientType = "NZBGET"
+	DownloaderTypeQbittorrent  DownloaderType = "QBITTORRENT"
+	DownloaderTypeDelugeV1     DownloaderType = "DELUGE_V1"
+	DownloaderTypeDelugeV2     DownloaderType = "DELUGE_V2"
+	DownloaderTypeRTorrent     DownloaderType = "RTORRENT"
+	DownloaderTypeTransmission DownloaderType = "TRANSMISSION"
+	DownloaderTypePorla        DownloaderType = "PORLA"
+	DownloaderTypeAria2        DownloaderType = "ARIA2"
+	DownloaderTypeRadarr       DownloaderType = "RADARR"
+	DownloaderTypeSonarr       DownloaderType = "SONARR"
+	DownloaderTypeLidarr       DownloaderType = "LIDARR"
+	DownloaderTypeWhisparr     DownloaderType = "WHISPARR"
+	DownloaderTypeWhisparrV3   DownloaderType = "WHISPARR_V3"
+	DownloaderTypeReadarr      DownloaderType = "READARR"
+	DownloaderTypeSportarr     DownloaderType = "SPORTARR"
+	DownloaderTypeSabnzbd      DownloaderType = "SABNZBD"
+	DownloaderTypeNzbget       DownloaderType = "NZBGET"
 )
 
-func (t DownloadClientType) Valid() error {
+func (t DownloaderType) Valid() error {
 	switch t {
-	case DownloadClientTypeQbittorrent,
-		DownloadClientTypeDelugeV1,
-		DownloadClientTypeDelugeV2,
-		DownloadClientTypeRTorrent,
-		DownloadClientTypeTransmission,
-		DownloadClientTypePorla,
-		DownloadClientTypeAria2,
-		DownloadClientTypeNzbget,
-		DownloadClientTypeSabnzbd,
-		DownloadClientTypeLidarr,
-		DownloadClientTypeRadarr,
-		DownloadClientTypeReadarr,
-		DownloadClientTypeSonarr,
-		DownloadClientTypeSportarr,
-		DownloadClientTypeWhisparr,
-		DownloadClientTypeWhisparrV3:
+	case DownloaderTypeQbittorrent,
+		DownloaderTypeDelugeV1,
+		DownloaderTypeDelugeV2,
+		DownloaderTypeRTorrent,
+		DownloaderTypeTransmission,
+		DownloaderTypePorla,
+		DownloaderTypeAria2,
+		DownloaderTypeNzbget,
+		DownloaderTypeSabnzbd,
+		DownloaderTypeLidarr,
+		DownloaderTypeRadarr,
+		DownloaderTypeReadarr,
+		DownloaderTypeSonarr,
+		DownloaderTypeSportarr,
+		DownloaderTypeWhisparr,
+		DownloaderTypeWhisparrV3:
 		return nil
 	default:
 		return errors.New("invalid download client type")
@@ -222,7 +217,7 @@ func (t DownloadClientType) Valid() error {
 }
 
 // Validate basic validation of client
-func (c DownloadClient) Validate() error {
+func (c Downloader) Validate() error {
 	// basic validation of client
 	if c.Host == "" {
 		return errors.New("validation error: missing host")
@@ -235,18 +230,18 @@ func (c DownloadClient) Validate() error {
 	return nil
 }
 
-func (c DownloadClient) BuildLegacyHost() (string, error) {
-	if c.Type == DownloadClientTypeQbittorrent {
+func (c Downloader) BuildLegacyHost() (string, error) {
+	if c.Type == DownloaderTypeQbittorrent {
 		return c.qbitBuildLegacyHost()
 	}
-	if c.Type == DownloadClientTypeTransmission {
+	if c.Type == DownloaderTypeTransmission {
 		return c.transmissionBuildLegacyHost()
 	}
 	return c.Host, nil
 }
 
 // qbitBuildLegacyHost exists to support older configs
-func (c DownloadClient) qbitBuildLegacyHost() (string, error) {
+func (c Downloader) qbitBuildLegacyHost() (string, error) {
 	// parse url
 	u, err := url.Parse(c.Host)
 	if err != nil {
@@ -287,7 +282,7 @@ func (c DownloadClient) qbitBuildLegacyHost() (string, error) {
 }
 
 // transmissionBuildLegacyHost builds the full Transmission RPC URL from host, port, and tls settings
-func (c DownloadClient) transmissionBuildLegacyHost() (string, error) {
+func (c Downloader) transmissionBuildLegacyHost() (string, error) {
 	// parse url
 	u, err := url.Parse(c.Host)
 	if err != nil {

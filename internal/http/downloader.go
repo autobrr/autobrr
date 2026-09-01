@@ -14,30 +14,30 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-type downloadClientService interface {
-	List(ctx context.Context) ([]domain.DownloadClient, error)
-	FindByID(ctx context.Context, id int32) (*domain.DownloadClient, error)
-	Store(ctx context.Context, client *domain.DownloadClient) error
-	Update(ctx context.Context, client *domain.DownloadClient) error
+type downloaderService interface {
+	List(ctx context.Context) ([]domain.Downloader, error)
+	FindByID(ctx context.Context, id int32) (*domain.Downloader, error)
+	Store(ctx context.Context, client *domain.Downloader) error
+	Update(ctx context.Context, client *domain.Downloader) error
 	Delete(ctx context.Context, clientID int32) error
-	Test(ctx context.Context, client *domain.DownloadClient) error
+	Test(ctx context.Context, client *domain.Downloader) error
 	GetArrTags(ctx context.Context, id int32) ([]domain.ArrTag, error)
 }
 
-type downloadClientHandler struct {
+type downloaderHandler struct {
 	encoder encoder
-	service downloadClientService
+	service downloaderService
 }
 
-func newDownloadClientHandler(encoder encoder, service downloadClientService) *downloadClientHandler {
-	return &downloadClientHandler{
+func newDownloaderHandler(encoder encoder, service downloaderService) *downloaderHandler {
+	return &downloaderHandler{
 		encoder: encoder,
 		service: service,
 	}
 }
 
-func (h downloadClientHandler) Routes(r chi.Router) {
-	r.Get("/", h.listDownloadClients)
+func (h downloaderHandler) Routes(r chi.Router) {
+	r.Get("/", h.listDownloaders)
 	r.Post("/", h.store)
 	r.Put("/", h.update)
 	r.Post("/test", h.test)
@@ -50,7 +50,7 @@ func (h downloadClientHandler) Routes(r chi.Router) {
 	})
 }
 
-func (h downloadClientHandler) listDownloadClients(w http.ResponseWriter, r *http.Request) {
+func (h downloaderHandler) listDownloaders(w http.ResponseWriter, r *http.Request) {
 	clients, err := h.service.List(r.Context())
 	if err != nil {
 		h.encoder.Error(w, err)
@@ -60,7 +60,7 @@ func (h downloadClientHandler) listDownloadClients(w http.ResponseWriter, r *htt
 	h.encoder.StatusResponse(w, http.StatusOK, clients)
 }
 
-func (h downloadClientHandler) findByID(w http.ResponseWriter, r *http.Request) {
+func (h downloaderHandler) findByID(w http.ResponseWriter, r *http.Request) {
 	clientID, err := parseURLParamInt32(r, "clientID")
 	if err != nil {
 		h.encoder.BadRequestErr(w, err)
@@ -81,7 +81,7 @@ func (h downloadClientHandler) findByID(w http.ResponseWriter, r *http.Request) 
 	h.encoder.StatusResponse(w, http.StatusOK, client)
 }
 
-func (h downloadClientHandler) findArrTagsByID(w http.ResponseWriter, r *http.Request) {
+func (h downloaderHandler) findArrTagsByID(w http.ResponseWriter, r *http.Request) {
 	clientID, err := parseURLParamInt32(r, "clientID")
 	if err != nil {
 		h.encoder.BadRequestErr(w, err)
@@ -102,8 +102,8 @@ func (h downloadClientHandler) findArrTagsByID(w http.ResponseWriter, r *http.Re
 	h.encoder.StatusResponse(w, http.StatusOK, client)
 }
 
-func (h downloadClientHandler) store(w http.ResponseWriter, r *http.Request) {
-	var data *domain.DownloadClient
+func (h downloaderHandler) store(w http.ResponseWriter, r *http.Request) {
+	var data *domain.Downloader
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
@@ -118,8 +118,8 @@ func (h downloadClientHandler) store(w http.ResponseWriter, r *http.Request) {
 	h.encoder.StatusResponse(w, http.StatusCreated, data)
 }
 
-func (h downloadClientHandler) test(w http.ResponseWriter, r *http.Request) {
-	var data *domain.DownloadClient
+func (h downloaderHandler) test(w http.ResponseWriter, r *http.Request) {
+	var data *domain.Downloader
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
@@ -138,8 +138,8 @@ func (h downloadClientHandler) test(w http.ResponseWriter, r *http.Request) {
 	h.encoder.NoContent(w)
 }
 
-func (h downloadClientHandler) update(w http.ResponseWriter, r *http.Request) {
-	var data *domain.DownloadClient
+func (h downloaderHandler) update(w http.ResponseWriter, r *http.Request) {
+	var data *domain.Downloader
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
@@ -159,7 +159,7 @@ func (h downloadClientHandler) update(w http.ResponseWriter, r *http.Request) {
 	h.encoder.StatusResponse(w, http.StatusOK, data)
 }
 
-func (h downloadClientHandler) delete(w http.ResponseWriter, r *http.Request) {
+func (h downloaderHandler) delete(w http.ResponseWriter, r *http.Request) {
 	clientID, err := parseURLParamInt32(r, "clientID")
 	if err != nil {
 		h.encoder.BadRequestErr(w, err)

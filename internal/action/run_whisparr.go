@@ -20,7 +20,7 @@ func (s *Service) runWhisparr(ctx context.Context, action *domain.Action, releas
 
 	l.Trace().Msg("running Whisparr action")
 
-	instance, err := s.clientSvc.GetInstance(ctx, action.ClientID)
+	instance, err := s.downloaderSvc.GetInstance(ctx, action.ClientID)
 	if err != nil {
 		return nil, err
 	}

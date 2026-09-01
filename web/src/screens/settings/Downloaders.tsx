@@ -9,11 +9,11 @@ import { PlusIcon } from "@heroicons/react/24/solid";
 import { useTranslation } from "react-i18next";
 
 import { useToggle } from "@hooks/hooks";
-import { DownloadClientAddForm, DownloadClientUpdateForm } from "@forms";
+import { DownloaderAddForm, DownloaderUpdateForm } from "@forms";
 import { EmptySimple } from "@components/emptystates";
 import { APIClient } from "@api/APIClient";
-import { DownloadClientKeys } from "@api/query_keys";
-import { DownloadClientsQueryOptions } from "@api/queries";
+import { DownloaderKeys } from "@api/query_keys";
+import { DownloadersQueryOptions } from "@api/queries";
 import { getActionTypeNameMap } from "@domain/constants";
 import toast from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
@@ -22,11 +22,11 @@ import { Checkbox } from "@components/Checkbox";
 import { Section } from "./_components";
 
 interface DLSettingsItemProps {
-  client: DownloadClient;
+  client: Downloader;
 }
 
 interface ListItemProps {
-  clients: DownloadClient;
+  clients: Downloader;
 }
 
 interface SortConfig {
@@ -91,8 +91,8 @@ function ListItem({ client }: DLSettingsItemProps) {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (client: DownloadClient) => APIClient.download_clients.update(client).then(() => client),
-    onSuccess: (client: DownloadClient) => {
+    mutationFn: (client: Downloader) => APIClient.downloaders.update(client).then(() => client),
+    onSuccess: (client: Downloader) => {
       toast.custom((toastInstance) => (
         <Toast
           type="success"
@@ -105,7 +105,7 @@ function ListItem({ client }: DLSettingsItemProps) {
           t={toastInstance}
         />
       ));
-      queryClient.invalidateQueries({ queryKey: DownloadClientKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: DownloaderKeys.lists() });
     }
   });
 
@@ -119,7 +119,7 @@ function ListItem({ client }: DLSettingsItemProps) {
   return (
     <li>
       <div className="grid grid-cols-12 items-center py-2">
-        <DownloadClientUpdateForm
+        <DownloaderUpdateForm
           isOpen={updateClientIsOpen}
           toggle={toggleUpdateClient}
           data={client}
@@ -146,13 +146,13 @@ function ListItem({ client }: DLSettingsItemProps) {
   );
 }
 
-function DownloadClientSettings() {
+function DownloaderSettings() {
   const { t } = useTranslation("settings");
   const [addClientIsOpen, toggleAddClient] = useToggle(false);
 
-  const downloadClientsQuery = useSuspenseQuery(DownloadClientsQueryOptions())
+  const downloadersQuery = useSuspenseQuery(DownloadersQueryOptions())
 
-  const sortedClients = useSort(downloadClientsQuery.data || []);
+  const sortedClients = useSort(downloadersQuery.data || []);
 
   return (
     <Section
@@ -169,7 +169,7 @@ function DownloadClientSettings() {
         </button>
       }
     >
-      <DownloadClientAddForm isOpen={addClientIsOpen} toggle={toggleAddClient} />
+      <DownloaderAddForm isOpen={addClientIsOpen} toggle={toggleAddClient} />
 
       <div className="flex flex-col">
         {sortedClients.items.length > 0 ? (
@@ -214,4 +214,4 @@ function DownloadClientSettings() {
   );
 }
 
-export default DownloadClientSettings;
+export default DownloaderSettings;

@@ -15,19 +15,19 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type DownloadClientRepo struct {
+type DownloaderRepo struct {
 	log zerolog.Logger
 	db  *DB
 }
 
-func NewDownloadClientRepo(log zerolog.Logger, db *DB) *DownloadClientRepo {
-	return &DownloadClientRepo{
+func NewDownloaderRepo(log zerolog.Logger, db *DB) *DownloaderRepo {
+	return &DownloaderRepo{
 		log: log.With().Str("repo", "action").Logger(),
 		db:  db,
 	}
 }
 
-func (r *DownloadClientRepo) List(ctx context.Context) ([]domain.DownloadClient, error) {
+func (r *DownloaderRepo) List(ctx context.Context) ([]domain.Downloader, error) {
 	queryBuilder := r.db.squirrel.
 		Select(
 			"id",
@@ -61,10 +61,10 @@ func (r *DownloadClientRepo) List(ctx context.Context) ([]domain.DownloadClient,
 		}
 	}(rows)
 
-	clients := make([]domain.DownloadClient, 0)
+	clients := make([]domain.Downloader, 0)
 
 	for rows.Next() {
-		var f domain.DownloadClient
+		var f domain.Downloader
 		var settingsJsonStr string
 
 		if err := rows.Scan(&f.ID, &f.Name, &f.Type, &f.Enabled, &f.Host, &f.Port, &f.TLS, &f.TLSSkipVerify, &f.Username, &f.Password, &settingsJsonStr); err != nil {
@@ -86,7 +86,7 @@ func (r *DownloadClientRepo) List(ctx context.Context) ([]domain.DownloadClient,
 	return clients, nil
 }
 
-func (r *DownloadClientRepo) FindByID(ctx context.Context, id int32) (*domain.DownloadClient, error) {
+func (r *DownloaderRepo) FindByID(ctx context.Context, id int32) (*domain.Downloader, error) {
 	queryBuilder := r.db.squirrel.
 		Select(
 			"id",
@@ -114,7 +114,7 @@ func (r *DownloadClientRepo) FindByID(ctx context.Context, id int32) (*domain.Do
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
-	var client domain.DownloadClient
+	var client domain.Downloader
 	var settingsJsonStr string
 
 	if err := row.Scan(&client.ID, &client.Name, &client.Type, &client.Enabled, &client.Host, &client.Port, &client.TLS, &client.TLSSkipVerify, &client.Username, &client.Password, &settingsJsonStr); err != nil {
@@ -134,8 +134,8 @@ func (r *DownloadClientRepo) FindByID(ctx context.Context, id int32) (*domain.Do
 	return &client, nil
 }
 
-func (r *DownloadClientRepo) Store(ctx context.Context, client *domain.DownloadClient) error {
-	settings := domain.DownloadClientSettings{
+func (r *DownloaderRepo) Store(ctx context.Context, client *domain.Downloader) error {
+	settings := domain.DownloaderSettings{
 		APIKey:                   client.Settings.APIKey,
 		Basic:                    client.Settings.Basic,
 		Rules:                    client.Settings.Rules,
@@ -170,8 +170,8 @@ func (r *DownloadClientRepo) Store(ctx context.Context, client *domain.DownloadC
 	return nil
 }
 
-func (r *DownloadClientRepo) Update(ctx context.Context, client *domain.DownloadClient) error {
-	settings := domain.DownloadClientSettings{
+func (r *DownloaderRepo) Update(ctx context.Context, client *domain.Downloader) error {
+	settings := domain.DownloaderSettings{
 		APIKey:                   client.Settings.APIKey,
 		Basic:                    client.Settings.Basic,
 		Rules:                    client.Settings.Rules,
@@ -223,7 +223,7 @@ func (r *DownloadClientRepo) Update(ctx context.Context, client *domain.Download
 	return nil
 }
 
-func (r *DownloadClientRepo) Delete(ctx context.Context, clientID int32) error {
+func (r *DownloaderRepo) Delete(ctx context.Context, clientID int32) error {
 	tx, err := r.db.BeginTx(ctx, &sql.TxOptions{})
 	if err != nil {
 		return err
@@ -268,7 +268,7 @@ func (r *DownloadClientRepo) Delete(ctx context.Context, clientID int32) error {
 	return nil
 }
 
-func (r *DownloadClientRepo) delete(ctx context.Context, tx *Tx, clientID int32) error {
+func (r *DownloaderRepo) delete(ctx context.Context, tx *Tx, clientID int32) error {
 	queryBuilder := r.db.squirrel.
 		Delete("client").
 		Where(sq.Eq{"id": clientID})
@@ -293,7 +293,7 @@ func (r *DownloadClientRepo) delete(ctx context.Context, tx *Tx, clientID int32)
 	return nil
 }
 
-func (r *DownloadClientRepo) deleteClientFromAction(ctx context.Context, tx *Tx, clientID int32) error {
+func (r *DownloaderRepo) deleteClientFromAction(ctx context.Context, tx *Tx, clientID int32) error {
 	rowsAffected, err := r.disableClientReferences(ctx, tx, "action", clientID)
 	if err != nil {
 		return err
@@ -308,7 +308,7 @@ func (r *DownloadClientRepo) deleteClientFromAction(ctx context.Context, tx *Tx,
 	return nil
 }
 
-func (r *DownloadClientRepo) clearClientFromLists(ctx context.Context, tx *Tx, clientID int32) error {
+func (r *DownloaderRepo) clearClientFromLists(ctx context.Context, tx *Tx, clientID int32) error {
 	rowsAffected, err := r.disableClientReferences(ctx, tx, "list", clientID)
 	if err != nil {
 		return err
@@ -323,7 +323,7 @@ func (r *DownloadClientRepo) clearClientFromLists(ctx context.Context, tx *Tx, c
 	return nil
 }
 
-func (r *DownloadClientRepo) disableClientReferences(ctx context.Context, tx *Tx, table string, clientID int32) (int64, error) {
+func (r *DownloaderRepo) disableClientReferences(ctx context.Context, tx *Tx, table string, clientID int32) (int64, error) {
 	queryBuilder := r.db.squirrel.
 		Update(table).
 		Set("enabled", false).

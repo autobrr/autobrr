@@ -30,7 +30,7 @@ func (s *Service) runTransmission(ctx context.Context, action *domain.Action, re
 
 	l.Debug().Msg("running Transmission action")
 
-	instance, err := s.clientSvc.GetInstance(ctx, action.ClientID)
+	instance, err := s.downloaderSvc.GetInstance(ctx, action.ClientID)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +71,7 @@ func (s *Service) runTransmission(ctx context.Context, action *domain.Action, re
 	case release.HasMagnetUri():
 		payload.Filename = &release.MagnetURI
 	default:
-		if err := s.downloadSvc.DownloadRelease(ctx, release); err != nil {
+		if err := s.rlsDownloadSvc.DownloadRelease(ctx, release); err != nil {
 			return nil, errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
 		}
 
@@ -217,7 +217,7 @@ func (s *Service) transmissionReannounce(ctx context.Context, action *domain.Act
 	return nil
 }
 
-func (s *Service) transmissionCheckRulesCanDownload(ctx context.Context, action *domain.Action, cfg *domain.DownloadClient, client *transmissionrpc.Client) ([]string, error) {
+func (s *Service) transmissionCheckRulesCanDownload(ctx context.Context, action *domain.Action, cfg *domain.Downloader, client *transmissionrpc.Client) ([]string, error) {
 	l := zerolog.Ctx(ctx)
 
 	l.Trace().Msg("action transmission check rules")

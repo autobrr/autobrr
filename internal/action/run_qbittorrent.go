@@ -21,7 +21,7 @@ func (s *Service) runQbittorrent(ctx context.Context, action *domain.Action, rel
 
 	l.Debug().Msg("running qBittorrent action")
 
-	instance, err := s.clientSvc.GetInstance(ctx, action.ClientID)
+	instance, err := s.downloaderSvc.GetInstance(ctx, action.ClientID)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func (s *Service) runQbittorrent(ctx context.Context, action *domain.Action, rel
 		return nil, nil
 	}
 
-	if err := s.downloadSvc.DownloadRelease(ctx, release); err != nil {
+	if err := s.rlsDownloadSvc.DownloadRelease(ctx, release); err != nil {
 		return nil, errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
 	}
 
@@ -198,7 +198,7 @@ func (s *Service) prepareQbitOptions(action *domain.Action) (map[string]string, 
 }
 
 // qbittorrentCheckRulesCanDownload
-func (s *Service) qbittorrentCheckRulesCanDownload(ctx context.Context, action *domain.Action, rules domain.DownloadClientRules, qbt *qbittorrent.Client) ([]string, error) {
+func (s *Service) qbittorrentCheckRulesCanDownload(ctx context.Context, action *domain.Action, rules domain.DownloaderRules, qbt *qbittorrent.Client) ([]string, error) {
 	l := zerolog.Ctx(ctx)
 
 	l.Trace().Msg("action qbittorrent check rules")

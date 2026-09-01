@@ -45,7 +45,7 @@ type Action struct {
 	ExternalDownloadClient   string              `json:"external_download_client,omitempty"`
 	FilterID                 int                 `json:"filter_id,omitempty"`
 	ClientID                 int32               `json:"client_id,omitempty"`
-	Client                   *DownloadClient     `json:"client,omitempty"`
+	Client                   *Downloader         `json:"client,omitempty"`
 }
 
 // NeedsTorrentDownloaded check if the action type uploads the torrent itself.

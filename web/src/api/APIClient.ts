@@ -295,17 +295,17 @@ export const APIClient = {
       body: config
     })
   },
-  download_clients: {
-    getAll: () => appClient.Get<DownloadClient[]>("api/download_clients"),
-    getArrTags: (clientID: number) => appClient.Get<ArrTag[]>(`api/download_clients/${clientID}/arr/tags`),
-    create: (dc: DownloadClient) => appClient.Post("api/download_clients", {
+  downloaders: {
+    getAll: () => appClient.Get<Downloader[]>("api/downloaders"),
+    getArrTags: (clientID: number) => appClient.Get<ArrTag[]>(`api/downloaders/${clientID}/arr/tags`),
+    create: (dc: Downloader) => appClient.Post("api/downloaders", {
       body: dc
     }),
-    update: (dc: DownloadClient) => appClient.Put("api/download_clients", {
+    update: (dc: Downloader) => appClient.Put("api/downloaders", {
       body: dc
     }),
-    delete: (id: number) => appClient.Delete(`api/download_clients/${id}`),
-    test: (dc: DownloadClient) => appClient.Post("api/download_clients/test", {
+    delete: (id: number) => appClient.Delete(`api/downloaders/${id}`),
+    test: (dc: Downloader) => appClient.Post("api/downloaders/test", {
       body: dc
     })
   },

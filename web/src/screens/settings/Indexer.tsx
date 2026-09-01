@@ -20,7 +20,7 @@ import toast from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { EmptySimple } from "@components/emptystates";
 import { IndexerAddForm, IndexerUpdateForm } from "@forms";
-import { componentMapType } from "@forms/settings/DownloadClientForms";
+import { componentMapType } from "@forms/settings/DownloaderForms";
 
 import { Section } from "./_components";
 

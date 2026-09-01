@@ -25,53 +25,53 @@ import (
 	"github.com/hekmon/transmissionrpc/v3"
 )
 
-func (s *Service) testConnection(ctx context.Context, cfg *domain.DownloadClient) error {
+func (s *Service) testConnection(ctx context.Context, cfg *domain.Downloader) error {
 	instance, err := s.initInstance(cfg)
 	if err != nil {
 		return err
 	}
 
 	switch cfg.Type {
-	case domain.DownloadClientTypeQbittorrent:
+	case domain.DownloaderTypeQbittorrent:
 		return s.testConnectionQbittorrent(ctx, instance)
 
-	case domain.DownloadClientTypeDelugeV1, domain.DownloadClientTypeDelugeV2:
+	case domain.DownloaderTypeDelugeV1, domain.DownloaderTypeDelugeV2:
 		return s.testConnectionDeluge(ctx, instance)
 
-	case domain.DownloadClientTypeRTorrent:
+	case domain.DownloaderTypeRTorrent:
 		return s.testConnectionRTorrent(ctx, instance)
 
-	case domain.DownloadClientTypeTransmission:
+	case domain.DownloaderTypeTransmission:
 		return s.testConnectionTransmission(ctx, instance)
 
-	case domain.DownloadClientTypePorla:
+	case domain.DownloaderTypePorla:
 		return s.testConnectionPorla(ctx, instance)
 
-	case domain.DownloadClientTypeAria2:
+	case domain.DownloaderTypeAria2:
 		return s.testConnectionAria2(ctx, instance)
 
-	case domain.DownloadClientTypeRadarr:
+	case domain.DownloaderTypeRadarr:
 		return s.testConnectionRadarr(ctx, instance)
 
-	case domain.DownloadClientTypeSonarr:
+	case domain.DownloaderTypeSonarr:
 		return s.testConnectionSonarr(ctx, instance)
 
-	case domain.DownloadClientTypeLidarr:
+	case domain.DownloaderTypeLidarr:
 		return s.testConnectionLidarr(ctx, instance)
 
-	case domain.DownloadClientTypeWhisparr, domain.DownloadClientTypeWhisparrV3:
+	case domain.DownloaderTypeWhisparr, domain.DownloaderTypeWhisparrV3:
 		return s.testConnectionWhisparr(ctx, instance)
 
-	case domain.DownloadClientTypeReadarr:
+	case domain.DownloaderTypeReadarr:
 		return s.testConnectionReadarr(ctx, instance)
 
-	case domain.DownloadClientTypeSportarr:
+	case domain.DownloaderTypeSportarr:
 		return s.testConnectionSportarr(ctx, instance)
 
-	case domain.DownloadClientTypeSabnzbd:
+	case domain.DownloaderTypeSabnzbd:
 		return s.testConnectionSabnzbd(ctx, instance)
 
-	case domain.DownloadClientTypeNzbget:
+	case domain.DownloaderTypeNzbget:
 		return s.testConnectionNzbget(ctx, instance)
 
 	default:
@@ -104,7 +104,7 @@ func (s *Service) testConnectionDeluge(ctx context.Context, instance *Instance) 
 	cfg := instance.Config()
 
 	switch cfg.Type {
-	case domain.DownloadClientTypeDelugeV1:
+	case domain.DownloaderTypeDelugeV1:
 		client, err := ClientAs[*deluge.Client](instance)
 		if err != nil {
 			return err
@@ -123,7 +123,7 @@ func (s *Service) testConnectionDeluge(ctx context.Context, instance *Instance) 
 		}
 		s.log.Debug().Str("version", version).Msg("test client connection for Deluge: success")
 
-	case domain.DownloadClientTypeDelugeV2:
+	case domain.DownloaderTypeDelugeV2:
 		client, err := ClientAs[*deluge.ClientV2](instance)
 		if err != nil {
 			return err
@@ -268,8 +268,8 @@ func (s *Service) testConnectionLidarr(ctx context.Context, instance *Instance) 
 // whisparrVersion maps the client type to the Whisparr major version it talks
 // to. v2 is Sonarr based and serves series, v3 is Radarr based and serves
 // movies, so the two are separate client types.
-func whisparrVersion(clientType domain.DownloadClientType) int {
-	if clientType == domain.DownloadClientTypeWhisparrV3 {
+func whisparrVersion(clientType domain.DownloaderType) int {
+	if clientType == domain.DownloaderTypeWhisparrV3 {
 		return whisparr.VersionV3
 	}
 

@@ -147,17 +147,17 @@ export const IndexerMultiSelect = ({
   );
 }
 
-interface DownloadClientSelectProps {
+interface DownloaderSelectProps {
   name: string;
   action: Action;
-  clients: DownloadClient[];
+  clients: Downloader[];
 }
 
-export function DownloadClientSelect({
+export function DownloaderSelect({
   name,
   action,
   clients
-}: DownloadClientSelectProps) {
+}: DownloaderSelectProps) {
   return (
     <div className="col-span-12 sm:col-span-6">
       <Field name={name} type="select">

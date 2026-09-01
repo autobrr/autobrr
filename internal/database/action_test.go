@@ -59,14 +59,14 @@ func TestActionRepo_Store(t *testing.T) {
 	for dbType, testDb := range testDBs {
 		db := testDb.db
 		log := setupLoggerForTest()
-		downloadClientRepo := NewDownloadClientRepo(log, db)
+		downloadClientRepo := NewDownloaderRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
 		repo := NewActionRepo(log, db)
 		mockData := getMockAction()
 
 		t.Run(fmt.Sprintf("Store_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			mock := getMockDownloadClient()
+			mock := getMockDownloader()
 			err := downloadClientRepo.Store(ctx, &mock)
 			assert.NoError(t, err)
 			assert.NotNil(t, mock)
@@ -126,14 +126,14 @@ func TestActionRepo_StoreFilterActions(t *testing.T) {
 	for dbType, testDb := range testDBs {
 		db := testDb.db
 		log := setupLoggerForTest()
-		downloadClientRepo := NewDownloadClientRepo(log, db)
+		downloadClientRepo := NewDownloaderRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
 		repo := NewActionRepo(log, db)
 		mockData := getMockAction()
 
 		t.Run(fmt.Sprintf("StoreFilterActions_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			mock := getMockDownloadClient()
+			mock := getMockDownloader()
 			err := downloadClientRepo.Store(ctx, &mock)
 			assert.NoError(t, err)
 			assert.NotNil(t, mock)
@@ -208,14 +208,14 @@ func TestActionRepo_FindByFilterID(t *testing.T) {
 	for dbType, testDb := range testDBs {
 		db := testDb.db
 		log := setupLoggerForTest()
-		downloadClientRepo := NewDownloadClientRepo(log, db)
+		downloadClientRepo := NewDownloaderRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
 		repo := NewActionRepo(log, db)
 		mockData := getMockAction()
 
 		t.Run(fmt.Sprintf("FindByFilterID_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			mock := getMockDownloadClient()
+			mock := getMockDownloader()
 			err := downloadClientRepo.Store(ctx, &mock)
 			assert.NoError(t, err)
 			assert.NotNil(t, mock)
@@ -286,14 +286,14 @@ func TestActionRepo_List(t *testing.T) {
 	for dbType, testDb := range testDBs {
 		db := testDb.db
 		log := setupLoggerForTest()
-		downloadClientRepo := NewDownloadClientRepo(log, db)
+		downloadClientRepo := NewDownloaderRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
 		repo := NewActionRepo(log, db)
 		mockData := getMockAction()
 
 		t.Run(fmt.Sprintf("List_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			mock := getMockDownloadClient()
+			mock := getMockDownloader()
 			err := downloadClientRepo.Store(ctx, &mock)
 			assert.NoError(t, err)
 			assert.NotNil(t, mock)
@@ -339,14 +339,14 @@ func TestActionRepo_Get(t *testing.T) {
 	for dbType, testDb := range testDBs {
 		db := testDb.db
 		log := setupLoggerForTest()
-		downloadClientRepo := NewDownloadClientRepo(log, db)
+		downloadClientRepo := NewDownloaderRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
 		repo := NewActionRepo(log, db)
 		mockData := getMockAction()
 
 		t.Run(fmt.Sprintf("Get_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			mock := getMockDownloadClient()
+			mock := getMockDownloader()
 			err := downloadClientRepo.Store(ctx, &mock)
 			assert.NoError(t, err)
 			assert.NotNil(t, mock)
@@ -399,14 +399,14 @@ func TestActionRepo_Delete(t *testing.T) {
 	for dbType, testDb := range testDBs {
 		db := testDb.db
 		log := setupLoggerForTest()
-		downloadClientRepo := NewDownloadClientRepo(log, db)
+		downloadClientRepo := NewDownloaderRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
 		repo := NewActionRepo(log, db)
 		mockData := getMockAction()
 
 		t.Run(fmt.Sprintf("Delete_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			mock := getMockDownloadClient()
+			mock := getMockDownloader()
 			err := downloadClientRepo.Store(ctx, &mock)
 			assert.NoError(t, err)
 			assert.NotNil(t, mock)
@@ -456,14 +456,14 @@ func TestActionRepo_DeleteByFilterID(t *testing.T) {
 	for dbType, testDb := range testDBs {
 		db := testDb.db
 		log := setupLoggerForTest()
-		downloadClientRepo := NewDownloadClientRepo(log, db)
+		downloadClientRepo := NewDownloaderRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
 		repo := NewActionRepo(log, db)
 		mockData := getMockAction()
 
 		t.Run(fmt.Sprintf("DeleteByFilterID_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			mock := getMockDownloadClient()
+			mock := getMockDownloader()
 			err := downloadClientRepo.Store(ctx, &mock)
 			assert.NoError(t, err)
 			assert.NotNil(t, mock)
@@ -511,14 +511,14 @@ func TestActionRepo_ToggleEnabled(t *testing.T) {
 	for dbType, testDb := range testDBs {
 		db := testDb.db
 		log := setupLoggerForTest()
-		downloadClientRepo := NewDownloadClientRepo(log, db)
+		downloadClientRepo := NewDownloaderRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
 		repo := NewActionRepo(log, db)
 		mockData := getMockAction()
 
 		t.Run(fmt.Sprintf("ToggleEnabled_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			mock := getMockDownloadClient()
+			mock := getMockDownloader()
 			err := downloadClientRepo.Store(ctx, &mock)
 			assert.NoError(t, err)
 			assert.NotNil(t, mock)

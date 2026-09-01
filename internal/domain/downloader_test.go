@@ -9,12 +9,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDownloadClient_qbitBuildLegacyHost(t *testing.T) {
+func TestDownloader_qbitBuildLegacyHost(t *testing.T) {
 	t.Parallel()
 	type fields struct {
 		ID            int32
 		Name          string
-		Type          DownloadClientType
+		Type          DownloaderType
 		Enabled       bool
 		Host          string
 		Port          int
@@ -22,7 +22,7 @@ func TestDownloadClient_qbitBuildLegacyHost(t *testing.T) {
 		TLSSkipVerify bool
 		Username      string
 		Password      string
-		Settings      DownloadClientSettings
+		Settings      DownloaderSettings
 	}
 	tests := []struct {
 		name   string
@@ -140,7 +140,7 @@ func TestDownloadClient_qbitBuildLegacyHost(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := DownloadClient{
+			c := Downloader{
 				ID:            tt.fields.ID,
 				Name:          tt.fields.Name,
 				Type:          tt.fields.Type,

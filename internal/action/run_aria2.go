@@ -20,7 +20,7 @@ func (s *Service) runAria2(ctx context.Context, action *domain.Action, release *
 
 	l.Debug().Msg("running aria2 action")
 
-	instance, err := s.clientSvc.GetInstance(ctx, action.ClientID)
+	instance, err := s.downloaderSvc.GetInstance(ctx, action.ClientID)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func (s *Service) runAria2(ctx context.Context, action *domain.Action, release *
 		}
 
 	default:
-		if err := s.downloadSvc.DownloadRelease(ctx, release); err != nil {
+		if err := s.rlsDownloadSvc.DownloadRelease(ctx, release); err != nil {
 			return nil, errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
 		}
 
@@ -110,7 +110,7 @@ func aria2Options(action *domain.Action) aria2.Options {
 	return options
 }
 
-func (s *Service) aria2CheckRulesCanDownload(ctx context.Context, action *domain.Action, client *domain.DownloadClient, ar *aria2.Client) ([]string, error) {
+func (s *Service) aria2CheckRulesCanDownload(ctx context.Context, action *domain.Action, client *domain.Downloader, ar *aria2.Client) ([]string, error) {
 	l := zerolog.Ctx(ctx)
 
 	l.Trace().Msg("action aria2 check rules")

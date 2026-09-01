@@ -82,7 +82,7 @@ func TestReleaseRepo_Store(t *testing.T) {
 		db := testDb.db
 		log := setupLoggerForTest()
 
-		downloadClientRepo := NewDownloadClientRepo(log, db)
+		downloadClientRepo := NewDownloaderRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
 		actionRepo := NewActionRepo(log, db)
 		repo := NewReleaseRepo(log, db)
@@ -93,7 +93,7 @@ func TestReleaseRepo_Store(t *testing.T) {
 
 		t.Run(fmt.Sprintf("StoreReleaseActionStatus_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			mock := getMockDownloadClient()
+			mock := getMockDownloader()
 			err := downloadClientRepo.Store(ctx, &mock)
 			assert.NoError(t, err)
 			assert.NotNil(t, mock)
@@ -141,7 +141,7 @@ func TestReleaseRepo_StoreReleaseActionStatus(t *testing.T) {
 		db := testDb.db
 		log := setupLoggerForTest()
 
-		downloadClientRepo := NewDownloadClientRepo(log, db)
+		downloadClientRepo := NewDownloaderRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
 		actionRepo := NewActionRepo(log, db)
 		repo := NewReleaseRepo(log, db)
@@ -152,7 +152,7 @@ func TestReleaseRepo_StoreReleaseActionStatus(t *testing.T) {
 
 		t.Run(fmt.Sprintf("StoreReleaseActionStatus_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			mock := getMockDownloadClient()
+			mock := getMockDownloader()
 			err := downloadClientRepo.Store(ctx, &mock)
 			assert.NoError(t, err)
 			assert.NotNil(t, mock)
@@ -200,7 +200,7 @@ func TestReleaseRepo_Find(t *testing.T) {
 		db := testDb.db
 		log := setupLoggerForTest()
 
-		downloadClientRepo := NewDownloadClientRepo(log, db)
+		downloadClientRepo := NewDownloaderRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
 		//actionRepo := NewActionRepo(log, db, downloadClientRepo)
 		repo := NewReleaseRepo(log, db)
@@ -211,7 +211,7 @@ func TestReleaseRepo_Find(t *testing.T) {
 
 		t.Run(fmt.Sprintf("FindReleases_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			mock := getMockDownloadClient()
+			mock := getMockDownloader()
 			err := downloadClientRepo.Store(ctx, &mock)
 			assert.NoError(t, err)
 			assert.NotNil(t, mock)
@@ -277,7 +277,7 @@ func TestReleaseRepo_FindRecent(t *testing.T) {
 		db := testDb.db
 		log := setupLoggerForTest()
 
-		downloadClientRepo := NewDownloadClientRepo(log, db)
+		downloadClientRepo := NewDownloaderRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
 		//actionRepo := NewActionRepo(log, db, downloadClientRepo)
 		repo := NewReleaseRepo(log, db)
@@ -288,7 +288,7 @@ func TestReleaseRepo_FindRecent(t *testing.T) {
 
 		t.Run(fmt.Sprintf("FindRecent_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			mock := getMockDownloadClient()
+			mock := getMockDownloader()
 			err := downloadClientRepo.Store(ctx, &mock)
 			assert.NoError(t, err)
 			assert.NotNil(t, mock)
@@ -329,7 +329,7 @@ func TestReleaseRepo_GetIndexerOptions(t *testing.T) {
 		db := testDb.db
 		log := setupLoggerForTest()
 
-		downloadClientRepo := NewDownloadClientRepo(log, db)
+		downloadClientRepo := NewDownloaderRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
 		actionRepo := NewActionRepo(log, db)
 		repo := NewReleaseRepo(log, db)
@@ -340,7 +340,7 @@ func TestReleaseRepo_GetIndexerOptions(t *testing.T) {
 
 		t.Run(fmt.Sprintf("GetIndexerOptions_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			mock := getMockDownloadClient()
+			mock := getMockDownloader()
 			err := downloadClientRepo.Store(ctx, &mock)
 			assert.NoError(t, err)
 			assert.NotNil(t, mock)
@@ -391,7 +391,7 @@ func TestReleaseRepo_GetActionStatusByReleaseID(t *testing.T) {
 		db := testDb.db
 		log := setupLoggerForTest()
 
-		downloadClientRepo := NewDownloadClientRepo(log, db)
+		downloadClientRepo := NewDownloaderRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
 		actionRepo := NewActionRepo(log, db)
 		repo := NewReleaseRepo(log, db)
@@ -402,7 +402,7 @@ func TestReleaseRepo_GetActionStatusByReleaseID(t *testing.T) {
 
 		t.Run(fmt.Sprintf("GetActionStatusByReleaseID_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			mock := getMockDownloadClient()
+			mock := getMockDownloader()
 			err := downloadClientRepo.Store(ctx, &mock)
 			assert.NoError(t, err)
 			assert.NotNil(t, mock)
@@ -454,7 +454,7 @@ func TestReleaseRepo_Get(t *testing.T) {
 		db := testDb.db
 		log := setupLoggerForTest()
 
-		downloadClientRepo := NewDownloadClientRepo(log, db)
+		downloadClientRepo := NewDownloaderRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
 		actionRepo := NewActionRepo(log, db)
 		repo := NewReleaseRepo(log, db)
@@ -480,7 +480,7 @@ func TestReleaseRepo_Get(t *testing.T) {
 
 		t.Run(fmt.Sprintf("Get_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			mock := getMockDownloadClient()
+			mock := getMockDownloader()
 			err := downloadClientRepo.Store(ctx, &mock)
 			assert.NoError(t, err)
 			assert.NotNil(t, mock)
@@ -618,7 +618,7 @@ func TestReleaseRepo_Stats(t *testing.T) {
 		db := testDb.db
 		log := setupLoggerForTest()
 
-		downloadClientRepo := NewDownloadClientRepo(log, db)
+		downloadClientRepo := NewDownloaderRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
 		actionRepo := NewActionRepo(log, db)
 		repo := NewReleaseRepo(log, db)
@@ -629,7 +629,7 @@ func TestReleaseRepo_Stats(t *testing.T) {
 
 		t.Run(fmt.Sprintf("Stats_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			mock := getMockDownloadClient()
+			mock := getMockDownloader()
 			err := downloadClientRepo.Store(ctx, &mock)
 			assert.NoError(t, err)
 			assert.NotNil(t, mock)
@@ -686,7 +686,7 @@ func TestReleaseRepo_StatsDashboard(t *testing.T) {
 		db := testDb.db
 		log := setupLoggerForTest()
 
-		downloadClientRepo := NewDownloadClientRepo(log, db)
+		downloadClientRepo := NewDownloaderRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
 		actionRepo := NewActionRepo(log, db)
 		repo := NewReleaseRepo(log, db)
@@ -697,7 +697,7 @@ func TestReleaseRepo_StatsDashboard(t *testing.T) {
 
 		t.Run(fmt.Sprintf("StatsDashboard_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
-			mock := getMockDownloadClient()
+			mock := getMockDownloader()
 			err := downloadClientRepo.Store(ctx, &mock)
 			assert.NoError(t, err)
 
@@ -774,13 +774,13 @@ func TestReleaseRepo_Delete(t *testing.T) {
 		db := testDb.db
 		log := setupLoggerForTest()
 
-		downloadClientRepo := NewDownloadClientRepo(log, db)
+		downloadClientRepo := NewDownloaderRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
 		actionRepo := NewActionRepo(log, db)
 		repo := NewReleaseRepo(log, db)
 
 		// Setup shared dependencies
-		mock := getMockDownloadClient()
+		mock := getMockDownloader()
 		err := downloadClientRepo.Store(ctx, &mock)
 		assert.NoError(t, err)
 
@@ -974,7 +974,7 @@ func TestReleaseRepo_CheckSmartEpisodeCanDownloadShow(t *testing.T) {
 		db := testDb.db
 		log := setupLoggerForTest()
 
-		downloadClientRepo := NewDownloadClientRepo(log, db)
+		downloadClientRepo := NewDownloaderRepo(log, db)
 		filterRepo := NewFilterRepo(log, db)
 		actionRepo := NewActionRepo(log, db)
 		repo := NewReleaseRepo(log, db)
@@ -985,7 +985,7 @@ func TestReleaseRepo_CheckSmartEpisodeCanDownloadShow(t *testing.T) {
 
 		t.Run(fmt.Sprintf("Check_Smart_Episode_Can_Download [%s]", dbType), func(t *testing.T) {
 			// Setup
-			mock := getMockDownloadClient()
+			mock := getMockDownloader()
 			err := downloadClientRepo.Store(ctx, &mock)
 			assert.NoError(t, err)
 			assert.NotNil(t, mock)

@@ -16,10 +16,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func getMockDownloadClient() domain.DownloadClient {
-	return domain.DownloadClient{
+func getMockDownloader() domain.Downloader {
+	return domain.Downloader{
 		Name:          "qbitorrent",
-		Type:          domain.DownloadClientTypeQbittorrent,
+		Type:          domain.DownloaderTypeQbittorrent,
 		Enabled:       true,
 		Host:          "host",
 		Port:          2020,
@@ -27,14 +27,14 @@ func getMockDownloadClient() domain.DownloadClient {
 		TLSSkipVerify: true,
 		Username:      "anime",
 		Password:      "anime",
-		Settings: domain.DownloadClientSettings{
+		Settings: domain.DownloaderSettings{
 			APIKey: "123",
 			Basic: domain.BasicAuth{
 				Auth:     true,
 				Username: "username",
 				Password: "password",
 			},
-			Rules: domain.DownloadClientRules{
+			Rules: domain.DownloaderRules{
 				Enabled:                     true,
 				MaxActiveDownloads:          10,
 				IgnoreSlowTorrents:          false,
@@ -44,9 +44,9 @@ func getMockDownloadClient() domain.DownloadClient {
 			},
 			ExternalDownloadClientId: 0,
 			ExternalDownloadClient:   "",
-			Auth: domain.DownloadClientAuth{
+			Auth: domain.DownloaderAuth{
 				Enabled:  true,
-				Type:     domain.DownloadClientAuthTypeBasic,
+				Type:     domain.DownloaderAuthTypeBasic,
 				Username: "username",
 				Password: "password",
 			},
@@ -72,14 +72,14 @@ func getMockArrList(filterID int, clientID int32) *domain.List {
 	}
 }
 
-func TestDownloadClientRepo_List(t *testing.T) {
+func TestDownloaderRepo_List(t *testing.T) {
 	ctx := t.Context()
 
 	for dbType, testDb := range testDBs {
 		db := testDb.db
 		log := setupLoggerForTest()
-		repo := NewDownloadClientRepo(log, db)
-		mockData := getMockDownloadClient()
+		repo := NewDownloaderRepo(log, db)
+		mockData := getMockDownloader()
 
 		t.Run(fmt.Sprintf("List_Succeeds_With_No_Filters [%s]", dbType), func(t *testing.T) {
 			// Insert mock data
@@ -158,14 +158,14 @@ func TestDownloadClientRepo_List(t *testing.T) {
 	}
 }
 
-func TestDownloadClientRepo_FindByID(t *testing.T) {
+func TestDownloaderRepo_FindByID(t *testing.T) {
 	ctx := t.Context()
 
 	for dbType, testDb := range testDBs {
 		db := testDb.db
 		log := setupLoggerForTest()
-		repo := NewDownloadClientRepo(log, db)
-		mockData := getMockDownloadClient()
+		repo := NewDownloaderRepo(log, db)
+		mockData := getMockDownloader()
 
 		t.Run(fmt.Sprintf("FindByID_Succeeds [%s]", dbType), func(t *testing.T) {
 			mock := &mockData
@@ -234,16 +234,16 @@ func TestDownloadClientRepo_FindByID(t *testing.T) {
 	}
 }
 
-func TestDownloadClientRepo_Store(t *testing.T) {
+func TestDownloaderRepo_Store(t *testing.T) {
 	ctx := t.Context()
 
 	for dbType, testDb := range testDBs {
 		db := testDb.db
 		log := setupLoggerForTest()
-		repo := NewDownloadClientRepo(log, db)
+		repo := NewDownloaderRepo(log, db)
 
 		t.Run(fmt.Sprintf("Store_Succeeds [%s]", dbType), func(t *testing.T) {
-			mockData := getMockDownloadClient()
+			mockData := getMockDownloader()
 			err := repo.Store(ctx, &mockData)
 			assert.NoError(t, err)
 			assert.NotNil(t, mockData)
@@ -254,7 +254,7 @@ func TestDownloadClientRepo_Store(t *testing.T) {
 
 		//TODO: Is this okay? Should we be able to store a client with no name (empty string)?
 		t.Run(fmt.Sprintf("Store_Succeeds?_With_Missing_Required_Fields [%s]", dbType), func(t *testing.T) {
-			badMockData := &domain.DownloadClient{
+			badMockData := &domain.Downloader{
 				Type:          "",
 				Enabled:       false,
 				Host:          "",
@@ -263,7 +263,7 @@ func TestDownloadClientRepo_Store(t *testing.T) {
 				TLSSkipVerify: false,
 				Username:      "",
 				Password:      "",
-				Settings:      domain.DownloadClientSettings{},
+				Settings:      domain.DownloaderSettings{},
 			}
 			err := repo.Store(ctx, badMockData)
 			assert.NoError(t, err)
@@ -273,7 +273,7 @@ func TestDownloadClientRepo_Store(t *testing.T) {
 		})
 
 		t.Run(fmt.Sprintf("Store_Fails_With_Context_Timeout [%s]", dbType), func(t *testing.T) {
-			mockData := getMockDownloadClient()
+			mockData := getMockDownloader()
 			timeoutCtx, cancel := context.WithTimeout(ctx, 1*time.Nanosecond)
 			defer cancel()
 			err := repo.Store(timeoutCtx, &mockData)
@@ -281,7 +281,7 @@ func TestDownloadClientRepo_Store(t *testing.T) {
 		})
 
 		t.Run(fmt.Sprintf("Store_Succeeds_And_Caches [%s]", dbType), func(t *testing.T) {
-			mockData := getMockDownloadClient()
+			mockData := getMockDownloader()
 			_ = repo.Store(ctx, &mockData)
 
 			cachedClient, _ := repo.FindByID(ctx, mockData.ID)
@@ -293,16 +293,16 @@ func TestDownloadClientRepo_Store(t *testing.T) {
 	}
 }
 
-func TestDownloadClientRepo_Update(t *testing.T) {
+func TestDownloaderRepo_Update(t *testing.T) {
 	ctx := t.Context()
 
 	for dbType, testDb := range testDBs {
 		db := testDb.db
 		log := setupLoggerForTest()
-		repo := NewDownloadClientRepo(log, db)
+		repo := NewDownloaderRepo(log, db)
 
 		t.Run(fmt.Sprintf("Update_Successfully_Updates_Record [%s]", dbType), func(t *testing.T) {
-			mockClient := getMockDownloadClient()
+			mockClient := getMockDownloader()
 
 			_ = repo.Store(ctx, &mockClient)
 			mockClient.Name = "updatedName"
@@ -316,7 +316,7 @@ func TestDownloadClientRepo_Update(t *testing.T) {
 		})
 
 		t.Run(fmt.Sprintf("Update_Fails_With_Missing_ID [%s]", dbType), func(t *testing.T) {
-			badMockData := getMockDownloadClient()
+			badMockData := getMockDownloader()
 			badMockData.ID = 0
 
 			err := repo.Update(ctx, &badMockData)
@@ -326,7 +326,7 @@ func TestDownloadClientRepo_Update(t *testing.T) {
 		})
 
 		t.Run(fmt.Sprintf("Update_Fails_With_Nonexistent_ID [%s]", dbType), func(t *testing.T) {
-			badMockData := getMockDownloadClient()
+			badMockData := getMockDownloader()
 			badMockData.ID = 9999
 
 			err := repo.Update(ctx, &badMockData)
@@ -335,7 +335,7 @@ func TestDownloadClientRepo_Update(t *testing.T) {
 		})
 
 		t.Run(fmt.Sprintf("Update_Fails_With_Missing_Required_Fields [%s]", dbType), func(t *testing.T) {
-			badMockData := domain.DownloadClient{}
+			badMockData := domain.Downloader{}
 
 			err := repo.Update(ctx, &badMockData)
 
@@ -344,16 +344,16 @@ func TestDownloadClientRepo_Update(t *testing.T) {
 	}
 }
 
-func TestDownloadClientRepo_Delete(t *testing.T) {
+func TestDownloaderRepo_Delete(t *testing.T) {
 	ctx := t.Context()
 
 	for dbType, testDb := range testDBs {
 		db := testDb.db
 		log := setupLoggerForTest()
-		repo := NewDownloadClientRepo(log, db)
+		repo := NewDownloaderRepo(log, db)
 
 		t.Run(fmt.Sprintf("Delete_Successfully_Deletes_Client [%s]", dbType), func(t *testing.T) {
-			mockClient := getMockDownloadClient()
+			mockClient := getMockDownloader()
 			_ = repo.Store(ctx, &mockClient)
 
 			err := repo.Delete(ctx, mockClient.ID)
@@ -370,7 +370,7 @@ func TestDownloadClientRepo_Delete(t *testing.T) {
 		})
 
 		t.Run(fmt.Sprintf("Delete_Fails_With_Context_Timeout [%s]", dbType), func(t *testing.T) {
-			mockClient := getMockDownloadClient()
+			mockClient := getMockDownloader()
 			_ = repo.Store(ctx, &mockClient)
 
 			timeoutCtx, cancel := context.WithTimeout(ctx, 1*time.Nanosecond)
@@ -387,7 +387,7 @@ func TestDownloadClientRepo_Delete(t *testing.T) {
 			actionRepo := NewActionRepo(log, db)
 			filterRepo := NewFilterRepo(log, db)
 
-			mockClient := getMockDownloadClient()
+			mockClient := getMockDownloader()
 			err := repo.Store(ctx, &mockClient)
 			assert.NoError(t, err)
 
@@ -439,7 +439,7 @@ func TestDownloadClientRepo_Delete(t *testing.T) {
 			filterRepo := NewFilterRepo(log, db)
 			listRepo := NewListRepo(log, db)
 
-			mockClient := getMockDownloadClient()
+			mockClient := getMockDownloader()
 			err := repo.Store(ctx, &mockClient)
 			assert.NoError(t, err)
 

@@ -12,8 +12,8 @@ import { useTranslation } from "react-i18next";
 import { classNames, sleep } from "@utils";
 import { DEBUG } from "@components/debug";
 import { APIClient } from "@api/APIClient";
-import { DownloadClientKeys } from "@api/query_keys";
-import { DownloadClientAuthType, DownloadRuleConditionOptions, getDownloadClientTypeOptions } from "@domain/constants";
+import { DownloaderKeys } from "@api/query_keys";
+import { DownloaderAuthType, DownloadRuleConditionOptions, getDownloaderTypeOptions } from "@domain/constants";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { useToggle } from "@hooks/hooks";
@@ -55,7 +55,7 @@ interface InitialValuesSettings {
 
 interface InitialValues {
   name: string;
-  type: DownloadClientType;
+  type: DownloaderType;
   enabled: boolean;
   host: string;
   port: number;
@@ -341,7 +341,7 @@ function FormFieldsRTorrent() {
             name="settings.auth.type"
             label={t("forms.downloadClient.authType")}
             placeholder={t("forms.downloadClient.selectAuthType")}
-            options={DownloadClientAuthType}
+            options={DownloaderAuthType}
             tooltip={<p>{t("forms.downloadClient.authTypeTooltip")}</p>}
           />
           <TextFieldWide name="settings.auth.username" label={t("forms.downloadClient.username")} />
@@ -694,7 +694,7 @@ interface formButtonsProps {
   toggleDeleteModal?: () => void;
 }
 
-function DownloadClientFormButtons({
+function DownloaderFormButtons({
   type,
   isSuccessfulTest,
   isErrorTest,
@@ -787,9 +787,9 @@ function DownloadClientFormButtons({
   );
 }
 
-export function DownloadClientAddForm({ isOpen, toggle }: AddFormProps) {
+export function DownloaderAddForm({ isOpen, toggle }: AddFormProps) {
   const { t } = useTranslation(["options", "settings"]);
-  const downloadClientTypeOptions = getDownloadClientTypeOptions(t);
+  const downloaderTypeOptions = getDownloaderTypeOptions(t);
   const [isTesting, setIsTesting] = useState(false);
   const [isSuccessfulTest, setIsSuccessfulTest] = useState(false);
   const [isErrorTest, setIsErrorTest] = useState(false);
@@ -797,9 +797,9 @@ export function DownloadClientAddForm({ isOpen, toggle }: AddFormProps) {
   const queryClient = useQueryClient();
 
   const addMutation = useMutation({
-    mutationFn: (client: DownloadClient) => APIClient.download_clients.create(client),
+    mutationFn: (client: Downloader) => APIClient.downloaders.create(client),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: DownloadClientKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: DownloaderKeys.lists() });
       toast.custom((toastInstance) => <Toast type="success" body={t("settings:forms.downloadClient.added")} t={toastInstance} />);
 
       toggle();
@@ -809,10 +809,10 @@ export function DownloadClientAddForm({ isOpen, toggle }: AddFormProps) {
     }
   });
 
-  const onSubmit = (data: unknown) => addMutation.mutate(data as DownloadClient);
+  const onSubmit = (data: unknown) => addMutation.mutate(data as Downloader);
 
   const testClientMutation = useMutation({
-    mutationFn: (client: DownloadClient) => APIClient.download_clients.test(client),
+    mutationFn: (client: Downloader) => APIClient.downloaders.test(client),
     onMutate: () => {
       setIsTesting(true);
       setIsErrorTest(false);
@@ -839,7 +839,7 @@ export function DownloadClientAddForm({ isOpen, toggle }: AddFormProps) {
     }
   });
 
-  const testClient = (data: unknown) => testClientMutation.mutate(data as DownloadClient);
+  const testClient = (data: unknown) => testClientMutation.mutate(data as Downloader);
 
   const initialValues: InitialValues = {
     name: "",
@@ -898,7 +898,7 @@ export function DownloadClientAddForm({ isOpen, toggle }: AddFormProps) {
                 <RadioFieldsetWide
                   name="type"
                   legend={t("settings:forms.downloadClient.type")}
-                  options={downloadClientTypeOptions}
+                  options={downloaderTypeOptions}
                 />
                 <div>{componentMap[values.type]}</div>
               </div>
@@ -908,7 +908,7 @@ export function DownloadClientAddForm({ isOpen, toggle }: AddFormProps) {
               <DEBUG values={values} />
             </div>
 
-            <DownloadClientFormButtons
+            <DownloaderFormButtons
               type="CREATE"
               isTesting={isTesting}
               isSuccessfulTest={isSuccessfulTest}
@@ -924,9 +924,9 @@ export function DownloadClientAddForm({ isOpen, toggle }: AddFormProps) {
   );
 }
 
-export function DownloadClientUpdateForm({ isOpen, toggle, data: client }: UpdateFormProps<DownloadClient>) {
+export function DownloaderUpdateForm({ isOpen, toggle, data: client }: UpdateFormProps<Downloader>) {
   const { t } = useTranslation(["options", "settings"]);
-  const downloadClientTypeOptions = getDownloadClientTypeOptions(t);
+  const downloaderTypeOptions = getDownloaderTypeOptions(t);
   const [isTesting, setIsTesting] = useState(false);
   const [isSuccessfulTest, setIsSuccessfulTest] = useState(false);
   const [isErrorTest, setIsErrorTest] = useState(false);
@@ -938,23 +938,23 @@ export function DownloadClientUpdateForm({ isOpen, toggle, data: client }: Updat
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (client: DownloadClient) => APIClient.download_clients.update(client),
+    mutationFn: (client: Downloader) => APIClient.downloaders.update(client),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: DownloadClientKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: DownloadClientKeys.detail(client.id) });
+      queryClient.invalidateQueries({ queryKey: DownloaderKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: DownloaderKeys.detail(client.id) });
 
       toast.custom((toastInstance) => <Toast type="success" body={t("settings:forms.downloadClient.updated", { name: client.name })} t={toastInstance} />);
       toggle();
     }
   });
 
-  const onSubmit = (data: unknown) => mutation.mutate(data as DownloadClient);
+  const onSubmit = (data: unknown) => mutation.mutate(data as Downloader);
 
   const deleteMutation = useMutation({
-    mutationFn: (clientID: number) => APIClient.download_clients.delete(clientID),
+    mutationFn: (clientID: number) => APIClient.downloaders.delete(clientID),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: DownloadClientKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: DownloadClientKeys.detail(client.id) });
+      queryClient.invalidateQueries({ queryKey: DownloaderKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: DownloaderKeys.detail(client.id) });
 
       toast.custom((toastInstance) => <Toast type="success" body={t("settings:forms.downloadClient.deleted", { name: client.name })} t={toastInstance} />);
       toggleDeleteModal();
@@ -965,7 +965,7 @@ export function DownloadClientUpdateForm({ isOpen, toggle, data: client }: Updat
 
 
   const testClientMutation = useMutation({
-    mutationFn: (client: DownloadClient) => APIClient.download_clients.test(client),
+    mutationFn: (client: Downloader) => APIClient.downloaders.test(client),
     onMutate: () => {
       setIsTesting(true);
       setIsErrorTest(false);
@@ -992,7 +992,7 @@ export function DownloadClientUpdateForm({ isOpen, toggle, data: client }: Updat
     }
   });
 
-  const testClient = (data: unknown) => testClientMutation.mutate(data as DownloadClient);
+  const testClient = (data: unknown) => testClientMutation.mutate(data as Downloader);
 
   const initialValues = {
     id: client.id,
@@ -1062,7 +1062,7 @@ export function DownloadClientUpdateForm({ isOpen, toggle, data: client }: Updat
                   <RadioFieldsetWide
                     name="type"
                     legend={t("settings:forms.downloadClient.type")}
-                    options={downloadClientTypeOptions}
+                    options={downloaderTypeOptions}
                   />
                   <div>{componentMap[values.type]}</div>
                 </div>
@@ -1072,7 +1072,7 @@ export function DownloadClientUpdateForm({ isOpen, toggle, data: client }: Updat
                 <DEBUG values={values} />
               </div>
 
-              <DownloadClientFormButtons
+              <DownloaderFormButtons
                 type="UPDATE"
                 toggleDeleteModal={toggleDeleteModal}
                 isTesting={isTesting}

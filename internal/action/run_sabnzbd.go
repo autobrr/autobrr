@@ -23,7 +23,7 @@ func (s *Service) runSabnzbd(ctx context.Context, action *domain.Action, release
 		return nil, errors.New("action type: %s invalid protocol: %s", action.Type, release.Protocol)
 	}
 
-	instance, err := s.clientSvc.GetInstance(ctx, action.ClientID)
+	instance, err := s.downloaderSvc.GetInstance(ctx, action.ClientID)
 	if err != nil {
 		return nil, err
 	}

@@ -5,7 +5,7 @@
 
 import { WarningAlert } from "@components/alerts";
 import { FilterHalfRow, FilterLayout, FilterSection } from "@screens/filters/sections/_components.tsx";
-import { DownloadClientSelect, NumberField, TextAreaAutoResize, TextField } from "@components/inputs";
+import { DownloaderSelect, NumberField, TextAreaAutoResize, TextField } from "@components/inputs";
 import { useTranslation } from "react-i18next";
 
 
@@ -19,7 +19,7 @@ export const SABnzbd = ({ idx, action, clients }: ClientActionProps) => {
   >
     <FilterLayout>
       <FilterHalfRow>
-        <DownloadClientSelect
+        <DownloaderSelect
           name={`actions.${idx}.client_id`}
           action={action}
           clients={clients}
@@ -49,7 +49,7 @@ export const NZBGet = ({ idx, action, clients }: ClientActionProps) => {
   >
     <FilterLayout>
       <FilterHalfRow>
-        <DownloadClientSelect
+        <DownloaderSelect
           name={`actions.${idx}.client_id`}
           action={action}
           clients={clients}
@@ -165,7 +165,7 @@ export const Arr = ({ idx, action, clients }: ClientActionProps) => {
   >
     <FilterLayout>
       <FilterHalfRow>
-        <DownloadClientSelect
+        <DownloaderSelect
           name={`actions.${idx}.client_id`}
           action={action}
           clients={clients}

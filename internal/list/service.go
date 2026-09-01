@@ -6,8 +6,6 @@ package list
 import (
 	"context"
 	stdErr "errors"
-	"net/http"
-	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/downloader"
@@ -45,20 +43,16 @@ type Service struct {
 	log  zerolog.Logger
 	repo listRepo
 
-	httpClient    *http.Client
 	scheduler     schedulerService
 	downloaderSvc downloaderService
 	filterSvc     filterService
 }
 
-func NewService(log zerolog.Logger, repo listRepo, downloadClientSvc downloaderService, filterSvc filterService, schedulerSvc schedulerService) *Service {
+func NewService(log zerolog.Logger, repo listRepo, downloaderSvc downloaderService, filterSvc filterService, schedulerSvc schedulerService) *Service {
 	return &Service{
-		log:  log.With().Str("module", "list").Logger(),
-		repo: repo,
-		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
-		},
-		downloaderSvc: downloadClientSvc,
+		log:           log.With().Str("module", "list").Logger(),
+		repo:          repo,
+		downloaderSvc: downloaderSvc,
 		filterSvc:     filterSvc,
 		scheduler:     schedulerSvc,
 	}

@@ -59,13 +59,13 @@ export const ApiKeys = {
   detail: (id: string) => [...ApiKeys.details(), id] as const
 };
 
-export const DownloadClientKeys = {
-  all: ["download_clients"] as const,
-  lists: () => [...DownloadClientKeys.all, "list"] as const,
+export const DownloaderKeys = {
+  all: ["downloaders"] as const,
+  lists: () => [...DownloaderKeys.all, "list"] as const,
   // list: (indexers: string[], sortOrder: string) => [...clientKeys.lists(), { indexers, sortOrder }] as const,
-  details: () => [...DownloadClientKeys.all, "detail"] as const,
-  detail: (id: number) => [...DownloadClientKeys.details(), id] as const,
-  arrTags: (id: number) => [...DownloadClientKeys.details(), id, "arr-tags"] as const
+  details: () => [...DownloaderKeys.all, "detail"] as const,
+  detail: (id: number) => [...DownloaderKeys.details(), id] as const,
+  arrTags: (id: number) => [...DownloaderKeys.details(), id, "arr-tags"] as const
 };
 
 export const FeedKeys = {

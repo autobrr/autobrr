@@ -98,7 +98,7 @@ func (s *Service) RunAction(ctx context.Context, action *domain.Action, release 
 }
 
 func (s *Service) CheckActionPreconditions(ctx context.Context, action *domain.Action, release *domain.Release) error {
-	if err := s.downloadSvc.ResolveMagnetURI(ctx, release); err != nil {
+	if err := s.rlsDownloadSvc.ResolveMagnetURI(ctx, release); err != nil {
 		return errors.Wrap(err, "could not resolve magnet uri: %s", release.MagnetURI)
 	}
 
@@ -107,7 +107,7 @@ func (s *Service) CheckActionPreconditions(ctx context.Context, action *domain.A
 	// on a copy and the next action would fetch the same torrent again.
 	// Magnets carry no torrent to fetch, the clients get the URI instead.
 	if !release.HasMagnetUri() && (action.NeedsTorrentDownloaded() || action.CheckMacrosNeedRawDataBytes(release)) {
-		if err := s.downloadSvc.DownloadRelease(ctx, release); err != nil {
+		if err := s.rlsDownloadSvc.DownloadRelease(ctx, release); err != nil {
 			return errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
 		}
 	}

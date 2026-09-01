@@ -897,7 +897,7 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 		log := setupLoggerForTest()
 		repo := NewFilterRepo(log, db)
 		releaseRepo := NewReleaseRepo(log, db)
-		downloadClientRepo := NewDownloadClientRepo(log, db)
+		downloadClientRepo := NewDownloaderRepo(log, db)
 		actionRepo := NewActionRepo(log, db)
 
 		t.Run(fmt.Sprintf("GetFilterDownloads_Succeeds [%s]", dbType), func(t *testing.T) {
@@ -906,7 +906,7 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			err := repo.Store(ctx, mockData)
 			assert.NoError(t, err)
 
-			mockClient := getMockDownloadClient()
+			mockClient := getMockDownloader()
 
 			err = downloadClientRepo.Store(ctx, &mockClient)
 			assert.NoError(t, err)
@@ -964,7 +964,7 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			err := repo.Store(ctx, mockFilter)
 			assert.NoError(t, err)
 
-			mockClient := getMockDownloadClient()
+			mockClient := getMockDownloader()
 
 			err = downloadClientRepo.Store(ctx, &mockClient)
 			assert.NoError(t, err)
@@ -1029,7 +1029,7 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			err := repo.Store(ctx, mockFilter)
 			assert.NoError(t, err)
 
-			mockClient := getMockDownloadClient()
+			mockClient := getMockDownloader()
 
 			err = downloadClientRepo.Store(ctx, &mockClient)
 			assert.NoError(t, err)
@@ -1114,7 +1114,7 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			err := repo.Store(t.Context(), mockFilter)
 			assert.NoError(t, err)
 
-			mockClient := getMockDownloadClient()
+			mockClient := getMockDownloader()
 			err = downloadClientRepo.Store(t.Context(), &mockClient)
 			assert.NoError(t, err)
 
@@ -1160,7 +1160,7 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			err := repo.Store(t.Context(), mockFilter)
 			assert.NoError(t, err)
 
-			mockClient := getMockDownloadClient()
+			mockClient := getMockDownloader()
 			err = downloadClientRepo.Store(t.Context(), &mockClient)
 			assert.NoError(t, err)
 
@@ -1206,7 +1206,7 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			err := repo.Store(t.Context(), mockFilter)
 			assert.NoError(t, err)
 
-			mockClient := getMockDownloadClient()
+			mockClient := getMockDownloader()
 			err = downloadClientRepo.Store(t.Context(), &mockClient)
 			assert.NoError(t, err)
 
@@ -1252,7 +1252,7 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			err := repo.Store(t.Context(), mockFilter)
 			assert.NoError(t, err)
 
-			mockClient := getMockDownloadClient()
+			mockClient := getMockDownloader()
 			err = downloadClientRepo.Store(t.Context(), &mockClient)
 			assert.NoError(t, err)
 
@@ -1297,7 +1297,7 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			err := repo.Store(t.Context(), mockFilter)
 			assert.NoError(t, err)
 
-			mockClient := getMockDownloadClient()
+			mockClient := getMockDownloader()
 			err = downloadClientRepo.Store(t.Context(), &mockClient)
 			assert.NoError(t, err)
 
@@ -1344,7 +1344,7 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			err := repo.Store(t.Context(), mockFilter)
 			assert.NoError(t, err)
 
-			mockClient := getMockDownloadClient()
+			mockClient := getMockDownloader()
 			err = downloadClientRepo.Store(t.Context(), &mockClient)
 			assert.NoError(t, err)
 
@@ -1398,7 +1398,7 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			err := repo.Store(t.Context(), mockFilter)
 			assert.NoError(t, err)
 
-			mockClient := getMockDownloadClient()
+			mockClient := getMockDownloader()
 			err = downloadClientRepo.Store(t.Context(), &mockClient)
 			assert.NoError(t, err)
 

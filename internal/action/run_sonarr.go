@@ -20,7 +20,7 @@ func (s *Service) runSonarr(ctx context.Context, action *domain.Action, release 
 
 	l.Trace().Msg("running Sonarr action")
 
-	instance, err := s.clientSvc.GetInstance(ctx, action.ClientID)
+	instance, err := s.downloaderSvc.GetInstance(ctx, action.ClientID)
 	if err != nil {
 		return nil, err
 	}

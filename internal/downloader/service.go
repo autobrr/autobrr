@@ -32,21 +32,21 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type downloadClientRepo interface {
-	List(ctx context.Context) ([]domain.DownloadClient, error)
-	FindByID(ctx context.Context, clientID int32) (*domain.DownloadClient, error)
-	Store(ctx context.Context, client *domain.DownloadClient) error
-	Update(ctx context.Context, client *domain.DownloadClient) error
+type downloaderRepo interface {
+	List(ctx context.Context) ([]domain.Downloader, error)
+	FindByID(ctx context.Context, clientID int32) (*domain.Downloader, error)
+	Store(ctx context.Context, client *domain.Downloader) error
+	Update(ctx context.Context, client *domain.Downloader) error
 	Delete(ctx context.Context, clientID int32) error
 }
 type Service struct {
 	log  zerolog.Logger
-	repo downloadClientRepo
+	repo downloaderRepo
 
 	instances *Cache
 }
 
-func NewService(log zerolog.Logger, repo downloadClientRepo) *Service {
+func NewService(log zerolog.Logger, repo downloaderRepo) *Service {
 	s := &Service{
 		log:  log.With().Str("module", "downloader").Logger(),
 		repo: repo,
@@ -57,7 +57,7 @@ func NewService(log zerolog.Logger, repo downloadClientRepo) *Service {
 	return s
 }
 
-func (s *Service) List(ctx context.Context) ([]domain.DownloadClient, error) {
+func (s *Service) List(ctx context.Context) ([]domain.Downloader, error) {
 	clients, err := s.repo.List(ctx)
 	if err != nil {
 		s.log.Error().Err(err).Msg("could not list download clients")
@@ -67,7 +67,7 @@ func (s *Service) List(ctx context.Context) ([]domain.DownloadClient, error) {
 	return clients, nil
 }
 
-func (s *Service) FindByID(ctx context.Context, clientID int32) (*domain.DownloadClient, error) {
+func (s *Service) FindByID(ctx context.Context, clientID int32) (*domain.Downloader, error) {
 	cachedClient, ok := s.instances.Get(clientID)
 	if ok {
 		return cachedClient.Config(), nil
@@ -94,7 +94,7 @@ func (s *Service) GetArrTags(ctx context.Context, id int32) ([]domain.ArrTag, er
 	cfg := instance.Config()
 
 	switch cfg.Type {
-	case domain.DownloadClientTypeRadarr:
+	case domain.DownloaderTypeRadarr:
 		client, err := ClientAs[*radarr.Client](instance)
 		if err != nil {
 			return nil, err
@@ -116,7 +116,7 @@ func (s *Service) GetArrTags(ctx context.Context, id int32) ([]domain.ArrTag, er
 
 		return data, nil
 
-	case domain.DownloadClientTypeSonarr:
+	case domain.DownloaderTypeSonarr:
 		client, err := ClientAs[*sonarr.Client](instance)
 		if err != nil {
 			return nil, err
@@ -138,7 +138,7 @@ func (s *Service) GetArrTags(ctx context.Context, id int32) ([]domain.ArrTag, er
 
 		return data, nil
 
-	case domain.DownloadClientTypeWhisparr, domain.DownloadClientTypeWhisparrV3:
+	case domain.DownloaderTypeWhisparr, domain.DownloaderTypeWhisparrV3:
 		client, err := ClientAs[*whisparr.Client](instance)
 		if err != nil {
 			return nil, err
@@ -160,7 +160,7 @@ func (s *Service) GetArrTags(ctx context.Context, id int32) ([]domain.ArrTag, er
 
 		return data, nil
 
-	case domain.DownloadClientTypeSportarr:
+	case domain.DownloaderTypeSportarr:
 		client, err := ClientAs[*sportarr.Client](instance)
 		if err != nil {
 			return nil, err
@@ -187,7 +187,7 @@ func (s *Service) GetArrTags(ctx context.Context, id int32) ([]domain.ArrTag, er
 	}
 }
 
-func (s *Service) Store(ctx context.Context, client *domain.DownloadClient) error {
+func (s *Service) Store(ctx context.Context, client *domain.Downloader) error {
 	// basic validation of client
 	if err := client.Validate(); err != nil {
 		return err
@@ -209,7 +209,7 @@ func (s *Service) Store(ctx context.Context, client *domain.DownloadClient) erro
 	return nil
 }
 
-func (s *Service) Update(ctx context.Context, client *domain.DownloadClient) error {
+func (s *Service) Update(ctx context.Context, client *domain.Downloader) error {
 	// basic validation of client
 	if err := client.Validate(); err != nil {
 		return err
@@ -270,7 +270,7 @@ func (s *Service) Delete(ctx context.Context, clientID int32) error {
 	return nil
 }
 
-func (s *Service) Test(ctx context.Context, client *domain.DownloadClient) error {
+func (s *Service) Test(ctx context.Context, client *domain.Downloader) error {
 	// basic validation of client
 	if err := client.Validate(); err != nil {
 		return err
@@ -307,13 +307,13 @@ func (s *Service) Test(ctx context.Context, client *domain.DownloadClient) error
 	return nil
 }
 
-func (s *Service) initInstance(cfg *domain.DownloadClient) (*Instance, error) {
+func (s *Service) initInstance(cfg *domain.Downloader) (*Instance, error) {
 	instance := &Instance{
 		config: cfg,
 	}
 
 	switch cfg.Type {
-	case domain.DownloadClientTypeAria2:
+	case domain.DownloaderTypeAria2:
 		clientCfg := aria2.Config{
 			Host:          cfg.Host,
 			Secret:        cfg.Settings.APIKey,
@@ -333,7 +333,7 @@ func (s *Service) initInstance(cfg *domain.DownloadClient) (*Instance, error) {
 		}
 		instance.client = client
 
-	case domain.DownloadClientTypeDelugeV1:
+	case domain.DownloaderTypeDelugeV1:
 		clientCfg := deluge.Settings{
 			Hostname:             cfg.Host,
 			Port:                 uint(cfg.Port),
@@ -344,7 +344,7 @@ func (s *Service) initInstance(cfg *domain.DownloadClient) (*Instance, error) {
 		}
 		instance.client = deluge.NewV1(clientCfg)
 
-	case domain.DownloadClientTypeDelugeV2:
+	case domain.DownloaderTypeDelugeV2:
 		clientCfg := deluge.Settings{
 			Hostname:             cfg.Host,
 			Port:                 uint(cfg.Port),
@@ -355,7 +355,7 @@ func (s *Service) initInstance(cfg *domain.DownloadClient) (*Instance, error) {
 		}
 		instance.client = deluge.NewV2(clientCfg)
 
-	case domain.DownloadClientTypeQbittorrent:
+	case domain.DownloaderTypeQbittorrent:
 		clientHost, err := cfg.BuildLegacyHost()
 		if err != nil {
 			return nil, errors.Wrap(err, "error building qBittorrent host url: %v", cfg.Host)
@@ -377,7 +377,7 @@ func (s *Service) initInstance(cfg *domain.DownloadClient) (*Instance, error) {
 
 		instance.client = qbittorrent.NewClient(clientCfg)
 
-	case domain.DownloadClientTypePorla:
+	case domain.DownloaderTypePorla:
 		clientCfg := porla.Config{
 			Hostname:      cfg.Host,
 			AuthToken:     cfg.Settings.APIKey,
@@ -392,7 +392,7 @@ func (s *Service) initInstance(cfg *domain.DownloadClient) (*Instance, error) {
 
 		instance.client = porla.NewClient(clientCfg)
 
-	case domain.DownloadClientTypeRTorrent:
+	case domain.DownloaderTypeRTorrent:
 		rtCfg := rtorrent.Config{
 			Addr:          cfg.Host,
 			TLSSkipVerify: cfg.TLSSkipVerify,
@@ -407,7 +407,7 @@ func (s *Service) initInstance(cfg *domain.DownloadClient) (*Instance, error) {
 		//}
 
 		var opts []rtorrent.OptFunc
-		if cfg.Settings.Auth.Type == domain.DownloadClientAuthTypeDigest {
+		if cfg.Settings.Auth.Type == domain.DownloaderAuthTypeDigest {
 			transport := &digest.Transport{
 				Username:  cfg.Settings.Auth.Username,
 				Password:  cfg.Settings.Auth.Password,
@@ -425,7 +425,7 @@ func (s *Service) initInstance(cfg *domain.DownloadClient) (*Instance, error) {
 
 		instance.client = rtorrent.NewClientWithOpts(rtCfg, opts...)
 
-	case domain.DownloadClientTypeTransmission:
+	case domain.DownloaderTypeTransmission:
 		clientHost, err := cfg.BuildLegacyHost()
 		if err != nil {
 			return nil, errors.Wrap(err, "error building Transmission host url: %v", cfg.Host)
@@ -449,7 +449,7 @@ func (s *Service) initInstance(cfg *domain.DownloadClient) (*Instance, error) {
 		}
 		instance.client = client
 
-	case domain.DownloadClientTypeSabnzbd:
+	case domain.DownloaderTypeSabnzbd:
 		clientCfg := sabnzbd.Options{
 			Addr:   cfg.Host,
 			ApiKey: cfg.Settings.APIKey,
@@ -463,7 +463,7 @@ func (s *Service) initInstance(cfg *domain.DownloadClient) (*Instance, error) {
 
 		instance.client = sabnzbd.New(clientCfg)
 
-	case domain.DownloadClientTypeNzbget:
+	case domain.DownloaderTypeNzbget:
 		clientCfg := nzbget.Options{
 			Host:     cfg.Host,
 			Username: cfg.Username,
@@ -472,7 +472,7 @@ func (s *Service) initInstance(cfg *domain.DownloadClient) (*Instance, error) {
 		}
 		instance.client = nzbget.New(clientCfg)
 
-	case domain.DownloadClientTypeLidarr:
+	case domain.DownloaderTypeLidarr:
 		clientCfg := lidarr.Config{
 			Hostname:      cfg.Host,
 			APIKey:        cfg.Settings.APIKey,
@@ -484,7 +484,7 @@ func (s *Service) initInstance(cfg *domain.DownloadClient) (*Instance, error) {
 		}
 		instance.client = lidarr.New(clientCfg)
 
-	case domain.DownloadClientTypeRadarr:
+	case domain.DownloaderTypeRadarr:
 		clientCfg := radarr.Config{
 			Hostname:      cfg.Host,
 			APIKey:        cfg.Settings.APIKey,
@@ -496,7 +496,7 @@ func (s *Service) initInstance(cfg *domain.DownloadClient) (*Instance, error) {
 		}
 		instance.client = radarr.New(clientCfg)
 
-	case domain.DownloadClientTypeReadarr:
+	case domain.DownloaderTypeReadarr:
 		clientCfg := readarr.Config{
 			Hostname:      cfg.Host,
 			APIKey:        cfg.Settings.APIKey,
@@ -508,7 +508,7 @@ func (s *Service) initInstance(cfg *domain.DownloadClient) (*Instance, error) {
 		}
 		instance.client = readarr.New(clientCfg)
 
-	case domain.DownloadClientTypeSonarr:
+	case domain.DownloaderTypeSonarr:
 		clientCfg := sonarr.Config{
 			Hostname:      cfg.Host,
 			APIKey:        cfg.Settings.APIKey,
@@ -520,7 +520,7 @@ func (s *Service) initInstance(cfg *domain.DownloadClient) (*Instance, error) {
 		}
 		instance.client = sonarr.New(clientCfg)
 
-	case domain.DownloadClientTypeSportarr:
+	case domain.DownloaderTypeSportarr:
 		clientCfg := sportarr.Config{
 			Hostname:      cfg.Host,
 			APIKey:        cfg.Settings.APIKey,
@@ -532,7 +532,7 @@ func (s *Service) initInstance(cfg *domain.DownloadClient) (*Instance, error) {
 		}
 		instance.client = sportarr.New(clientCfg)
 
-	case domain.DownloadClientTypeWhisparr, domain.DownloadClientTypeWhisparrV3:
+	case domain.DownloaderTypeWhisparr, domain.DownloaderTypeWhisparrV3:
 		clientCfg := whisparr.Config{
 			Hostname:      cfg.Host,
 			APIKey:        cfg.Settings.APIKey,

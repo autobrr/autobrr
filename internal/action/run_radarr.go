@@ -22,7 +22,7 @@ func (s *Service) runRadarr(ctx context.Context, action *domain.Action, release 
 
 	l.Trace().Msg("running Radarr action")
 
-	instance, err := s.clientSvc.GetInstance(ctx, action.ClientID)
+	instance, err := s.downloaderSvc.GetInstance(ctx, action.ClientID)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func (s *Service) runRadarr(ctx context.Context, action *domain.Action, release 
 		if idStr, idOk := strings.CutPrefix(release.MetaIMDB, "tt"); idOk {
 			id, err := strconv.Atoi(idStr)
 			if err == nil {
-				r.ImdbID = id
+				req.ImdbID = id
 			} else {
 				s.log.Error().Err(err).Msg("could not parse IMDB ID from release")
 			}

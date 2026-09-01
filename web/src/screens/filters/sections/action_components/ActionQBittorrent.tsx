@@ -11,7 +11,7 @@ import { ActionContentLayoutOptions, ActionPriorityOptions } from "@domain/const
 
 import { CollapsibleSection, FilterHalfRow, FilterLayout, FilterSection, FilterWideGridGapClass } from "../_components";
 import {
-  DownloadClientSelect,
+  DownloaderSelect,
   NumberField,
   Select,
   SwitchGroup,
@@ -30,7 +30,7 @@ export const QBittorrent = ({ idx, action, clients }: ClientActionProps) => {
     >
       <FilterLayout>
         <FilterHalfRow>
-          <DownloadClientSelect
+          <DownloaderSelect
             name={`actions.${idx}.client_id`}
             action={action}
             clients={clients}

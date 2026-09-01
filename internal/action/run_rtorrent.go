@@ -18,7 +18,7 @@ func (s *Service) runRTorrent(ctx context.Context, action *domain.Action, releas
 
 	l.Debug().Msg("running rTorrent action")
 
-	instance, err := s.clientSvc.GetInstance(ctx, action.ClientID)
+	instance, err := s.downloaderSvc.GetInstance(ctx, action.ClientID)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func (s *Service) runRTorrent(ctx context.Context, action *domain.Action, releas
 		return nil, nil
 	}
 
-	if err := s.downloadSvc.DownloadRelease(ctx, release); err != nil {
+	if err := s.rlsDownloadSvc.DownloadRelease(ctx, release); err != nil {
 		return nil, errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
 	}
 

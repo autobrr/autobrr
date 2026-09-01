@@ -22,7 +22,7 @@ func (s *Service) runDeluge(ctx context.Context, action *domain.Action, release 
 
 	var err error
 
-	instance, err := s.clientSvc.GetInstance(ctx, action.ClientID)
+	instance, err := s.downloaderSvc.GetInstance(ctx, action.ClientID)
 	if err != nil {
 		return nil, err
 	}
@@ -39,14 +39,14 @@ func (s *Service) runDeluge(ctx context.Context, action *domain.Action, release 
 	var rejections []string
 
 	switch cfg.Type {
-	case domain.DownloadClientTypeDelugeV1:
+	case domain.DownloaderTypeDelugeV1:
 		client, err := downloader.ClientAs[*deluge.Client](instance)
 		if err != nil {
 			return nil, err
 		}
 		rejections, err = s.delugeV1(ctx, cfg, client, action, release)
 
-	case domain.DownloadClientTypeDelugeV2:
+	case domain.DownloaderTypeDelugeV2:
 		client, err := downloader.ClientAs[*deluge.ClientV2](instance)
 		if err != nil {
 			return nil, err
@@ -57,7 +57,7 @@ func (s *Service) runDeluge(ctx context.Context, action *domain.Action, release 
 	return rejections, err
 }
 
-func (s *Service) delugeCheckRulesCanDownload(ctx context.Context, del deluge.DelugeClient, client *domain.DownloadClient, action *domain.Action) ([]string, error) {
+func (s *Service) delugeCheckRulesCanDownload(ctx context.Context, del deluge.DelugeClient, client *domain.Downloader, action *domain.Action) ([]string, error) {
 	l := zerolog.Ctx(ctx)
 
 	l.Trace().Msg("check rules")
@@ -104,7 +104,7 @@ func (s *Service) delugeCheckRulesCanDownload(ctx context.Context, del deluge.De
 	return nil, nil
 }
 
-func (s *Service) delugeV1(ctx context.Context, cfg *domain.DownloadClient, client *deluge.Client, action *domain.Action, release *domain.Release) ([]string, error) {
+func (s *Service) delugeV1(ctx context.Context, cfg *domain.Downloader, client *deluge.Client, action *domain.Action, release *domain.Release) ([]string, error) {
 	l := zerolog.Ctx(ctx)
 
 	//client := deluge.NewV1(deluge.Settings{
@@ -152,7 +152,7 @@ func (s *Service) delugeV1(ctx context.Context, cfg *domain.DownloadClient, clie
 		break
 
 	default:
-		if err := s.downloadSvc.DownloadRelease(ctx, release); err != nil {
+		if err := s.rlsDownloadSvc.DownloadRelease(ctx, release); err != nil {
 			return nil, errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
 		}
 
@@ -211,7 +211,7 @@ func delugeSetOrCreateTorrentLabel(ctx context.Context, plugin *deluge.LabelPlug
 	return nil
 }
 
-func (s *Service) delugeV2(ctx context.Context, cfg *domain.DownloadClient, client *deluge.ClientV2, action *domain.Action, release *domain.Release) ([]string, error) {
+func (s *Service) delugeV2(ctx context.Context, cfg *domain.Downloader, client *deluge.ClientV2, action *domain.Action, release *domain.Release) ([]string, error) {
 	l := zerolog.Ctx(ctx)
 
 	//client := deluge.NewV2(deluge.Settings{
@@ -257,7 +257,7 @@ func (s *Service) delugeV2(ctx context.Context, cfg *domain.DownloadClient, clie
 			return nil, errors.Wrap(err, "could not add torrent magnet %s to client: %s", release.MagnetURI, cfg.Name)
 		}
 	default:
-		if err := s.downloadSvc.DownloadRelease(ctx, release); err != nil {
+		if err := s.rlsDownloadSvc.DownloadRelease(ctx, release); err != nil {
 			return nil, errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
 		}
 

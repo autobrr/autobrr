@@ -53,7 +53,6 @@ func (p *WhisparrProcessor) Process(ctx context.Context) (*domain.FilterUpdate, 
 	var total, processedTitles int
 
 	//switch p.arrVersion {
-	//case domain.DownloadClientTypeWhisparr:
 	switch p.list.Type {
 	case domain.ListTypeWhisparr:
 
@@ -80,7 +79,6 @@ func (p *WhisparrProcessor) Process(ctx context.Context) (*domain.FilterUpdate, 
 			ts.AddTitle(show.Title)
 		}
 
-	//case domain.DownloadClientTypeWhisparrV3:
 	case domain.ListTypeWhisparrV3:
 		movies, err := p.client.GetMovies(ctx)
 		if err != nil {

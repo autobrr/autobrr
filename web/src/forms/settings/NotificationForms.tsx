@@ -26,7 +26,7 @@ import { NumberFieldWide, PasswordFieldWide, SelectFieldWide, SwitchGroupWide, T
 import { Checkbox } from "@components/Checkbox";
 import { EmptySimple } from "@components/emptystates";
 
-import { componentMapType } from "./DownloadClientForms";
+import { componentMapType } from "./DownloaderForms";
 import { AddFormProps, UpdateFormProps } from "@forms/_shared";
 
 function FormFieldsDiscord() {

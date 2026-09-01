@@ -11,18 +11,18 @@ import (
 )
 
 type Instance struct {
-	config *domain.DownloadClient
+	config *domain.Downloader
 	client any
 }
 
-func NewInstance(config *domain.DownloadClient, client any) *Instance {
+func NewInstance(config *domain.Downloader, client any) *Instance {
 	return &Instance{
 		config: config,
 		client: client,
 	}
 }
 
-func (i *Instance) Config() *domain.DownloadClient {
+func (i *Instance) Config() *domain.Downloader {
 	return i.config
 }
 
