@@ -109,6 +109,6 @@ var MagnetTransport = &MagnetRoundTripper{}
 func DrainAndClose(resp *http.Response) {
 	if resp != nil && resp.Body != nil {
 		_, _ = io.Copy(io.Discard, resp.Body) // #nosec G104
-		_ = resp.Body.Close() // #nosec G104
+		_ = resp.Body.Close()                 // #nosec G104
 	}
 }

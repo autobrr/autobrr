@@ -316,7 +316,6 @@ func (sm *ConnectionStateMachine) OnConnecting() {
 func (sm *ConnectionStateMachine) OnConnected() {
 	_ = sm.transition(StateConnected) // #nosec G104
 
-
 	// Determine next state based on auth requirements
 	sm.handler.m.RLock()
 	botMode := sm.handler.network.BotMode

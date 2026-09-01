@@ -113,7 +113,7 @@ func CheckHash(password, hash string) (match bool, params *Params, err error) {
 
 	otherKey := argon2.IDKey([]byte(password), salt, params.Iterations, params.Memory, params.Parallelism, params.KeyLength)
 
-	keyLen := int32(len(key)) // #nosec G115
+	keyLen := int32(len(key))           // #nosec G115
 	otherKeyLen := int32(len(otherKey)) // #nosec G115
 
 	if subtle.ConstantTimeEq(keyLen, otherKeyLen) == 0 {

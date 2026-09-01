@@ -1826,7 +1826,7 @@ func (r *FilterRepo) StoreFilterExternal(ctx context.Context, filterID int, exte
 			toNullString(external.WebhookHeaders),
 			toNullInt32(int32(external.WebhookExpectStatus)), // #nosec G115
 			toNullString(external.WebhookRetryStatus),
-			toNullInt32(int32(external.WebhookRetryAttempts)), // #nosec G115
+			toNullInt32(int32(external.WebhookRetryAttempts)),     // #nosec G115
 			toNullInt32(int32(external.WebhookRetryDelaySeconds)), // #nosec G115
 			external.OnError,
 			filterID,

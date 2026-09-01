@@ -790,7 +790,7 @@ func (r *ActionRepo) Store(ctx context.Context, action *domain.Action) error {
 			toNullInt32(action.ExternalDownloadClientID),
 			toNullString(action.ExternalDownloadClient),
 			toNullInt32(action.ClientID),
-				toNullInt32(int32(action.FilterID)), // #nosec G115
+			toNullInt32(int32(action.FilterID)), // #nosec G115
 		).
 		Suffix("RETURNING id").RunWith(r.db.Handler)
 

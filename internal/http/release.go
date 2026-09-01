@@ -133,7 +133,7 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 	search := r.URL.Query().Get("q")
 
 	query := domain.ReleaseQueryParams{
-		Limit:  uint64(limit), // #nosec G115
+		Limit:  uint64(limit),  // #nosec G115
 		Offset: uint64(offset), // #nosec G115
 		Cursor: uint64(cursor), // #nosec G115
 		Sort:   nil,
