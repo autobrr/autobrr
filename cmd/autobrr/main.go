@@ -90,7 +90,7 @@ func main() {
 	}
 
 	// Set GOMEMLIMIT to match the Linux container Memory quota (if any)
-	memLimit, err := memlimit.SetGoMemLimitWithOpts(memlimit.WithProvider(memlimit.ApplyFallback(memlimit.FromCgroupHybrid, memlimit.FromSystem)))
+	memLimit, err := memlimit.Set(memlimit.WithProvider(memlimit.ApplyFallback(memlimit.FromCgroup, memlimit.FromSystem)))
 	if err != nil {
 		log.Error().Err(err).Msg("failed to set GOMEMLIMIT")
 	}
