@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Chart } from "@tanstack/react-charts";
 import { defineChart, cell } from "@tanstack/charts";
+import { tooltip } from "@tanstack/charts/tooltip";
 import { scaleBand, scaleQuantize } from "d3-scale";
 
 import { ReleasesHeatmapQueryOptions } from "@api/queries";
@@ -80,20 +81,27 @@ export const HourHeatmap = () => {
           radius: 2
         })
       ],
-      x: {
-        scale: scaleBand<number>().domain(HOURS),
-        grid: false,
-        format: (value: number) => (value % 3 === 0 ? String(value).padStart(2, "0") : "")
-      },
-      y: {
-        scale: scaleBand<string>().domain(DISPLAY_DAYS),
-        grid: false
+      scales: {
+        x: {
+          scale: scaleBand<number>().domain(HOURS),
+          grid: false,
+          axis: {
+            ticks: {
+              format: (value: number) => (value % 3 === 0 ? String(value).padStart(2, "0") : "")
+            }
+          }
+        },
+        y: {
+          scale: scaleBand<string>().domain(DISPLAY_DAYS),
+          grid: false
+        }
       },
       color: {
         scale: scaleQuantize<string>().domain([1, max]).range(ramp)
       },
       theme: chartTheme(isDark),
       tooltip: {
+        use: tooltip,
         content: (points) => {
           const point = points[0];
           if (!point) {
