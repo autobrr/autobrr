@@ -138,13 +138,14 @@ func (r *Release) Hash() string {
 }
 
 // MustNormalize applies the Normalize transform to s, returning a lower cased,
-// clean form of s useful for matching titles.
+// clean form of s useful for matching titles. If normalization encounters an error,
+// it falls back to a lower-cased version of s.
 func MustNormalize(s string) string {
-	s, _, err := transform.String(NewNormalizer(), s)
+	res, _, err := transform.String(NewNormalizer(), s)
 	if err != nil {
-		panic(err)
+		return strings.ToLower(s)
 	}
-	return s
+	return res
 }
 
 // NewNormalizer is a custom rls.Normalizer that keeps plus sign + for HDR10+ fx
