@@ -25,7 +25,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  REGISTRY_IMAGE: ghcr.io/${{ github.repository }}
+  REGISTRY_IMAGE: ghcr.io/cylae/autobrr
   NODE_VERSION: '24.15.0'
 
 permissions:
