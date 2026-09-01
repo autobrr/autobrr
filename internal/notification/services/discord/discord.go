@@ -71,7 +71,7 @@ type Embed struct {
 	Description string      `json:"description,omitempty"`
 	Color       int         `json:"color,omitempty"`
 	Fields      EmbedFields `json:"fields,omitempty"`
-	Timestamp   time.Time   `json:"timestamp,omitempty"`
+	Timestamp   time.Time   `json:"timestamp"`
 	Author      *Author     `json:"author,omitempty"`
 	Thumbnail   *Image      `json:"thumbnail,omitempty"`
 	Image       *Image      `json:"image,omitempty"`
@@ -386,8 +386,7 @@ func (c *Client) SendMessage(ctx context.Context, message *Message) error {
 		retry.Attempts(3),
 		retry.Delay(retryDelay),
 		retry.DelayType(func(n uint, err error, config *retry.Config) time.Duration {
-			var rle *rateLimitError
-			if errors.As(err, &rle) && rle.delay > 0 {
+			if rle, ok := errors.AsType[*rateLimitError](err); ok && rle.delay > 0 {
 				return rle.delay
 			}
 

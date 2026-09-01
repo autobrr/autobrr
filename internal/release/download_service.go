@@ -176,8 +176,7 @@ func (s *DownloadService) downloadTorrentFile(ctx context.Context, indexer *doma
 		retry.DelayType(func(n uint, err error, config *retry.Config) time.Duration {
 			l.Error().Err(err).Uint("attempt", n).Msg("http call encountered error")
 
-			var retriable *RetriableError
-			if errors.As(err, &retriable) {
+			if retriable, ok := errors.AsType[*RetriableError](err); ok {
 				l.Debug().Uint("attempt", n).Dur("retry_after", retriable.RetryAfter).Msg("http call rate-limited")
 				return retriable.RetryAfter
 			}
@@ -195,8 +194,7 @@ func retryableRequest(httpClient *http.Client, req *http.Request, r *domain.Rele
 		// Get the data
 		resp, err := httpClient.Do(req)
 		if err != nil {
-			var opErr *net.OpError
-			if errors.As(err, &opErr) {
+			if _, ok := errors.AsType[*net.OpError](err); ok {
 				return retry.Unrecoverable(errors.Wrap(err, "issue from proxy"))
 			}
 

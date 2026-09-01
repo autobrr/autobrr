@@ -107,7 +107,7 @@ type IrcNetwork struct {
 	TLSSkipVerify    bool         `json:"tls_skip_verify"`
 	Pass             string       `json:"pass"`
 	Nick             string       `json:"nick"`
-	Auth             IRCAuth      `json:"auth,omitempty"`
+	Auth             IRCAuth      `json:"auth"`
 	InviteCommand    string       `json:"invite_command"`
 	UseBouncer       bool         `json:"use_bouncer"`
 	BouncerAddr      string       `json:"bouncer_addr"`
@@ -192,7 +192,7 @@ type IrcNetworkWithHealth struct {
 	TLSSkipVerify    bool                   `json:"tls_skip_verify"`
 	Pass             string                 `json:"pass"`
 	Nick             string                 `json:"nick"`
-	Auth             IRCAuth                `json:"auth,omitempty"`
+	Auth             IRCAuth                `json:"auth"`
 	InviteCommand    string                 `json:"invite_command"`
 	UseBouncer       bool                   `json:"use_bouncer"`
 	BouncerAddr      string                 `json:"bouncer_addr"`

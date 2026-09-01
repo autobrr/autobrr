@@ -5,6 +5,7 @@ package domain
 
 import (
 	"bytes"
+	"cmp"
 	"encoding/json"
 	"maps"
 	"net/url"
@@ -553,10 +554,7 @@ func parseLineMatchRegexp(pattern string, tmpVars map[string]string, line string
 				return true, nil
 			}
 
-			name := groupNames[groupIdx]
-			if name == "" {
-				name = "raw"
-			}
+			name := cmp.Or(groupNames[groupIdx], "raw")
 			tmpVars[name] = group
 		}
 	}

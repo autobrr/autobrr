@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -481,13 +482,7 @@ func GetEnvInt(key string) int {
 
 func validDatabaseType(v string) bool {
 	valid := []string{"sqlite", "postgres"}
-	for _, s := range valid {
-		if s == v {
-			return true
-		}
-	}
-
-	return false
+	return slices.Contains(valid, v)
 }
 
 func (c *AppConfig) load(configPath string) {

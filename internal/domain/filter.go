@@ -891,9 +891,7 @@ func matchRegex(tag string, filterList string) bool {
 
 // checkFilterIntStrings "1,2,3-20"
 func containsIntStrings(value int, filterList string) bool {
-	filters := strings.Split(filterList, ",")
-
-	for _, filter := range filters {
+	for filter := range strings.SplitSeq(filterList, ",") {
 		filter = strings.Replace(filter, "%", "", -1)
 		filter = strings.TrimSpace(filter)
 
@@ -915,11 +913,11 @@ func containsIntStrings(value int, filterList string) bool {
 				if minValue > maxValue {
 					// handle error
 					return false
-				} else {
-					// if announcePercent is greater than minValue and less than maxValue return true
-					if value >= int(minValue) && value <= int(maxValue) {
-						return true
-					}
+				}
+
+				// if announcePercent is greater than minValue and less than maxValue return true
+				if value >= int(minValue) && value <= int(maxValue) {
+					return true
 				}
 			}
 
@@ -1164,9 +1162,7 @@ func basicContainsMatch(tags []string, filters []string) bool {
 }
 
 func checkFreeleechPercent(announcePercent int, filterPercent string) bool {
-	filters := strings.Split(filterPercent, ",")
-
-	for _, filter := range filters {
+	for filter := range strings.SplitSeq(filterPercent, ",") {
 		filter = strings.Replace(filter, "%", "", -1)
 		filter = strings.TrimSpace(filter)
 

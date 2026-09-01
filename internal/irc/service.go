@@ -6,7 +6,6 @@ package irc
 import (
 	"context"
 	"slices"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -526,8 +525,8 @@ func (s *Service) GetNetworksWithHealth(ctx context.Context) ([]domain.IrcNetwor
 				}
 
 				// sort alphabetically so the ui doesn't jump around randomly between auto-refresh
-				sort.SliceStable(netw.Channels, func(i, j int) bool {
-					return netw.Channels[i].Name < netw.Channels[j].Name
+				slices.SortStableFunc(netw.Channels, func(a, b domain.IrcChannelWithHealth) int {
+					return strings.Compare(a.Name, b.Name)
 				})
 			}
 		} else {

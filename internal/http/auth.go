@@ -188,7 +188,7 @@ func (h *authHandler) validate(w http.ResponseWriter, r *http.Request) {
 	authMethod := h.sessionManager.GetString(ctx, "auth_method")
 	profilePicture := h.sessionManager.GetString(ctx, "profile_picture")
 
-	response := map[string]interface{}{
+	response := map[string]any{
 		"username":    username,
 		"auth_method": authMethod,
 	}

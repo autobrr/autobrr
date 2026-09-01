@@ -8,7 +8,6 @@ import (
 	"encoding/base64"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/downloader"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/porla"
 
@@ -34,7 +33,7 @@ func (s *Service) runPorla(ctx context.Context, action *domain.Action, release *
 		return nil, errors.New("client %s %s not enabled", cfg.Type, cfg.Name)
 	}
 
-	client, err := downloader.ClientAs[*porla.Client](instance)
+	client, err := instance.ClientAs[*porla.Client]()
 	if err != nil {
 		return nil, err
 	}

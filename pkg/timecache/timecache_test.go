@@ -33,14 +33,14 @@ func TestResolution(t *testing.T) {
 
 	unique := 0
 	old := ti.Now().UnixMilli()
-	for i := 0; i < rounds; i++ {
-		new := ti.Now().UnixMilli()
-		if new > old {
+	for range rounds {
+		newTime := ti.Now().UnixMilli()
+		if newTime > old {
 			unique++
-			old = new
+			old = newTime
 		}
 
-		if div := new % magicNumber; div != 0 {
+		if div := newTime % magicNumber; div != 0 {
 			t.Fatalf("not a multiple of %d: %d", magicNumber, div)
 		}
 		time.Sleep(time.Millisecond * 1)

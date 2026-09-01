@@ -4,6 +4,7 @@
 package domain
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -23,7 +24,7 @@ type Downloader struct {
 	TLSSkipVerify bool               `json:"tls_skip_verify"`
 	Username      string             `json:"username"`
 	Password      string             `json:"password"`
-	Settings      DownloaderSettings `json:"settings,omitempty"`
+	Settings      DownloaderSettings `json:"settings"`
 }
 
 func (c Downloader) MarshalJSON() ([]byte, error) {
@@ -59,11 +60,11 @@ func (c Downloader) MarshalJSON() ([]byte, error) {
 
 type DownloaderSettings struct {
 	APIKey                   string          `json:"apikey,omitempty"`
-	Basic                    BasicAuth       `json:"basic,omitempty"` // Deprecated: Use Auth instead
-	Rules                    DownloaderRules `json:"rules,omitempty"`
+	Basic                    BasicAuth       `json:"basic"` // Deprecated: Use Auth instead
+	Rules                    DownloaderRules `json:"rules"`
 	ExternalDownloadClientId int             `json:"external_download_client_id,omitempty"`
 	ExternalDownloadClient   string          `json:"external_download_client,omitempty"`
-	Auth                     DownloaderAuth  `json:"auth,omitempty"`
+	Auth                     DownloaderAuth  `json:"auth"`
 }
 
 // MarshalJSON Custom method to translate Basic into Auth without including Basic in JSON output
@@ -259,9 +260,7 @@ func (c Downloader) qbitBuildLegacyHost() (string, error) {
 	u.Scheme = scheme
 
 	// if host is empty lets use one from settings
-	if u.Host == "" {
-		u.Host = c.Host
-	}
+	u.Host = cmp.Or(u.Host, c.Host)
 
 	// reset Path
 	if u.Host == u.Path {
@@ -300,9 +299,7 @@ func (c Downloader) transmissionBuildLegacyHost() (string, error) {
 	u.Scheme = scheme
 
 	// if host is empty lets use one from settings
-	if u.Host == "" {
-		u.Host = c.Host
-	}
+	u.Host = cmp.Or(u.Host, c.Host)
 
 	// reset Path if it's the same as Host (means Host was just a hostname)
 	if u.Host == u.Path {

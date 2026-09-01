@@ -8,7 +8,6 @@ import (
 	"encoding/base64"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/downloader"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/autobrr/go-deluge"
@@ -40,14 +39,14 @@ func (s *Service) runDeluge(ctx context.Context, action *domain.Action, release 
 
 	switch cfg.Type {
 	case domain.DownloaderTypeDelugeV1:
-		client, convErr := downloader.ClientAs[*deluge.Client](instance)
+		client, convErr := instance.ClientAs[*deluge.Client]()
 		if convErr != nil {
 			return nil, convErr
 		}
 		rejections, err = s.delugeV1(ctx, cfg, client, action, release)
 
 	case domain.DownloaderTypeDelugeV2:
-		client, convErr := downloader.ClientAs[*deluge.ClientV2](instance)
+		client, convErr := instance.ClientAs[*deluge.ClientV2]()
 		if convErr != nil {
 			return nil, convErr
 		}
@@ -192,9 +191,9 @@ func delugeSetOrCreateTorrentLabel(ctx context.Context, plugin *deluge.LabelPlug
 	if err != nil {
 		// if label does not exist the client will throw an RPC error.
 		// We can parse that and check for specific error for Unknown Label and then create the label
-		var rpcErr deluge.RPCError
+		rpcErr, isRPCErr := errors.AsType[deluge.RPCError](err)
 		switch {
-		case errors.As(err, &rpcErr) && rpcErr.ExceptionMessage == "Unknown Label":
+		case isRPCErr && rpcErr.ExceptionMessage == "Unknown Label":
 			if addErr := plugin.AddLabel(ctx, label); addErr != nil {
 				return errors.Wrap(addErr, "could not add label: %s on client: %s", label, clientName)
 			}
@@ -293,11 +292,8 @@ func (s *Service) delugeV2(ctx context.Context, cfg *domain.Downloader, client *
 }
 
 func (s *Service) prepareDelugeOptions(action *domain.Action) (deluge.Options, error) {
-	// set options
-	options := deluge.Options{}
-
 	// always set; to override client default
-	options.AddPaused = &action.Paused
+	options := deluge.Options{AddPaused: &action.Paused}
 
 	if action.SavePath != "" {
 		options.DownloadLocation = &action.SavePath

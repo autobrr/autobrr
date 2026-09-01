@@ -136,7 +136,7 @@ func (s *Service) getClientInstance[T any](ctx context.Context, clientID int32) 
 		return nil, errors.New("client %s %s not enabled", cfg.Type, cfg.Name)
 	}
 
-	client, err := downloader.ClientAs[T](instance)
+	client, err := instance.ClientAs[T]()
 	if err != nil {
 		return nil, err
 	}

@@ -95,7 +95,7 @@ func (s *Service) GetArrTags(ctx context.Context, id int32) ([]domain.ArrTag, er
 
 	switch cfg.Type {
 	case domain.DownloaderTypeRadarr:
-		client, err := ClientAs[*radarr.Client](instance)
+		client, err := instance.ClientAs[*radarr.Client]()
 		if err != nil {
 			return nil, err
 		}
@@ -117,7 +117,7 @@ func (s *Service) GetArrTags(ctx context.Context, id int32) ([]domain.ArrTag, er
 		return data, nil
 
 	case domain.DownloaderTypeSonarr:
-		client, err := ClientAs[*sonarr.Client](instance)
+		client, err := instance.ClientAs[*sonarr.Client]()
 		if err != nil {
 			return nil, err
 		}
@@ -139,7 +139,7 @@ func (s *Service) GetArrTags(ctx context.Context, id int32) ([]domain.ArrTag, er
 		return data, nil
 
 	case domain.DownloaderTypeWhisparr, domain.DownloaderTypeWhisparrV3:
-		client, err := ClientAs[*whisparr.Client](instance)
+		client, err := instance.ClientAs[*whisparr.Client]()
 		if err != nil {
 			return nil, err
 		}
@@ -161,7 +161,7 @@ func (s *Service) GetArrTags(ctx context.Context, id int32) ([]domain.ArrTag, er
 		return data, nil
 
 	case domain.DownloaderTypeSportarr:
-		client, err := ClientAs[*sportarr.Client](instance)
+		client, err := instance.ClientAs[*sportarr.Client]()
 		if err != nil {
 			return nil, err
 		}

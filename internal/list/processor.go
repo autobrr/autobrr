@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/downloader"
 	"github.com/autobrr/autobrr/pkg/arr/lidarr"
 	"github.com/autobrr/autobrr/pkg/arr/radarr"
 	"github.com/autobrr/autobrr/pkg/arr/readarr"
@@ -41,7 +40,7 @@ func (s *Service) getClientInstance[T any](ctx context.Context, clientID int) (*
 		return nil, errors.Errorf("client %s %s not enabled", cfg.Type, cfg.Name)
 	}
 
-	client, err := downloader.ClientAs[T](instance)
+	client, err := instance.ClientAs[T]()
 	if err != nil {
 		return nil, err
 	}
