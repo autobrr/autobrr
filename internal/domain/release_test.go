@@ -462,6 +462,41 @@ func TestRelease_Parse(t *testing.T) {
 	}
 }
 
+func TestMustNormalize(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "normal string",
+			input:    "Test Release Title 2023",
+			expected: "test release title 2023",
+		},
+		{
+			name:     "special characters and spaces",
+			input:    "Servant.S01.2160p.ATVP.WEB-DL",
+			expected: "servant s01 2160p atvp web-dl",
+		},
+		{
+			name:     "keeps plus sign for HDR10+",
+			input:    "Movie.2023.HDR10+.2160p",
+			expected: "movie 2023 hdr10+ 2160p",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.NotPanics(t, func() {
+				res := MustNormalize(tt.input)
+				if tt.expected != "" {
+					assert.Equal(t, tt.expected, res)
+				}
+			})
+		})
+	}
+}
+
 func TestRelease_MapVars(t *testing.T) {
 	type args struct {
 		varMap map[string]string
