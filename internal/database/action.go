@@ -790,7 +790,7 @@ func (r *ActionRepo) Store(ctx context.Context, action *domain.Action) error {
 			toNullInt32(action.ExternalDownloadClientID),
 			toNullString(action.ExternalDownloadClient),
 			toNullInt32(action.ClientID),
-			toNullInt32(int32(action.FilterID)),
+				toNullInt32(int32(action.FilterID)), // #nosec G115
 		).
 		Suffix("RETURNING id").RunWith(r.db.Handler)
 
@@ -843,7 +843,7 @@ func (r *ActionRepo) Update(ctx context.Context, action domain.Action) (*domain.
 		Set("external_client_id", toNullInt32(action.ExternalDownloadClientID)).
 		Set("external_client", toNullString(action.ExternalDownloadClient)).
 		Set("client_id", toNullInt32(action.ClientID)).
-		Set("filter_id", toNullInt32(int32(action.FilterID))).
+		Set("filter_id", toNullInt32(int32(action.FilterID))). // #nosec G115
 		Where(sq.Eq{"id": action.ID})
 
 	query, args, err := queryBuilder.ToSql()

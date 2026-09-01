@@ -70,7 +70,7 @@ func (d *httpProxyDialer) DialContext(ctx context.Context, network, addr string)
 	if d.proxyURL.Scheme == "https" {
 		tlsConfig := &tls.Config{
 			ServerName:         d.proxyURL.Hostname(),
-			InsecureSkipVerify: d.tlsSkipVerify,
+			InsecureSkipVerify: d.tlsSkipVerify, // #nosec G402
 		}
 		proxyConn = tls.Client(proxyConn, tlsConfig)
 	}

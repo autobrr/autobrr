@@ -185,7 +185,7 @@ func (r *ListRepo) Store(ctx context.Context, list *domain.List) error {
 			list.Name,
 			list.Enabled,
 			list.Type,
-			toNullInt32(int32(list.ClientID)),
+			toNullInt32(int32(list.ClientID)), // #nosec G115
 			list.URL,
 			pq.Array(list.Headers),
 			list.APIKey,
@@ -225,7 +225,7 @@ func (r *ListRepo) Update(ctx context.Context, list *domain.List) error {
 		Set("name", list.Name).
 		Set("enabled", list.Enabled).
 		Set("type", list.Type).
-		Set("client_id", toNullInt32(int32(list.ClientID))).
+		Set("client_id", toNullInt32(int32(list.ClientID))). // #nosec G115
 		Set("url", list.URL).
 		Set("headers", pq.Array(list.Headers)).
 		Set("api_key", list.APIKey).

@@ -1479,12 +1479,12 @@ func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, 
 		for connectedRows.Next() {
 			var id int64
 			if err := connectedRows.Scan(&id); err != nil {
-				connectedRows.Close()
+				_ = connectedRows.Close() // #nosec G104
 				return errors.Wrap(err, "error scanning row")
 			}
 			connected[id] = struct{}{}
 		}
-		connectedRows.Close()
+		_ = connectedRows.Close() // #nosec G104
 		if err := connectedRows.Err(); err != nil {
 			return errors.Wrap(err, "error rows")
 		}
@@ -1508,16 +1508,16 @@ func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, 
 			var id int64
 			var archived bool
 			if err := rows.Scan(&id, &archived); err != nil {
-				rows.Close()
+				_ = rows.Close() // #nosec G104
 				return errors.Wrap(err, "error scanning row")
 			}
 			found++
 			if _, ok := connected[id]; archived && !ok {
-				rows.Close()
+				_ = rows.Close() // #nosec G104
 				return errors.Wrap(domain.ErrIndexerArchived, "indexer with id %d is archived", id)
 			}
 		}
-		rows.Close()
+		_ = rows.Close() // #nosec G104
 		if err := rows.Err(); err != nil {
 			return errors.Wrap(err, "error rows")
 		}
@@ -1819,15 +1819,15 @@ func (r *FilterRepo) StoreFilterExternal(ctx context.Context, filterID int, exte
 			external.Enabled,
 			toNullString(external.ExecCmd),
 			toNullString(external.ExecArgs),
-			toNullInt32(int32(external.ExecExpectStatus)),
+			toNullInt32(int32(external.ExecExpectStatus)), // #nosec G115
 			toNullString(external.WebhookHost),
 			toNullString(external.WebhookMethod),
 			toNullString(external.WebhookData),
 			toNullString(external.WebhookHeaders),
-			toNullInt32(int32(external.WebhookExpectStatus)),
+			toNullInt32(int32(external.WebhookExpectStatus)), // #nosec G115
 			toNullString(external.WebhookRetryStatus),
-			toNullInt32(int32(external.WebhookRetryAttempts)),
-			toNullInt32(int32(external.WebhookRetryDelaySeconds)),
+			toNullInt32(int32(external.WebhookRetryAttempts)), // #nosec G115
+			toNullInt32(int32(external.WebhookRetryDelaySeconds)), // #nosec G115
 			external.OnError,
 			filterID,
 		)

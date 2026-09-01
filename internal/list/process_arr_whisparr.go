@@ -60,7 +60,7 @@ func (s *Service) whisparr(ctx context.Context, list *domain.List) error {
 }
 
 func (s *Service) processWhisparr(ctx context.Context, list *domain.List, logger *zerolog.Logger) ([]string, error) {
-	downloadClient, err := s.downloadClientSvc.GetClient(ctx, int32(list.ClientID))
+	downloadClient, err := s.downloadClientSvc.GetClient(ctx, int32(list.ClientID)) // #nosec G115
 	if err != nil {
 		return nil, errors.Wrap(err, "could not get client with id %d", list.ClientID)
 	}

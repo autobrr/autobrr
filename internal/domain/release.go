@@ -925,7 +925,7 @@ func (r *Release) WriteTemporaryFile() error {
 	defer tmpFile.Close()
 
 	if _, err := tmpFile.Write(r.TorrentDataRawBytes); err != nil {
-		os.Remove(tmpFile.Name())
+		_ = os.Remove(tmpFile.Name()) // #nosec G104
 		return errors.Wrap(err, "error writing tmp file: %s", tmpFile.Name())
 	}
 

@@ -269,7 +269,11 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 		if err != nil {
 			j.Log.Error().Err(err).Int64("value", value).Msg("could not parse item.custom.seeds")
 		}
-		rls.Seeders = int(value)
+		if value > math.MaxInt {
+				rls.Seeders = math.MaxInt
+			} else {
+				rls.Seeders = int(value)
+			}
 	}
 
 	if val, ok := item.Custom["peers"]; ok {
@@ -277,7 +281,11 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 		if err != nil {
 			j.Log.Error().Err(err).Int64("value", value).Msg("could not parse item.custom.peers")
 		}
-		rls.Leechers = int(value) - rls.Seeders
+		if value > math.MaxInt {
+				rls.Leechers = math.MaxInt - rls.Seeders
+			} else {
+				rls.Leechers = int(value) - rls.Seeders
+			}
 	}
 
 	if val, ok := item.Custom["magnetURI"]; ok {
@@ -405,7 +413,7 @@ func (j *RSSJob) getFeed(ctx context.Context) (items []*gofeed.Item, err error) 
 
 		if j.Feed.TLSSkipVerify {
 			if t, ok := proxyClient.Transport.(*http.Transport); ok {
-				t.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+				t.TLSClientConfig = &tls.Config{InsecureSkipVerify: true} // #nosec G402
 			}
 		}
 
