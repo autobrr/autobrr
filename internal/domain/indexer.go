@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
-	"github.com/autobrr/autobrr/pkg/regexcache"
+	"github.com/autobrr/go-cache/regexcache"
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/dustin/go-humanize"

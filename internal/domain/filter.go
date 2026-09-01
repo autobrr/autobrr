@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
-	"github.com/autobrr/autobrr/pkg/regexcache"
 	"github.com/autobrr/autobrr/pkg/sanitize"
 	"github.com/autobrr/autobrr/pkg/wildcard"
+	"github.com/autobrr/go-cache/regexcache"
 
 	"github.com/dustin/go-humanize"
 	"github.com/go-andiamo/splitter"

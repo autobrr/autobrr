@@ -10,16 +10,15 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
-	"github.com/autobrr/autobrr/pkg/ttlcache"
+	"github.com/autobrr/go-cache/ttlcache"
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/dustin/go-humanize"
 )
 
-var templateCache = ttlcache.New(
-	ttlcache.Options[string, *template.Template]{}.
-		SetTimerResolution(5 * time.Minute).
-		SetDefaultTTL(15 * time.Minute),
+var templateCache = ttlcache.New[string, *template.Template](
+	ttlcache.SetTimerResolution(5*time.Minute),
+	ttlcache.SetDefaultTTL(15*time.Minute),
 )
 
 type Macro struct {
