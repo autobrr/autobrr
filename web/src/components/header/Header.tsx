@@ -45,7 +45,14 @@ export const Header = () => {
         to: loginRoute.id,
       })
     },
-    onError: () => {}
+    onError: () => {
+      // Logout 403s while auth is disabled; still clear local state so the UI
+      // can't wedge on a stale session.
+      AuthContext.reset();
+      redirect({
+        to: loginRoute.id,
+      })
+    }
   });
 
   return (

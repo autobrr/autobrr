@@ -127,6 +127,35 @@ checkForUpdates = true
 # Disable Built In Login Form (only works when using external auth)
 #oidcDisableBuiltInLogin = false
 
+# Disable authentication (DANGEROUS)
+#
+# Only for deployments where a reverse proxy in front of autobrr performs
+# authentication itself. When enabled, autobrr performs NO authentication of its
+# own and grants full access to any request whose immediate network peer matches
+# authAllowedPeerCIDRs. Cannot be combined with oidcEnabled.
+#
+# Requires the acknowledgement below set to the exact value shown.
+#authDisabled = false
+#authDisabledAcknowledgement = "I_ACKNOWLEDGE_THIS_IS_A_BAD_IDEA"
+#
+# Allowlist matched against the immediate TCP peer autobrr sees (normally the
+# reverse proxy or loopback), NOT a forwarded header or the end user's browser.
+# Prefer the exact proxy address as a /32 or /128.
+#authAllowedPeerCIDRs = ["127.0.0.1/32", "::1/128"]
+#
+# corsAllowedOrigins is REQUIRED in this mode and must list every URL you access
+# autobrr at (UI or API, comma separated, scheme://host[:port] - no wildcard).
+# Browser requests with any other Origin or Host are rejected to block cross-site
+# request forgery and DNS rebinding; plain API clients (curl, scripts) are only
+# subject to the peer allowlist. Direct access by IP or localhost needs no entry.
+#corsAllowedOrigins = "https://autobrr.example.com"
+#
+# Header the reverse proxy overwrites on EVERY request with the end user's IP,
+# used for access logs while authentication is disabled. Only safe with a header
+# your proxy sets unconditionally (e.g. X-Real-IP with nginx real_ip, or
+# CF-Connecting-IP with Cloudflare); leave empty to log the proxy address instead.
+#authClientIPHeader = ""
+
 # Metrics
 #
 # Enable metrics endpoint
@@ -290,6 +319,11 @@ func (c *AppConfig) defaults() {
 		MetricsHost:           "127.0.0.1",
 		MetricsPort:           9074,
 		MetricsBasicAuthUsers: "",
+
+		AuthDisabled:                false,
+		AuthDisabledAcknowledgement: "",
+		AuthAllowedPeerCIDRs:        []string{},
+		AuthClientIPHeader:          "",
 	}
 }
 
@@ -448,6 +482,40 @@ func (c *AppConfig) loadFromEnv() {
 	if v := GetEnvStr("METRICS_BASIC_AUTH_USERS"); v != "" {
 		c.Config.MetricsBasicAuthUsers = v
 	}
+
+	// Auth disabled configuration
+	if v := GetEnvStr("AUTH_DISABLED"); v != "" {
+		c.Config.AuthDisabled = strings.EqualFold(v, "true")
+	}
+
+	if v := GetEnvStr("AUTH_DISABLED_ACKNOWLEDGEMENT"); v != "" {
+		c.Config.AuthDisabledAcknowledgement = v
+	}
+
+	if v := GetEnvStr("AUTH_ALLOWED_PEER_CIDRS"); v != "" {
+		c.Config.AuthAllowedPeerCIDRs = splitEnvList(v)
+	}
+
+	if v := GetEnvStr("AUTH_CLIENT_IP_HEADER"); v != "" {
+		c.Config.AuthClientIPHeader = v
+	}
+}
+
+// splitEnvList splits a comma or whitespace separated env var value into a
+// slice of trimmed, non-empty entries.
+func splitEnvList(v string) []string {
+	fields := strings.FieldsFunc(v, func(r rune) bool {
+		return r == ',' || r == ' ' || r == '\t' || r == '\n'
+	})
+
+	entries := make([]string, 0, len(fields))
+	for _, f := range fields {
+		if f = strings.TrimSpace(f); f != "" {
+			entries = append(entries, f)
+		}
+	}
+
+	return entries
 }
 
 func GetEnvStr(key string) string {

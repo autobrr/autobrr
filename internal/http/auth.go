@@ -14,6 +14,7 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog"
 )
 
@@ -54,7 +55,9 @@ func newAuthHandler(encoder encoder, log zerolog.Logger, server *Server, config 
 }
 
 func (h *authHandler) Routes(r chi.Router) {
-	r.Post("/login", h.login)
+	// serialize login attempts so credential brute forcing cannot fan out over
+	// parallel argon2 comparisons; matches the throttle on the OIDC routes
+	r.With(middleware.ThrottleBacklog(1, 1, time.Second)).Post("/login", h.login)
 	r.Post("/onboard", h.onboard)
 	r.Get("/onboard", h.canOnboard)
 
@@ -72,7 +75,21 @@ func (h *authHandler) Routes(r chi.Router) {
 	})
 }
 
+// rejectIfAuthDisabled returns true and writes a 403 if authentication is
+// disabled, since password/session management is meaningless in that mode.
+func (h *authHandler) rejectIfAuthDisabled(w http.ResponseWriter) bool {
+	if h.config.IsAuthDisabled() {
+		h.encoder.StatusError(w, http.StatusForbidden, errors.New("authentication is disabled"))
+		return true
+	}
+	return false
+}
+
 func (h *authHandler) login(w http.ResponseWriter, r *http.Request) {
+	if h.rejectIfAuthDisabled(w) {
+		return
+	}
+
 	ctx := r.Context()
 	var data domain.UserLoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
@@ -116,6 +133,10 @@ func (h *authHandler) login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *authHandler) logout(w http.ResponseWriter, r *http.Request) {
+	if h.rejectIfAuthDisabled(w) {
+		return
+	}
+
 	if err := h.sessionManager.Destroy(r.Context()); err != nil {
 		h.log.Error().Err(err).Str("remote_addr", r.RemoteAddr).Msg("failed to destroy session")
 		h.encoder.StatusError(w, http.StatusInternalServerError, err)
@@ -167,6 +188,10 @@ func (h *authHandler) onboardEligible(ctx context.Context) (int, error) {
 		return http.StatusServiceUnavailable, errors.New("onboarding unavailable: using oidc provider")
 	}
 
+	if h.config.IsAuthDisabled() {
+		return http.StatusServiceUnavailable, errors.New("onboarding unavailable: authentication is disabled")
+	}
+
 	userCount, err := h.service.GetUserCount(ctx)
 	if err != nil {
 		return http.StatusInternalServerError, errors.New("could not get user count")
@@ -183,6 +208,14 @@ func (h *authHandler) onboardEligible(ctx context.Context) (int, error) {
 // validate sits behind the IsAuthenticated middleware which takes care of checking for a valid session
 // If there is a valid session return OK, otherwise the middleware returns early with a 401
 func (h *authHandler) validate(w http.ResponseWriter, r *http.Request) {
+	if h.config.IsAuthDisabled() {
+		h.encoder.StatusResponse(w, http.StatusOK, map[string]interface{}{
+			"username":    "admin",
+			"auth_method": "disabled",
+		})
+		return
+	}
+
 	ctx := r.Context()
 	username := h.sessionManager.GetString(ctx, "username")
 	authMethod := h.sessionManager.GetString(ctx, "auth_method")
@@ -201,6 +234,10 @@ func (h *authHandler) validate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *authHandler) updateUser(w http.ResponseWriter, r *http.Request) {
+	if h.rejectIfAuthDisabled(w) {
+		return
+	}
+
 	var data domain.UpdateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.StatusError(w, http.StatusBadRequest, errors.Wrap(err, "could not decode json"))
@@ -214,6 +251,26 @@ func (h *authHandler) updateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if data.PasswordNew != "" {
+		h.revokeOtherSessions(r.Context())
+	}
+
 	// send response as ok
 	h.encoder.StatusResponseMessage(w, http.StatusOK, "user successfully updated")
+}
+
+// revokeOtherSessions destroys every session except the current one, so a
+// password change invalidates sessions an attacker may already hold.
+func (h *authHandler) revokeOtherSessions(ctx context.Context) {
+	currentToken := h.sessionManager.Token(ctx)
+
+	if err := h.sessionManager.Iterate(ctx, func(sessionCtx context.Context) error {
+		if h.sessionManager.Token(sessionCtx) == currentToken {
+			return nil
+		}
+
+		return h.sessionManager.Destroy(sessionCtx)
+	}); err != nil {
+		h.log.Error().Err(err).Msg("could not revoke other sessions after password change")
+	}
 }

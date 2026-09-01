@@ -228,7 +228,14 @@ export const SettingsNotificationsRoute = createRoute({
 export const SettingsApiRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'api',
-  loader: (opts) => opts.context.queryClient.ensureQueryData(ApikeysQueryOptions()),
+  loader: (opts) => {
+    // API key management is unavailable when built-in auth is disabled; skip the
+    // prefetch so the (403'd) endpoint isn't hit and the page can render its notice.
+    if (AuthContext.get().authMethod === 'disabled') {
+      return;
+    }
+    return opts.context.queryClient.ensureQueryData(ApikeysQueryOptions());
+  },
   component: APISettings
 });
 
@@ -248,6 +255,12 @@ export const SettingsReleasesRoute = createRoute({
 export const SettingsAccountRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'account',
+  beforeLoad: async () => {
+    // Account (username/password) management is unavailable when built-in auth is disabled.
+    if (AuthContext.get().authMethod === 'disabled') {
+      throw redirect({ to: SettingsRoute.to });
+    }
+  },
   component: AccountSettings
 });
 
@@ -336,6 +349,49 @@ export const AuthRoute = createRoute({
             redirect: location.href,
           },
         });
+      }
+    } else {
+      // Reconcile the persisted auth method with the server so switching auth
+      // modes in either direction can't leave stale UI behind for a session that
+      // was already marked logged in.
+      let authMode: string | undefined;
+      try {
+        const config = await context.queryClient.ensureQueryData(ConfigQueryOptions());
+        authMode = config.auth_mode;
+      } catch (error) {
+        console.debug("auth mode reconciliation failed:", error);
+      }
+
+      const storedAuthMethod = AuthContext.get().authMethod;
+      if (authMode === 'disabled' && storedAuthMethod !== 'disabled') {
+        AuthContext.set({ ...AuthContext.get(), authMethod: 'disabled' });
+      } else if (authMode && authMode !== 'disabled' && storedAuthMethod === 'disabled') {
+        // Auth was switched back on; replace the synthetic disabled identity with
+        // the real session, or fall back to login if none survives.
+        try {
+          const response = await APIClient.auth.validate();
+          let issuerUrl;
+          if (response.auth_method === 'oidc') {
+            const oidcConfig = await APIClient.auth.getOIDCConfig();
+            issuerUrl = oidcConfig.issuerUrl;
+          }
+
+          AuthContext.set({
+            isLoggedIn: true,
+            username: response.username || 'unknown',
+            authMethod: response.auth_method,
+            profilePicture: response.profile_picture,
+            issuerUrl: issuerUrl
+          });
+        } catch {
+          AuthContext.reset();
+          throw redirect({
+            to: LoginRoute.to,
+            search: {
+              redirect: location.href,
+            },
+          });
+        }
       }
     }
 

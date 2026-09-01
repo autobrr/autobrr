@@ -124,6 +124,35 @@ func main() {
 
 	log.Debug().Int64("gomemlimit_bytes", memLimit).Msg("memory limit configured")
 
+	switch {
+	case cfg.Config.IsAuthDisabled():
+		if err := cfg.Config.ValidateAuthDisabledConfig(); err != nil {
+			log.Fatal().Err(err).Msg("authentication is disabled but the configuration is invalid")
+		}
+
+		wildcardBind := cfg.Config.Host == "" || cfg.Config.Host == "0.0.0.0" || cfg.Config.Host == "::"
+		log.Warn().
+			Str("host", cfg.Config.Host).
+			Int("port", cfg.Config.Port).
+			Bool("wildcard_bind", wildcardBind).
+			Str("cors_allowed_origins", cfg.Config.CorsAllowedOrigins).
+			Strs("authAllowedPeerCIDRs", cfg.Config.AuthAllowedPeerCIDRs).
+			Str("authClientIPHeader", cfg.Config.AuthClientIPHeader).
+			Msg("SECURITY: built-in authentication is DISABLED. Access is restricted only to the immediate network peer matching authAllowedPeerCIDRs. Ensure autobrr sits behind a reverse proxy that performs authentication.")
+
+		if prefixes, err := cfg.Config.ParseAuthAllowedPeerCIDRs(); err == nil {
+			for _, p := range prefixes {
+				if p.Bits() < p.Addr().BitLen() {
+					log.Warn().Str("cidr", p.String()).Msg("authAllowedPeerCIDRs entry grants every address in the range full administrative access; prefer the exact reverse-proxy address as a /32 or /128")
+				}
+			}
+		}
+	case cfg.Config.AuthDisabled && cfg.Config.AuthDisabledAcknowledgement != domain.AuthDisabledAcknowledgementValue:
+		log.Warn().
+			Str("acknowledgement_value", domain.AuthDisabledAcknowledgementValue).
+			Msg("authDisabled is set but the acknowledgement is missing or invalid; authentication remains enabled. Set AUTOBRR__AUTH_DISABLED_ACKNOWLEDGEMENT (or authDisabledAcknowledgement) to acknowledgement_value to disable authentication.")
+	}
+
 	// session manager
 	sessionManager := scs.New()
 	switch db.Driver {

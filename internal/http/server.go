@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/netip"
 	"strings"
 	"time"
 
@@ -31,6 +32,20 @@ type Server struct {
 	config         *config.AppConfig
 	allowedOrigins []string
 	sessionManager *scs.SessionManager
+
+	// authAllowedPeerPrefixes is parsed once at startup from
+	// config.AuthAllowedPeerCIDRs, rather than on every request.
+	authAllowedPeerPrefixes []netip.Prefix
+
+	// authAllowedOrigins and authAllowedHosts are derived once at startup from
+	// config.CorsAllowedOrigins. While auth is disabled, browser requests to the
+	// API are enforced against them by RejectUntrustedBrowserRequests.
+	authAllowedOrigins map[string]struct{}
+	authAllowedHosts   map[string]struct{}
+
+	// healthCheckPaths holds the exact resolved paths (base URL included) that are
+	// reachable from loopback while auth is disabled.
+	healthCheckPaths []string
 
 	actionService         actionService
 	apiService            apikeyService
@@ -122,7 +137,55 @@ func NewServer(deps Deps) *Server {
 		srv.allowedOrigins = strings.Split(deps.Config.Config.CorsAllowedOrigins, ",")
 	}
 
+	if deps.Config.Config.IsAuthDisabled() {
+		prefixes, err := deps.Config.Config.ParseAuthAllowedPeerCIDRs()
+		if err != nil {
+			srv.log.Error().Err(err).Msg("auth disabled: invalid authAllowedPeerCIDRs, denying all requests")
+		} else {
+			srv.authAllowedPeerPrefixes = prefixes
+		}
+
+		if err := srv.buildAuthAllowedOriginSets(); err != nil {
+			srv.log.Error().Err(err).Msg("auth disabled: invalid corsAllowedOrigins, denying all browser requests")
+		}
+	}
+
+	srv.healthCheckPaths = []string{
+		srv.routeBaseURL() + "api/healthz/liveness",
+		srv.routeBaseURL() + "api/healthz/readiness",
+	}
+
 	return srv
+}
+
+// buildAuthAllowedOriginSets derives the origin and host allowlists enforced by
+// RejectUntrustedBrowserRequests from the configured CORS origins.
+func (s *Server) buildAuthAllowedOriginSets() error {
+	origins, err := s.config.Config.ParseAuthAllowedOrigins()
+	if err != nil {
+		return err
+	}
+
+	s.authAllowedOrigins = make(map[string]struct{}, len(origins))
+	s.authAllowedHosts = make(map[string]struct{}, len(origins))
+	for _, origin := range origins {
+		s.authAllowedOrigins[origin] = struct{}{}
+		if _, host, ok := strings.Cut(origin, "://"); ok {
+			s.authAllowedHosts[host] = struct{}{}
+		}
+	}
+
+	return nil
+}
+
+// routeBaseURL returns the base path the routers are mounted under. It mirrors the
+// derivation in Handler(): legacy mode always mounts at "/", otherwise at the
+// configured base URL.
+func (s *Server) routeBaseURL() string {
+	if s.config.Config.BaseURLModeLegacy {
+		return "/"
+	}
+	return s.config.Config.BaseURL
 }
 
 func (s *Server) Open() error {
@@ -161,14 +224,29 @@ func (s *Server) Handler() http.Handler {
 
 	r.Use(hlog.NewHandler(s.log))
 	r.Use(hlog.RequestIDHandler("request_id", "X-Request-Id"))
-	r.Use(middleware.RealIP)
+	// Must run before RealIP so forwarded headers cannot bypass the allowlist.
+	r.Use(s.RequireAuthDisabledIPAllowlist)
+	if s.config.Config.IsAuthDisabled() {
+		// RealIP rewrites r.RemoteAddr from forwarded headers it trusts from any
+		// peer, so it stays off in this mode. If the operator names the header their
+		// proxy overwrites, resolve the client IP from it into the request context
+		// for logging; r.RemoteAddr keeps the real TCP peer either way.
+		if header := strings.TrimSpace(s.config.Config.AuthClientIPHeader); header != "" {
+			r.Use(middleware.ClientIPFromHeader(header))
+		}
+	} else {
+		r.Use(middleware.RealIP)
+	}
 	r.Use(middleware.Recoverer)
-	r.Use(LoggerMiddleware(&s.log))
+	r.Use(LoggerMiddleware(&s.log, s.healthCheckPaths))
 
 	c := cors.New(cors.Options{
-		AllowCredentials:   true,
-		AllowedMethods:     []string{http.MethodHead, http.MethodOptions, http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete},
-		AllowedHeaders:     []string{"Authorization"},
+		AllowCredentials: true,
+		AllowedMethods:   []string{http.MethodHead, http.MethodOptions, http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete},
+		// Content-Type must be approved for cross-origin JSON writes to pass
+		// preflight, X-API-Token so allowlisted browser tools can authenticate
+		// with a header instead of ?apikey= in the URL.
+		AllowedHeaders:     []string{"Authorization", "Content-Type", "X-API-Token", "X-Requested-With"},
 		AllowedOrigins:     s.allowedOrigins,
 		OptionsPassthrough: true,
 		// Enable Debugging for testing, consider disabling in production
@@ -182,6 +260,9 @@ func (s *Server) Handler() http.Handler {
 
 	// Create a separate router for API
 	apiRouter := chi.NewRouter()
+	// API only, so cross-site navigations to the web shell (e.g. dashboard
+	// iframes) keep working; their in-frame API calls are same-origin.
+	apiRouter.Use(s.RejectUntrustedBrowserRequests)
 	apiRouter.Route("/auth", newAuthHandler(encoder, s.log, s, s.config.Config, s.sessionManager, s.authService, s.oidcService).Routes)
 	apiRouter.Route("/healthz", newHealthHandler(encoder, s.db).Routes)
 	apiRouter.Group(func(r chi.Router) {
@@ -196,7 +277,7 @@ func (s *Server) Handler() http.Handler {
 			r.Route("/irc", newIrcHandler(encoder, s.sse, s.ircService).Routes)
 			r.Route("/indexer", newIndexerHandler(encoder, s.indexerService, s.ircService).Routes)
 			r.Route("/lists", newListHandler(encoder, s.listService).Routes)
-			r.Route("/keys", newAPIKeyHandler(encoder, s.apiService).Routes)
+			r.Route("/keys", newAPIKeyHandler(encoder, s.apiService, s.config.Config).Routes)
 			r.Route("/logs", newLogsHandler(s.config).Routes)
 			r.Route("/notification", newNotificationHandler(encoder, s.notificationService).Routes)
 			r.Route("/proxy", newProxyHandler(encoder, s.proxyService).Routes)

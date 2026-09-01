@@ -15,6 +15,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -164,6 +165,7 @@ func TestAuthHandlerLogin(t *testing.T) {
 
 	server := &Server{
 		log:            logger,
+		config:         &config.AppConfig{Config: &domain.Config{}},
 		sessionManager: sessionManager,
 	}
 
@@ -221,6 +223,7 @@ func TestAuthHandlerValidateOK(t *testing.T) {
 
 	server := &Server{
 		log:            logger,
+		config:         &config.AppConfig{Config: &domain.Config{}},
 		sessionManager: sessionManager,
 	}
 
@@ -288,6 +291,7 @@ func TestAuthHandlerValidateBad(t *testing.T) {
 
 	server := &Server{
 		log:            logger,
+		config:         &config.AppConfig{Config: &domain.Config{}},
 		sessionManager: sessionManager,
 	}
 
@@ -331,6 +335,7 @@ func TestAuthHandlerLoginBad(t *testing.T) {
 
 	server := &Server{
 		log:            logger,
+		config:         &config.AppConfig{Config: &domain.Config{}},
 		sessionManager: sessionManager,
 	}
 
@@ -383,6 +388,7 @@ func TestAuthHandlerLogout(t *testing.T) {
 
 	server := &Server{
 		log:            logger,
+		config:         &config.AppConfig{Config: &domain.Config{}},
 		sessionManager: sessionManager,
 	}
 
@@ -446,4 +452,43 @@ func TestAuthHandlerLogout(t *testing.T) {
 	//if v := resp.Header.Get("Set-Cookie"); v != "" {
 	//	t.Errorf("logout handler returned cookie")
 	//}
+}
+
+func newSessionToken(t *testing.T, sm *scs.SessionManager) string {
+	t.Helper()
+
+	ctx, err := sm.Load(context.Background(), "")
+	assert.NoError(t, err)
+
+	sm.Put(ctx, "authenticated", true)
+
+	token, _, err := sm.Commit(ctx)
+	assert.NoError(t, err)
+
+	return token
+}
+
+func TestRevokeOtherSessions_KeepsCurrentDestroysRest(t *testing.T) {
+	sm := scs.New()
+
+	current := newSessionToken(t, sm)
+	other1 := newSessionToken(t, sm)
+	other2 := newSessionToken(t, sm)
+
+	h := &authHandler{log: zerolog.Nop(), sessionManager: sm}
+
+	ctx, err := sm.Load(context.Background(), current)
+	assert.NoError(t, err)
+
+	h.revokeOtherSessions(ctx)
+
+	_, found, err := sm.Store.Find(current)
+	assert.NoError(t, err)
+	assert.True(t, found)
+
+	for _, token := range []string{other1, other2} {
+		_, found, err := sm.Store.Find(token)
+		assert.NoError(t, err)
+		assert.False(t, found)
+	}
 }
