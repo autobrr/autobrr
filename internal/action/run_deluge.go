@@ -40,16 +40,16 @@ func (s *Service) runDeluge(ctx context.Context, action *domain.Action, release 
 
 	switch cfg.Type {
 	case domain.DownloaderTypeDelugeV1:
-		client, err := downloader.ClientAs[*deluge.Client](instance)
-		if err != nil {
-			return nil, err
+		client, convErr := downloader.ClientAs[*deluge.Client](instance)
+		if convErr != nil {
+			return nil, convErr
 		}
 		rejections, err = s.delugeV1(ctx, cfg, client, action, release)
 
 	case domain.DownloaderTypeDelugeV2:
-		client, err := downloader.ClientAs[*deluge.ClientV2](instance)
-		if err != nil {
-			return nil, err
+		client, convErr := downloader.ClientAs[*deluge.ClientV2](instance)
+		if convErr != nil {
+			return nil, convErr
 		}
 		rejections, err = s.delugeV2(ctx, cfg, client, action, release)
 	}

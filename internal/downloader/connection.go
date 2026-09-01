@@ -330,7 +330,7 @@ func (s *Service) testConnectionPorla(ctx context.Context, instance *Instance) e
 		commitHash = commitHash[:8]
 	}
 
-	s.log.Debug().Str("version", version.Version).Msg("test client connection for porla: success")
+	s.log.Debug().Str("version", version.Version).Str("commit", commitHash).Msg("test client connection for porla: success")
 
 	return nil
 }

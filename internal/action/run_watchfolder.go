@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -13,6 +14,8 @@ import (
 
 	"github.com/rs/zerolog"
 )
+
+var safeTorrentHashPattern = regexp.MustCompile(`^[a-fA-F0-9]{40}([a-fA-F0-9]{24})?$`)
 
 func (s *Service) runWatchFolder(ctx context.Context, action *domain.Action, release *domain.Release) error {
 	l := zerolog.Ctx(ctx)
@@ -41,6 +44,9 @@ func (s *Service) runWatchFolder(ctx context.Context, action *domain.Action, rel
 		// infohash. It is unique, safe to use as a file name as it stands, and
 		// set alongside the raw bytes. Anything richer belongs in a client or
 		// one of our other tools rather than in the file name.
+		if !safeTorrentHashPattern.MatchString(release.TorrentHash) {
+			return fmt.Errorf("watch_folder: invalid torrent hash")
+		}
 		newFileName = filepath.Join(action.WatchFolder, "autobrr-"+release.TorrentHash+".torrent")
 	} else {
 		dir, _ = filepath.Split(action.WatchFolder)
