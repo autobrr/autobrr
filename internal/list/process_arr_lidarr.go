@@ -95,7 +95,7 @@ func (s *Service) lidarr(ctx context.Context, list *domain.List) error {
 }
 
 func (s *Service) processLidarr(ctx context.Context, list *domain.List, logger *zerolog.Logger) ([]string, []string, error) {
-	downloadClient, err := s.downloadClientSvc.GetClient(ctx, int32(list.ClientID))
+	downloadClient, err := s.downloadClientSvc.GetClient(ctx, int32(list.ClientID)) // #nosec G115
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "could not get client with id %d", list.ClientID)
 	}

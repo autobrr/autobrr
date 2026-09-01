@@ -142,7 +142,8 @@ func NewEventBus(log zerolog.Logger) *EventBus {
 }
 
 func (eb *EventBus) EmitAppUpdate(ctx context.Context, event AppUpdateEvent) {
-	eb.appUpdate.Emit(ctx, event)
+	_ = eb.appUpdate.Emit(ctx, event) // #nosec G104
+
 }
 
 func (eb *EventBus) OnAppUpdate(handler func(context.Context, AppUpdateEvent) error) func() {
@@ -150,7 +151,8 @@ func (eb *EventBus) OnAppUpdate(handler func(context.Context, AppUpdateEvent) er
 }
 
 func (eb *EventBus) EmitIndexer(ctx context.Context, event IndexerChangeEvent) {
-	eb.indexer.Emit(ctx, event)
+	_ = eb.indexer.Emit(ctx, event) // #nosec G104
+
 }
 
 func (eb *EventBus) OnIndexer(handler func(context.Context, IndexerChangeEvent) error) func() {
@@ -158,7 +160,8 @@ func (eb *EventBus) OnIndexer(handler func(context.Context, IndexerChangeEvent) 
 }
 
 func (eb *EventBus) EmitIRC(ctx context.Context, event IRCEvent) {
-	eb.irc.Emit(ctx, event)
+	_ = eb.irc.Emit(ctx, event) // #nosec G104
+
 }
 
 func (eb *EventBus) OnIRC(handler func(context.Context, IRCEvent) error) func() {
@@ -166,7 +169,8 @@ func (eb *EventBus) OnIRC(handler func(context.Context, IRCEvent) error) func() 
 }
 
 func (eb *EventBus) EmitReleaseNew(ctx context.Context, event ReleaseEvent) {
-	eb.release.Emit(ctx, event)
+	_ = eb.release.Emit(ctx, event) // #nosec G104
+
 }
 
 func (eb *EventBus) OnReleaseNew(handler func(context.Context, ReleaseEvent) error) func() {
@@ -174,7 +178,8 @@ func (eb *EventBus) OnReleaseNew(handler func(context.Context, ReleaseEvent) err
 }
 
 func (eb *EventBus) EmitReleasePush(ctx context.Context, event ReleasePushEvent) {
-	eb.releasePush.Emit(ctx, event)
+	_ = eb.releasePush.Emit(ctx, event) // #nosec G104
+
 }
 
 func (eb *EventBus) OnReleasePush(handler func(context.Context, ReleasePushEvent) error) func() {

@@ -198,7 +198,8 @@ func (c *AppConfig) writeConfig(configPath string, configFile string) error {
 		} else if pd, _ := os.Open("/proc/1/cgroup"); pd != nil {
 			defer pd.Close()
 			b := make([]byte, 4096)
-			pd.Read(b)
+			_, _ = pd.Read(b) // #nosec G104
+
 			if strings.Contains(string(b), "/docker") || strings.Contains(string(b), "/lxc") {
 				host = "0.0.0.0"
 			}

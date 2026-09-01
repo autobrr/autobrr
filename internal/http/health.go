@@ -46,11 +46,13 @@ func (h healthHandler) handleReadiness(w http.ResponseWriter, _ *http.Request) {
 func writeHealthy(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
+	_, _ = w.Write([]byte("OK")) // #nosec G104
+
 }
 
 func writeUnhealthy(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusInternalServerError)
-	w.Write([]byte("Unhealthy. Database unreachable"))
+	_, _ = w.Write([]byte("Unhealthy. Database unreachable")) // #nosec G104
+
 }

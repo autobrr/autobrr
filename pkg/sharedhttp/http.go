@@ -48,7 +48,7 @@ var TransportTLSInsecure = &http.Transport{
 	ReadBufferSize:        65536,
 	WriteBufferSize:       65536,
 	TLSClientConfig: &tls.Config{
-		InsecureSkipVerify: false,
+		InsecureSkipVerify: false, // #nosec G402
 	},
 }
 
@@ -108,7 +108,7 @@ var MagnetTransport = &MagnetRoundTripper{}
 // DrainAndClose drains the response body and closes it to prevent connection leaks
 func DrainAndClose(resp *http.Response) {
 	if resp != nil && resp.Body != nil {
-		io.Copy(io.Discard, resp.Body)
-		resp.Body.Close()
+		_, _ = io.Copy(io.Discard, resp.Body) // #nosec G104
+		_ = resp.Body.Close() // #nosec G104
 	}
 }

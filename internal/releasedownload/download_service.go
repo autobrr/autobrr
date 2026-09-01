@@ -266,10 +266,7 @@ func retryableRequest(httpClient *http.Client, req *http.Request, r *domain.Rele
 			return retry.Unrecoverable(errors.New("unexpected status code %d: check indexer keys for %s", resp.StatusCode, r.Indexer.Name))
 		}
 
-		resetTmpFile := func() {
-			_, _ = tmpFile.Seek(0, io.SeekStart)
-			_ = tmpFile.Truncate(0)
-		}
+
 
 		// Read the body into bytes
 		bodyBytes, err := io.ReadAll(bufio.NewReader(resp.Body))
