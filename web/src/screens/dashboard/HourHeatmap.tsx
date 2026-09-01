@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Chart } from "@tanstack/react-charts";
 import { defineChart, cell } from "@tanstack/charts";
+import { tooltip } from "@tanstack/charts/tooltip";
 import { scaleBand, scaleQuantize } from "d3-scale";
 
 import { ReleasesHeatmapQueryOptions } from "@api/queries";
@@ -23,6 +24,8 @@ const squareCellChartAspectRatio = 3.15;
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const DISPLAY_DOWS = [1, 2, 3, 4, 5, 6, 0];
+const DISPLAY_DAYS = DISPLAY_DOWS.map((dow) => DAY_LABELS[dow]);
+const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
 
 // The API grid is UTC-indexed (dow*24+hour); shift whole cells into the
 // browser's timezone so the evening peak lands where the user expects it.
@@ -78,20 +81,27 @@ export const HourHeatmap = () => {
           radius: 2
         })
       ],
-      x: {
-        scale: scaleBand,
-        grid: false,
-        format: (value: number) => (value % 3 === 0 ? String(value).padStart(2, "0") : "")
-      },
-      y: {
-        scale: scaleBand,
-        grid: false
+      scales: {
+        x: {
+          scale: scaleBand<number>().domain(HOURS),
+          grid: false,
+          axis: {
+            ticks: {
+              format: (value: number) => (value % 3 === 0 ? String(value).padStart(2, "0") : "")
+            }
+          }
+        },
+        y: {
+          scale: scaleBand<string>().domain(DISPLAY_DAYS),
+          grid: false
+        }
       },
       color: {
         scale: scaleQuantize<string>().domain([1, max]).range(ramp)
       },
       theme: chartTheme(isDark),
       tooltip: {
+        use: tooltip,
         content: (points) => {
           const point = points[0];
           if (!point) {

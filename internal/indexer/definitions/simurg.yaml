@@ -1,0 +1,125 @@
+---
+version: 2
+#id: simurg
+name: Simurg
+identifier: simurg
+description: Simurg (SIM) is a private tracker for E-BOOKS, AUDIOBOOKS, COMICS, MANGA, and MAGAZINES.
+language: en-us
+urls:
+  - https://simurg.world/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: gazelle
+settings:
+  - name: torrent_pass
+    type: secret
+    required: true
+    label: Torrent pass
+    help: Right click a torrent's download link and copy the torrent_pass value.
+
+irc:
+  network: Simurg
+  server: irc.simurg.world
+  port: 6697
+  tls: true
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user|bot
+
+    - name: auth.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+
+    - name: invite_command
+      type: secret
+      default: "Qaf .invite IRCKEY"
+      required: true
+      label: Invite command
+      help: Invite auth with Qaf. Replace IRCKEY with your IRC key.
+
+  channels:
+    - name: "#announce"
+      announcers:
+        - Soroush
+      parse:
+        type: single
+        lines:
+          - pattern: '^NEW \| Category=(?P<category>.*?) \| Leech=(?P<leechEnum>Normal|Freeleech|Naturaleech) \| Tags=(?P<releaseTags>.* \/ (?P<language>[^|]+?)) \| Size=(?P<torrentSize>.*?) \| Name=(?P<releaseName>.*?) \| URL=(?P<baseUrl>https?:\/\/[^\/]+\/)torrents\.php\?id=(?P<groupId>\d+)&torrentid=(?P<torrentId>\d+)$'
+            tests:
+              - line: 'NEW | Category=E-Book | Leech=Freeleech | Tags=PDF / OCR / Turkish | Size=2.48 MiB | Name=Example Turkish Book by Example Author | URL=https://simurg.world/torrents.php?id=1001&torrentid=2001'
+                expect:
+                  category: E-Book
+                  leechEnum: Freeleech
+                  releaseTags: PDF / OCR / Turkish
+                  language: Turkish
+                  torrentSize: 2.48 MiB
+                  releaseName: Example Turkish Book by Example Author
+                  baseUrl: https://simurg.world/
+                  groupId: "1001"
+                  torrentId: "2001"
+
+              - line: 'NEW | Category=Magazine | Leech=Freeleech | Tags=PDF / Scan / English | Size=461.16 MiB | Name=Example Magazine - 1954 Complete Year | URL=https://simurg.world/torrents.php?id=1002&torrentid=2002'
+                expect:
+                  category: Magazine
+                  leechEnum: Freeleech
+                  releaseTags: PDF / Scan / English
+                  language: English
+                  torrentSize: 461.16 MiB
+                  releaseName: Example Magazine - 1954 Complete Year
+                  baseUrl: https://simurg.world/
+                  groupId: "1002"
+                  torrentId: "2002"
+
+              - line: 'NEW | Category=Audiobook | Leech=Normal | Tags=MP3 / English | Size=1.20 GiB | Name=Example Audiobook | URL=https://simurg.world/torrents.php?id=1003&torrentid=2003'
+                expect:
+                  category: Audiobook
+                  leechEnum: Normal
+                  releaseTags: MP3 / English
+                  language: English
+                  torrentSize: 1.20 GiB
+                  releaseName: Example Audiobook
+                  baseUrl: https://simurg.world/
+                  groupId: "1003"
+                  torrentId: "2003"
+
+              - line: 'NEW | Category=Comics & Manga | Leech=Naturaleech | Tags=CBZ / English | Size=850.00 MiB | Name=Example Comic | URL=https://simurg.world/torrents.php?id=1004&torrentid=2004'
+                expect:
+                  category: Comics & Manga
+                  leechEnum: Naturaleech
+                  releaseTags: CBZ / English
+                  language: English
+                  torrentSize: 850.00 MiB
+                  releaseName: Example Comic
+                  baseUrl: https://simurg.world/
+                  groupId: "1004"
+                  torrentId: "2004"
+
+        mappings:
+          leechEnum:
+            Normal:
+              downloadVolumeFactor: 1
+              uploadVolumeFactor: 1
+            Freeleech:
+              downloadVolumeFactor: 0
+              uploadVolumeFactor: 1
+            Naturaleech:
+              downloadVolumeFactor: 0
+              uploadVolumeFactor: 0
+
+        match:
+          infourl: "/torrents.php?id={{ .groupId }}&torrentid={{ .torrentId }}"
+          downloadurl: "/torrents.php?action=download&id={{ .torrentId }}&torrent_pass={{ .torrent_pass }}"

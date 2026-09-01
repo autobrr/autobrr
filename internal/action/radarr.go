@@ -5,6 +5,8 @@ package action
 
 import (
 	"context"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -48,6 +50,18 @@ func (s *Service) radarr(ctx context.Context, action *domain.Action, release *do
 		DownloadProtocol: release.Protocol.String(),
 		Protocol:         release.Protocol.String(),
 		PublishDate:      time.Now().Format(time.RFC3339),
+		TmdbID:           release.MetaTMDB,
+	}
+
+	if release.MetaIMDB != "" {
+		if idStr, idOk := strings.CutPrefix(release.MetaIMDB, "tt"); idOk {
+			id, err := strconv.Atoi(idStr)
+			if err == nil {
+				r.ImdbID = id
+			} else {
+				s.log.Error().Err(err).Msg("could not parse IMDB ID from release")
+			}
+		}
 	}
 
 	if action.ExternalDownloadClientID > 0 {

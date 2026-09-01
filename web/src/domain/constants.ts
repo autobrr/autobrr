@@ -774,6 +774,10 @@ export const downloadsPerUnitOptions: OptionBasic[] = [
     value: ""
   },
   {
+    label: "MINUTE",
+    value: "MINUTE"
+  },
+  {
     label: "HOUR",
     value: "HOUR"
   },
@@ -793,6 +797,11 @@ export const downloadsPerUnitOptions: OptionBasic[] = [
     label: "EVER",
     value: "EVER"
   }
+];
+
+export const getWindowTypeOptions = (t: TFunction): OptionBasic[] => [
+  { label: t("options:maxDownloadsWindowType.FIXED"), value: "FIXED" },
+  { label: t("options:maxDownloadsWindowType.ROLLING"), value: "ROLLING" }
 ];
 
 export const DownloadRuleConditionOptions: OptionBasic[] = [

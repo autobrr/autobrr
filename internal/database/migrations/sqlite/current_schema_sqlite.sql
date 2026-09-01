@@ -175,6 +175,8 @@ CREATE TABLE filter
     priority                     INTEGER   DEFAULT 0    NOT NULL,
     max_downloads                INTEGER   DEFAULT 0,
     max_downloads_unit           TEXT,
+    max_downloads_period         INTEGER   DEFAULT 1       NOT NULL,
+    max_downloads_window_type    TEXT      DEFAULT 'FIXED' NOT NULL,
     announce_types               TEXT []   DEFAULT '{}',
     match_releases               TEXT,
     except_releases              TEXT,
@@ -527,8 +529,8 @@ CREATE INDEX release_action_status_timestamp_status_index
 CREATE INDEX release_action_status_release_id_index
     ON release_action_status (release_id);
 
-CREATE INDEX release_action_status_filter_id_index
-    ON release_action_status (filter_id);
+CREATE INDEX release_action_status_filter_id_status_index
+    ON release_action_status (filter_id, status);
 
 CREATE TABLE feed
 (

@@ -8,7 +8,7 @@ const globals = require("globals");
 const reactRefresh = reactRefreshModule.default ?? reactRefreshModule;
 const sourceFiles = ["src/**/*.{ts,tsx}"];
 const tsFiles = ["**/*.{ts,tsx}"];
-const nodeFiles = ["eslint.config.cjs", "vite.config.ts", "tailwind.config.ts"];
+const nodeFiles = ["eslint.config.cjs", "vite.config.ts", "vitest.config.ts", "tailwind.config.ts"];
 
 const withFiles = (config, files) => ({
   ...config,

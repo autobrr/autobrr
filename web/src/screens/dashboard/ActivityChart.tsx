@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Chart } from "@tanstack/react-charts";
 import { defineChart, lineY, d3Curve } from "@tanstack/charts";
+import { tooltip } from "@tanstack/charts/tooltip";
 import { scaleUtc, scaleLinear } from "d3-scale";
 import { curveMonotoneX } from "d3-shape";
 import { format } from "date-fns";
@@ -66,17 +67,27 @@ export const ActivityChart = () => {
           curve: d3Curve(curveMonotoneX)
         })
       ],
-      x: {
-        scale: scaleUtc,
-        ticks: 6,
-        grid: false,
-        format: (value: Date) => format(value, rangeDays === 0 || rangeDays > 180 ? "MMM yyyy" : "MMM d")
-      },
-      y: {
-        scale: scaleLinear,
-        nice: true,
-        ticks: 4,
-        grid: true
+      scales: {
+        x: {
+          scale: scaleUtc,
+          grid: false,
+          axis: {
+            ticks: {
+              count: 6,
+              format: (value: Date) => format(value, rangeDays === 0 || rangeDays > 180 ? "MMM yyyy" : "MMM d")
+            }
+          }
+        },
+        y: {
+          scale: scaleLinear,
+          nice: true,
+          grid: true,
+          axis: {
+            ticks: {
+              count: 4
+            }
+          }
+        }
       },
       color: {
         domain: series.map((s) => s.label),
@@ -85,6 +96,7 @@ export const ActivityChart = () => {
       theme: chartTheme(isDark),
       focus: "group-x",
       tooltip: {
+        use: tooltip,
         content: (points) => {
           const first = points[0];
           if (!first) {

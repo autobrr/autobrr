@@ -3,8 +3,14 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+/**
+ * @vitest-environment node
+ */
+
+/// <reference types="node" />
+
 import assert from "node:assert/strict";
-import { afterEach, test } from "node:test";
+import { afterEach, test } from "vitest";
 
 import { CopyTextToClipboard } from "../src/utils/clipboard.ts";
 
