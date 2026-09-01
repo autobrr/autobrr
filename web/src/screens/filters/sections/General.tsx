@@ -4,9 +4,9 @@
  */
 
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { useFormikContext } from "formik";
 import { useTranslation } from "react-i18next";
 
+import { useFormValues } from "@hooks/form";
 import { downloadsPerUnitOptions, getWindowTypeOptions } from "@domain/constants";
 import { IndexersOptionsQueryOptions, ReleaseProfileDuplicateList } from "@api/queries";
 
@@ -34,7 +34,7 @@ const MapReleaseProfile = (profile: ReleaseProfileDuplicate) => (
 
 export const General = () => {
   const { t } = useTranslation(["options", "filters"]);
-  const { values } = useFormikContext<Filter>();
+  const values = useFormValues<Filter>();
 
   const indexersQuery = useSuspenseQuery(IndexersOptionsQueryOptions())
 

@@ -30,7 +30,7 @@ export function ReleaseProfileDuplicateAddForm({ isOpen, toggle }: AddFormProps)
     }
   });
 
-  const onSubmit = (data: unknown) => addMutation.mutate(data as ReleaseProfileDuplicate);
+  const onSubmit = (data: ReleaseProfileDuplicate) => addMutation.mutate(data);
 
   const initialValues: ReleaseProfileDuplicate = {
     id: 0,
@@ -118,7 +118,7 @@ export function ReleaseProfileDuplicateUpdateForm({ isOpen, toggle, data: profil
     }
   });
 
-  const onSubmit = (data: unknown) => storeMutation.mutate(data as ReleaseProfileDuplicate);
+  const onSubmit = (data: ReleaseProfileDuplicate) => storeMutation.mutate(data);
 
   const deleteMutation = useMutation({
     mutationFn: (profileId: number) => APIClient.release.profiles.duplicates.delete(profileId),

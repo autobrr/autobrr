@@ -19,14 +19,14 @@ export const Porla = ({ idx, action, clients }: ClientActionProps) => {
       <FilterLayout>
         <FilterHalfRow>
           <DownloaderSelect
-            name={`actions.${idx}.client_id`}
+            name={`actions[${idx}].client_id`}
             action={action}
             clients={clients}
           />
         </FilterHalfRow>
         <FilterHalfRow>
           <TextField
-            name={`actions.${idx}.label`}
+            name={`actions[${idx}].label`}
             label={t("actionComponents.porla.preset")}
             placeholder={t("actionComponents.porla.presetPlaceholder")}
             tooltip={
@@ -37,7 +37,7 @@ export const Porla = ({ idx, action, clients }: ClientActionProps) => {
       </FilterLayout>
 
       <TextAreaAutoResize
-        name={`actions.${idx}.save_path`}
+        name={`actions[${idx}].save_path`}
         label={t("actionComponents.common.savePath")}
         placeholder={t("actionComponents.porla.savePathPlaceholder")}
         className="pb-6"
@@ -50,14 +50,14 @@ export const Porla = ({ idx, action, clients }: ClientActionProps) => {
       >
         <FilterHalfRow>
           <NumberField
-            name={`actions.${idx}.limit_download_speed`}
+            name={`actions[${idx}].limit_download_speed`}
             label={t("actionComponents.common.limitDownloadKib")}
             placeholder={t("actionComponents.common.numberNoLimit")}
           />
         </FilterHalfRow>
         <FilterHalfRow>
           <NumberField
-            name={`actions.${idx}.limit_upload_speed`}
+            name={`actions[${idx}].limit_upload_speed`}
             label={t("actionComponents.common.limitUploadKib")}
             placeholder={t("actionComponents.common.numberNoLimit")}
           />

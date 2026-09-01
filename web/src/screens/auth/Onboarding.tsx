@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Form, Formik } from "formik";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
 import { APIClient } from "@api/APIClient";
+import { fieldErrors, useAppForm } from "@hooks/form";
 import { TextField, PasswordField } from "@components/inputs";
 
 import { UserPlusIcon } from "@heroicons/react/24/outline";
@@ -54,6 +54,18 @@ export const Onboarding = () => {
     onSuccess: () => navigate({ to: "/login" })
   });
 
+  const form = useAppForm({
+    defaultValues: {
+      username: "",
+      password1: "",
+      password2: ""
+    },
+    validators: {
+      onChange: ({ value }) => fieldErrors(validate(value))
+    },
+    onSubmit: ({ value }) => mutation.mutate(value)
+  });
+
   // If OIDC is enabled, redirect to login
   if (oidcConfig?.enabled) {
     navigate({ to: "/login" });
@@ -70,16 +82,14 @@ export const Onboarding = () => {
       </div>
       <div className="mx-auto w-full max-w-md rounded-2xl shadow-lg">
         <div className="px-8 pt-8 pb-6 rounded-2xl bg-white dark:bg-gray-800 border border-gray-150 dark:border-gray-775">
-          <Formik
-            initialValues={{
-              username: "",
-              password1: "",
-              password2: ""
-            }}
-            onSubmit={(data) => mutation.mutate(data)}
-            validate={validate}
-          >
-            <Form>
+          <form.AppForm>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                form.handleSubmit();
+              }}
+            >
               <div className="space-y-6">
                 <TextField name="username" label={t("username")} columns={6} autoComplete="username" />
                 <PasswordField name="password1" label={t("password")} columns={6} autoComplete="current-password" />
@@ -92,8 +102,8 @@ export const Onboarding = () => {
                 <UserPlusIcon className="w-4 h-4 mr-1.5" />
                 {t("createAccount")}
               </button>
-            </Form>
-          </Formik>
+            </form>
+          </form.AppForm>
         </div>
       </div>
     </div>

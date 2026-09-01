@@ -64,7 +64,7 @@ The backend follows a layered architecture with clear separation of concerns:
 - **React 19** with **TypeScript** and **Vite** build system
 - **TanStack Router** for routing and **TanStack Query** for API state management
 - **Tailwind CSS** for styling with custom design system
-- **Formik** and **React Hook Form** for form handling
+- **TanStack Form** for form handling (shared setup in `web/src/hooks/form.ts`, house inputs in `web/src/components/inputs/`)
 - Component structure in `web/src/components/` with reusable UI components
 - API client in `web/src/api/` with centralized query management
 

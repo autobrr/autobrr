@@ -5,14 +5,14 @@
 
 import { Fragment, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSelector } from "@tanstack/react-form";
 import Select from "react-select";
-import type { FieldProps } from "formik";
-import { Field, Form, Formik, FormikValues, useFormikContext } from "formik";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { useTranslation } from "react-i18next";
 
 import { classNames, sleep } from "@utils";
 import { extractCategoryTreeFromCaps, flattenCategoryIds, parseCapabilitiesPayload } from "@utils/caps";
+import { useAppForm, useFormContext, useFormValues } from "@hooks/form";
 import { DEBUG } from "@components/debug";
 import { APIClient } from "@api/APIClient";
 import { FeedKeys, IndexerKeys, ReleaseKeys } from "@api/query_keys";
@@ -235,7 +235,8 @@ const RSSFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
 
 function FeedCategoriesDraftSection({ feedType }: { feedType: FeedType }) {
   const { t } = useTranslation("settings");
-  const { values, setFieldValue } = useFormikContext<FormikValues>();
+  const values = useFormValues<Record<string, unknown>>();
+  const form = useFormContext();
   const feedValues = (values.feed ?? {}) as Record<string, unknown>;
   const capabilities = feedValues.capabilities ?? null;
   const categoriesValue = Array.isArray(feedValues.categories) ? (feedValues.categories as number[]) : [];
@@ -259,8 +260,8 @@ function FeedCategoriesDraftSection({ feedType }: { feedType: FeedType }) {
       const nextCategories = flattenCategoryIds(extractCategoryTreeFromCaps(caps));
       const filteredSelection = categoriesValue.filter((id) => nextCategories.includes(id));
 
-      setFieldValue("feed.capabilities", caps ?? null);
-      setFieldValue("feed.categories", filteredSelection);
+      form.setFieldValue("feed.capabilities", caps ?? null);
+      form.setFieldValue("feed.categories", filteredSelection);
     },
     onError: (error: unknown) => {
       const message = error instanceof Error ? error.message : t("forms.indexer.fetchFailed");
@@ -270,26 +271,26 @@ function FeedCategoriesDraftSection({ feedType }: { feedType: FeedType }) {
 
   const toggleCategory = (id: number) => {
     if (categoriesValue.includes(id)) {
-      setFieldValue(
+      form.setFieldValue(
         "feed.categories",
         categoriesValue.filter((category) => category !== id)
       );
       return;
     }
 
-    setFieldValue("feed.categories", [...categoriesValue, id]);
+    form.setFieldValue("feed.categories", [...categoriesValue, id]);
   };
 
   const toggleParentCategory = (id: number, childIds: number[]) => {
     if (categoriesValue.includes(id)) {
-      setFieldValue(
+      form.setFieldValue(
         "feed.categories",
         categoriesValue.filter((category) => category !== id)
       );
       return;
     }
 
-    setFieldValue(
+    form.setFieldValue(
       "feed.categories",
       [...categoriesValue.filter((category) => !childIds.includes(category)), id]
     );
@@ -443,15 +444,56 @@ const buildIndexerIRCAuth = (
   return { mechanism: "NONE" };
 };
 
+interface IndexerAddIrcValues {
+  nick?: string;
+  pass?: string;
+  invite_command?: string;
+  auth?: Partial<IrcAuth>;
+  channels?: { password: string };
+}
+
+interface IndexerAddFeedValues {
+  url?: string;
+  newznab_url?: string;
+  api_key?: string;
+  categories: number[];
+  capabilities: FeedCaps | null;
+  settings: FeedSettings;
+}
+
+interface IndexerAddInitialValues {
+  enabled: boolean;
+  identifier: string;
+  implementation: string;
+  name: string;
+  base_url?: string;
+  url?: string;
+  irc: IndexerAddIrcValues;
+  settings: Record<string, string>;
+  feed: IndexerAddFeedValues;
+}
+
 export function IndexerAddForm({ isOpen, toggle }: AddFormProps) {
+  return (
+    <SlideOverShell isOpen={isOpen} toggle={toggle}>
+      <IndexerAddFormPanel toggle={toggle} />
+    </SlideOverShell>
+  );
+}
+
+interface IndexerAddFormPanelProps {
+  toggle: () => void;
+}
+
+function IndexerAddFormPanel({ toggle }: IndexerAddFormPanelProps) {
   const { t } = useTranslation("settings");
   const [indexer, setIndexer] = useState<IndexerDefinition>({} as IndexerDefinition);
 
   const queryClient = useQueryClient();
-  const { data } = useQuery(IndexersSchemaQueryOptions(isOpen));
+  const { data } = useQuery(IndexersSchemaQueryOptions(true));
 
   const mutation = useMutation({
-    mutationFn: (indexer: Indexer) => APIClient.indexers.create(indexer),
+    mutationFn: (indexer: IndexerAddInitialValues) => APIClient.indexers.create(indexer as unknown as Indexer),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: IndexerKeys.lists() });
       queryClient.invalidateQueries({ queryKey: IndexerKeys.options() });
@@ -477,7 +519,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddFormProps) {
     }
   });
 
-  const onSubmit = (formData: FormikValues) => {
+  const onSubmit = (formData: IndexerAddInitialValues) => {
     const ind = data && data.find(i => i.identifier === formData.identifier);
     if (!ind) {
       console.error("could not find indexer: ", formData.identifier, " in ", data, " - ", formData);
@@ -490,7 +532,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddFormProps) {
           name: formData.name,
           enabled: false,
           type: "TORZNAB",
-          url: formData.feed.url,
+          url: formData.feed.url ?? "",
           api_key: formData.feed.api_key,
           interval: 30,
           timeout: 60,
@@ -500,7 +542,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddFormProps) {
           settings: formData.feed.settings
         };
 
-        mutation.mutate(formData as Indexer, {
+        mutation.mutate(formData, {
           onSuccess: (indexer) => {
             // @eslint-ignore
             createFeed.indexer_id = indexer.id;
@@ -518,7 +560,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddFormProps) {
           name: formData.name,
           enabled: false,
           type: "NEWZNAB",
-          url: formData.feed.newznab_url,
+          url: formData.feed.newznab_url ?? "",
           api_key: formData.feed.api_key,
           interval: 30,
           timeout: 60,
@@ -528,7 +570,7 @@ export function IndexerAddForm({ isOpen, toggle }: AddFormProps) {
           settings: formData.feed.settings
         };
 
-        mutation.mutate(formData as Indexer, {
+        mutation.mutate(formData, {
           onSuccess: (indexer) => {
             // @eslint-ignore
             createFeed.indexer_id = indexer.id;
@@ -544,14 +586,14 @@ export function IndexerAddForm({ isOpen, toggle }: AddFormProps) {
           name: formData.name,
           enabled: false,
           type: "RSS",
-          url: formData.feed.url,
+          url: formData.feed.url ?? "",
           interval: 30,
           timeout: 60,
           indexer_id: 0,
           settings: formData.feed.settings
         };
 
-        mutation.mutate(formData as Indexer, {
+        mutation.mutate(formData, {
           onSuccess: (indexer) => {
             // @eslint-ignore
             createFeed.indexer_id = indexer.id;
@@ -591,13 +633,13 @@ export function IndexerAddForm({ isOpen, toggle }: AddFormProps) {
           port: ind.irc.port,
           tls: ind.irc.tls,
           tls_skip_verify: false,
-          nick: formData.irc.nick,
+          nick: formData.irc.nick ?? "",
           auth: buildIndexerIRCAuth(ind.irc.auth, formData.irc.auth),
-          invite_command: formData.irc.invite_command,
+          invite_command: formData.irc.invite_command ?? "",
           channels: channels
         };
 
-        mutation.mutate(formData as Indexer, {
+        mutation.mutate(formData, {
           onSuccess: () => {
             ircMutation.mutate(network);
           }
@@ -610,173 +652,196 @@ export function IndexerAddForm({ isOpen, toggle }: AddFormProps) {
     }
   };
 
+  const initialValues: IndexerAddInitialValues = {
+    enabled: true,
+    identifier: "",
+    implementation: "irc",
+    name: "",
+    irc: {},
+    settings: {},
+    feed: {
+      categories: [],
+      capabilities: null,
+      settings: {} as FeedSettings
+    }
+  };
+
+  const form = useAppForm({
+    defaultValues: initialValues,
+    onSubmit: ({ value }) => onSubmit(value)
+  });
+
+  const values = useSelector(form.store, (state) => state.values);
+
   return (
-    <SlideOverShell isOpen={isOpen} toggle={toggle}>
-      <Formik
-        enableReinitialize={true}
-        initialValues={{
-          enabled: true,
-          identifier: "",
-          implementation: "irc",
-          name: "",
-          irc: {},
-          settings: {},
-          feed: {
-            categories: [],
-            capabilities: null,
-            settings: {}
-          }
+    <form.AppForm>
+      <form
+        className="h-full min-h-0 flex flex-col bg-white dark:bg-gray-800"
+        onSubmit={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          form.handleSubmit();
         }}
-        onSubmit={onSubmit}
       >
-        {({ values }) => (
-          <Form className="h-full min-h-0 flex flex-col bg-white dark:bg-gray-800">
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
-                <div className="flex items-start justify-between space-x-3">
-                  <div className="space-y-1">
-                    <SlideOverTitle>
-                      {t("forms.indexer.addTitle")}
-                    </SlideOverTitle>
-                    <p className="text-sm text-gray-500 dark:text-gray-200">
-                      {t("forms.indexer.addDescription")}
-                    </p>
-                  </div>
-                  <div className="h-7 flex items-center">
-                    <button
-                      type="button"
-                      className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                      onClick={toggle}
-                    >
-                      <span className="sr-only">{t("forms.indexer.closePanel")}</span>
-                      <XMarkIcon className="h-6 w-6" aria-hidden="true" />
-                    </button>
-                  </div>
-                </div>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
+            <div className="flex items-start justify-between space-x-3">
+              <div className="space-y-1">
+                <SlideOverTitle>
+                  {t("forms.indexer.addTitle")}
+                </SlideOverTitle>
+                <p className="text-sm text-gray-500 dark:text-gray-200">
+                  {t("forms.indexer.addDescription")}
+                </p>
               </div>
-
-              <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                <div className="p-4 sm:py-6 flex items-center justify-between sm:grid sm:grid-cols-3 sm:gap-4">
-                  <div>
-                    <label
-                      htmlFor="identifier"
-                      className="block text-sm font-medium text-gray-900 dark:text-white"
-                    >
-                      {t("forms.indexer.indexer")}
-                    </label>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <Field name="identifier" type="select">
-                      {({ field, form: { setFieldValue, resetForm } }: FieldProps) => (
-                        <Select {...field}
-                          isClearable={true}
-                          isSearchable={true}
-                          components={{
-                            Input: common.SelectInput,
-                            Control: common.SelectControl,
-                            Menu: common.SelectMenu,
-                            Option: common.SelectOption,
-                            IndicatorSeparator: common.IndicatorSeparator,
-                            DropdownIndicator: common.DropdownIndicator
-                          }}
-                          placeholder={t("forms.indexer.chooseIndexer")}
-                          styles={{
-                            singleValue: (base) => ({
-                              ...base,
-                              color: "unset"
-                            })
-                          }}
-                          theme={(theme) => ({
-                            ...theme,
-                            spacing: {
-                              ...theme.spacing,
-                              controlHeight: 30,
-                              baseUnit: 2
-                            }
-                          })}
-                          value={field?.value && field.value.value}
-                          onChange={(option: unknown) => {
-                            resetForm();
-
-                            if (option != null) {
-                              const opt = option as SelectValue;
-                              setFieldValue("name", opt.label ?? "");
-                              setFieldValue(field.name, opt.value ?? "");
-
-                              const ind = data && data.find(i => i.identifier === opt.value);
-                              if (ind) {
-                                setIndexer(ind);
-                                setFieldValue("implementation", ind.implementation);
-
-                                if (ind.irc && ind.irc.settings) {
-                                  setFieldValue("base_url", ind.urls[0]);
-                                  ind.irc.settings.forEach((s) => {
-                                    setFieldValue(`irc.${s.name}`, s.default ?? "");
-                                  });
-                                }
-                              }
-                            }
-                          }}
-                          options={data && data.sort((a, b) => a.name.localeCompare(b.name)).map(v => ({
-                            label: v.name,
-                            value: v.identifier
-                          }))}
-                        />
-                      )}
-                    </Field>
-
-                  </div>
-                </div>
-
-                <SwitchGroupWide name="enabled" label={t("forms.indexer.enabled")} />
-
-                {indexer.implementation == "irc" && (
-                  <SelectFieldCreatable
-                    name="base_url"
-                    label={t("forms.indexer.baseUrl")}
-                    help={t("forms.indexer.baseUrlHelp")}
-                    options={indexer.urls.map(u => ({ value: u, label: u, key: u }))}
-                  />
-                )}
-
-                {SettingFields(indexer, values.identifier)}
-
-              </div>
-
-              {IrcSettingFields(indexer, values.identifier)}
-              {TorznabFeedSettingFields(indexer, values.identifier)}
-              {NewznabFeedSettingFields(indexer, values.identifier)}
-              {RSSFeedSettingFields(indexer, values.identifier)}
-
-              <DEBUG values={values} />
-            </div>
-
-            <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-5 sm:px-6">
-              <div className="space-x-3 flex justify-end">
+              <div className="h-7 flex items-center">
                 <button
                   type="button"
-                  className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                  className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                   onClick={toggle}
                 >
-                  {t("forms.indexer.cancel")}
-                </button>
-                <button
-                  type="submit"
-                  className="inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                >
-                  {t("forms.indexer.save")}
+                  <span className="sr-only">{t("forms.indexer.closePanel")}</span>
+                  <XMarkIcon className="h-6 w-6" aria-hidden="true" />
                 </button>
               </div>
             </div>
-          </Form>
-        )}
-      </Formik>
-    </SlideOverShell>
+          </div>
+
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
+            <div className="p-4 sm:py-6 flex items-center justify-between sm:grid sm:grid-cols-3 sm:gap-4">
+              <div>
+                <label
+                  htmlFor="identifier"
+                  className="block text-sm font-medium text-gray-900 dark:text-white"
+                >
+                  {t("forms.indexer.indexer")}
+                </label>
+              </div>
+              <div className="sm:col-span-2">
+                <IndexerIdentifierField data={data} setIndexer={setIndexer} />
+
+              </div>
+            </div>
+
+            <SwitchGroupWide name="enabled" label={t("forms.indexer.enabled")} />
+
+            {indexer.implementation == "irc" && (
+              <SelectFieldCreatable
+                name="base_url"
+                label={t("forms.indexer.baseUrl")}
+                help={t("forms.indexer.baseUrlHelp")}
+                options={indexer.urls.map(u => ({ value: u, label: u, key: u }))}
+              />
+            )}
+
+            {SettingFields(indexer, values.identifier)}
+
+          </div>
+
+          {IrcSettingFields(indexer, values.identifier)}
+          {TorznabFeedSettingFields(indexer, values.identifier)}
+          {NewznabFeedSettingFields(indexer, values.identifier)}
+          {RSSFeedSettingFields(indexer, values.identifier)}
+
+          <DEBUG values={values} />
+        </div>
+
+        <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-5 sm:px-6">
+          <div className="space-x-3 flex justify-end">
+            <button
+              type="button"
+              className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+              onClick={toggle}
+            >
+              {t("forms.indexer.cancel")}
+            </button>
+            <button
+              type="submit"
+              className="inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+            >
+              {t("forms.indexer.save")}
+            </button>
+          </div>
+        </div>
+      </form>
+    </form.AppForm>
+  );
+}
+
+interface IndexerIdentifierFieldProps {
+  data?: IndexerDefinition[];
+  setIndexer: (indexer: IndexerDefinition) => void;
+}
+
+function IndexerIdentifierField({ data, setIndexer }: IndexerIdentifierFieldProps) {
+  const { t } = useTranslation("settings");
+  const form = useFormContext();
+
+  return (
+    <form.Field name="identifier">
+      {(field) => (
+        <Select
+          name={field.name}
+          onBlur={field.handleBlur}
+          isClearable={true}
+          isSearchable={true}
+          components={{
+            Input: common.SelectInput,
+            Control: common.SelectControl,
+            Menu: common.SelectMenu,
+            Option: common.SelectOption,
+            IndicatorSeparator: common.IndicatorSeparator,
+            DropdownIndicator: common.DropdownIndicator
+          }}
+          placeholder={t("forms.indexer.chooseIndexer")}
+          styles={{
+            singleValue: (base) => ({
+              ...base,
+              color: "unset"
+            })
+          }}
+          theme={(theme) => ({
+            ...theme,
+            spacing: {
+              ...theme.spacing,
+              controlHeight: 30,
+              baseUnit: 2
+            }
+          })}
+          onChange={(option: unknown) => {
+            form.reset();
+
+            if (option != null) {
+              const opt = option as SelectValue;
+              form.setFieldValue("name", opt.label ?? "");
+              form.setFieldValue(field.name, opt.value ?? "");
+
+              const ind = data && data.find(i => i.identifier === opt.value);
+              if (ind) {
+                setIndexer(ind);
+                form.setFieldValue("implementation", ind.implementation);
+
+                if (ind.irc && ind.irc.settings) {
+                  form.setFieldValue("base_url", ind.urls[0]);
+                  ind.irc.settings.forEach((s) => {
+                    form.setFieldValue(`irc.${s.name}`, s.default ?? "");
+                  });
+                }
+              }
+            }
+          }}
+          options={data && data.sort((a, b) => a.name.localeCompare(b.name)).map(v => ({
+            label: v.name,
+            value: v.identifier
+          }))}
+        />
+      )}
+    </form.Field>
   );
 }
 
 interface TestApiButtonProps {
-  values: FormikValues;
+  values: IndexerUpdateInitialValues;
   show: boolean;
 }
 
@@ -825,7 +890,7 @@ function TestApiButton({ values, show }: TestApiButtonProps) {
 
     const req: IndexerTestApiReq = {
       id: values.id,
-      api_key: values.settings.api_key
+      api_key: values.settings.api_key ?? ""
     };
 
     if (values.settings.api_user) {
@@ -1008,7 +1073,7 @@ export function IndexerUpdateForm({ isOpen, toggle, data: indexer }: UpdateFormP
       deleteAction={deleteAction}
       onSubmit={onSubmit}
       initialValues={initialValues}
-      extraButtons={(values) => <TestApiButton values={values as FormikValues} show={indexer.implementation === "irc" && indexer.supports.includes("api")} />}
+      extraButtons={(values) => <TestApiButton values={values} show={indexer.implementation === "irc" && indexer.supports.includes("api")} />}
     >
       {(values) => (
         <div className="py-2 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
@@ -1019,18 +1084,7 @@ export function IndexerUpdateForm({ isOpen, toggle, data: indexer }: UpdateFormP
             >
               {t("forms.indexer.name")}
             </label>
-            <Field name="name">
-              {({ field, meta }: FieldProps) => (
-                <div className="sm:col-span-2">
-                  <input
-                    type="text"
-                    {...field}
-                    className="block w-full shadow-xs sm:text-sm focus:ring-blue-500 focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100 rounded-md"
-                  />
-                  {meta.touched && meta.error && <span>{meta.error}</span>}
-                </div>
-              )}
-            </Field>
+            <IndexerNameField />
           </div>
 
           <TextFieldWide
@@ -1096,6 +1150,28 @@ export function IndexerUpdateForm({ isOpen, toggle, data: indexer }: UpdateFormP
         </div>
       )}
     </SlideOver>
+  );
+}
+
+function IndexerNameField() {
+  const form = useFormContext();
+
+  return (
+    <form.Field name="name">
+      {(field) => (
+        <div className="sm:col-span-2">
+          <input
+            type="text"
+            name={field.name}
+            value={field.state.value ?? ""}
+            onChange={(e) => field.handleChange(e.target.value)}
+            onBlur={field.handleBlur}
+            className="block w-full shadow-xs sm:text-sm focus:ring-blue-500 focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100 rounded-md"
+          />
+          <common.ErrorField meta={field.state.meta} />
+        </div>
+      )}
+    </form.Field>
   );
 }
 

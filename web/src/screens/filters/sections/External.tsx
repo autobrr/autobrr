@@ -6,11 +6,11 @@
 import { useRef } from "react";
 import { ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
 import { ArrowDownIcon, ArrowUpIcon, SquaresPlusIcon } from "@heroicons/react/24/outline";
-import { Field, FieldArray, FieldArrayRenderProps, FieldProps, useFormikContext } from "formik";
 import { useTranslation } from "react-i18next";
 
 import { classNames } from "@utils";
 import { useToggle } from "@hooks/hooks";
+import { useFormContext, useFormValues } from "@hooks/form";
 import { TextAreaAutoResize } from "@components/inputs/input";
 import { EmptyListState } from "@components/emptystates";
 import { NumberField, Select, TextField } from "@components/inputs";
@@ -28,7 +28,8 @@ import { FilterLayout, FilterPage, FilterSection } from "@screens/filters/sectio
 
 export function External() {
   const { t } = useTranslation("filters");
-  const { values } = useFormikContext<Filter>();
+  const form = useFormContext();
+  const values = useFormValues<Filter>();
 
   const newItem: ExternalFilter = {
     id: values.external.length + 1,
@@ -39,51 +40,48 @@ export function External() {
     on_error: "REJECT",
   };
 
+  const remove = (index: number) => form.removeFieldValue("external", index);
+  const move = (from: number, to: number) => form.moveFieldValues("external", from, to);
+
   return (
     <div className="mt-5">
-      <FieldArray name="external">
-        {({ remove, push, move }: FieldArrayRenderProps) => (
-          <>
-            <div className="-ml-4 -mt-4 mb-6 flex justify-between items-center flex-wrap sm:flex-nowrap">
-              <TitleSubtitle
-                className="ml-4 mt-4"
-                title={t("external.title")}
-                subtitle={t("external.subtitle")}
-              />
-              <div className="ml-4 mt-4 shrink-0">
-                <button
-                  type="button"
-                  className="relative inline-flex items-center px-4 py-2 transition border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                  onClick={() => push(newItem)}
-                >
-                  <SquaresPlusIcon
-                    className="w-5 h-5 mr-1"
-                    aria-hidden="true"
-                  />
-                  {t("external.addNew")}
-                </button>
-              </div>
-            </div>
+      <div className="-ml-4 -mt-4 mb-6 flex justify-between items-center flex-wrap sm:flex-nowrap">
+        <TitleSubtitle
+          className="ml-4 mt-4"
+          title={t("external.title")}
+          subtitle={t("external.subtitle")}
+        />
+        <div className="ml-4 mt-4 shrink-0">
+          <button
+            type="button"
+            className="relative inline-flex items-center px-4 py-2 transition border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+            onClick={() => form.pushFieldValue("external", newItem)}
+          >
+            <SquaresPlusIcon
+              className="w-5 h-5 mr-1"
+              aria-hidden="true"
+            />
+            {t("external.addNew")}
+          </button>
+        </div>
+      </div>
 
-            {values.external.length > 0 ? (
-              <ul className="rounded-md">
-                {values.external.map((external, index: number) => (
-                  <FilterExternalItem
-                    key={external.id}
-                    initialEdit
-                    external={external}
-                    idx={index}
-                    remove={remove}
-                    move={move}
-                  />
-                ))}
-              </ul>
-            ) : (
-              <EmptyListState text={t("external.empty")} />
-            )}
-          </>
-        )}
-      </FieldArray>
+      {values.external.length > 0 ? (
+        <ul className="rounded-md">
+          {values.external.map((external, index: number) => (
+            <FilterExternalItem
+              key={external.id}
+              initialEdit
+              external={external}
+              idx={index}
+              remove={remove}
+              move={move}
+            />
+          ))}
+        </ul>
+      ) : (
+        <EmptyListState text={t("external.empty")} />
+      )}
     </div>
   );
 }
@@ -92,13 +90,14 @@ interface FilterExternalItemProps {
   external: ExternalFilter;
   idx: number;
   initialEdit: boolean;
-  remove: <T>(index: number) => T | undefined;
+  remove: (index: number) => void;
   move: (from: number, to: number) => void;
 }
 
 function FilterExternalItem({ idx, external, initialEdit, remove, move }: FilterExternalItemProps) {
   const { t } = useTranslation("filters");
-  const { values, setFieldValue } = useFormikContext<Filter>();
+  const form = useFormContext();
+  const values = useFormValues<Filter>();
   const cancelButtonRef = useRef(null);
 
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
@@ -110,12 +109,12 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
 
   const moveUp = () => {
     move(idx, idx - 1);
-    setFieldValue(`external.${idx}.index`, idx - 1);
+    form.setFieldValue(`external[${idx}].index`, idx - 1);
   };
 
   const moveDown = () => {
     move(idx, idx + 1);
-    setFieldValue(`external.${idx}.index`, idx + 1);
+    form.setFieldValue(`external[${idx}].index`, idx + 1);
   };
 
   return (
@@ -150,20 +149,15 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
           </div>
         ) : null}
 
-        <Field name={`external.${idx}.enabled`} type="checkbox">
-          {({
-            field,
-            form: { setFieldValue }
-          }: FieldProps) => (
+        <form.Field name={`external[${idx}].enabled`}>
+          {(field) => (
             <Checkbox
-              {...field}
-              value={!!field.checked}
-              setValue={(value: boolean) => {
-                setFieldValue(field.name, value);
-              }}
+              name={field.name}
+              value={!!field.state.value}
+              setValue={(value: boolean) => field.handleChange(value)}
             />
           )}
-        </Field>
+        </form.Field>
 
         <button className="pl-2 pr-0 sm:px-4 py-4 w-full flex items-center cursor-pointer" type="button" onClick={toggleEdit}>
           <div className="min-w-0 flex-1 sm:flex sm:items-center sm:justify-between">
@@ -207,7 +201,7 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
             >
               <FilterLayout>
                 <Select
-                  name={`external.${idx}.type`}
+                  name={`external[${idx}].type`}
                   label={t("external.type")}
                   optionDefaultText={t("external.selectType")}
                   options={ExternalFilterTypeOptions.map(option => ({
@@ -219,12 +213,12 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
                 />
 
                 <TextField
-                  name={`external.${idx}.name`}
+                  name={`external[${idx}].name`}
                   label={t("external.name")} columns={4}
                 />
 
                 <Select
-                  name={`external.${idx}.on_error`}
+                  name={`external[${idx}].on_error`}
                   label={t("external.onError")}
                   optionDefaultText={t("external.selectType")}
                   options={ExternalFilterOnErrorOptions.map(option => ({
@@ -280,7 +274,7 @@ const TypeForm = ({ external, idx }: TypeFormProps) => {
       >
         <FilterLayout>
           <TextAreaAutoResize
-            name={`external.${idx}.exec_cmd`}
+            name={`external[${idx}].exec_cmd`}
             label={t("external.execute.path")}
             columns={5}
             placeholder={t("external.execute.pathPlaceholder")}
@@ -292,14 +286,14 @@ const TypeForm = ({ external, idx }: TypeFormProps) => {
             }
           />
           <TextAreaAutoResize
-            name={`external.${idx}.exec_args`}
+            name={`external[${idx}].exec_args`}
             label={t("external.execute.args")}
             columns={5}
             placeholder={t("external.execute.argsPlaceholder")}
           />
           <div className="col-span-12 sm:col-span-2">
             <NumberField
-              name={`external.${idx}.exec_expect_status`}
+              name={`external[${idx}].exec_expect_status`}
               label={t("external.execute.expectedExitStatus")}
               placeholder="0"
             />
@@ -317,27 +311,27 @@ const TypeForm = ({ external, idx }: TypeFormProps) => {
         >
           <FilterLayout>
             <TextField
-              name={`external.${idx}.webhook_host`}
+              name={`external[${idx}].webhook_host`}
               label={t("external.request.endpoint")}
               columns={6}
               placeholder={t("external.request.endpointPlaceholder")}
               tooltip={<p>{t("external.request.endpointTooltip")}</p>}
             />
             <Select
-              name={`external.${idx}.webhook_method`}
+              name={`external[${idx}].webhook_method`}
               label={t("external.request.httpMethod")}
               optionDefaultText={t("external.request.httpMethodDefault")}
               options={ExternalFilterWebhookMethodOptions}
               tooltip={<div><p>{t("external.request.httpMethodTooltip")}</p></div>}
             />
             <TextField
-              name={`external.${idx}.webhook_headers`}
+              name={`external[${idx}].webhook_headers`}
               label={t("external.request.headers")}
               columns={6}
               placeholder={t("external.request.headersPlaceholder")}
             />
             <NumberField
-              name={`external.${idx}.webhook_expect_status`}
+              name={`external[${idx}].webhook_expect_status`}
               label={t("external.request.expectedStatus")}
               placeholder="200"
             />
@@ -349,18 +343,18 @@ const TypeForm = ({ external, idx }: TypeFormProps) => {
         >
           <FilterLayout>
             <TextField
-              name={`external.${idx}.webhook_retry_status`}
+              name={`external[${idx}].webhook_retry_status`}
               label={t("external.retry.retryStatus")}
               placeholder={t("external.retry.retryStatusPlaceholder")}
               columns={6}
             />
             <NumberField
-              name={`external.${idx}.webhook_retry_attempts`}
+              name={`external[${idx}].webhook_retry_attempts`}
               label={t("external.retry.retryAttempts")}
               placeholder="10"
             />
             <NumberField
-              name={`external.${idx}.webhook_retry_delay_seconds`}
+              name={`external[${idx}].webhook_retry_delay_seconds`}
               label={t("external.retry.retryDelaySeconds")}
               placeholder="1"
             />
@@ -372,7 +366,7 @@ const TypeForm = ({ external, idx }: TypeFormProps) => {
         >
           <FilterLayout>
             <TextAreaAutoResize
-              name={`external.${idx}.webhook_data`}
+              name={`external[${idx}].webhook_data`}
               label={t("external.payload.data")}
               placeholder={t("external.payload.dataPlaceholder")}
             />
