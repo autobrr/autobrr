@@ -22,11 +22,11 @@ import (
 // subscribed. Reaching a Topic directly would need a skip of one.
 const callerSkipWrapper = 2
 
-var keyCounter uint64
+var keyCounter atomic.Uint64
 
 // generateKey generates a unique key for event listeners
 func generateKey() string {
-	return fmt.Sprintf("listener_%d", atomic.AddUint64(&keyCounter, 1))
+	return fmt.Sprintf("listener_%d", keyCounter.Add(1))
 }
 
 // caller returns the file:line skip frames above it, formatted the way zerolog

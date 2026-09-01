@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/autobrr/autobrr/internal/utils"
+	"github.com/autobrr/autobrr/internal/stringutils"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
@@ -96,13 +96,13 @@ func (e *Embed) SetTitle(title string) {
 	if title == "" {
 		return
 	}
-	e.Title = utils.TruncateStr(title, EmbedTitleLimit)
+	e.Title = stringutils.TruncateStr(title, EmbedTitleLimit)
 }
 func (e *Embed) SetDescription(description string) {
 	if description == "" {
 		return
 	}
-	e.Description = utils.TruncateStr(description, EmbedDescriptionLimit)
+	e.Description = stringutils.TruncateStr(description, EmbedDescriptionLimit)
 }
 
 func (e *Embed) SetColor(color EmbedColors) {
@@ -203,7 +203,7 @@ func TextField(name, value string, inline bool) *EmbedField {
 	}
 	return &EmbedField{
 		Name:   name,
-		Value:  utils.TruncateStr(value, EmbedFieldValueLimit),
+		Value:  stringutils.TruncateStr(value, EmbedFieldValueLimit),
 		Inline: inline,
 	}
 }
@@ -225,7 +225,7 @@ func CodeField(name, value string, inline bool) *EmbedField {
 	}
 	return &EmbedField{
 		Name:   name,
-		Value:  utils.TruncateStr("```\n"+value+"\n```", EmbedFieldValueLimit-12),
+		Value:  stringutils.TruncateStr("```\n"+value+"\n```", EmbedFieldValueLimit-12),
 		Inline: inline,
 	}
 }

@@ -46,8 +46,8 @@ import {
 } from "@domain/constants";
 import { DEBUG } from "@components/debug";
 import {
-  DownloadClientsArrTagsQueryOptions,
-  DownloadClientsQueryOptions,
+  DownloadersArrTagsQueryOptions,
+  DownloadersQueryOptions,
   FiltersGetAllQueryOptions
 } from "@api/queries";
 import { classNames, sleep } from "@utils";
@@ -77,7 +77,7 @@ export function ListAddForm({ isOpen, toggle }: AddFormProps) {
   const { t } = useTranslation("settings");
   const queryClient = useQueryClient();
 
-  const { data: clients } = useQuery(DownloadClientsQueryOptions());
+  const { data: clients } = useQuery(DownloadersQueryOptions());
 
   const filterQuery = useQuery(FiltersGetAllQueryOptions());
 
@@ -273,7 +273,7 @@ export function ListUpdateForm({ isOpen, toggle, data }: UpdateFormProps<List>) 
 
   const queryClient = useQueryClient();
 
-  const clientsQuery = useQuery(DownloadClientsQueryOptions());
+  const clientsQuery = useQuery(DownloadersQueryOptions());
   const filterQuery = useQuery(FiltersGetAllQueryOptions());
 
   const mutation = useMutation({
@@ -484,7 +484,7 @@ const SubmitButton = (props: SubmitButtonProps) => {
 interface ListTypeFormProps {
   listID?: number;
   listType: ListType;
-  clients: DownloadClient[];
+  clients: Downloader[];
 }
 
 const ListTypeForm = (props: ListTypeFormProps) => {
@@ -582,7 +582,7 @@ function ListTypeArr({ listType, clients }: ListTypeFormProps) {
   useEffect(() => {
   }, [values.client_id]);
 
-  const arrTagsQuery = useQuery(DownloadClientsArrTagsQueryOptions(values.client_id));
+  const arrTagsQuery = useQuery(DownloadersArrTagsQueryOptions(values.client_id));
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
@@ -595,7 +595,7 @@ function ListTypeArr({ listType, clients }: ListTypeFormProps) {
         </p>
       </div>
 
-      <DownloadClientSelectCustom
+      <DownloaderSelectCustom
         name={`client_id`}
         clients={clients}
         clientType={listType}
@@ -825,13 +825,13 @@ function ListTypeMDBList() {
   )
 }
 
-interface DownloadClientSelectProps {
+interface DownloaderSelectProps {
   name: string;
   clientType: string;
-  clients: DownloadClient[];
+  clients: Downloader[];
 }
 
-function DownloadClientSelectCustom({ name, clientType, clients }: DownloadClientSelectProps) {
+function DownloaderSelectCustom({ name, clientType, clients }: DownloaderSelectProps) {
   const { t } = useTranslation("settings");
   return (
     <div className="flex items-center space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">

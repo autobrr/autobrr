@@ -5,7 +5,7 @@
 
 import { ActionRtorrentRenameOptions } from "@domain/constants";
 import { FilterHalfRow, FilterLayout, FilterSection } from "@screens/filters/sections/_components.tsx";
-import { DownloadClientSelect, Select, SwitchGroup, TextAreaAutoResize, TextField } from "@components/inputs";
+import { DownloaderSelect, Select, SwitchGroup, TextAreaAutoResize, TextField } from "@components/inputs";
 import { useTranslation } from "react-i18next";
 
 
@@ -20,7 +20,7 @@ export const RTorrent = ({ idx, action, clients }: ClientActionProps) => {
     >
       <FilterLayout>
         <FilterHalfRow>
-          <DownloadClientSelect
+          <DownloaderSelect
             name={`actions.${idx}.client_id`}
             action={action}
             clients={clients}

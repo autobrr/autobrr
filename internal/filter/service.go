@@ -10,12 +10,12 @@ import (
 	"io"
 	"net/http"
 	"os/exec"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/utils"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
@@ -1210,7 +1210,7 @@ func (s *Service) webhook(ctx context.Context, external domain.FilterExternal, r
 				}
 			}
 
-			if utils.StrSliceContains(retryStatusCodes, strconv.Itoa(res.StatusCode)) {
+			if slices.Contains(retryStatusCodes, strconv.Itoa(res.StatusCode)) {
 				return 0, errors.New("webhook got unwanted status code: %d", res.StatusCode)
 			}
 

@@ -13,7 +13,7 @@ import { NotificationsQueryOptions } from "@api/queries";
 import { EmptySimple } from "@components/emptystates";
 import { useToggle } from "@hooks/hooks";
 import { NotificationAddForm, NotificationUpdateForm } from "@forms/settings/NotificationForms";
-import { componentMapType } from "@forms/settings/DownloadClientForms";
+import { componentMapType } from "@forms/settings/DownloaderForms";
 import toast from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import {

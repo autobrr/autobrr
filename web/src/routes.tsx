@@ -25,7 +25,7 @@ import { Settings } from "@screens/Settings";
 import {
   ApikeysQueryOptions,
   ConfigQueryOptions,
-  DownloadClientsQueryOptions,
+  DownloadersQueryOptions,
   FeedsQueryOptions,
   FilterByIdQueryOptions,
   IndexersQueryOptions,
@@ -43,7 +43,7 @@ import { RingResizeSpinner } from "@components/Icons";
 import APISettings from "@screens/settings/Api";
 import { Releases } from "@screens/Releases";
 import IndexerSettings from "@screens/settings/Indexer";
-import DownloadClientSettings from "@screens/settings/DownloadClient";
+import DownloaderSettings from "@screens/settings/Downloaders.tsx";
 import FeedSettings from "@screens/settings/Feed";
 import { Dashboard } from "@screens/Dashboard";
 import AccountSettings from "@screens/settings/Account";
@@ -214,8 +214,8 @@ export const SettingsFeedsRoute = createRoute({
 export const SettingsClientsRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'clients',
-  loader: (opts) => opts.context.queryClient.ensureQueryData(DownloadClientsQueryOptions()),
-  component: DownloadClientSettings
+  loader: (opts) => opts.context.queryClient.ensureQueryData(DownloadersQueryOptions()),
+  component: DownloaderSettings
 });
 
 export const SettingsNotificationsRoute = createRoute({

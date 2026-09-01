@@ -5,123 +5,65 @@ package list
 
 import (
 	"context"
-	"encoding/json"
-	"net/http"
-	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/pkg/sharedhttp"
+	"github.com/autobrr/autobrr/internal/list/provider/metacritic"
 
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 )
 
-func (s *Service) metacritic(ctx context.Context, list *domain.List) error {
-	l := s.log.With().Str("type", "metacritic").Str("list", list.Name).Logger()
+type MetacriticProcessor struct {
+	processorBase
+	client *metacritic.Client
+}
 
-	if list.URL == "" {
-		return errors.New("no URL provided for metacritic")
+func NewMetacriticProcessor(log zerolog.Logger, list *domain.List) *MetacriticProcessor {
+	return &MetacriticProcessor{
+		log:    log,
+		list:   list,
+		client: metacritic.NewClient(log, list.Name, list.URL, list.Headers...),
 	}
+}
 
-	l.Debug().Str("url", list.URL).Msg("fetching titles")
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, list.URL, nil)
+func (p *MetacriticProcessor) Process(ctx context.Context) (*domain.FilterUpdate, error) {
+	data, err := p.client.GetList(ctx, p.list.URL)
 	if err != nil {
-		return errors.Wrapf(err, "could not make new request for URL: %s", list.URL)
+		return nil, errors.Wrap(err, "could not make new request for URL")
 	}
 
-	list.SetRequestHeaders(req)
-
-	//setUserAgent(req)
-
-	resp, err := s.httpClient.Do(req)
+	filter, err := p.process(data)
 	if err != nil {
-		return errors.Wrapf(err, "failed to fetch titles from URL: %s", list.URL)
-	}
-	defer sharedhttp.DrainAndClose(resp)
-
-	if resp.StatusCode == http.StatusNotFound {
-		return errors.Errorf("No endpoint found at %v. (404 Not Found)", list.URL)
+		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return errors.Wrapf(err, "failed to fetch titles from URL: %s", list.URL)
-	}
+	return filter, nil
+}
 
-	contentType := resp.Header.Get("Content-Type")
-	if !strings.HasPrefix(contentType, "application/json") {
-		return errors.Wrapf(err, "unexpected content type for URL: %s expected application/json got %s", list.URL, contentType)
-	}
+func (p *MetacriticProcessor) process(data *metacritic.ListResponse) (*domain.FilterUpdate, error) {
+	// process artist + album variants and append to releases
+	ts := NewTitleSet()
+	ts.matchReleases = p.list.MatchRelease
 
-	var data struct {
-		Title  string `json:"title"`
-		Albums []struct {
-			Artist string `json:"artist"`
-			Title  string `json:"title"`
-		} `json:"albums"`
-	}
+	for _, alb := range data.Albums {
+		artist := processTitle(alb.Artist, true)
+		album := processTitle(alb.Title, true)
 
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return errors.Wrapf(err, "failed to decode JSON data from URL: %s", list.URL)
-	}
-
-	var titles []string
-	var artists []string
-
-	for _, album := range data.Albums {
-		titles = append(titles, album.Title)
-		artists = append(artists, album.Artist)
-	}
-
-	// Deduplicate artists
-	uniqueArtists := []string{}
-	seenArtists := map[string]struct{}{}
-	for _, artist := range artists {
-		if _, ok := seenArtists[artist]; !ok {
-			uniqueArtists = append(uniqueArtists, artist)
-			seenArtists[artist] = struct{}{}
+		for _, artistVar := range artist {
+			for _, albumVar := range album {
+				title := artistVar + albumVar
+				ts.AddTitle(title)
+			}
 		}
 	}
 
-	filterTitles := []string{}
-	for _, title := range titles {
-		filterTitles = append(filterTitles, processTitle(title, list.MatchRelease)...)
+	joinedTitles := ts.FilterString()
+
+	filterUpdate := &domain.FilterUpdate{
+		Albums:        new(""),
+		Artists:       new(""),
+		MatchReleases: &joinedTitles,
 	}
 
-	filterArtists := []string{}
-	for _, artist := range uniqueArtists {
-		filterArtists = append(filterArtists, processTitle(artist, list.MatchRelease)...)
-	}
-
-	if len(filterTitles) == 0 && len(filterArtists) == 0 {
-		l.Debug().Msg("no titles found to update list")
-		return nil
-	}
-
-	joinedArtists := strings.Join(filterArtists, ",")
-	joinedTitles := strings.Join(filterTitles, ",")
-
-	l.Trace().Str("albums", joinedTitles).Int("count", len(filterTitles)).Msg("found album titles")
-	l.Trace().Str("artists", joinedArtists).Int("count", len(filterArtists)).Msg("found artist titles")
-
-	filterUpdate := domain.FilterUpdate{Albums: &joinedTitles, Artists: &joinedArtists}
-
-	if list.MatchRelease {
-		filterUpdate.Albums = &nullString
-		filterUpdate.Artists = &nullString
-		filterUpdate.MatchReleases = &joinedTitles
-	}
-
-	for _, filter := range list.Filters {
-		l.Debug().Int("filter_id", filter.ID).Msg("updating filter")
-
-		filterUpdate.ID = filter.ID
-
-		if err := s.filterSvc.UpdatePartial(ctx, filterUpdate); err != nil {
-			return errors.Wrapf(err, "error updating filter: %v", filter.ID)
-		}
-
-		l.Debug().Int("filter_id", filter.ID).Msg("successfully updated filter")
-	}
-
-	return nil
+	return filterUpdate, nil
 }

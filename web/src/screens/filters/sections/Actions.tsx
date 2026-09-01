@@ -24,7 +24,7 @@ import Toast from "@components/notifications/Toast";
 import { Checkbox } from "@components/Checkbox";
 import { TitleSubtitle } from "@components/headings";
 
-import { DownloadClientsQueryOptions } from "@api/queries";
+import { DownloadersQueryOptions } from "@api/queries";
 import { FilterHalfRow, FilterLayout, FilterPage, FilterSection } from "@screens/filters/sections/_components.tsx";
 import {
   Aria2,
@@ -48,7 +48,7 @@ export function Actions() {
   const { values } = useFormikContext<Filter>();
   const actionTypeOptions = getActionTypeOptions(t);
 
-  const { data } = useQuery(DownloadClientsQueryOptions());
+  const { data } = useQuery(DownloadersQueryOptions());
 
   const newAction: Action = {
     id: 0,
@@ -199,7 +199,7 @@ const TypeForm = (props: ClientActionProps) => {
 interface FilterActionsItemProps {
   action: Action;
   actionTypeOptions: ReturnType<typeof getActionTypeOptions>;
-  clients: DownloadClient[];
+  clients: Downloader[];
   idx: number;
   initialEdit: boolean;
   remove: <T>(index: number) => T | undefined;

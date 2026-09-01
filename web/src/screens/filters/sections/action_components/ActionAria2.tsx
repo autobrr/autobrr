@@ -4,7 +4,7 @@
  */
 
 import { CollapsibleSection, FilterHalfRow, FilterLayout, FilterSection } from "../_components";
-import { DownloadClientSelect, NumberField, SwitchGroup, TextAreaAutoResize } from "@components/inputs";
+import { DownloaderSelect, NumberField, SwitchGroup, TextAreaAutoResize } from "@components/inputs";
 import { useTranslation } from "react-i18next";
 
 export const Aria2 = ({ idx, action, clients }: ClientActionProps) => {
@@ -18,7 +18,7 @@ export const Aria2 = ({ idx, action, clients }: ClientActionProps) => {
     >
       <FilterLayout>
         <FilterHalfRow>
-          <DownloadClientSelect
+          <DownloaderSelect
             name={`actions.${idx}.client_id`}
             action={action}
             clients={clients}

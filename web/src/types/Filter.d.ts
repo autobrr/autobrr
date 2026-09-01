@@ -131,7 +131,7 @@ type ActionContentLayout = "ORIGINAL" | "SUBFOLDER_CREATE" | "SUBFOLDER_NONE" | 
 
 type ActionPriorityLayout = "MAX" | "MIN" | "";
 
-type ActionType = "TEST" | "EXEC" | "WATCH_FOLDER" | "WEBHOOK" | DownloadClientType;
+type ActionType = "TEST" | "EXEC" | "WATCH_FOLDER" | "WEBHOOK" | DownloaderType;
 
 type ExternalType = "EXEC" | "WEBHOOK";
 

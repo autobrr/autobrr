@@ -7,7 +7,7 @@ import { keepPreviousData, queryOptions } from "@tanstack/react-query";
 import { APIClient } from "@api/APIClient";
 import {
   ApiKeys,
-  DownloadClientKeys,
+  DownloaderKeys,
   FeedKeys,
   FilterKeys,
   IndexerKeys,
@@ -103,16 +103,16 @@ export const FeedsQueryOptions = () =>
     queryFn: () => APIClient.feeds.find(),
   });
 
-export const DownloadClientsQueryOptions = () =>
+export const DownloadersQueryOptions = () =>
   queryOptions({
-    queryKey: DownloadClientKeys.lists(),
-    queryFn: () => APIClient.download_clients.getAll(),
+    queryKey: DownloaderKeys.lists(),
+    queryFn: () => APIClient.downloaders.getAll(),
   });
 
-export const DownloadClientsArrTagsQueryOptions = (clientID: number) =>
+export const DownloadersArrTagsQueryOptions = (clientID: number) =>
   queryOptions({
-    queryKey: DownloadClientKeys.arrTags(clientID),
-    queryFn: () => APIClient.download_clients.getArrTags(clientID),
+    queryKey: DownloaderKeys.arrTags(clientID),
+    queryFn: () => APIClient.downloaders.getArrTags(clientID),
     retry: false,
     enabled: clientID > 0,
   });

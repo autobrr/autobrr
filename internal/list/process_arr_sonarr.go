@@ -5,142 +5,93 @@ package list
 
 import (
 	"context"
-	"sort"
-	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/stringutils"
 	"github.com/autobrr/autobrr/pkg/arr"
 	"github.com/autobrr/autobrr/pkg/arr/sonarr"
-	"github.com/autobrr/autobrr/pkg/errors"
-
 	"github.com/rs/zerolog"
 )
 
-func (s *Service) sonarr(ctx context.Context, list *domain.List) error {
-	l := s.log.With().Str("list", list.Name).Str("type", "sonarr").Int("client", list.ClientID).Logger()
-
-	l.Debug().Msg("gathering titles")
-
-	titles, err := s.processSonarr(ctx, list, &l)
-	if err != nil {
-		return err
-	}
-
-	l.Debug().Int("count", len(titles)).Msg("got filter titles")
-
-	if len(titles) == 0 {
-		l.Debug().Str("list", list.Name).Msg("no titles found to update")
-		return nil
-	}
-
-	joinedTitles := strings.Join(titles, ",")
-
-	l.Trace().Str("titles", joinedTitles).Int("count", len(titles)).Msg("found titles")
-
-	filterUpdate := domain.FilterUpdate{Shows: &joinedTitles}
-
-	if list.MatchRelease {
-		filterUpdate.Shows = &nullString
-		filterUpdate.MatchReleases = &joinedTitles
-	}
-
-	for _, filter := range list.Filters {
-		l.Debug().Int("filter_id", filter.ID).Msg("updating filter")
-
-		filterUpdate.ID = filter.ID
-
-		if err := s.filterSvc.UpdatePartial(ctx, filterUpdate); err != nil {
-			return errors.Wrap(err, "error updating filter: %v", filter.ID)
-		}
-
-		l.Debug().Int("filter_id", filter.ID).Msg("successfully updated filter")
-	}
-
-	return nil
+type SonarrProcessor struct {
+	processorBase
+	client *sonarr.Client
 }
 
-func (s *Service) processSonarr(ctx context.Context, list *domain.List, logger *zerolog.Logger) ([]string, error) {
-	downloadClient, err := s.downloadClientSvc.GetClient(ctx, int32(list.ClientID))
-	if err != nil {
-		return nil, errors.Wrap(err, "could not get client with id %d", list.ClientID)
+func NewSonarrProcessor(log zerolog.Logger, list *domain.List, client *sonarr.Client) *SonarrProcessor {
+	return &SonarrProcessor{
+		log:    log,
+		list:   list,
+		client: client,
 	}
+}
 
-	if !downloadClient.Enabled {
-		return nil, errors.New("client %s %s not enabled", downloadClient.Type, downloadClient.Name)
-	}
-
-	client, ok := downloadClient.Client.(*sonarr.Client)
-	if !ok {
-		return nil, errors.New("client %s %s is not a sonarr client", downloadClient.Type, downloadClient.Name)
-	}
-
-	var tags []*arr.Tag
-	if len(list.TagsExclude) > 0 || len(list.TagsInclude) > 0 {
-		t, err := client.GetTags(ctx)
-		if err != nil {
-			logger.Debug().Msg("could not get tags")
-		}
-		tags = t
-	}
-
-	shows, err := client.GetAllSeries(ctx)
+func (p *SonarrProcessor) Process(ctx context.Context) (*domain.FilterUpdate, error) {
+	movies, err := p.client.GetSeries(ctx, 0)
 	if err != nil {
 		return nil, err
 	}
 
-	logger.Debug().Int("count", len(shows)).Msg("found shows to process")
+	var tags []arr.Tag
+	if len(p.list.TagsExclude) > 0 || len(p.list.TagsInclude) > 0 {
+		t, err := p.client.GetTags(ctx)
+		if err != nil {
+			p.log.Debug().Msg("could not get tags")
+		}
+		tags = t
+	}
 
-	titleSet := make(map[string]struct{})
+	filter, err := p.process(movies, tags)
+	if err != nil {
+		return nil, err
+	}
+
+	return filter, nil
+}
+
+func (p *SonarrProcessor) process(shows []sonarr.Series, tags []arr.Tag) (*domain.FilterUpdate, error) {
+	p.log.Debug().Int("count", len(shows)).Msg("found shows to process")
+
+	ts := NewTitleSet()
+	ts.matchReleases = p.list.MatchRelease
 	var processedTitles int
 
 	for _, show := range shows {
-		if !list.ShouldProcessItem(show.Monitored) {
+		if !p.list.ShouldProcessItem(show.Monitored) {
 			continue
 		}
 
-		//if !s.shouldProcessItem(show.Monitored, list) {
-		//	continue
-		//}
-
-		if len(list.TagsInclude) > 0 {
-			if len(show.Tags) == 0 {
-				continue
-			}
-			if !containsTag(tags, show.Tags, list.TagsInclude) {
-				continue
-			}
-		}
-
-		if len(list.TagsExclude) > 0 {
-			if containsTag(tags, show.Tags, list.TagsExclude) {
-				continue
-			}
+		if excludedByTags(p.list, tags, show.Tags) {
+			continue
 		}
 
 		processedTitles++
 
-		titles := processTitle(show.Title, list.MatchRelease)
-		for _, title := range titles {
-			titleSet[title] = struct{}{}
-		}
-
-		if list.IncludeAlternateTitles {
+		ts.AddTitle(show.Title)
+		if p.list.IncludeAlternateTitles {
 			for _, title := range show.AlternateTitles {
-				altTitles := processTitle(title.Title, list.MatchRelease)
-				for _, altTitle := range altTitles {
-					titleSet[altTitle] = struct{}{}
-				}
+				ts.AddTitle(title.Title)
 			}
 		}
 	}
 
-	uniqueTitles := make([]string, 0, len(titleSet))
-	for title := range titleSet {
-		uniqueTitles = append(uniqueTitles, title)
+	p.log.Debug().Int("total", len(shows)).Int("processed", processedTitles).Int("created", ts.Len()).Msg("processed items")
+
+	if ts.Len() == 0 {
+		p.log.Debug().Str("list", p.list.Name).Msg("no titles found to update")
+		return nil, nil
 	}
 
-	sort.Strings(uniqueTitles)
-	logger.Debug().Int("total", len(shows)).Int("processed", processedTitles).Int("created", len(uniqueTitles)).Msg("processed items")
+	joinedTitles := ts.FilterString()
 
-	return uniqueTitles, nil
+	p.log.Trace().Str("titles", stringutils.TruncateStr(joinedTitles, 1024)).Int("count", ts.Len()).Msg("found titles")
+
+	filter := domain.FilterUpdate{Shows: &joinedTitles}
+
+	if p.list.MatchRelease {
+		filter.Shows = new("")
+		filter.MatchReleases = &joinedTitles
+	}
+
+	return &filter, nil
 }

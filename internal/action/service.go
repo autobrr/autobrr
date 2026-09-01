@@ -9,7 +9,9 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/downloader"
 	"github.com/autobrr/autobrr/internal/events"
+	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/rs/zerolog"
@@ -27,12 +29,12 @@ type actionRepo interface {
 	ToggleEnabled(actionID int) error
 }
 
-type clientService interface {
-	FindByID(ctx context.Context, id int32) (*domain.DownloadClient, error)
-	GetClient(ctx context.Context, clientId int32) (*domain.DownloadClient, error)
+type downloaderService interface {
+	FindByID(ctx context.Context, id int32) (*domain.Downloader, error)
+	GetInstance(ctx context.Context, clientId int32) (*downloader.Instance, error)
 }
 
-type downloadService interface {
+type rlsDownloadService interface {
 	DownloadRelease(ctx context.Context, rls *domain.Release) error
 	ResolveMagnetURI(ctx context.Context, r *domain.Release) error
 }
@@ -42,22 +44,22 @@ type eventBus interface {
 }
 
 type Service struct {
-	log         zerolog.Logger
-	eventBus    eventBus
-	repo        actionRepo
-	clientSvc   clientService
-	downloadSvc downloadService
+	log            zerolog.Logger
+	eventBus       eventBus
+	repo           actionRepo
+	downloaderSvc  downloaderService
+	rlsDownloadSvc rlsDownloadService
 
 	httpClient *http.Client
 }
 
-func NewService(log zerolog.Logger, bus eventBus, repo actionRepo, clientSvc clientService, downloadSvc downloadService) *Service {
+func NewService(log zerolog.Logger, bus eventBus, repo actionRepo, clientSvc downloaderService, downloadSvc rlsDownloadService) *Service {
 	s := &Service{
-		log:         log.With().Str("module", "action").Logger(),
-		eventBus:    bus,
-		repo:        repo,
-		clientSvc:   clientSvc,
-		downloadSvc: downloadSvc,
+		log:            log.With().Str("module", "action").Logger(),
+		eventBus:       bus,
+		repo:           repo,
+		downloaderSvc:  clientSvc,
+		rlsDownloadSvc: downloadSvc,
 
 		httpClient: &http.Client{
 			Timeout:   time.Second * 120,
@@ -92,7 +94,7 @@ func (s *Service) Get(ctx context.Context, req *domain.GetActionRequest) (*domai
 
 	// optionally attach download client to action
 	if a.ClientID > 0 {
-		client, err := s.clientSvc.FindByID(ctx, a.ClientID)
+		client, err := s.downloaderSvc.FindByID(ctx, a.ClientID)
 		if err != nil {
 			return nil, err
 		}
@@ -117,4 +119,27 @@ func (s *Service) DeleteByFilterID(ctx context.Context, filterID int) error {
 
 func (s *Service) ToggleEnabled(actionID int) error {
 	return s.repo.ToggleEnabled(actionID)
+}
+
+func (s *Service) getClientInstance[T any](ctx context.Context, clientID int32) (*T, error) {
+	instance, err := s.downloaderSvc.GetInstance(ctx, clientID)
+	if err != nil {
+		return nil, err
+	}
+
+	cfg := instance.Config()
+	if cfg == nil {
+		return nil, errors.New("client %d has no config", clientID)
+	}
+
+	if !cfg.Enabled {
+		return nil, errors.New("client %s %s not enabled", cfg.Type, cfg.Name)
+	}
+
+	client, err := downloader.ClientAs[T](instance)
+	if err != nil {
+		return nil, err
+	}
+
+	return &client, nil
 }

@@ -20,7 +20,7 @@ import (
 	"github.com/autobrr/autobrr/internal/database"
 	"github.com/autobrr/autobrr/internal/diagnostics"
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/download_client"
+	"github.com/autobrr/autobrr/internal/downloader"
 	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/internal/feed"
 	"github.com/autobrr/autobrr/internal/filter"
@@ -33,7 +33,6 @@ import (
 	"github.com/autobrr/autobrr/internal/notification"
 	"github.com/autobrr/autobrr/internal/proxy"
 	"github.com/autobrr/autobrr/internal/release"
-	"github.com/autobrr/autobrr/internal/releasedownload"
 	"github.com/autobrr/autobrr/internal/scheduler"
 	"github.com/autobrr/autobrr/internal/server"
 	"github.com/autobrr/autobrr/internal/update"
@@ -141,68 +140,68 @@ func main() {
 
 	// setup repos
 	var (
-		apikeyRepo         = database.NewAPIRepo(log, db)
-		downloadClientRepo = database.NewDownloadClientRepo(log, db)
-		actionRepo         = database.NewActionRepo(log, db)
-		filterRepo         = database.NewFilterRepo(log, db)
-		feedRepo           = database.NewFeedRepo(log, db)
-		feedCacheRepo      = database.NewFeedCacheRepo(log, db)
-		indexerRepo        = database.NewIndexerRepo(log, db)
-		ircRepo            = database.NewIrcRepo(log, db)
-		listRepo           = database.NewListRepo(log, db)
-		notificationRepo   = database.NewNotificationRepo(log, db)
-		releaseRepo        = database.NewReleaseRepo(log, db)
-		userRepo           = database.NewUserRepo(log, db)
-		proxyRepo          = database.NewProxyRepo(log, db)
+		apikeyRepo       = database.NewAPIRepo(log, db)
+		downloaderRepo   = database.NewDownloaderRepo(log, db)
+		actionRepo       = database.NewActionRepo(log, db)
+		filterRepo       = database.NewFilterRepo(log, db)
+		feedRepo         = database.NewFeedRepo(log, db)
+		feedCacheRepo    = database.NewFeedCacheRepo(log, db)
+		indexerRepo      = database.NewIndexerRepo(log, db)
+		ircRepo          = database.NewIrcRepo(log, db)
+		listRepo         = database.NewListRepo(log, db)
+		notificationRepo = database.NewNotificationRepo(log, db)
+		releaseRepo      = database.NewReleaseRepo(log, db)
+		userRepo         = database.NewUserRepo(log, db)
+		proxyRepo        = database.NewProxyRepo(log, db)
 	)
 
 	// setup services
 	var (
-		apiService            = api.NewService(log, apikeyRepo)
-		updateService         = update.NewUpdate(log, cfg.Config)
-		notificationService   = notification.NewService(log, eventBus, notificationRepo)
-		schedulingService     = scheduler.NewService(log, eventBus, cfg.Config, updateService)
-		userService           = user.NewService(userRepo)
-		authService           = auth.NewService(log, userService)
-		proxyService          = proxy.NewService(log, proxyRepo)
-		indexerAPIService     = indexer.NewAPIService(log, proxyService)
-		downloadService       = releasedownload.NewDownloadService(log, indexerRepo, proxyService)
-		downloadClientService = download_client.NewService(log, downloadClientRepo)
-		actionService         = action.NewService(log, eventBus, actionRepo, downloadClientService, downloadService)
-		indexerService        = indexer.NewService(log, eventBus, cfg.Config, indexerRepo, releaseRepo, indexerAPIService)
-		filterService         = filter.NewService(log, filterRepo, actionService, releaseRepo, indexerAPIService, indexerService, downloadService, notificationService)
-		releaseService        = release.NewService(log, eventBus, releaseRepo, actionService, filterService, indexerService, schedulingService)
-		ircService            = irc.NewService(log, eventBus, serverEvents, ircRepo, releaseService, indexerService, proxyService)
-		feedService           = feed.NewService(log, eventBus, feedRepo, feedCacheRepo, releaseService, proxyService, schedulingService)
-		listService           = list.NewService(log, listRepo, downloadClientService, filterService, schedulingService)
+		apiService          = api.NewService(log, apikeyRepo)
+		updateService       = update.NewUpdate(log, cfg.Config)
+		notificationService = notification.NewService(log, eventBus, notificationRepo)
+		schedulingService   = scheduler.NewService(log, eventBus, cfg.Config, updateService)
+		userService         = user.NewService(userRepo)
+		authService         = auth.NewService(log, userService)
+		proxyService        = proxy.NewService(log, proxyRepo)
+		indexerAPIService   = indexer.NewAPIService(log, proxyService)
+		rlsDownloadService  = release.NewDownloadService(log, indexerRepo, proxyService)
+		downloaderService   = downloader.NewService(log, downloaderRepo)
+		actionService       = action.NewService(log, eventBus, actionRepo, downloaderService, rlsDownloadService)
+		indexerService      = indexer.NewService(log, eventBus, cfg.Config, indexerRepo, releaseRepo, indexerAPIService)
+		filterService       = filter.NewService(log, filterRepo, actionService, releaseRepo, indexerAPIService, indexerService, rlsDownloadService, notificationService)
+		releaseService      = release.NewService(log, eventBus, releaseRepo, actionService, filterService, indexerService, schedulingService)
+		ircService          = irc.NewService(log, eventBus, serverEvents, ircRepo, releaseService, indexerService, proxyService)
+		feedService         = feed.NewService(log, eventBus, feedRepo, feedCacheRepo, releaseService, proxyService, schedulingService)
+		listService         = list.NewService(log, listRepo, downloaderService, filterService, schedulingService)
 	)
 
 	errorChannel := make(chan error)
 
 	go func() {
 		httpServer := http.NewServer(http.Deps{
-			Log:                   log,
-			SSE:                   serverEvents,
-			DB:                    db,
-			Config:                cfg,
-			SessionManager:        sessionManager,
-			Version:               version,
-			Commit:                commit,
-			Date:                  date,
-			ActionService:         actionService,
-			ApiService:            apiService,
-			AuthService:           authService,
-			DownloadClientService: downloadClientService,
-			FilterService:         filterService,
-			FeedService:           feedService,
-			IndexerService:        indexerService,
-			IrcService:            ircService,
-			ListService:           listService,
-			NotificationService:   notificationService,
-			OIDCService:           oidcService,
-			ProxyService:          proxyService,
-			ReleaseService:        releaseService,
-			UpdateService:         updateService,
+			Log:                 log,
+			SSE:                 serverEvents,
+			DB:                  db,
+			Config:              cfg,
+			SessionManager:      sessionManager,
+			Version:             version,
+			Commit:              commit,
+			Date:                date,
+			ActionService:       actionService,
+			ApiService:          apiService,
+			AuthService:         authService,
+			DownloaderService:   downloaderService,
+			FilterService:       filterService,
+			FeedService:         feedService,
+			IndexerService:      indexerService,
+			IrcService:          ircService,
+			ListService:         listService,
+			NotificationService: notificationService,
+			OIDCService:         oidcService,
+			ProxyService:        proxyService,
+			ReleaseService:      releaseService,
+			UpdateService:       updateService,
 		},
 		)
 		errorChannel <- httpServer.Open()
