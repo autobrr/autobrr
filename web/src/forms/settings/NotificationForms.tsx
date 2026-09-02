@@ -615,8 +615,8 @@ const NotificationTypeSelector = () => {
           value={field.state.value && notificationTypeOptions.find(o => o.value == field.state.value)}
           onChange={(option: unknown) => {
             form.reset();
-            const opt = option as SelectOption;
-            field.handleChange(opt.value ?? "");
+            const opt = option as SelectOption | null;
+            field.handleChange(opt?.value ?? "");
           }}
           options={notificationTypeOptions}
         />

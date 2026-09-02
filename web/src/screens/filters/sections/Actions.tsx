@@ -136,7 +136,7 @@ const TypeForm = (props: ClientActionProps) => {
 
   useEffect(() => {
     if (prevActionType !== null && prevActionType !== action.type && DOWNLOAD_CLIENTS.includes(action.type)) {
-      form.setFieldValue(`actions[${idx}].client_id`, 0);
+      form.setFieldValue(`actions[${idx}].client_id`, 0, { dontUpdateMeta: true });
     }
 
     setPrevActionType(action.type);

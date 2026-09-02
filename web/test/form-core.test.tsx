@@ -9,7 +9,7 @@ import { z } from "zod";
 
 import { useSelector } from "@tanstack/react-form";
 
-import { useAppForm, useFormContext, useFormValues, fieldErrors, errorMessages } from "@hooks/form";
+import { useAppForm, useFormContext, useFormValues, fieldErrors, errorMessages, touchInvalidFields } from "@hooks/form";
 
 afterEach(() => {
   cleanup();
@@ -50,6 +50,7 @@ function SchemaForm({ onSubmit, onSubmitInvalid, showClient }: {
     validators: { onChange: schema },
     onSubmit: ({ value }) => onSubmit(value),
     onSubmitInvalid: ({ formApi }) => {
+      touchInvalidFields(formApi);
       const messages: string[] = [];
       for (const [field, meta] of Object.entries(formApi.state.fieldMeta)) {
         for (const message of errorMessages(meta?.errors ?? [])) {
@@ -85,7 +86,7 @@ function ClientField() {
       {(field) => (
         <div>
           <input aria-label="client" type="number" value={field.state.value} onChange={(e) => field.handleChange(parseInt(e.target.value))} />
-          {field.state.meta.errors.length > 0 && <span role="alert">{errorMessages(field.state.meta.errors).join(",")}</span>}
+          {field.state.meta.isTouched && field.state.meta.errors.length > 0 && <span role="alert">{errorMessages(field.state.meta.errors).join(",")}</span>}
         </div>
       )}
     </form.Field>
@@ -129,6 +130,18 @@ test("delivers nested schema issues to a mounted bracket-named field", async () 
 
   fireEvent.change(screen.getByLabelText("client"), { target: { value: "3" } });
   expect(screen.queryByRole("alert")).toBeNull();
+});
+
+test("shows a schema error inline when the field mounts after a failed submit", async () => {
+  const { rerender } = render(<SchemaForm onSubmit={vi.fn()} onSubmitInvalid={vi.fn()} />);
+
+  await act(async () => {
+    fireEvent.submit(screen.getByText("save"));
+  });
+  expect(screen.queryByRole("alert")).toBeNull();
+
+  rerender(<SchemaForm onSubmit={vi.fn()} onSubmitInvalid={vi.fn()} showClient />);
+  expect(screen.getByRole("alert").textContent).toBe("Must select client");
 });
 
 test("submits once every schema issue is resolved", async () => {

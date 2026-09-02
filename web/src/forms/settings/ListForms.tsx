@@ -530,8 +530,8 @@ const ListTypeForm = (props: ListTypeFormProps) => {
 
   useEffect(() => {
     if (prevActionType !== null && prevActionType !== listType && ListTypeOptions.map(l => l.value).includes(listType)) {
-      form.setFieldValue("client_id", 0);
-      form.setFieldValue("url", "");
+      form.setFieldValue("client_id", 0, { dontUpdateMeta: true });
+      form.setFieldValue("url", "", { dontUpdateMeta: true });
     }
 
     setPrevActionType(listType);

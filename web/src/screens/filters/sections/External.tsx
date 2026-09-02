@@ -41,7 +41,10 @@ export function External() {
   };
 
   const remove = (index: number) => form.removeFieldValue("external", index);
-  const move = (from: number, to: number) => form.moveFieldValues("external", from, to);
+  const move = (from: number, to: number) => {
+    form.moveFieldValues("external", from, to);
+    form.setFieldValue("external", (prev: ExternalFilter[]) => prev.map((item, index) => ({ ...item, index })));
+  };
 
   return (
     <div className="mt-5">
@@ -107,15 +110,9 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
     remove(idx);
   };
 
-  const moveUp = () => {
-    move(idx, idx - 1);
-    form.setFieldValue(`external[${idx}].index`, idx - 1);
-  };
+  const moveUp = () => move(idx, idx - 1);
 
-  const moveDown = () => {
-    move(idx, idx + 1);
-    form.setFieldValue(`external[${idx}].index`, idx + 1);
-  };
+  const moveDown = () => move(idx, idx + 1);
 
   return (
     <li>

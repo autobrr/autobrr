@@ -17,7 +17,7 @@ import { APIClient } from "@api/APIClient";
 import { FilterByIdQueryOptions } from "@api/queries";
 import { FilterKeys } from "@api/query_keys";
 import { useToggle } from "@hooks/hooks";
-import { useAppForm, useFormContext, useFormValues, errorMessages } from "@hooks/form";
+import { useAppForm, useFormContext, useFormValues, errorMessages, touchInvalidFields } from "@hooks/form";
 import { classNames } from "@utils";
 import { DOWNLOAD_CLIENTS, ExternalFilterOnErrorValues } from "@domain/constants";
 
@@ -173,7 +173,7 @@ const collectFieldErrors = (form: AnyFormApi) => {
 
 const actionSchema = z.object({
   enabled: z.boolean(),
-  name: z.string(),
+  name: z.string().min(1, { message: "Required" }),
   type: z.enum(["TEST", "EXEC", "WATCH_FOLDER", "WEBHOOK", ...DOWNLOAD_CLIENTS]),
   client_id: z.number().optional(),
   exec_cmd: z.string().optional(),
@@ -277,7 +277,7 @@ const indexerSchema = z.object({
 });
 
 const schema = z.object({
-  name: z.string(),
+  name: z.string().min(1, { message: "Required" }),
   max_downloads: z.number().optional(),
   max_downloads_unit: z.string().optional(),
   max_downloads_period: z.number().min(1).optional(),
@@ -445,8 +445,8 @@ export const FilterDetails = () => {
     },
     onSubmit: ({ value }) => onSubmit(value),
     onSubmitInvalid: ({ formApi }) => {
-      // The filter form type is too wide for the typed api; the any-typed view avoids the deep instantiation
-      const errors = collectFieldErrors(formApi as AnyFormApi);
+      touchInvalidFields(formApi);
+      const errors = collectFieldErrors(formApi);
 
       toast.custom((tst) => (
         <Toast
@@ -458,9 +458,15 @@ export const FilterDetails = () => {
     }
   });
 
-  // Follow the query cache after a save, refetch or navigation to another filter
+  // Follow the query cache after a save, refetch or navigation to another filter.
+  // Skipped on mount so tab sections can seed values in their own mount effects.
   const resetForm = form.reset;
+  const loadedFilter = useRef(filter);
   useEffect(() => {
+    if (loadedFilter.current === filter) {
+      return;
+    }
+    loadedFilter.current = filter;
     resetForm(filterFormValues(filter));
   }, [filter, resetForm]);
 

@@ -68,7 +68,7 @@ func TestAnnounceMatchesFilterAndRunsAction(t *testing.T) {
 	page.ClickLink("Actions")
 	page.ClickButton("Add new")
 	page.SelectListbox("Watch dir")
-	page.Fill("actions.0.watch_folder", watchDir)
+	page.Fill("actions[0].watch_folder", watchDir)
 
 	page.Submit()
 	page.ExpectText("E2E Announce was updated successfully")
