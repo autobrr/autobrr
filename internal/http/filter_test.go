@@ -52,6 +52,11 @@ type filterExternalTestServiceStub struct {
 func (s *filterExternalTestServiceStub) TestExternal(_ context.Context, external *domain.FilterExternal) (*domain.FilterExternalTestResult, error) {
 	s.called = true
 	s.external = external
+
+	if external.Type != domain.ExternalFilterTypeWebhook {
+		return nil, domain.ErrExternalFilterTypeUnsupported
+	}
+
 	return &domain.FilterExternalTestResult{Success: true}, nil
 }
 
@@ -90,5 +95,12 @@ func TestFilterHandlerTestExternal(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, recorder.Code)
 		assert.False(t, service.called)
+	})
+
+	t.Run("rejects unknown type", func(t *testing.T) {
+		recorder := post(`{"name":"hook","type":"FOO"}`)
+
+		assert.Equal(t, http.StatusBadRequest, recorder.Code)
+		assert.Contains(t, recorder.Body.String(), "BAD_REQUEST_PARAMS")
 	})
 }

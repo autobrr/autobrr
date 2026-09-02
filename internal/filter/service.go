@@ -1056,7 +1056,7 @@ func (s *Service) TestExternal(ctx context.Context, external *domain.FilterExter
 		result.Output = res.body
 
 	default:
-		return nil, errors.New("unsupported external filter type: %s", external.Type)
+		return nil, errors.Wrap(domain.ErrExternalFilterTypeUnsupported, "external filter type '%s' is not supported", external.Type)
 	}
 
 	result.DurationMs = time.Since(start).Milliseconds()

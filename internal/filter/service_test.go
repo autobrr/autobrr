@@ -326,7 +326,7 @@ func TestService_TestExternal_Webhook(t *testing.T) {
 
 	t.Run("rejects unknown type", func(t *testing.T) {
 		_, err := svc.TestExternal(t.Context(), &domain.FilterExternal{Type: "UNKNOWN"})
-		assert.Error(t, err)
+		assert.ErrorIs(t, err, domain.ErrExternalFilterTypeUnsupported)
 	})
 }
 

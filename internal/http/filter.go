@@ -177,6 +177,11 @@ func (h filterHandler) testExternal(w http.ResponseWriter, r *http.Request) {
 
 	result, err := h.service.TestExternal(r.Context(), data)
 	if err != nil {
+		if errors.Is(err, domain.ErrExternalFilterTypeUnsupported) {
+			h.encoder.BadRequestErr(w, err)
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}
