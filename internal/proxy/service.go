@@ -7,6 +7,7 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"sync"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -36,7 +37,10 @@ type Service struct {
 	log      zerolog.Logger
 	eventBus eventBus
 
-	repo  proxyRepo
+	repo proxyRepo
+
+	// cache is read from irc handler, feed and download goroutines while http handlers write it
+	m     sync.RWMutex
 	cache map[int64]*domain.Proxy
 }
 
@@ -59,7 +63,7 @@ func (s *Service) Store(ctx context.Context, proxy *domain.Proxy) error {
 		return err
 	}
 
-	s.cache[proxy.ID] = proxy
+	s.setCached(proxy)
 
 	return nil
 }
@@ -82,7 +86,7 @@ func (s *Service) Update(ctx context.Context, proxy *domain.Proxy) error {
 		return err
 	}
 
-	s.cache[proxy.ID] = proxy
+	s.setCached(proxy)
 
 	usage, err := s.repo.Usage(ctx, proxy.ID)
 	if err != nil {
@@ -95,11 +99,31 @@ func (s *Service) Update(ctx context.Context, proxy *domain.Proxy) error {
 }
 
 func (s *Service) FindByID(ctx context.Context, id int64) (*domain.Proxy, error) {
-	if proxy, ok := s.cache[id]; ok {
+	if proxy, ok := s.cached(id); ok {
 		return proxy, nil
 	}
 
 	return s.repo.FindByID(ctx, id)
+}
+
+func (s *Service) cached(id int64) (*domain.Proxy, bool) {
+	s.m.RLock()
+	defer s.m.RUnlock()
+
+	proxy, ok := s.cache[id]
+	return proxy, ok
+}
+
+func (s *Service) setCached(proxy *domain.Proxy) {
+	s.m.Lock()
+	s.cache[proxy.ID] = proxy
+	s.m.Unlock()
+}
+
+func (s *Service) evict(id int64) {
+	s.m.Lock()
+	delete(s.cache, id)
+	s.m.Unlock()
 }
 
 func (s *Service) List(ctx context.Context) ([]domain.Proxy, error) {
@@ -116,7 +140,7 @@ func (s *Service) ToggleEnabled(ctx context.Context, id int64, enabled bool) err
 	}
 
 	// consumers hold the cached pointer, so evict instead of mutating it in place
-	delete(s.cache, id)
+	s.evict(id)
 
 	usage, err := s.repo.Usage(ctx, id)
 	if err != nil {
@@ -138,7 +162,7 @@ func (s *Service) Delete(ctx context.Context, id int64) error {
 		return err
 	}
 
-	delete(s.cache, id)
+	s.evict(id)
 
 	s.publishEventProxy(ctx, events.ProxyDeleted, id, usage)
 
