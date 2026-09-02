@@ -495,7 +495,12 @@
       "passHelp": "认证：密码",
       "test": "测试",
       "cancel": "取消",
-      "save": "保存"
+      "save": "保存",
+      "usageTitle": "此代理仍在使用中",
+      "usageText": "移除前请先更改或禁用以下项目的代理：",
+      "usageIndexers": "索引器",
+      "usageIrcNetworks": "IRC 网络",
+      "usageFeeds": "订阅源"
     },
   "apiKey": {
     "createTitle": "创建 API 密钥",

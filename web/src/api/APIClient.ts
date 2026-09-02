@@ -474,6 +474,7 @@ export const APIClient = {
       body: proxy
     }),
     delete: (id: number) => appClient.Delete(`api/proxy/${id}`),
+    usage: (id: number) => appClient.Get<ProxyUsage>(`api/proxy/${id}/usage`),
     test: (proxy: Proxy) => appClient.Post("api/proxy/test", {
       body: proxy
     })

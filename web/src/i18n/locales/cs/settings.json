@@ -495,7 +495,12 @@
         "passHelp": "auth: heslo",
         "test": "Testovat",
         "cancel": "Zrušit",
-        "save": "Uložit"
+        "save": "Uložit",
+        "usageTitle": "Tento proxy server se stále používá",
+        "usageText": "Před odstraněním změňte nebo vypněte proxy u následujících položek:",
+        "usageIndexers": "Indexery",
+        "usageIrcNetworks": "IRC sítě",
+        "usageFeeds": "Kanály"
       },
     "apiKey": {
       "createTitle": "Vytvořit API klíč",

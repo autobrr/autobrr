@@ -317,6 +317,8 @@ func (r *IrcRepo) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 			"bouncer_addr",
 			"use_bouncer",
 			"bot_mode",
+			"use_proxy",
+			"proxy_id",
 		).
 		Values(
 			network.Enabled,
@@ -334,6 +336,8 @@ func (r *IrcRepo) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 			toNullString(network.BouncerAddr),
 			network.UseBouncer,
 			network.BotMode,
+			network.UseProxy,
+			toNullInt64(network.ProxyId),
 		).
 		Suffix("RETURNING id").
 		RunWith(r.db.Handler)

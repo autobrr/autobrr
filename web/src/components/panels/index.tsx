@@ -93,6 +93,7 @@ interface SlideOverProps<DataType> {
   toggle: () => void;
   children?: (values: DataType) => ReactNode;
   deleteAction?: () => void;
+  deleteWarning?: ReactNode;
   type: "CREATE" | "UPDATE";
   testFn?: (data: unknown) => void;
   isTesting?: boolean;
@@ -120,6 +121,7 @@ function SlideOverForm<DataType>({
   validate,
   onSubmit,
   deleteAction,
+  deleteWarning,
   toggle,
   type,
   children,
@@ -155,7 +157,9 @@ function SlideOverForm<DataType>({
           deleteAction={deleteAction}
           title={t("panel.removeTitle", { title })}
           text={t("panel.removeText", { title })}
-        />
+        >
+          {deleteWarning}
+        </DeleteModal>
       )}
 
       <form.AppForm>

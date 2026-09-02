@@ -495,7 +495,12 @@
       "passHelp": "Autentisering: passord",
       "test": "Test",
       "cancel": "Avbryt",
-      "save": "Lagre"
+      "save": "Lagre",
+      "usageTitle": "Denne proxyen er fortsatt i bruk",
+      "usageText": "Endre eller deaktiver proxyen på følgende før du fjerner den:",
+      "usageIndexers": "Indekserere",
+      "usageIrcNetworks": "IRC-nettverk",
+      "usageFeeds": "Feeder"
     },
   "apiKey": {
     "createTitle": "Opprett API-nøkkel",

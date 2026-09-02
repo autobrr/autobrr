@@ -495,7 +495,12 @@
       "passHelp": "Auth: Passwort",
       "test": "Testen",
       "cancel": "Abbrechen",
-      "save": "Speichern"
+      "save": "Speichern",
+      "usageTitle": "Dieser Proxy wird noch verwendet",
+      "usageText": "Ändere oder deaktiviere den Proxy bei den folgenden Einträgen, bevor du ihn entfernst:",
+      "usageIndexers": "Indexer",
+      "usageIrcNetworks": "IRC-Netzwerke",
+      "usageFeeds": "Feeds"
     },
     "apiKey": {
       "createTitle": "API-Schlüssel erstellen",

@@ -24,6 +24,7 @@ type proxyRepo interface {
 	Delete(ctx context.Context, id int64) error
 	FindByID(ctx context.Context, id int64) (*domain.Proxy, error)
 	ToggleEnabled(ctx context.Context, id int64, enabled bool) error
+	Usage(ctx context.Context, id int64) (*domain.ProxyUsage, error)
 }
 
 type Service struct {
@@ -91,6 +92,10 @@ func (s *Service) FindByID(ctx context.Context, id int64) (*domain.Proxy, error)
 
 func (s *Service) List(ctx context.Context) ([]domain.Proxy, error) {
 	return s.repo.List(ctx)
+}
+
+func (s *Service) Usage(ctx context.Context, id int64) (*domain.ProxyUsage, error) {
+	return s.repo.Usage(ctx, id)
 }
 
 func (s *Service) ToggleEnabled(ctx context.Context, id int64, enabled bool) error {

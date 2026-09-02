@@ -233,6 +233,73 @@ func (r *ProxyRepo) FindByID(ctx context.Context, id int64) (*domain.Proxy, erro
 	return &proxy, nil
 }
 
+func (r *ProxyRepo) Usage(ctx context.Context, id int64) (*domain.ProxyUsage, error) {
+	indexers, err := r.usageItems(ctx, r.db.squirrel.
+		Select("id", "name").
+		From("indexer").
+		Where(sq.Eq{"proxy_id": id, "use_proxy": true, "archived": false}).
+		OrderBy("name ASC"))
+	if err != nil {
+		return nil, errors.Wrap(err, "could not find indexers using proxy: %d", id)
+	}
+
+	ircNetworks, err := r.usageItems(ctx, r.db.squirrel.
+		Select("id", "name").
+		From("irc_network").
+		Where(sq.Eq{"proxy_id": id, "use_proxy": true}).
+		OrderBy("name ASC"))
+	if err != nil {
+		return nil, errors.Wrap(err, "could not find irc networks using proxy: %d", id)
+	}
+
+	feeds, err := r.usageItems(ctx, r.db.squirrel.
+		Select("f.id", "f.name").
+		From("feed f").
+		Join("indexer i ON f.indexer_id = i.id").
+		Where(sq.Eq{"i.proxy_id": id, "i.use_proxy": true, "i.archived": false}).
+		OrderBy("f.name ASC"))
+	if err != nil {
+		return nil, errors.Wrap(err, "could not find feeds using proxy: %d", id)
+	}
+
+	return &domain.ProxyUsage{
+		Indexers:    indexers,
+		IrcNetworks: ircNetworks,
+		Feeds:       feeds,
+	}, nil
+}
+
+func (r *ProxyRepo) usageItems(ctx context.Context, queryBuilder sq.SelectBuilder) ([]domain.ProxyUsageItem, error) {
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "error building query")
+	}
+
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, errors.Wrap(err, "error executing query")
+	}
+
+	defer rows.Close()
+
+	items := make([]domain.ProxyUsageItem, 0)
+	for rows.Next() {
+		var item domain.ProxyUsageItem
+
+		if err := rows.Scan(&item.ID, &item.Name); err != nil {
+			return nil, errors.Wrap(err, "error scanning row")
+		}
+
+		items = append(items, item)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "row error")
+	}
+
+	return items, nil
+}
+
 func (r *ProxyRepo) ToggleEnabled(ctx context.Context, id int64, enabled bool) error {
 	queryBuilder := r.db.squirrel.
 		Update("proxy").

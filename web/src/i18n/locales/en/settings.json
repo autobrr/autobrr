@@ -496,7 +496,12 @@
       "passHelp": "auth: password",
       "test": "Test",
       "cancel": "Cancel",
-      "save": "Save"
+      "save": "Save",
+      "usageTitle": "This proxy is still in use",
+      "usageText": "Change or disable the proxy on the following before removing it:",
+      "usageIndexers": "Indexers",
+      "usageIrcNetworks": "IRC networks",
+      "usageFeeds": "Feeds"
     },
   "apiKey": {
     "createTitle": "Create API key",

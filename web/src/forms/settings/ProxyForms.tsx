@@ -4,7 +4,7 @@
  */
 
 import { XMarkIcon } from "@heroicons/react/24/solid";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSelector } from "@tanstack/react-form";
 import { useTranslation } from "react-i18next";
 
@@ -16,6 +16,7 @@ import { SelectFieldBasic } from "@components/inputs/select_wide";
 import { ProxyTypeOptions } from "@domain/constants";
 import { APIClient } from "@api/APIClient";
 import { ProxyKeys } from "@api/query_keys";
+import { ProxyUsageQueryOptions } from "@api/queries";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { SlideOver, SlideOverShell, SlideOverTitle } from "@components/panels";
@@ -201,6 +202,8 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
 
   const deleteFn = () => deleteMutation.mutate(data.id);
 
+  const { data: usage } = useQuery(ProxyUsageQueryOptions(data.id, isOpen));
+
   const testMutation = useMutation({
     mutationFn: (data: Proxy) => APIClient.proxy.test(data),
     onError: (err) => {
@@ -226,6 +229,7 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
       initialValues={initialValues}
       onSubmit={onSubmit}
       deleteAction={deleteFn}
+      deleteWarning={<ProxyUsageWarning usage={usage} />}
       testFn={testProxy}
       isOpen={isOpen}
       toggle={toggle}
@@ -254,5 +258,46 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
         </div>
       )}
     </SlideOver>
+  );
+}
+
+interface ProxyUsageWarningProps {
+  usage?: ProxyUsage;
+}
+
+function ProxyUsageWarning({ usage }: ProxyUsageWarningProps) {
+  const { t } = useTranslation("settings");
+
+  if (!usage) {
+    return null;
+  }
+
+  const groups = [
+    { label: t("forms.proxy.usageIndexers"), items: usage.indexers },
+    { label: t("forms.proxy.usageIrcNetworks"), items: usage.irc_networks },
+    { label: t("forms.proxy.usageFeeds"), items: usage.feeds }
+  ].filter((group) => group.items.length > 0);
+
+  if (!groups.length) {
+    return null;
+  }
+
+  return (
+    <div className="mt-4 rounded-md border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-400/10 px-3 py-2 text-sm">
+      <p className="font-medium text-amber-800 dark:text-amber-300">{t("forms.proxy.usageTitle")}</p>
+      <p className="mt-1 text-amber-700 dark:text-amber-200">{t("forms.proxy.usageText")}</p>
+      {groups.map((group) => (
+        <div key={group.label} className="mt-2">
+          <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">{group.label}</span>
+          <ul className="mt-1 flex flex-wrap gap-1">
+            {group.items.map((item) => (
+              <li key={item.id} className="inline-flex items-center rounded-md bg-gray-100 dark:bg-gray-400/10 px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-300">
+                {item.name}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
   );
 }

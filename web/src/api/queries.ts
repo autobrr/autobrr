@@ -264,6 +264,14 @@ export const ProxyByIdQueryOptions = (proxyId: number) =>
     retry: false,
   });
 
+export const ProxyUsageQueryOptions = (proxyId: number, enabled: boolean = true) =>
+  queryOptions({
+    queryKey: ProxyKeys.usage(proxyId),
+    queryFn: () => APIClient.proxy.usage(proxyId),
+    enabled: enabled,
+    refetchOnWindowFocus: false
+  });
+
 export const ListsQueryOptions = () =>
   queryOptions({
     queryKey: ListKeys.lists(),
