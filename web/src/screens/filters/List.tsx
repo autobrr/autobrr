@@ -94,6 +94,67 @@ const FilterListReducer = (state: FilterListState, action: Actions): FilterListS
   }
 };
 
+const ToggleAllFiltersCheckbox = ({ filters }: { filters: Filter[] }) => {
+  const { t } = useTranslation("filters");
+  const queryClient = useQueryClient();
+  const checkboxRef = useRef<HTMLInputElement>(null);
+
+  const allEnabled = useMemo(() => filters.length > 0 && filters.every(f => f.enabled), [filters]);
+  const someEnabled = useMemo(() => filters.some(f => f.enabled), [filters]);
+
+  useEffect(() => {
+    if (checkboxRef.current) {
+      checkboxRef.current.checked = allEnabled;
+      checkboxRef.current.indeterminate = someEnabled && !allEnabled;
+    }
+  }, [filters, allEnabled, someEnabled]);
+
+  const mutation = useMutation({
+    mutationFn: async (enable: boolean) => {
+      // Using Promise.all to run toggles in parallel
+      await Promise.all(filters.map(filter =>
+        APIClient.filters.toggleEnable(filter.id, enable)
+      ));
+    },
+    onSuccess: (_, enable) => {
+      queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: FilterKeys.details() });
+      toast.custom((toastInstance) => (
+        <Toast
+          type="success"
+          body={t(enable ? "list.toggleAllEnabled" : "list.toggleAllDisabled", { count: filters.length })}
+          t={toastInstance}
+        />
+      ));
+    },
+    onError: (err) => {
+      console.error("Failed to toggle all filters", err);
+      toast.custom((toastInstance) => <Toast type="error" body={t("list.toggleAllError")} t={toastInstance} />);
+    }
+  });
+
+  const handleToggleAll = () => {
+    const enable = !allEnabled;
+    mutation.mutate(enable);
+  };
+
+  return (
+    <span className="flex justify-center items-center gap-2 border-b-2 border-transparent">
+      <input
+        type="checkbox"
+        ref={checkboxRef}
+        className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800"
+        onChange={handleToggleAll}
+        disabled={mutation.isPending || filters.length === 0}
+        title={t("list.toggleAllTitle")}
+      />
+      <div className="py-2 flex flex-col overflow-hidden w-full justify-center text-xs font-medium text-gray-600 dark:text-gray-400">
+        {t("list.toggleAll")}
+      </div>
+    </span>
+  );
+};
+
 export function Filters() {
   const { t } = useTranslation("filters");
   const [createFilterIsOpen, setCreateFilterIsOpen] = useState(false);
@@ -221,9 +282,11 @@ function FilterList({ toggleCreateFilter }: any) {
             <StatusButton data={filtered.all} label={t("list.statusAll")} value="" currentValue={status} dispatch={dispatchFilter} />
             <StatusButton data={filtered.enabled} label={t("list.statusEnabled")} value="enabled" currentValue={status} dispatch={dispatchFilter} />
             <StatusButton data={filtered.disabled} label={t("list.statusDisabled")} value="disabled" currentValue={status} dispatch={dispatchFilter} />
+            <ToggleAllFiltersCheckbox filters={filtered.filtered} />
           </div>
 
           <div className="flex items-center gap-5">
+
             <div className="hidden md:flex"><IndexerSelectFilter dispatch={dispatchFilter} /></div>
             <SortSelectFilter dispatch={dispatchFilter} />
           </div>
