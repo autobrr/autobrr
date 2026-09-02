@@ -35,17 +35,28 @@ export function External() {
 
   const newItem: ExternalFilter = {
     id: values.external.length + 1,
-    index: values.external.length,
+    index: 0,
     name: `External ${values.external.length + 1}`,
     enabled: true,
     type: "EXEC",
     on_error: "REJECT",
   };
 
-  const remove = (index: number) => form.removeFieldValue("external", index);
+  // Rows load and run highest index first, so the displayed order is written top-down as n-1..0
+  const renumber = (items: ExternalFilter[]) =>
+    items.map((item, position) => ({ ...item, index: items.length - 1 - position }));
+
+  const push = () => {
+    form.pushFieldValue("external", newItem);
+    form.setFieldValue("external", renumber);
+  };
+  const remove = async (index: number) => {
+    await form.removeFieldValue("external", index);
+    form.setFieldValue("external", renumber);
+  };
   const move = (from: number, to: number) => {
     form.moveFieldValues("external", from, to);
-    form.setFieldValue("external", (prev: ExternalFilter[]) => prev.map((item, index) => ({ ...item, index })));
+    form.setFieldValue("external", renumber);
   };
 
   return (
@@ -60,7 +71,7 @@ export function External() {
           <button
             type="button"
             className="relative inline-flex items-center px-4 py-2 transition border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-            onClick={() => form.pushFieldValue("external", newItem)}
+            onClick={push}
           >
             <SquaresPlusIcon
               className="w-5 h-5 mr-1"
