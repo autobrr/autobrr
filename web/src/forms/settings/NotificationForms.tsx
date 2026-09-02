@@ -797,6 +797,8 @@ interface InitialValues {
   events: NotificationEvent[];
   username?: string;
   password?: string;
+  method?: string;
+  headers?: string;
   used_by_filters?: NotificationFilter[];
 }
 
@@ -859,6 +861,8 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
     events: notification.events || [],
     username: notification.username,
     password: notification.password,
+    method: notification.method,
+    headers: notification.headers,
     used_by_filters: notification.used_by_filters || [],
   };
 
