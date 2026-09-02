@@ -206,8 +206,6 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
 
   const deleteFn = () => deleteMutation.mutate(data.id);
 
-  const { data: usage } = useQuery(ProxyUsageQueryOptions(data.id, isOpen));
-
   const testMutation = useMutation({
     mutationFn: (data: Proxy) => APIClient.proxy.test(data),
     onError: (err) => {
@@ -233,7 +231,7 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
       initialValues={initialValues}
       onSubmit={onSubmit}
       deleteAction={deleteFn}
-      deleteWarning={<ProxyUsageWarning usage={usage} text={t("forms.proxy.usageText")} />}
+      deleteWarning={<ProxyUsageWarning proxyId={data.id} text={t("forms.proxy.usageText")} />}
       testFn={testProxy}
       isOpen={isOpen}
       toggle={toggle}
@@ -247,7 +245,7 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
               <SwitchGroupWide name="enabled" label={t("forms.proxy.enabled")}/>
               {data.enabled && !values.enabled && (
                 <div className="px-4 pb-4">
-                  <ProxyUsageWarning usage={usage} text={t("forms.proxy.usageDisableText")} />
+                  <ProxyUsageWarning proxyId={data.id} text={t("forms.proxy.usageDisableText")} />
                 </div>
               )}
             </div>
@@ -273,12 +271,13 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
 }
 
 interface ProxyUsageWarningProps {
-  usage?: ProxyUsage;
+  proxyId: number;
   text: string;
 }
 
-export function ProxyUsageWarning({ usage, text }: ProxyUsageWarningProps) {
+export function ProxyUsageWarning({ proxyId, text }: ProxyUsageWarningProps) {
   const { t } = useTranslation("settings");
+  const { data: usage } = useQuery(ProxyUsageQueryOptions(proxyId));
 
   if (!usage) {
     return null;

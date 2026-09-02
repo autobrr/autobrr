@@ -4,13 +4,13 @@
  */
 
 import { useToggle } from "@hooks/hooks.ts";
-import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { PlusIcon } from "@heroicons/react/24/solid";
 import { useTranslation } from "react-i18next";
 
 import { APIClient } from "@api/APIClient";
 import { IrcKeys, ProxyKeys } from "@api/query_keys";
-import { ProxiesQueryOptions, ProxyUsageQueryOptions } from "@api/queries";
+import { ProxiesQueryOptions } from "@api/queries";
 import { Section } from "./_components";
 import { EmptySimple } from "@components/emptystates";
 import { Checkbox } from "@components/Checkbox";
@@ -29,8 +29,6 @@ function ListItem({ proxy }: ListItemProps) {
   const [disableIsOpen, toggleDisable] = useToggle(false);
 
   const queryClient = useQueryClient();
-
-  const { data: usage } = useQuery(ProxyUsageQueryOptions(proxy.id, disableIsOpen));
 
   const updateMutation = useMutation({
     mutationFn: (req: Proxy) => APIClient.proxy.update(req),
@@ -83,7 +81,7 @@ function ListItem({ proxy }: ListItemProps) {
         text={t("listScreens.proxies.disableText")}
         confirmLabel={t("listScreens.proxies.disable")}
       >
-        <ProxyUsageWarning usage={usage} text={t("forms.proxy.usageDisableText")} />
+        <ProxyUsageWarning proxyId={proxy.id} text={t("forms.proxy.usageDisableText")} />
       </DeleteModal>
 
       <div className="grid grid-cols-12 items-center py-1.5">

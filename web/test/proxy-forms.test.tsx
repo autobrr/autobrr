@@ -4,7 +4,7 @@
  */
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 
 import { APIClient } from "@api/APIClient";
@@ -76,4 +76,22 @@ test("turning the enabled switch off warns which irc networks will be disabled",
   fireEvent.click(document.querySelector("button#enabled") as HTMLButtonElement);
 
   expect(screen.queryByText("This proxy is still in use")).toBeNull();
+});
+
+test("the delete modal fetches a fresh usage snapshot every time it opens", async () => {
+  const usage = vi.spyOn(APIClient.proxy, "usage").mockResolvedValue({ indexers: [], irc_networks: [], feeds: [] });
+  renderForm();
+
+  expect(usage).not.toHaveBeenCalled();
+
+  fireEvent.click(screen.getByText("Remove"));
+  await waitFor(() => expect(usage).toHaveBeenCalledTimes(1));
+
+  // the slide-over has its own Cancel button, so scope to the modal
+  const modal = screen.getByText(/Are you sure you want to remove this Proxy/).closest("[role='dialog']") as HTMLElement;
+  fireEvent.click(within(modal).getByText("Cancel"));
+  await waitFor(() => expect(screen.queryByText(/Are you sure you want to remove this Proxy/)).toBeNull());
+
+  fireEvent.click(screen.getByText("Remove"));
+  await waitFor(() => expect(usage).toHaveBeenCalledTimes(2));
 });

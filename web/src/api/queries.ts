@@ -264,11 +264,12 @@ export const ProxyByIdQueryOptions = (proxyId: number) =>
     retry: false,
   });
 
-export const ProxyUsageQueryOptions = (proxyId: number, enabled: boolean = true) =>
+export const ProxyUsageQueryOptions = (proxyId: number) =>
   queryOptions({
     queryKey: ProxyKeys.usage(proxyId),
     queryFn: () => APIClient.proxy.usage(proxyId),
-    enabled: enabled,
+    // the warning that owns this query is mounted only while shown, so every open refetches
+    staleTime: 0,
     refetchOnWindowFocus: false
   });
 
