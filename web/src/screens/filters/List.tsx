@@ -95,6 +95,7 @@ const FilterListReducer = (state: FilterListState, action: Actions): FilterListS
 };
 
 const ToggleAllFiltersCheckbox = ({ filters }: { filters: Filter[] }) => {
+  const { t } = useTranslation("filters");
   const queryClient = useQueryClient();
   const checkboxRef = useRef<HTMLInputElement>(null);
 
@@ -118,11 +119,17 @@ const ToggleAllFiltersCheckbox = ({ filters }: { filters: Filter[] }) => {
     onSuccess: (_, enable) => {
       queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
       queryClient.invalidateQueries({ queryKey: FilterKeys.details() });
-      toast.custom((t) => <Toast type="success" body={`All ${filters.length} filters have been ${enable ? 'enabled' : 'disabled'}.`} t={t} />);
+      toast.custom((toastInstance) => (
+        <Toast
+          type="success"
+          body={t(enable ? "list.toggleAllEnabled" : "list.toggleAllDisabled", { count: filters.length })}
+          t={toastInstance}
+        />
+      ));
     },
     onError: (err) => {
       console.error("Failed to toggle all filters", err);
-      toast.custom((t) => <Toast type="error" body="An error occurred while toggling filters." t={t} />);
+      toast.custom((toastInstance) => <Toast type="error" body={t("list.toggleAllError")} t={toastInstance} />);
     }
   });
 
@@ -132,14 +139,19 @@ const ToggleAllFiltersCheckbox = ({ filters }: { filters: Filter[] }) => {
   };
 
   return (
-    <input
-      type="checkbox"
-      ref={checkboxRef}
-      className="px-1 py-1"
-      onChange={handleToggleAll}
-      disabled={mutation.isPending || filters.length === 0}
-      title="Toggle all visible filters"
-    />
+    <span className="flex justify-center items-center gap-2 border-b-2 border-transparent">
+      <input
+        type="checkbox"
+        ref={checkboxRef}
+        className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800"
+        onChange={handleToggleAll}
+        disabled={mutation.isPending || filters.length === 0}
+        title={t("list.toggleAllTitle")}
+      />
+      <div className="py-2 flex flex-col overflow-hidden w-full justify-center text-xs font-medium text-gray-600 dark:text-gray-400">
+        {t("list.toggleAll")}
+      </div>
+    </span>
   );
 };
 
@@ -270,9 +282,11 @@ function FilterList({ toggleCreateFilter }: any) {
             <StatusButton data={filtered.all} label={t("list.statusAll")} value="" currentValue={status} dispatch={dispatchFilter} />
             <StatusButton data={filtered.enabled} label={t("list.statusEnabled")} value="enabled" currentValue={status} dispatch={dispatchFilter} />
             <StatusButton data={filtered.disabled} label={t("list.statusDisabled")} value="disabled" currentValue={status} dispatch={dispatchFilter} />
+            <ToggleAllFiltersCheckbox filters={filtered.filtered} />
           </div>
 
           <div className="flex items-center gap-5">
+
             <div className="hidden md:flex"><IndexerSelectFilter dispatch={dispatchFilter} /></div>
             <SortSelectFilter dispatch={dispatchFilter} />
           </div>
@@ -281,27 +295,12 @@ function FilterList({ toggleCreateFilter }: any) {
         {isLoadingFilters
           ? <div className="flex items-center justify-center py-64"><RingResizeSpinner className="text-blue-500 size-24"/></div>
           : filtersData && filtersData.length > 0 ? (
-            <>
-              <div className="flex items-center bg-gray-75 dark:bg-gray-825 py-0.5 border-b border-gray-150 dark:border-gray-775">
-                <span className="pl-2 pr-4 sm:px-4">
-                  <ToggleAllFiltersCheckbox filters={filtered.filtered} />
-                </span>
-                <div className="py-2 flex flex-col overflow-hidden w-full justify-center text-sm font-bold text-gray-800 dark:text-gray-100">
-                  Filter
-                </div>
-                <span className="hidden md:flex items-center justify-center py-4" />
-                <span className="hidden md:flex pl-2 pr-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  Indexers
-                </span>
-                <span className="min-w-fit px-4 py-2 whitespace-nowrap text-right text-sm font-medium" />
-              </div>
               <ul className="min-w-full divide-y divide-gray-150 dark:divide-gray-775">
                 {filtered.filtered.length > 0
                   ? filtered.filtered.map((filter: Filter, idx) => <FilterListItem filter={filter} key={filter.id} idx={idx} />)
                   : <EmptyListState text={t("list.noStatusFilters", { status: status === "enabled" ? t("list.statusEnabled").toLowerCase() : t("list.statusDisabled").toLowerCase() })}/>
                 }
               </ul>
-            </>
             ) : (
               <EmptyListState text={t("list.noFilters")} buttonText={t("list.addNew")} buttonOnClick={toggleCreateFilter}/>
             )
