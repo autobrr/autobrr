@@ -318,46 +318,52 @@ func (h *Handler) Run() (err error) {
 		Log:           subLogger,
 	}
 
-	if network.UseProxy && network.Proxy != nil {
-		if !network.Proxy.Enabled {
-			h.log.Debug().Msg("proxy disabled, skipping")
-		} else {
-			if network.Proxy.Addr == "" {
-				return errors.New("proxy addr missing")
-			}
-
-			proxyUrl, err := url.Parse(network.Proxy.Addr)
-			if err != nil {
-				return errors.Wrap(err, "could not parse proxy url: %s", network.Proxy.Addr)
-			}
-
-			// set user and pass if not empty
-			if network.Proxy.User != "" && network.Proxy.Pass != "" {
-				proxyUrl.User = url.UserPassword(network.Proxy.User, network.Proxy.Pass)
-			}
-
-			var proxyDialer proxy.Dialer
-
-			switch proxyUrl.Scheme {
-			case "http", "https":
-				h.log.Debug().Str("proxy", proxyUrl.Host).Str("server", network.Server).Int("port", network.Port).Msg("using HTTP CONNECT proxy for IRC server")
-				proxyDialer = newHTTPProxyDialer(proxyUrl, proxy.Direct, network.TLSSkipVerify)
-
-			default:
-				h.log.Debug().Str("proxy_scheme", proxyUrl.Scheme).Str("proxy", proxyUrl.Host).Msg("using proxy")
-				proxyDialer, err = proxy.FromURL(proxyUrl, proxy.Direct)
-				if err != nil {
-					return errors.Wrap(err, "could not create proxy dialer from url: %s", network.Proxy.Addr)
-				}
-			}
-
-			proxyContextDialer, ok := proxyDialer.(proxy.ContextDialer)
-			if !ok {
-				return errors.New("proxy dialer does not expose DialContext(): %v", proxyDialer)
-			}
-
-			client.DialContext = proxyContextDialer.DialContext
+	if network.UseProxy && network.ProxyId != 0 {
+		// the service attaches the proxy before handing the network over; a missing or disabled
+		// one must never quietly turn into a direct connection
+		if network.Proxy == nil {
+			return h.refuseConnect("configured proxy could not be loaded")
 		}
+
+		if !network.Proxy.Enabled {
+			return h.refuseConnect(fmt.Sprintf("proxy %s is disabled", network.Proxy.Name))
+		}
+
+		if network.Proxy.Addr == "" {
+			return errors.New("proxy addr missing")
+		}
+
+		proxyUrl, err := url.Parse(network.Proxy.Addr)
+		if err != nil {
+			return errors.Wrap(err, "could not parse proxy url: %s", network.Proxy.Addr)
+		}
+
+		// set user and pass if not empty
+		if network.Proxy.User != "" && network.Proxy.Pass != "" {
+			proxyUrl.User = url.UserPassword(network.Proxy.User, network.Proxy.Pass)
+		}
+
+		var proxyDialer proxy.Dialer
+
+		switch proxyUrl.Scheme {
+		case "http", "https":
+			h.log.Debug().Str("proxy", proxyUrl.Host).Str("server", network.Server).Int("port", network.Port).Msg("using HTTP CONNECT proxy for IRC server")
+			proxyDialer = newHTTPProxyDialer(proxyUrl, proxy.Direct, network.TLSSkipVerify)
+
+		default:
+			h.log.Debug().Str("proxy_scheme", proxyUrl.Scheme).Str("proxy", proxyUrl.Host).Msg("using proxy")
+			proxyDialer, err = proxy.FromURL(proxyUrl, proxy.Direct)
+			if err != nil {
+				return errors.Wrap(err, "could not create proxy dialer from url: %s", network.Proxy.Addr)
+			}
+		}
+
+		proxyContextDialer, ok := proxyDialer.(proxy.ContextDialer)
+		if !ok {
+			return errors.New("proxy dialer does not expose DialContext(): %v", proxyDialer)
+		}
+
+		client.DialContext = proxyContextDialer.DialContext
 	}
 
 	if network.Auth.Mechanism == domain.IRCAuthMechanismSASLPlain {
@@ -2031,6 +2037,18 @@ func (h *Handler) SendMsg(channel, msg string) error {
 // cleanMessage irc line can contain lots of extra stuff like color so lets clean that
 func cleanMessage(message string) string {
 	return ircfmt.Strip(message)
+}
+
+// refuseConnect records why the network will not be connected and stops it, the same way the
+// fatal failures inside the connect loop do, so the reason reaches the UI.
+func (h *Handler) refuseConnect(reason string) error {
+	h.log.Error().Str("reason", reason).Msg("refusing to connect")
+
+	h.addConnectError(reason)
+	h.stateMachine.OnError(reason)
+	h.Stop()
+
+	return errors.New("%s", reason)
 }
 
 func (h *Handler) addConnectError(message string) {

@@ -24,4 +24,15 @@ interface ProxyCreate {
   timeout?: number;
 }
 
+interface ProxyUsageItem {
+  id: number;
+  name: string;
+}
+
+interface ProxyUsage {
+  indexers: ProxyUsageItem[];
+  irc_networks: ProxyUsageItem[];
+  feeds: ProxyUsageItem[];
+}
+
 type ProxyType = "SOCKS5" | "HTTP";

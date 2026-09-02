@@ -172,6 +172,38 @@ func TestIrcRepo_UpdateNetwork(t *testing.T) {
 	}
 }
 
+func TestIrcRepo_ToggleNetworkEnabled(t *testing.T) {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		db := testDb.db
+		log := setupLoggerForTest()
+
+		repo := NewIrcRepo(log, db)
+
+		mockData := getMockIrcNetwork()
+
+		t.Run(fmt.Sprintf("ToggleNetworkEnabled_Succeeds [%s]", dbType), func(t *testing.T) {
+			// Setup
+			mockData.Enabled = true
+			err := repo.StoreNetwork(ctx, &mockData)
+			assert.NoError(t, err)
+
+			// Execute
+			err = repo.ToggleNetworkEnabled(ctx, mockData.ID, false)
+			assert.NoError(t, err)
+
+			// Verify
+			network, err := repo.GetNetworkByID(ctx, mockData.ID)
+			assert.NoError(t, err)
+			assert.False(t, network.Enabled)
+
+			// Cleanup
+			_ = repo.DeleteNetwork(ctx, mockData.ID)
+		})
+	}
+}
+
 func TestIrcRepo_GetNetworkByID(t *testing.T) {
 	ctx := t.Context()
 

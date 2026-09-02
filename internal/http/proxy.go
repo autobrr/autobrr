@@ -20,6 +20,7 @@ type proxyService interface {
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context) ([]domain.Proxy, error)
 	FindByID(ctx context.Context, id int64) (*domain.Proxy, error)
+	Usage(ctx context.Context, id int64) (*domain.ProxyUsage, error)
 	Test(ctx context.Context, p *domain.Proxy) error
 }
 
@@ -44,6 +45,8 @@ func (h proxyHandler) Routes(r chi.Router) {
 		r.Get("/", h.findByID)
 		r.Put("/", h.update)
 		r.Delete("/", h.delete)
+
+		r.Get("/usage", h.usage)
 	})
 }
 
@@ -111,6 +114,22 @@ func (h proxyHandler) findByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.encoder.StatusResponse(w, http.StatusOK, proxies)
+}
+
+func (h proxyHandler) usage(w http.ResponseWriter, r *http.Request) {
+	proxyID, err := parseURLParamInt(r, "proxyID")
+	if err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
+
+	usage, err := h.service.Usage(r.Context(), int64(proxyID))
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusOK, usage)
 }
 
 func (h proxyHandler) delete(w http.ResponseWriter, r *http.Request) {

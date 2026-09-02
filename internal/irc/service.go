@@ -22,6 +22,7 @@ import (
 type ircRepo interface {
 	StoreNetwork(ctx context.Context, network *domain.IrcNetwork) error
 	UpdateNetwork(ctx context.Context, network *domain.IrcNetwork) error
+	ToggleNetworkEnabled(ctx context.Context, id int64, enabled bool) error
 	StoreChannel(ctx context.Context, networkID int64, channel *domain.IrcChannel) error
 	UpdateChannel(channel *domain.IrcChannel) error
 	UpdateInviteCommand(networkID int64, invite string) error
@@ -54,6 +55,7 @@ type sseServer interface {
 
 type eventBus interface {
 	EmitIRC(ctx context.Context, event events.IRCEvent)
+	OnProxy(handler func(ctx context.Context, event events.ProxyChangeEvent) error) func()
 }
 
 type Service struct {
@@ -74,7 +76,7 @@ type Service struct {
 }
 
 func NewService(log zerolog.Logger, eventBus eventBus, sse sseServer, repo ircRepo, releaseSvc releaseService, indexerSvc indexerService, proxySvc proxyService) *Service {
-	return &Service{
+	s := &Service{
 		log:             log.With().Str("module", "irc").Logger(),
 		eventBus:        eventBus,
 		sse:             sse,
@@ -85,6 +87,97 @@ func NewService(log zerolog.Logger, eventBus eventBus, sse sseServer, repo ircRe
 		networkCache:    haxmap.New[int64, *domain.IrcNetwork](),
 		networkHandlers: haxmap.New[int64, *Handler](),
 	}
+
+	s.setupEventListeners()
+
+	return s
+}
+
+func (s *Service) setupEventListeners() {
+	s.eventBus.OnProxy(func(ctx context.Context, event events.ProxyChangeEvent) error {
+		if event.Usage == nil {
+			return nil
+		}
+
+		return s.onProxyChanged(ctx, event)
+	})
+}
+
+// onProxyChanged reloads every network that routed through the changed proxy and lets the
+// restart check pick up the difference: a deleted proxy leaves a detached row and the network
+// reconnects direct, an updated one attaches fresh dial settings, and a disabled one takes the
+// network down with it rather than letting it fall back to a direct connection.
+func (s *Service) onProxyChanged(ctx context.Context, event events.ProxyChangeEvent) error {
+	for _, item := range event.Usage.IrcNetworks {
+		network, err := s.GetNetworkByID(ctx, item.ID)
+		if err != nil {
+			s.log.Error().Err(err).Int64("network_id", item.ID).Int64("proxy_id", event.ProxyID).Msg("could not load network for changed proxy")
+			continue
+		}
+
+		if err := s.attachProxy(ctx, network); err != nil {
+			s.log.Error().Err(err).Str("network", network.Name).Int64("proxy_id", network.ProxyId).Msg("could not get changed proxy for network")
+			continue
+		}
+
+		if network.Enabled && network.Proxy != nil && !network.Proxy.Enabled {
+			if err := s.disableNetworkForProxy(ctx, network); err != nil {
+				s.log.Error().Err(err).Str("network", network.Name).Int64("proxy_id", event.ProxyID).Msg("could not disable network for disabled proxy")
+			}
+			continue
+		}
+
+		s.networkCache.Set(network.ID, network)
+
+		if !network.Enabled {
+			continue
+		}
+
+		if err := s.checkIfNetworkRestartNeeded(network); err != nil {
+			s.log.Error().Err(err).Str("network", network.Name).Int64("proxy_id", event.ProxyID).Msg("could not restart network for changed proxy")
+		}
+	}
+
+	return nil
+}
+
+// attachProxy resolves the proxy a network is configured with. Every path that hands a network
+// to a handler goes through here: Handler.Run refuses to connect when use_proxy is set but no
+// Proxy is attached, so a missed attach shows up as an error instead of a direct connection.
+func (s *Service) attachProxy(ctx context.Context, network *domain.IrcNetwork) error {
+	network.Proxy = nil
+
+	if !network.UseProxy || network.ProxyId == 0 {
+		return nil
+	}
+
+	networkProxy, err := s.proxyService.FindByID(ctx, network.ProxyId)
+	if err != nil {
+		return errors.Wrap(err, "could not get proxy for network: %s", network.Server)
+	}
+
+	network.Proxy = networkProxy
+
+	return nil
+}
+
+// disableNetworkForProxy takes a network down when its proxy is disabled and persists it as
+// disabled, so it stays down until the user re-enables it instead of reconnecting direct.
+func (s *Service) disableNetworkForProxy(ctx context.Context, network *domain.IrcNetwork) error {
+	s.log.Warn().Str("network", network.Name).Str("proxy", network.Proxy.Name).Msg("proxy disabled, disabling network")
+
+	if err := s.StopAndRemoveNetwork(network.ID); err != nil {
+		return err
+	}
+
+	if err := s.repo.ToggleNetworkEnabled(ctx, network.ID, false); err != nil {
+		return err
+	}
+
+	network.Enabled = false
+	s.networkCache.Set(network.ID, network)
+
+	return nil
 }
 
 func (s *Service) StartHandlers() {
@@ -99,13 +192,9 @@ func (s *Service) StartHandlers() {
 			continue
 		}
 
-		if network.UseProxy && network.ProxyId != 0 {
-			networkProxy, err := s.proxyService.FindByID(ctx, network.ProxyId)
-			if err != nil {
-				s.log.Error().Err(err).Str("server", network.Server).Msg("failed to get proxy for network")
-				continue
-			}
-			network.Proxy = networkProxy
+		if err := s.attachProxy(ctx, &network); err != nil {
+			s.log.Error().Err(err).Str("server", network.Server).Msg("failed to get proxy for network")
+			continue
 		}
 
 		channels, err := s.repo.ListChannels(network.ID)
@@ -199,8 +288,12 @@ func (s *Service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 
 	s.log.Debug().Str("server", network.Server).Msg("decide if irc network handler needs restart or updating")
 
+	// a restart in flight sits in the stopped state for a moment and then runs with whatever
+	// config the handler holds, so swap the config now instead of dropping the change
 	if handler.Stopped() {
-		s.log.Debug().Str("server", network.Server).Msg("handler stopped, skipping")
+		handler.UpdateNetwork(network)
+
+		s.log.Debug().Str("server", network.Server).Msg("handler stopped, updated config without restart")
 		return nil
 	}
 
@@ -318,6 +411,10 @@ func (s *Service) RestartNetwork(ctx context.Context, networkID int64) error {
 
 	if !network.Enabled {
 		return errors.New("network disabled, could not restart")
+	}
+
+	if err := s.attachProxy(ctx, network); err != nil {
+		return err
 	}
 
 	return s.restartNetwork(*network)
@@ -639,16 +736,9 @@ func (s *Service) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 		}
 	}
 
-	network.Proxy = nil
-
-	// attach proxy
-	if network.UseProxy && network.ProxyId != 0 {
-		networkProxy, err := s.proxyService.FindByID(ctx, network.ProxyId)
-		if err != nil {
-			s.log.Error().Err(err).Str("server", network.Server).Msg("failed to get proxy for network")
-			return errors.Wrap(err, "could not get proxy for network: %s", network.Server)
-		}
-		network.Proxy = networkProxy
+	if err := s.attachProxy(ctx, network); err != nil {
+		s.log.Error().Err(err).Str("server", network.Server).Msg("failed to get proxy for network")
+		return err
 	}
 
 	s.networkCache.Set(network.ID, network)
@@ -703,15 +793,9 @@ func (s *Service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 
 		s.networkCache.Set(network.ID, network)
 
-		// attach proxy
-		network.Proxy = nil
-		if network.UseProxy && network.ProxyId != 0 {
-			networkProxy, err := s.proxyService.FindByID(ctx, network.ProxyId)
-			if err != nil {
-				s.log.Error().Err(err).Str("server", network.Server).Msg("failed to get proxy for network")
-				return errors.Wrap(err, "could not get proxy for network: %s", network.Server)
-			}
-			network.Proxy = networkProxy
+		if err := s.attachProxy(ctx, network); err != nil {
+			s.log.Error().Err(err).Str("server", network.Server).Msg("failed to get proxy for network")
+			return err
 		}
 
 		// if network is enabled, start it immediately
@@ -731,6 +815,11 @@ func (s *Service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 		s.log.Error().Err(err).Str("server", existingNetwork.Server).Msg("failed to list channels for network")
 	}
 	existingNetwork.Channels = existingChannels
+
+	if err := s.attachProxy(ctx, existingNetwork); err != nil {
+		s.log.Error().Err(err).Str("server", existingNetwork.Server).Msg("failed to get proxy for network")
+		return err
+	}
 
 	s.networkCache.Set(network.ID, existingNetwork)
 

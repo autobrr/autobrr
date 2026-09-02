@@ -23,6 +23,10 @@ type noopEventBus struct{}
 
 func (noopEventBus) EmitIRC(_ context.Context, _ events.IRCEvent) {}
 
+func (noopEventBus) OnProxy(_ func(context.Context, events.ProxyChangeEvent) error) func() {
+	return func() {}
+}
+
 // mockSSEServer records published events so tests can assert what was broadcast.
 type mockSSEServer struct {
 	mu        sync.Mutex

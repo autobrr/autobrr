@@ -4,7 +4,7 @@
  */
 
 
-import { FC, Fragment, MutableRefObject, useState } from "react";
+import { FC, Fragment, RefObject, ReactNode, useState } from "react";
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/solid";
 import { useTranslation } from "react-i18next";
@@ -14,6 +14,7 @@ import { RingResizeSpinner } from "@components/Icons";
 interface ModalUpperProps {
   title: string;
   text: string;
+  children?: ReactNode;
 }
 
 interface ModalLowerProps {
@@ -22,27 +23,28 @@ interface ModalLowerProps {
   toggle: () => void;
   deleteAction?: () => void;
   forceRunAction?: () => void;
+  confirmLabel?: string;
 }
 
 interface DeleteModalProps extends ModalUpperProps, ModalLowerProps {
-  buttonRef: MutableRefObject<HTMLElement | null> | undefined;
+  buttonRef: RefObject<HTMLElement | null> | undefined;
 }
 
 interface ForceRunModalProps {
   isOpen: boolean;
   isLoading: boolean;
   toggle: () => void;
-  buttonRef: MutableRefObject<HTMLElement | null> | undefined;
+  buttonRef: RefObject<HTMLElement | null> | undefined;
   forceRunAction: () => void;
   title: string;
   text: string;
 }
 
-const ModalUpper = ({ title, text }: ModalUpperProps) => (
+const ModalUpper = ({ title, text, children }: ModalUpperProps) => (
   <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
     <div className="sm:flex sm:items-start">
       <ExclamationTriangleIcon className="h-16 w-16 text-red-500 dark:text-red-500" aria-hidden="true" />
-      <div className="mt-3 text-left sm:mt-0 sm:ml-4 sm:pr-8 max-w-full">
+      <div className="mt-3 text-left sm:mt-0 sm:ml-4 max-w-full">
         <DialogTitle as="h3" className="text-lg leading-6 font-medium text-gray-900 dark:text-white break-words">
           {title}
         </DialogTitle>
@@ -51,12 +53,13 @@ const ModalUpper = ({ title, text }: ModalUpperProps) => (
             {text}
           </p>
         </div>
+        {children}
       </div>
     </div>
   </div>
 );
 
-const ModalLower = ({ isOpen, isLoading, toggle, deleteAction }: ModalLowerProps) => {
+const ModalLower = ({ isOpen, isLoading, toggle, deleteAction, confirmLabel }: ModalLowerProps) => {
   const { t } = useTranslation("common");
 
   return (
@@ -76,7 +79,7 @@ const ModalLower = ({ isOpen, isLoading, toggle, deleteAction }: ModalLowerProps
               }
             }}
           >
-            {t("modal.remove")}
+            {confirmLabel ?? t("modal.remove")}
           </button>
           <button
             type="button"

@@ -107,7 +107,8 @@ export const ProxyKeys = {
   all: ["proxy"] as const,
   lists: () => [...ProxyKeys.all, "list"] as const,
   details: () => [...ProxyKeys.all, "detail"] as const,
-  detail: (id: number) => [...ProxyKeys.details(), id] as const
+  detail: (id: number) => [...ProxyKeys.details(), id] as const,
+  usage: (id: number) => [...ProxyKeys.details(), id, "usage"] as const
 };
 
 export const ListKeys = {

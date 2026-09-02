@@ -4,7 +4,7 @@
  */
 
 import { XMarkIcon } from "@heroicons/react/24/solid";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSelector } from "@tanstack/react-form";
 import { useTranslation } from "react-i18next";
 
@@ -15,7 +15,8 @@ import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/i
 import { SelectFieldBasic } from "@components/inputs/select_wide";
 import { ProxyTypeOptions } from "@domain/constants";
 import { APIClient } from "@api/APIClient";
-import { ProxyKeys } from "@api/query_keys";
+import { FeedKeys, IndexerKeys, IrcKeys, ProxyKeys } from "@api/query_keys";
+import { ProxyUsageQueryOptions } from "@api/queries";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { SlideOver, SlideOverShell, SlideOverTitle } from "@components/panels";
@@ -177,6 +178,7 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
     mutationFn: (req: Proxy) => APIClient.proxy.update(req),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ProxyKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
 
       toast.custom((toastInstance) => <Toast type="success" body={t("forms.proxy.updated", { name: data.name })} t={toastInstance} />);
       toggle();
@@ -194,6 +196,9 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
     mutationFn: (proxyId: number) => APIClient.proxy.delete(proxyId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ProxyKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IndexerKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: FeedKeys.lists() });
 
       toast.custom((toastInstance) => <Toast type="success" body={t("forms.proxy.deleted", { name: data.name })} t={toastInstance}/>);
     }
@@ -226,16 +231,24 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
       initialValues={initialValues}
       onSubmit={onSubmit}
       deleteAction={deleteFn}
+      deleteWarning={<ProxyUsageWarning proxyId={data.id} text={t("forms.proxy.usageText")} />}
       testFn={testProxy}
       isOpen={isOpen}
       toggle={toggle}
       type="UPDATE"
     >
-      {() => (
+      {(values) => (
         <div>
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
             <TextFieldWide name="name" label={t("forms.proxy.name")} defaultValue="" required={true}/>
-            <SwitchGroupWide name="enabled" label={t("forms.proxy.enabled")}/>
+            <div>
+              <SwitchGroupWide name="enabled" label={t("forms.proxy.enabled")}/>
+              {data.enabled && !values.enabled && (
+                <div className="px-4 pb-4">
+                  <ProxyUsageWarning proxyId={data.id} text={t("forms.proxy.usageDisableText")} />
+                </div>
+              )}
+            </div>
             <SelectFieldBasic
               name="type"
               label={t("forms.proxy.proxyType")}
@@ -254,5 +267,48 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
         </div>
       )}
     </SlideOver>
+  );
+}
+
+interface ProxyUsageWarningProps {
+  proxyId: number;
+  text: string;
+}
+
+export function ProxyUsageWarning({ proxyId, text }: ProxyUsageWarningProps) {
+  const { t } = useTranslation("settings");
+  const { data: usage } = useQuery(ProxyUsageQueryOptions(proxyId));
+
+  if (!usage) {
+    return null;
+  }
+
+  const groups = [
+    { label: t("forms.proxy.usageIndexers"), items: usage.indexers },
+    { label: t("forms.proxy.usageIrcNetworks"), items: usage.irc_networks },
+    { label: t("forms.proxy.usageFeeds"), items: usage.feeds }
+  ].filter((group) => group.items.length > 0);
+
+  if (!groups.length) {
+    return null;
+  }
+
+  return (
+    <div className="mt-4 rounded-md border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-400/10 px-3 py-2 text-sm">
+      <p className="font-medium text-amber-800 dark:text-amber-300">{t("forms.proxy.usageTitle")}</p>
+      <p className="mt-1 text-amber-700 dark:text-amber-200">{text}</p>
+      {groups.map((group) => (
+        <div key={group.label} className="mt-2">
+          <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">{group.label}</span>
+          <ul className="mt-1 flex flex-wrap gap-1">
+            {group.items.map((item) => (
+              <li key={item.id} className="inline-flex items-center rounded-md bg-gray-100 dark:bg-gray-400/10 px-2 py-1 text-xs font-medium text-gray-700 dark:text-gray-300">
+                {item.name}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
   );
 }

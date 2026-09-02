@@ -28,6 +28,10 @@ func (b *recordingEventBus) EmitIRC(_ context.Context, event events.IRCEvent) {
 	b.events = append(b.events, event)
 }
 
+func (b *recordingEventBus) OnProxy(_ func(context.Context, events.ProxyChangeEvent) error) func() {
+	return func() {}
+}
+
 func (b *recordingEventBus) snapshot() []events.IRCEvent {
 	b.m.Lock()
 	defer b.m.Unlock()

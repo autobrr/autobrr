@@ -495,7 +495,13 @@
       "passHelp": "Auth : mot de passe",
       "test": "Tester",
       "cancel": "Annuler",
-      "save": "Enregistrer"
+      "save": "Enregistrer",
+      "usageTitle": "Ce proxy est encore utilisé",
+      "usageText": "Sa suppression le détachera des éléments suivants, qui se connecteront ensuite sans proxy :",
+      "usageIndexers": "Indexeurs",
+      "usageIrcNetworks": "Réseaux IRC",
+      "usageFeeds": "Feeds",
+      "usageDisableText": "Sa désactivation désactivera les réseaux IRC suivants, tandis que les indexeurs et les flux se connecteront sans proxy :"
     },
     "apiKey": {
       "createTitle": "Créer une clé API",
@@ -906,7 +912,10 @@
       "toggleSuccess": "Le proxy {{name}} a été {{state}} avec succès.",
       "toggleError": "Le statut du proxy n'a pas pu être mis à jour",
       "enabledState": "activé",
-      "disabledState": "désactivé"
+      "disabledState": "désactivé",
+      "disableTitle": "Désactiver {{name}}",
+      "disableText": "Es-tu sûr de vouloir désactiver ce proxy ?",
+      "disable": "Désactiver"
     },
     "lists": {
       "title": "Listes",
