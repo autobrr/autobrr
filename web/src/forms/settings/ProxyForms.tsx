@@ -178,6 +178,7 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
     mutationFn: (req: Proxy) => APIClient.proxy.update(req),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ProxyKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
 
       toast.custom((toastInstance) => <Toast type="success" body={t("forms.proxy.updated", { name: data.name })} t={toastInstance} />);
       toggle();
@@ -232,17 +233,24 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
       initialValues={initialValues}
       onSubmit={onSubmit}
       deleteAction={deleteFn}
-      deleteWarning={<ProxyUsageWarning usage={usage} />}
+      deleteWarning={<ProxyUsageWarning usage={usage} text={t("forms.proxy.usageText")} />}
       testFn={testProxy}
       isOpen={isOpen}
       toggle={toggle}
       type="UPDATE"
     >
-      {() => (
+      {(values) => (
         <div>
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
             <TextFieldWide name="name" label={t("forms.proxy.name")} defaultValue="" required={true}/>
-            <SwitchGroupWide name="enabled" label={t("forms.proxy.enabled")}/>
+            <div>
+              <SwitchGroupWide name="enabled" label={t("forms.proxy.enabled")}/>
+              {data.enabled && !values.enabled && (
+                <div className="px-4 pb-4">
+                  <ProxyUsageWarning usage={usage} text={t("forms.proxy.usageDisableText")} />
+                </div>
+              )}
+            </div>
             <SelectFieldBasic
               name="type"
               label={t("forms.proxy.proxyType")}
@@ -266,9 +274,10 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
 
 interface ProxyUsageWarningProps {
   usage?: ProxyUsage;
+  text: string;
 }
 
-function ProxyUsageWarning({ usage }: ProxyUsageWarningProps) {
+export function ProxyUsageWarning({ usage, text }: ProxyUsageWarningProps) {
   const { t } = useTranslation("settings");
 
   if (!usage) {
@@ -288,7 +297,7 @@ function ProxyUsageWarning({ usage }: ProxyUsageWarningProps) {
   return (
     <div className="mt-4 rounded-md border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-400/10 px-3 py-2 text-sm">
       <p className="font-medium text-amber-800 dark:text-amber-300">{t("forms.proxy.usageTitle")}</p>
-      <p className="mt-1 text-amber-700 dark:text-amber-200">{t("forms.proxy.usageText")}</p>
+      <p className="mt-1 text-amber-700 dark:text-amber-200">{text}</p>
       {groups.map((group) => (
         <div key={group.label} className="mt-2">
           <span className="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400">{group.label}</span>

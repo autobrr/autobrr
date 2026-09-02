@@ -501,7 +501,8 @@
       "usageText": "Removing it will detach it from the following, which will then connect without a proxy:",
       "usageIndexers": "Indexers",
       "usageIrcNetworks": "IRC networks",
-      "usageFeeds": "Feeds"
+      "usageFeeds": "Feeds",
+      "usageDisableText": "Disabling it will disable the following IRC networks, while indexers and feeds will connect without a proxy:"
     },
   "apiKey": {
     "createTitle": "Create API key",
@@ -912,7 +913,10 @@
       "toggleSuccess": "Proxy {{name}} was {{state}} successfully.",
       "toggleError": "Proxy state could not be updated",
       "enabledState": "enabled",
-      "disabledState": "disabled"
+      "disabledState": "disabled",
+      "disableTitle": "Disable {{name}}",
+      "disableText": "Are you sure you want to disable this proxy?",
+      "disable": "Disable"
     },
     "lists": {
       "title": "Lists",

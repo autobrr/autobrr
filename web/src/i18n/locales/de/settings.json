@@ -500,7 +500,8 @@
       "usageText": "Beim Entfernen wird er von den folgenden Einträgen getrennt, die sich danach ohne Proxy verbinden:",
       "usageIndexers": "Indexer",
       "usageIrcNetworks": "IRC-Netzwerke",
-      "usageFeeds": "Feeds"
+      "usageFeeds": "Feeds",
+      "usageDisableText": "Beim Deaktivieren werden die folgenden IRC-Netzwerke deaktiviert, während sich Indexer und Feeds ohne Proxy verbinden:"
     },
     "apiKey": {
       "createTitle": "API-Schlüssel erstellen",
@@ -911,7 +912,10 @@
       "toggleSuccess": "Proxy {{name}} wurde erfolgreich {{state}}.",
       "toggleError": "Proxystatus konnte nicht aktualisiert werden",
       "enabledState": "aktiviert",
-      "disabledState": "deaktiviert"
+      "disabledState": "deaktiviert",
+      "disableTitle": "{{name}} deaktivieren",
+      "disableText": "Bist du sicher, dass du diesen Proxy deaktivieren möchtest?",
+      "disable": "Deaktivieren"
     },
     "lists": {
       "title": "Listen",

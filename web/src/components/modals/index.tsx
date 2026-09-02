@@ -23,6 +23,7 @@ interface ModalLowerProps {
   toggle: () => void;
   deleteAction?: () => void;
   forceRunAction?: () => void;
+  confirmLabel?: string;
 }
 
 interface DeleteModalProps extends ModalUpperProps, ModalLowerProps {
@@ -58,7 +59,7 @@ const ModalUpper = ({ title, text, children }: ModalUpperProps) => (
   </div>
 );
 
-const ModalLower = ({ isOpen, isLoading, toggle, deleteAction }: ModalLowerProps) => {
+const ModalLower = ({ isOpen, isLoading, toggle, deleteAction, confirmLabel }: ModalLowerProps) => {
   const { t } = useTranslation("common");
 
   return (
@@ -78,7 +79,7 @@ const ModalLower = ({ isOpen, isLoading, toggle, deleteAction }: ModalLowerProps
               }
             }}
           >
-            {t("modal.remove")}
+            {confirmLabel ?? t("modal.remove")}
           </button>
           <button
             type="button"

@@ -500,7 +500,8 @@
       "usageText": "移除后将与以下项目解除关联，它们随后将不使用代理直接连接：",
       "usageIndexers": "索引器",
       "usageIrcNetworks": "IRC 网络",
-      "usageFeeds": "订阅源"
+      "usageFeeds": "订阅源",
+      "usageDisableText": "禁用后将禁用以下 IRC 网络，索引器和订阅源则会不使用代理直接连接："
     },
   "apiKey": {
     "createTitle": "创建 API 密钥",
@@ -911,7 +912,10 @@
       "toggleSuccess": "代理 {{name}}已{{state}}成功。",
       "toggleError": "代理状态更新失败",
       "enabledState": "启用",
-      "disabledState": "禁用"
+      "disabledState": "禁用",
+      "disableTitle": "禁用 {{name}}",
+      "disableText": "确定要禁用此代理吗？",
+      "disable": "禁用"
     },
     "lists": {
       "title": "列表",

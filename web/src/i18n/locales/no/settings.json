@@ -500,7 +500,8 @@
       "usageText": "Fjerning kobler den fra følgende, som deretter kobler til uten proxy:",
       "usageIndexers": "Indekserere",
       "usageIrcNetworks": "IRC-nettverk",
-      "usageFeeds": "Feeder"
+      "usageFeeds": "Feeder",
+      "usageDisableText": "Deaktivering deaktiverer følgende IRC-nettverk, mens indekserere og feeder kobler til uten proxy:"
     },
   "apiKey": {
     "createTitle": "Opprett API-nøkkel",
@@ -911,7 +912,10 @@
       "toggleSuccess": "Proxyen {{name}} ble {{state}}.",
       "toggleError": "Proxy-status kunne ikke oppdateres",
       "enabledState": "aktivert",
-      "disabledState": "deaktivert"
+      "disabledState": "deaktivert",
+      "disableTitle": "Deaktiver {{name}}",
+      "disableText": "Er du sikker på at du vil deaktivere denne proxyen?",
+      "disable": "Deaktiver"
     },
     "lists": {
       "title": "Lister",

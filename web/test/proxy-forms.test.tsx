@@ -57,3 +57,23 @@ test("delete modal shows no usage warning for an unused proxy", async () => {
   expect(usage).toHaveBeenCalledWith(3);
   expect(screen.queryByText("This proxy is still in use")).toBeNull();
 });
+
+test("turning the enabled switch off warns which irc networks will be disabled", async () => {
+  vi.spyOn(APIClient.proxy, "usage").mockResolvedValue({
+    indexers: [],
+    irc_networks: [{ id: 2, name: "TorrentLeech" }],
+    feeds: []
+  });
+  renderForm();
+
+  expect(screen.queryByText("This proxy is still in use")).toBeNull();
+
+  fireEvent.click(document.querySelector("button#enabled") as HTMLButtonElement);
+
+  expect(await screen.findByText("TorrentLeech")).toBeTruthy();
+  expect(screen.getByText(/Disabling it will disable the following IRC networks/)).toBeTruthy();
+
+  fireEvent.click(document.querySelector("button#enabled") as HTMLButtonElement);
+
+  expect(screen.queryByText("This proxy is still in use")).toBeNull();
+});

@@ -22,6 +22,7 @@ import (
 type ircRepo interface {
 	StoreNetwork(ctx context.Context, network *domain.IrcNetwork) error
 	UpdateNetwork(ctx context.Context, network *domain.IrcNetwork) error
+	ToggleNetworkEnabled(ctx context.Context, id int64, enabled bool) error
 	StoreChannel(ctx context.Context, networkID int64, channel *domain.IrcChannel) error
 	UpdateChannel(channel *domain.IrcChannel) error
 	UpdateInviteCommand(networkID int64, invite string) error
@@ -103,8 +104,9 @@ func (s *Service) setupEventListeners() {
 }
 
 // onProxyChanged reloads every network that routed through the changed proxy and lets the
-// restart check pick up the difference: a deleted proxy leaves a detached row, an updated one
-// attaches fresh dial settings, and a running handler restarts either way.
+// restart check pick up the difference: a deleted proxy leaves a detached row and the network
+// reconnects direct, an updated one attaches fresh dial settings, and a disabled one takes the
+// network down with it rather than letting it fall back to a direct connection.
 func (s *Service) onProxyChanged(ctx context.Context, event events.ProxyChangeEvent) error {
 	for _, item := range event.Usage.IrcNetworks {
 		network, err := s.GetNetworkByID(ctx, item.ID)
@@ -115,6 +117,13 @@ func (s *Service) onProxyChanged(ctx context.Context, event events.ProxyChangeEv
 
 		if err := s.attachProxy(ctx, network); err != nil {
 			s.log.Error().Err(err).Str("network", network.Name).Int64("proxy_id", network.ProxyId).Msg("could not get changed proxy for network")
+			continue
+		}
+
+		if network.Enabled && network.Proxy != nil && !network.Proxy.Enabled {
+			if err := s.disableNetworkForProxy(ctx, network); err != nil {
+				s.log.Error().Err(err).Str("network", network.Name).Int64("proxy_id", event.ProxyID).Msg("could not disable network for disabled proxy")
+			}
 			continue
 		}
 
@@ -148,6 +157,25 @@ func (s *Service) attachProxy(ctx context.Context, network *domain.IrcNetwork) e
 	}
 
 	network.Proxy = networkProxy
+
+	return nil
+}
+
+// disableNetworkForProxy takes a network down when its proxy is disabled and persists it as
+// disabled, so it stays down until the user re-enables it instead of reconnecting direct.
+func (s *Service) disableNetworkForProxy(ctx context.Context, network *domain.IrcNetwork) error {
+	s.log.Warn().Str("network", network.Name).Str("proxy", network.Proxy.Name).Msg("proxy disabled, disabling network")
+
+	if err := s.StopAndRemoveNetwork(network.ID); err != nil {
+		return err
+	}
+
+	if err := s.repo.ToggleNetworkEnabled(ctx, network.ID, false); err != nil {
+		return err
+	}
+
+	network.Enabled = false
+	s.networkCache.Set(network.ID, network)
 
 	return nil
 }

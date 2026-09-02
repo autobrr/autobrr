@@ -4,17 +4,18 @@
  */
 
 import { useToggle } from "@hooks/hooks.ts";
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { PlusIcon } from "@heroicons/react/24/solid";
 import { useTranslation } from "react-i18next";
 
 import { APIClient } from "@api/APIClient";
-import { ProxyKeys } from "@api/query_keys";
-import { ProxiesQueryOptions } from "@api/queries";
+import { IrcKeys, ProxyKeys } from "@api/query_keys";
+import { ProxiesQueryOptions, ProxyUsageQueryOptions } from "@api/queries";
 import { Section } from "./_components";
 import { EmptySimple } from "@components/emptystates";
 import { Checkbox } from "@components/Checkbox";
-import { ProxyAddForm, ProxyUpdateForm } from "@forms/settings/ProxyForms";
+import { DeleteModal } from "@components/modals";
+import { ProxyAddForm, ProxyUpdateForm, ProxyUsageWarning } from "@forms/settings/ProxyForms";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 
@@ -25,13 +26,17 @@ interface ListItemProps {
 function ListItem({ proxy }: ListItemProps) {
   const { t } = useTranslation("settings");
   const [isOpen, toggleUpdate] = useToggle(false);
+  const [disableIsOpen, toggleDisable] = useToggle(false);
 
   const queryClient = useQueryClient();
+
+  const { data: usage } = useQuery(ProxyUsageQueryOptions(proxy.id, disableIsOpen));
 
   const updateMutation = useMutation({
     mutationFn: (req: Proxy) => APIClient.proxy.update(req),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ProxyKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
 
       toast.custom((toastInstance) => (
         <Toast
@@ -52,6 +57,12 @@ function ListItem({ proxy }: ListItemProps) {
   });
 
   const onToggleMutation = (newState: boolean) => {
+    // disabling takes every irc network behind the proxy down with it, so confirm first
+    if (!newState && proxy.enabled) {
+      toggleDisable();
+      return;
+    }
+
     updateMutation.mutate({
       ...proxy,
       enabled: newState
@@ -61,6 +72,19 @@ function ListItem({ proxy }: ListItemProps) {
   return (
     <li>
       <ProxyUpdateForm isOpen={isOpen} toggle={toggleUpdate} data={proxy} />
+
+      <DeleteModal
+        isOpen={disableIsOpen}
+        isLoading={updateMutation.isPending}
+        toggle={toggleDisable}
+        buttonRef={undefined}
+        deleteAction={() => updateMutation.mutate({ ...proxy, enabled: false })}
+        title={t("listScreens.proxies.disableTitle", { name: proxy.name })}
+        text={t("listScreens.proxies.disableText")}
+        confirmLabel={t("listScreens.proxies.disable")}
+      >
+        <ProxyUsageWarning usage={usage} text={t("forms.proxy.usageDisableText")} />
+      </DeleteModal>
 
       <div className="grid grid-cols-12 items-center py-1.5">
         <div className="col-span-2 sm:col-span-1 flex pl-1 sm:pl-5 items-center">

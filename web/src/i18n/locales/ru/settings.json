@@ -500,7 +500,8 @@
       "usageText": "При удалении он будет отвязан от следующих элементов, которые далее будут подключаться без прокси:",
       "usageIndexers": "Индексаторы",
       "usageIrcNetworks": "IRC-сети",
-      "usageFeeds": "Фиды"
+      "usageFeeds": "Фиды",
+      "usageDisableText": "При отключении будут отключены следующие IRC-сети, а индексаторы и фиды будут подключаться без прокси:"
     },
     "apiKey": {
       "createTitle": "Создать API-ключ",
@@ -911,7 +912,10 @@
       "toggleSuccess": "Прокси {{name}} успешно {{state}}.",
       "toggleError": "Не удалось обновить статус прокси",
       "enabledState": "включён",
-      "disabledState": "отключён"
+      "disabledState": "отключён",
+      "disableTitle": "Отключить {{name}}",
+      "disableText": "Вы уверены, что хотите отключить этот прокси?",
+      "disable": "Отключить"
     },
     "lists": {
       "title": "Списки",
