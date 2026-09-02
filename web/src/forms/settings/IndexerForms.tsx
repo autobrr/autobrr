@@ -468,6 +468,8 @@ interface IndexerAddInitialValues {
   name: string;
   base_url?: string;
   url?: string;
+  use_proxy?: boolean;
+  proxy_id?: number;
   irc: IndexerAddIrcValues;
   settings: Record<string, string>;
   feed: IndexerAddFeedValues;
@@ -657,6 +659,7 @@ function IndexerAddFormPanel({ toggle }: IndexerAddFormPanelProps) {
     identifier: "",
     implementation: "irc",
     name: "",
+    use_proxy: false,
     irc: {},
     settings: {},
     feed: {
@@ -742,6 +745,10 @@ function IndexerAddFormPanel({ toggle }: IndexerAddFormPanelProps) {
           {TorznabFeedSettingFields(indexer, values.identifier)}
           {NewznabFeedSettingFields(indexer, values.identifier)}
           {RSSFeedSettingFields(indexer, values.identifier)}
+
+          {values.identifier !== "" && (
+            <ProxyFields useProxy={values.use_proxy} />
+          )}
 
           <DEBUG values={values} />
         </div>
@@ -973,8 +980,6 @@ export function IndexerUpdateForm({ isOpen, toggle, data: indexer }: UpdateFormP
   const { t } = useTranslation("settings");
   const queryClient = useQueryClient();
 
-  const proxies = useQuery(ProxiesQueryOptions());
-
   const mutation = useMutation({
     mutationFn: (indexer: Indexer) => APIClient.indexers.update(indexer),
     onSuccess: () => {
@@ -1114,30 +1119,7 @@ export function IndexerUpdateForm({ isOpen, toggle, data: indexer }: UpdateFormP
 
           {renderSettingFields(indexer.settings)}
 
-          <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-            <div className="flex justify-between px-4">
-              <div className="space-y-1">
-                <h2 className="text-lg font-medium text-gray-900 dark:text-white">
-                  {t("forms.indexer.proxy")}
-                </h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {t("forms.indexer.proxyDesc")}
-                </p>
-              </div>
-              <SwitchButton name="use_proxy" />
-            </div>
-
-            {values.use_proxy === true && (
-              <div className="py-4 pt-6">
-                <SelectField<number>
-                  name="proxy_id"
-                  label={t("forms.indexer.selectProxy")}
-                  placeholder={t("forms.indexer.selectProxyPlaceholder")}
-                  options={proxies.data ? proxies.data.map((p) => ({ label: p.name, value: p.id })) : []}
-                />
-              </div>
-            )}
-          </div>
+          <ProxyFields useProxy={values.use_proxy} />
 
           {(indexer.implementation === "torznab" || indexer.implementation === "newznab" || indexer.implementation === "rss") && (
             <div className="py-4 pt-6">
@@ -1148,6 +1130,42 @@ export function IndexerUpdateForm({ isOpen, toggle, data: indexer }: UpdateFormP
         </div>
       )}
     </SlideOver>
+  );
+}
+
+interface ProxyFieldsProps {
+  useProxy?: boolean;
+}
+
+function ProxyFields({ useProxy }: ProxyFieldsProps) {
+  const { t } = useTranslation("settings");
+  const proxies = useQuery(ProxiesQueryOptions());
+
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+      <div className="flex justify-between px-4">
+        <div className="space-y-1">
+          <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+            {t("forms.indexer.proxy")}
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            {t("forms.indexer.proxyDesc")}
+          </p>
+        </div>
+        <SwitchButton name="use_proxy" />
+      </div>
+
+      {useProxy === true && (
+        <div className="py-4 pt-6">
+          <SelectField<number>
+            name="proxy_id"
+            label={t("forms.indexer.selectProxy")}
+            placeholder={t("forms.indexer.selectProxyPlaceholder")}
+            options={proxies.data ? proxies.data.map((p) => ({ label: p.name, value: p.id })) : []}
+          />
+        </div>
+      )}
+    </div>
   );
 }
 
