@@ -88,12 +88,7 @@ func (s *Service) Update(ctx context.Context, proxy *domain.Proxy) error {
 
 	s.setCached(proxy)
 
-	usage, err := s.repo.Usage(ctx, proxy.ID)
-	if err != nil {
-		return err
-	}
-
-	s.publishEventProxy(ctx, events.ProxyUpdated, proxy.ID, usage)
+	s.publishEventProxyUpdated(ctx, proxy.ID)
 
 	return nil
 }
@@ -142,12 +137,7 @@ func (s *Service) ToggleEnabled(ctx context.Context, id int64, enabled bool) err
 	// consumers hold the cached pointer, so evict instead of mutating it in place
 	s.evict(id)
 
-	usage, err := s.repo.Usage(ctx, id)
-	if err != nil {
-		return err
-	}
-
-	s.publishEventProxy(ctx, events.ProxyUpdated, id, usage)
+	s.publishEventProxyUpdated(ctx, id)
 
 	return nil
 }
@@ -167,6 +157,19 @@ func (s *Service) Delete(ctx context.Context, id int64) error {
 	s.publishEventProxy(ctx, events.ProxyDeleted, id, usage)
 
 	return nil
+}
+
+// publishEventProxyUpdated snapshots the proxy's consumers and emits the update. The write has
+// already committed, so a failed snapshot is logged instead of failing a request whose change
+// stuck; consumers pick the change up on their next reload or restart.
+func (s *Service) publishEventProxyUpdated(ctx context.Context, id int64) {
+	usage, err := s.repo.Usage(ctx, id)
+	if err != nil {
+		s.log.Error().Err(err).Int64("proxy_id", id).Msg("could not find proxy usage, consumers not reconciled")
+		return
+	}
+
+	s.publishEventProxy(ctx, events.ProxyUpdated, id, usage)
 }
 
 func (s *Service) publishEventProxy(ctx context.Context, eventType events.EventType, id int64, usage *domain.ProxyUsage) {

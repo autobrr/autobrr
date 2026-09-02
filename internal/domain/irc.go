@@ -166,7 +166,9 @@ func (in IrcNetwork) DetermineIfRestartIsRequired(desiredState *IrcNetwork) ([]s
 	if in.UseProxy != desiredState.UseProxy {
 		fieldsChanged = append(fieldsChanged, "use proxy")
 	}
-	if in.ProxyId != desiredState.ProxyId {
+	// a leftover id on a network with the toggle off dials nothing, so the id only matters
+	// when one side actually uses the proxy
+	if in.ProxyId != desiredState.ProxyId && (in.UseProxy || desiredState.UseProxy) {
 		fieldsChanged = append(fieldsChanged, "proxy id")
 	}
 	if proxyDialConfigChanged(in.Proxy, desiredState.Proxy) {

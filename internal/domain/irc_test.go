@@ -73,6 +73,15 @@ func TestIrcNetwork_DetermineIfRestartIsRequired(t *testing.T) {
 			wantRestart: true,
 		},
 		{
+			name: "leftover_proxy_id_without_use_proxy",
+			args: args{
+				current: IrcNetwork{ProxyId: 1},
+				desired: IrcNetwork{},
+			},
+			wantFields:  nil,
+			wantRestart: false,
+		},
+		{
 			name: "no_proxy_on_either_side",
 			args: args{
 				current: IrcNetwork{},

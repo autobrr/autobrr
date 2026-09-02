@@ -261,6 +261,10 @@ func (r *ProxyRepo) FindByID(ctx context.Context, id int64) (*domain.Proxy, erro
 	return &proxy, nil
 }
 
+// Usage lists the indexers, irc networks and feeds that dial through the proxy. Rows with the
+// toggle off but a leftover proxy_id are left out on purpose, even though detachReferences and
+// the Postgres foreign key clear them on delete: the forms keep the id when use_proxy is turned
+// off, and such a row has nothing to warn about and nothing for subscribers to reconcile.
 func (r *ProxyRepo) Usage(ctx context.Context, id int64) (*domain.ProxyUsage, error) {
 	indexers, err := r.usageItems(ctx, r.db.squirrel.
 		Select("id", "name").
