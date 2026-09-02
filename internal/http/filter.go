@@ -166,7 +166,12 @@ func (h filterHandler) pruneDeprecatedIndexers(w http.ResponseWriter, r *http.Re
 func (h filterHandler) testExternal(w http.ResponseWriter, r *http.Request) {
 	var data *domain.FilterExternal
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
+
+	if data == nil {
+		h.encoder.BadRequestErr(w, errors.New("external filter is required"))
 		return
 	}
 
