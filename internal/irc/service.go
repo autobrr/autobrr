@@ -113,13 +113,9 @@ func (s *Service) onProxyChanged(ctx context.Context, event events.ProxyChangeEv
 			continue
 		}
 
-		if network.UseProxy && network.ProxyId != 0 {
-			networkProxy, err := s.proxyService.FindByID(ctx, network.ProxyId)
-			if err != nil {
-				s.log.Error().Err(err).Str("network", network.Name).Int64("proxy_id", network.ProxyId).Msg("could not get changed proxy for network")
-				continue
-			}
-			network.Proxy = networkProxy
+		if err := s.attachProxy(ctx, network); err != nil {
+			s.log.Error().Err(err).Str("network", network.Name).Int64("proxy_id", network.ProxyId).Msg("could not get changed proxy for network")
+			continue
 		}
 
 		s.networkCache.Set(network.ID, network)
@@ -136,6 +132,26 @@ func (s *Service) onProxyChanged(ctx context.Context, event events.ProxyChangeEv
 	return nil
 }
 
+// attachProxy resolves the proxy a network is configured with. Every path that hands a network
+// to a handler goes through here: Handler.Run refuses to connect when use_proxy is set but no
+// Proxy is attached, so a missed attach shows up as an error instead of a direct connection.
+func (s *Service) attachProxy(ctx context.Context, network *domain.IrcNetwork) error {
+	network.Proxy = nil
+
+	if !network.UseProxy || network.ProxyId == 0 {
+		return nil
+	}
+
+	networkProxy, err := s.proxyService.FindByID(ctx, network.ProxyId)
+	if err != nil {
+		return errors.Wrap(err, "could not get proxy for network: %s", network.Server)
+	}
+
+	network.Proxy = networkProxy
+
+	return nil
+}
+
 func (s *Service) StartHandlers() {
 	ctx := context.Background()
 	networks, err := s.repo.FindActiveNetworks(ctx)
@@ -148,13 +164,9 @@ func (s *Service) StartHandlers() {
 			continue
 		}
 
-		if network.UseProxy && network.ProxyId != 0 {
-			networkProxy, err := s.proxyService.FindByID(ctx, network.ProxyId)
-			if err != nil {
-				s.log.Error().Err(err).Str("server", network.Server).Msg("failed to get proxy for network")
-				continue
-			}
-			network.Proxy = networkProxy
+		if err := s.attachProxy(ctx, &network); err != nil {
+			s.log.Error().Err(err).Str("server", network.Server).Msg("failed to get proxy for network")
+			continue
 		}
 
 		channels, err := s.repo.ListChannels(network.ID)
@@ -371,6 +383,10 @@ func (s *Service) RestartNetwork(ctx context.Context, networkID int64) error {
 
 	if !network.Enabled {
 		return errors.New("network disabled, could not restart")
+	}
+
+	if err := s.attachProxy(ctx, network); err != nil {
+		return err
 	}
 
 	return s.restartNetwork(*network)
@@ -692,16 +708,9 @@ func (s *Service) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 		}
 	}
 
-	network.Proxy = nil
-
-	// attach proxy
-	if network.UseProxy && network.ProxyId != 0 {
-		networkProxy, err := s.proxyService.FindByID(ctx, network.ProxyId)
-		if err != nil {
-			s.log.Error().Err(err).Str("server", network.Server).Msg("failed to get proxy for network")
-			return errors.Wrap(err, "could not get proxy for network: %s", network.Server)
-		}
-		network.Proxy = networkProxy
+	if err := s.attachProxy(ctx, network); err != nil {
+		s.log.Error().Err(err).Str("server", network.Server).Msg("failed to get proxy for network")
+		return err
 	}
 
 	s.networkCache.Set(network.ID, network)
@@ -756,15 +765,9 @@ func (s *Service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 
 		s.networkCache.Set(network.ID, network)
 
-		// attach proxy
-		network.Proxy = nil
-		if network.UseProxy && network.ProxyId != 0 {
-			networkProxy, err := s.proxyService.FindByID(ctx, network.ProxyId)
-			if err != nil {
-				s.log.Error().Err(err).Str("server", network.Server).Msg("failed to get proxy for network")
-				return errors.Wrap(err, "could not get proxy for network: %s", network.Server)
-			}
-			network.Proxy = networkProxy
+		if err := s.attachProxy(ctx, network); err != nil {
+			s.log.Error().Err(err).Str("server", network.Server).Msg("failed to get proxy for network")
+			return err
 		}
 
 		// if network is enabled, start it immediately
@@ -784,6 +787,11 @@ func (s *Service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 		s.log.Error().Err(err).Str("server", existingNetwork.Server).Msg("failed to list channels for network")
 	}
 	existingNetwork.Channels = existingChannels
+
+	if err := s.attachProxy(ctx, existingNetwork); err != nil {
+		s.log.Error().Err(err).Str("server", existingNetwork.Server).Msg("failed to get proxy for network")
+		return err
+	}
 
 	s.networkCache.Set(network.ID, existingNetwork)
 
