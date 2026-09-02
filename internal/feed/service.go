@@ -165,14 +165,14 @@ func (s *Service) setupEventListeners() {
 	})
 
 	s.eventBus.OnProxy(func(ctx context.Context, event events.ProxyChangeEvent) error {
-		if event.Type != events.ProxyDeleted || event.Usage == nil {
+		if event.Usage == nil {
 			return nil
 		}
 
-		// the rows are already detached, so a fresh sync rebuilds each job without the proxy
+		// a fresh sync rebuilds each job from the current row and proxy settings
 		for _, item := range event.Usage.Feeds {
 			if err := s.syncFeedJob(ctx, int(item.ID)); err != nil {
-				s.log.Error().Err(err).Int64("feed_id", item.ID).Int64("proxy_id", event.ProxyID).Msg("could not reconcile feed job for deleted proxy")
+				s.log.Error().Err(err).Int64("feed_id", item.ID).Int64("proxy_id", event.ProxyID).Msg("could not reconcile feed job for changed proxy")
 			}
 		}
 

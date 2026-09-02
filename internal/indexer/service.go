@@ -82,26 +82,26 @@ func NewService(log zerolog.Logger, bus eventBus, config *domain.Config, repo in
 
 func (s *Service) setupEventListeners() {
 	s.eventBus.OnProxy(func(ctx context.Context, event events.ProxyChangeEvent) error {
-		if event.Type != events.ProxyDeleted || event.Usage == nil {
+		if event.Usage == nil {
 			return nil
 		}
 
-		return s.onProxyDeleted(ctx, event)
+		return s.onProxyChanged(ctx, event)
 	})
 }
 
-// onProxyDeleted reloads every indexer that routed through the deleted proxy from its detached
-// row so the mapped definition and api client stop using it.
-func (s *Service) onProxyDeleted(ctx context.Context, event events.ProxyChangeEvent) error {
+// onProxyChanged reloads every indexer that routed through the changed proxy so the mapped
+// definition and api client are rebuilt from the current row and proxy settings.
+func (s *Service) onProxyChanged(ctx context.Context, event events.ProxyChangeEvent) error {
 	for _, item := range event.Usage.Indexers {
 		indexer, err := s.repo.FindByID(ctx, int(item.ID))
 		if err != nil {
-			s.log.Error().Err(err).Int64("indexer_id", item.ID).Int64("proxy_id", event.ProxyID).Msg("could not load indexer detached from deleted proxy")
+			s.log.Error().Err(err).Int64("indexer_id", item.ID).Int64("proxy_id", event.ProxyID).Msg("could not load indexer for changed proxy")
 			continue
 		}
 
 		if err := s.updateIndexer(indexer); err != nil {
-			s.log.Error().Err(err).Str("indexer", indexer.Identifier).Int64("proxy_id", event.ProxyID).Msg("could not reload indexer detached from deleted proxy")
+			s.log.Error().Err(err).Str("indexer", indexer.Identifier).Int64("proxy_id", event.ProxyID).Msg("could not reload indexer for changed proxy")
 		}
 	}
 

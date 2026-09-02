@@ -13,6 +13,7 @@ const (
 	IndexerDeleted       EventType = "indexer.deleted"
 	IndexerToggleEnabled EventType = "indexer.toggle-enabled"
 
+	ProxyUpdated EventType = "proxy.updated"
 	ProxyDeleted EventType = "proxy.deleted"
 
 	FilterApproved EventType = "filter.approved"

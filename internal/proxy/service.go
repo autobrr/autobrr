@@ -84,7 +84,12 @@ func (s *Service) Update(ctx context.Context, proxy *domain.Proxy) error {
 
 	s.cache[proxy.ID] = proxy
 
-	// TODO update IRC handlers
+	usage, err := s.repo.Usage(ctx, proxy.ID)
+	if err != nil {
+		return err
+	}
+
+	s.publishEventProxy(ctx, events.ProxyUpdated, proxy.ID, usage)
 
 	return nil
 }
@@ -106,18 +111,19 @@ func (s *Service) Usage(ctx context.Context, id int64) (*domain.ProxyUsage, erro
 }
 
 func (s *Service) ToggleEnabled(ctx context.Context, id int64, enabled bool) error {
-	err := s.repo.ToggleEnabled(ctx, id, enabled)
+	if err := s.repo.ToggleEnabled(ctx, id, enabled); err != nil {
+		return err
+	}
+
+	// consumers hold the cached pointer, so evict instead of mutating it in place
+	delete(s.cache, id)
+
+	usage, err := s.repo.Usage(ctx, id)
 	if err != nil {
 		return err
 	}
 
-	v, ok := s.cache[id]
-	if !ok {
-		v.Enabled = !enabled
-		s.cache[id] = v
-	}
-
-	// TODO update IRC handlers
+	s.publishEventProxy(ctx, events.ProxyUpdated, id, usage)
 
 	return nil
 }
@@ -134,13 +140,17 @@ func (s *Service) Delete(ctx context.Context, id int64) error {
 
 	delete(s.cache, id)
 
+	s.publishEventProxy(ctx, events.ProxyDeleted, id, usage)
+
+	return nil
+}
+
+func (s *Service) publishEventProxy(ctx context.Context, eventType events.EventType, id int64, usage *domain.ProxyUsage) {
 	s.eventBus.EmitProxy(ctx, events.ProxyChangeEvent{
-		Type:    events.ProxyDeleted,
+		Type:    eventType,
 		ProxyID: id,
 		Usage:   usage,
 	})
-
-	return nil
 }
 
 func (s *Service) Test(ctx context.Context, proxy *domain.Proxy) error {

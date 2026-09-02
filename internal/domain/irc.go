@@ -169,6 +169,9 @@ func (in IrcNetwork) DetermineIfRestartIsRequired(desiredState *IrcNetwork) ([]s
 	if in.ProxyId != desiredState.ProxyId {
 		fieldsChanged = append(fieldsChanged, "proxy id")
 	}
+	if proxyDialConfigChanged(in.Proxy, desiredState.Proxy) {
+		fieldsChanged = append(fieldsChanged, "proxy")
+	}
 	if in.Auth.Mechanism != desiredState.Auth.Mechanism {
 		fieldsChanged = append(fieldsChanged, "auth mechanism")
 	}
@@ -180,6 +183,20 @@ func (in IrcNetwork) DetermineIfRestartIsRequired(desiredState *IrcNetwork) ([]s
 	}
 
 	return fieldsChanged, len(fieldsChanged) > 0
+}
+
+// proxyDialConfigChanged reports whether the attached proxy would dial differently, ignoring
+// fields such as the name that do not affect the connection.
+func proxyDialConfigChanged(current, desired *Proxy) bool {
+	if current == nil || desired == nil {
+		return current != desired
+	}
+
+	return current.Enabled != desired.Enabled ||
+		current.Type != desired.Type ||
+		current.Addr != desired.Addr ||
+		current.User != desired.User ||
+		current.Pass != desired.Pass
 }
 
 type IrcNetworkWithHealth struct {

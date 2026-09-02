@@ -94,22 +94,32 @@ func NewService(log zerolog.Logger, eventBus eventBus, sse sseServer, repo ircRe
 
 func (s *Service) setupEventListeners() {
 	s.eventBus.OnProxy(func(ctx context.Context, event events.ProxyChangeEvent) error {
-		if event.Type != events.ProxyDeleted || event.Usage == nil {
+		if event.Usage == nil {
 			return nil
 		}
 
-		return s.onProxyDeleted(ctx, event)
+		return s.onProxyChanged(ctx, event)
 	})
 }
 
-// onProxyDeleted reloads every network that routed through the deleted proxy from its detached
-// row and restarts the running ones so they reconnect directly.
-func (s *Service) onProxyDeleted(ctx context.Context, event events.ProxyChangeEvent) error {
+// onProxyChanged reloads every network that routed through the changed proxy and lets the
+// restart check pick up the difference: a deleted proxy leaves a detached row, an updated one
+// attaches fresh dial settings, and a running handler restarts either way.
+func (s *Service) onProxyChanged(ctx context.Context, event events.ProxyChangeEvent) error {
 	for _, item := range event.Usage.IrcNetworks {
 		network, err := s.GetNetworkByID(ctx, item.ID)
 		if err != nil {
-			s.log.Error().Err(err).Int64("network_id", item.ID).Int64("proxy_id", event.ProxyID).Msg("could not load network detached from deleted proxy")
+			s.log.Error().Err(err).Int64("network_id", item.ID).Int64("proxy_id", event.ProxyID).Msg("could not load network for changed proxy")
 			continue
+		}
+
+		if network.UseProxy && network.ProxyId != 0 {
+			networkProxy, err := s.proxyService.FindByID(ctx, network.ProxyId)
+			if err != nil {
+				s.log.Error().Err(err).Str("network", network.Name).Int64("proxy_id", network.ProxyId).Msg("could not get changed proxy for network")
+				continue
+			}
+			network.Proxy = networkProxy
 		}
 
 		s.networkCache.Set(network.ID, network)
@@ -119,7 +129,7 @@ func (s *Service) onProxyDeleted(ctx context.Context, event events.ProxyChangeEv
 		}
 
 		if err := s.checkIfNetworkRestartNeeded(network); err != nil {
-			s.log.Error().Err(err).Str("network", network.Name).Int64("proxy_id", event.ProxyID).Msg("could not restart network detached from deleted proxy")
+			s.log.Error().Err(err).Str("network", network.Name).Int64("proxy_id", event.ProxyID).Msg("could not restart network for changed proxy")
 		}
 	}
 
@@ -238,8 +248,12 @@ func (s *Service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 
 	s.log.Debug().Str("server", network.Server).Msg("decide if irc network handler needs restart or updating")
 
+	// a restart in flight sits in the stopped state for a moment and then runs with whatever
+	// config the handler holds, so swap the config now instead of dropping the change
 	if handler.Stopped() {
-		s.log.Debug().Str("server", network.Server).Msg("handler stopped, skipping")
+		handler.UpdateNetwork(network)
+
+		s.log.Debug().Str("server", network.Server).Msg("handler stopped, updated config without restart")
 		return nil
 	}
 
