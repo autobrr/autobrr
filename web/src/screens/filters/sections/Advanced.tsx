@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useFormikContext } from "formik";
 import { useTranslation } from "react-i18next";
 
+import { useFormValues } from "@hooks/form";
 import { DocsLink } from "@components/ExternalLink";
 import { WarningAlert } from "@components/alerts";
 import {
@@ -27,13 +27,9 @@ import {
   TextField
 } from "@components/inputs";
 
-// type ValueConsumer = {
-//   values: FormikValues;
-// };
-
 const Releases = () => {
   const { t } = useTranslation("filters");
-  const { values } = useFormikContext<Filter>();
+  const values = useFormValues<Filter>();
 
   return (
     <CollapsibleSection
@@ -120,7 +116,7 @@ const Releases = () => {
 
 const Groups = () => {
   const { t } = useTranslation("filters");
-  const { values } = useFormikContext<Filter>();
+  const values = useFormValues<Filter>();
 
   return (
     <CollapsibleSection
@@ -158,7 +154,7 @@ const Groups = () => {
 
 const Categories = () => {
   const { t } = useTranslation("filters");
-  const { values } = useFormikContext<Filter>();
+  const values = useFormValues<Filter>();
 
   return (
     <CollapsibleSection
@@ -196,7 +192,7 @@ const Categories = () => {
 
 const Tags = () => {
   const { t } = useTranslation("filters");
-  const { values } = useFormikContext<Filter>();
+  const values = useFormValues<Filter>();
 
   return (
     <CollapsibleSection
@@ -264,7 +260,7 @@ const Tags = () => {
 
 const Uploaders = () => {
   const { t } = useTranslation("filters");
-  const { values } = useFormikContext<Filter>();
+  const values = useFormValues<Filter>();
 
   return (
     <CollapsibleSection
@@ -302,7 +298,7 @@ const Uploaders = () => {
 
 const Language = () => {
   const { t } = useTranslation("filters");
-  const { values } = useFormikContext<Filter>();
+  const values = useFormValues<Filter>();
 
   return (
     <CollapsibleSection
@@ -328,7 +324,7 @@ const Language = () => {
 
 const Origins = () => {
   const { t } = useTranslation("filters");
-  const { values } = useFormikContext<Filter>();
+  const values = useFormValues<Filter>();
 
   return (
     <CollapsibleSection
@@ -354,7 +350,7 @@ const Origins = () => {
 
 const Freeleech = () => {
   const { t } = useTranslation("filters");
-  const { values } = useFormikContext<Filter>();
+  const values = useFormValues<Filter>();
 
   return (
     <CollapsibleSection
@@ -407,7 +403,7 @@ const Freeleech = () => {
 
 const FeedSpecific = () => {
   const { t } = useTranslation("filters");
-  const { values } = useFormikContext<Filter>();
+  const values = useFormValues<Filter>();
 
   return (
     <CollapsibleSection
@@ -518,7 +514,7 @@ const FeedSpecific = () => {
 }
 const RawReleaseTags = () => {
   const { t } = useTranslation("filters");
-  const { values } = useFormikContext<Filter>();
+  const values = useFormValues<Filter>();
 
   return (
     <CollapsibleSection

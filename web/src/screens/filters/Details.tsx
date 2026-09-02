@@ -6,10 +6,9 @@
 import { useEffect, useRef } from "react";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { getRouteApi, Link, Outlet, useNavigate } from "@tanstack/react-router";
-import { Form, Formik, useFormikContext } from "formik";
-import type { FormikErrors, FormikValues } from "formik";
+import { useSelector } from "@tanstack/react-form";
+import type { AnyFormApi, StandardSchemaV1 } from "@tanstack/react-form";
 import { z } from "zod";
-import { toFormikValidationSchema } from "zod-formik-adapter";
 import { ChevronRightIcon } from "@heroicons/react/24/solid";
 import { useTranslation } from "react-i18next";
 import i18n from "../../i18n";
@@ -18,6 +17,7 @@ import { APIClient } from "@api/APIClient";
 import { FilterByIdQueryOptions } from "@api/queries";
 import { FilterKeys } from "@api/query_keys";
 import { useToggle } from "@hooks/hooks";
+import { useAppForm, useFormContext, useFormValues, errorMessages, touchInvalidFields } from "@hooks/form";
 import { classNames } from "@utils";
 import { DOWNLOAD_CLIENTS, ExternalFilterOnErrorValues } from "@domain/constants";
 
@@ -51,18 +51,13 @@ export interface NavLinkProps {
 
 function TabNavLink({ item }: NavLinkProps) {
   const { t } = useTranslation("filters");
-  // const location = useLocation();
-  // const splitLocation = location.pathname.split("/");
 
-  // we need to clean the / if it's a base root path
   return (
     <Link
       to={item.href}
       activeOptions={{ exact: item.exact }}
       search={{}}
       params={{}}
-      // aria-current={splitLocation[2] === item.href ? "page" : undefined}
-      // className="transition border-b-2 whitespace-nowrap py-4 duration-3000 px-1 font-medium text-sm first:rounded-tl-lg last:rounded-tr-lg"
     >
       {({ isActive }) => {
         return (
@@ -98,15 +93,15 @@ function TabNavLink({ item }: NavLinkProps) {
 }
 
 interface FormButtonsGroupProps {
-  values: FormikValues;
   deleteAction: () => void;
   reset: () => void;
-  dirty?: boolean;
   isLoading: boolean;
 }
 
-const FormButtonsGroup = ({ values, deleteAction, reset, isLoading }: FormButtonsGroupProps) => {
+const FormButtonsGroup = ({ deleteAction, reset, isLoading }: FormButtonsGroupProps) => {
   const { t } = useTranslation("filters");
+  const form = useFormContext();
+  const name = useSelector(form.store, (state) => state.values.name);
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
 
   const cancelModalButtonRef = useRef(null);
@@ -119,7 +114,7 @@ const FormButtonsGroup = ({ values, deleteAction, reset, isLoading }: FormButton
         toggle={toggleDeleteModal}
         buttonRef={cancelModalButtonRef}
         deleteAction={deleteAction}
-        title={t("details.removeTitle", { name: values.name })}
+        title={t("details.removeTitle", { name })}
         text={t("details.removeText")}
       />
 
@@ -133,7 +128,6 @@ const FormButtonsGroup = ({ values, deleteAction, reset, isLoading }: FormButton
         </button>
 
         <div className="flex justify-between mb-4 sm:mb-0">
-          {/* {dirty && <span className="mr-4 text-sm text-gray-500">Unsaved changes..</span>} */}
           <button
             type="button"
             className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 transition rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
@@ -158,49 +152,28 @@ const FormButtonsGroup = ({ values, deleteAction, reset, isLoading }: FormButton
   );
 };
 
-const ResolveKV = (obj: unknown, depth: string[] = []) => {
-  if (obj === undefined || obj === null) {
-    return [];
-  }
+const FormDebug = () => {
+  const values = useFormValues<Filter>();
 
-  if (typeof (obj) !== "object") {
-    return [`${depth.join("->")}: ${String(obj)}`];
-  }
-
-  const resolved: string[] = [];
-  for (const [key, value] of Object.entries(obj)) {
-    resolved.push(...ResolveKV(value, [...depth, key]));
-  }
-
-  return resolved;
+  return <DEBUG values={values} />;
 };
 
-const FormatFormikErrorObject = (obj: FormikErrors<unknown>) => "\n" + ResolveKV(obj).join("\n");
-
-const FormErrorNotification = () => {
-  const { t } = useTranslation("filters");
-  const { isValid, isValidating, isSubmitting, errors } = useFormikContext();
-
-  useEffect(() => {
-    if (!isValid && !isValidating && isSubmitting) {
-      const formattedErrors = FormatFormikErrorObject(errors);
-
-      toast.custom((tst) => (
-        <Toast
-          type="error"
-          body={`${formattedErrors.length > 1 ? t("details.validationErrors") : t("details.validationError")}: ${formattedErrors}`}
-          t={tst}
-        />
-      ));
+// Renders "actions->0->client_id: message" lines for the validation toast
+const collectFieldErrors = (form: AnyFormApi) => {
+  const lines: string[] = [];
+  for (const [field, meta] of Object.entries(form.state.fieldMeta)) {
+    const path = field.replace(/\[(\d+)\]/g, ".$1").split(".").join("->");
+    for (const message of errorMessages(meta?.errors ?? [])) {
+      lines.push(`${path}: ${message}`);
     }
-  }, [errors, isSubmitting, isValid, isValidating]);
+  }
 
-  return null;
+  return lines;
 };
 
 const actionSchema = z.object({
   enabled: z.boolean(),
-  name: z.string(),
+  name: z.string().min(1, { message: "Required" }),
   type: z.enum(["TEST", "EXEC", "WATCH_FOLDER", "WEBHOOK", ...DOWNLOAD_CLIENTS]),
   client_id: z.number().optional(),
   exec_cmd: z.string().optional(),
@@ -303,9 +276,8 @@ const indexerSchema = z.object({
   name: z.string().optional()
 });
 
-// Define the schema for the entire object
 const schema = z.object({
-  name: z.string(),
+  name: z.string().min(1, { message: "Required" }),
   max_downloads: z.number().optional(),
   max_downloads_unit: z.string().optional(),
   max_downloads_period: z.number().min(1).optional(),
@@ -324,6 +296,82 @@ const schema = z.object({
     }
   }
 });
+
+const filterFormValues = (filter: Filter): Filter => ({
+  id: filter.id,
+  name: filter.name,
+  enabled: filter.enabled,
+  min_size: filter.min_size,
+  max_size: filter.max_size,
+  announce_types: filter.announce_types || [],
+  delay: filter.delay,
+  priority: filter.priority,
+  max_downloads: filter.max_downloads,
+  max_downloads_unit: filter.max_downloads_unit,
+  max_downloads_period: filter.max_downloads_period || 1,
+  max_downloads_window_type: filter.max_downloads_window_type || "FIXED",
+  use_regex: filter.use_regex || false,
+  shows: filter.shows,
+  years: filter.years,
+  months: filter.months,
+  days: filter.days,
+  resolutions: filter.resolutions || [],
+  sources: filter.sources || [],
+  codecs: filter.codecs || [],
+  containers: filter.containers || [],
+  match_hdr: filter.match_hdr || [],
+  except_hdr: filter.except_hdr || [],
+  match_other: filter.match_other || [],
+  except_other: filter.except_other || [],
+  seasons: filter.seasons,
+  episodes: filter.episodes,
+  smart_episode: filter.smart_episode,
+  match_releases: filter.match_releases,
+  except_releases: filter.except_releases,
+  match_release_groups: filter.match_release_groups,
+  except_release_groups: filter.except_release_groups,
+  match_release_tags: filter.match_release_tags,
+  except_release_tags: filter.except_release_tags,
+  use_regex_release_tags: filter.use_regex_release_tags,
+  match_description: filter.match_description,
+  except_description: filter.except_description,
+  use_regex_description: filter.use_regex_description,
+  match_categories: filter.match_categories,
+  except_categories: filter.except_categories,
+  tags: filter.tags,
+  except_tags: filter.except_tags,
+  tags_match_logic: filter.tags_match_logic,
+  except_tags_match_logic: filter.except_tags_match_logic,
+  match_uploaders: filter.match_uploaders,
+  except_uploaders: filter.except_uploaders,
+  match_record_labels: filter.match_record_labels,
+  except_record_labels: filter.except_record_labels,
+  match_language: filter.match_language || [],
+  except_language: filter.except_language || [],
+  freeleech: filter.freeleech,
+  freeleech_percent: filter.freeleech_percent,
+  formats: filter.formats || [],
+  quality: filter.quality || [],
+  media: filter.media || [],
+  match_release_types: filter.match_release_types || [],
+  log_score: filter.log_score,
+  log: filter.log,
+  cue: filter.cue,
+  perfect_flac: filter.perfect_flac,
+  artists: filter.artists,
+  albums: filter.albums,
+  origins: filter.origins || [],
+  except_origins: filter.except_origins || [],
+  min_seeders: filter.min_seeders,
+  max_seeders: filter.max_seeders,
+  min_leechers: filter.min_leechers,
+  max_leechers: filter.max_leechers,
+  indexers: filter.indexers || [],
+  actions: filter.actions || [],
+  external: filter.external || [],
+  release_profile_duplicate_id: filter.release_profile_duplicate_id,
+  notifications: filter.notifications || [],
+} as Filter);
 
 export const FilterDetails = () => {
   const { t } = useTranslation("filters");
@@ -369,7 +417,7 @@ export const FilterDetails = () => {
     }
   });
 
-  const handleSubmit = (data: Filter) => {
+  const onSubmit = (data: Filter) => {
     // force set method and type on webhook actions
     // TODO add options for these
     data.actions.forEach((a: Action) => {
@@ -388,6 +436,39 @@ export const FilterDetails = () => {
   const deleteAction = () => {
     deleteMutation.mutate(filter.id);
   };
+
+  const form = useAppForm({
+    defaultValues: filterFormValues(filter),
+    validators: {
+      // The schema covers a subset of the filter, which Standard Schema's covariant input type rejects
+      onChange: schema as unknown as StandardSchemaV1<Filter>
+    },
+    onSubmit: ({ value }) => onSubmit(value),
+    onSubmitInvalid: ({ formApi }) => {
+      touchInvalidFields(formApi);
+      const errors = collectFieldErrors(formApi);
+
+      toast.custom((tst) => (
+        <Toast
+          type="error"
+          body={`${errors.length > 1 ? t("details.validationErrors") : t("details.validationError")}: \n${errors.join("\n")}`}
+          t={tst}
+        />
+      ));
+    }
+  });
+
+  // Follow the query cache after a save, refetch or navigation to another filter.
+  // Skipped on mount so tab sections can seed values in their own mount effects.
+  const resetForm = form.reset;
+  const loadedFilter = useRef(filter);
+  useEffect(() => {
+    if (loadedFilter.current === filter) {
+      return;
+    }
+    loadedFilter.current = filter;
+    resetForm(filterFormValues(filter));
+  }, [filter, resetForm]);
 
   return (
     <main>
@@ -409,101 +490,24 @@ export const FilterDetails = () => {
               ))}
             </nav>
           </div>
-          <Formik
-            initialValues={{
-              id: filter.id,
-              name: filter.name,
-              enabled: filter.enabled,
-              min_size: filter.min_size,
-              max_size: filter.max_size,
-              announce_types: filter.announce_types || [],
-              delay: filter.delay,
-              priority: filter.priority,
-              max_downloads: filter.max_downloads,
-              max_downloads_unit: filter.max_downloads_unit,
-              max_downloads_period: filter.max_downloads_period || 1,
-              max_downloads_window_type: filter.max_downloads_window_type || "FIXED",
-              use_regex: filter.use_regex || false,
-              shows: filter.shows,
-              years: filter.years,
-              months: filter.months,
-              days: filter.days,
-              resolutions: filter.resolutions || [],
-              sources: filter.sources || [],
-              codecs: filter.codecs || [],
-              containers: filter.containers || [],
-              match_hdr: filter.match_hdr || [],
-              except_hdr: filter.except_hdr || [],
-              match_other: filter.match_other || [],
-              except_other: filter.except_other || [],
-              seasons: filter.seasons,
-              episodes: filter.episodes,
-              smart_episode: filter.smart_episode,
-              match_releases: filter.match_releases,
-              except_releases: filter.except_releases,
-              match_release_groups: filter.match_release_groups,
-              except_release_groups: filter.except_release_groups,
-              match_release_tags: filter.match_release_tags,
-              except_release_tags: filter.except_release_tags,
-              use_regex_release_tags: filter.use_regex_release_tags,
-              match_description: filter.match_description,
-              except_description: filter.except_description,
-              use_regex_description: filter.use_regex_description,
-              match_categories: filter.match_categories,
-              except_categories: filter.except_categories,
-              tags: filter.tags,
-              except_tags: filter.except_tags,
-              tags_match_logic: filter.tags_match_logic,
-              except_tags_match_logic: filter.except_tags_match_logic,
-              match_uploaders: filter.match_uploaders,
-              except_uploaders: filter.except_uploaders,
-              match_record_labels: filter.match_record_labels,
-              except_record_labels: filter.except_record_labels,
-              match_language: filter.match_language || [],
-              except_language: filter.except_language || [],
-              freeleech: filter.freeleech,
-              freeleech_percent: filter.freeleech_percent,
-              formats: filter.formats || [],
-              quality: filter.quality || [],
-              media: filter.media || [],
-              match_release_types: filter.match_release_types || [],
-              log_score: filter.log_score,
-              log: filter.log,
-              cue: filter.cue,
-              perfect_flac: filter.perfect_flac,
-              artists: filter.artists,
-              albums: filter.albums,
-              origins: filter.origins || [],
-              except_origins: filter.except_origins || [],
-              min_seeders: filter.min_seeders,
-              max_seeders: filter.max_seeders,
-              min_leechers: filter.min_leechers,
-              max_leechers: filter.max_leechers,
-              indexers: filter.indexers || [],
-              actions: filter.actions || [],
-              external: filter.external || [],
-              release_profile_duplicate_id: filter.release_profile_duplicate_id,
-              notifications: filter.notifications || [],
-            } as Filter}
-            onSubmit={handleSubmit}
-            enableReinitialize={true}
-            validationSchema={toFormikValidationSchema(schema)}
-          >
-            {({ values, dirty, resetForm }) => (
-              <Form className="pt-1 pb-4 px-5">
-                <FormErrorNotification />
-                <Outlet />
-                <FormButtonsGroup
-                  values={values}
-                  deleteAction={deleteAction}
-                  dirty={dirty}
-                  reset={resetForm}
-                  isLoading={false}
-                />
-                <DEBUG values={values} />
-              </Form>
-            )}
-          </Formik>
+          <form.AppForm>
+            <form
+              className="pt-1 pb-4 px-5"
+              onSubmit={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                form.handleSubmit();
+              }}
+            >
+              <Outlet />
+              <FormButtonsGroup
+                deleteAction={deleteAction}
+                reset={() => form.reset()}
+                isLoading={false}
+              />
+              <FormDebug />
+            </form>
+          </form.AppForm>
         </div>
       </div>
     </main>

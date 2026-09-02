@@ -21,7 +21,7 @@ export const RTorrent = ({ idx, action, clients }: ClientActionProps) => {
       <FilterLayout>
         <FilterHalfRow>
           <DownloaderSelect
-            name={`actions.${idx}.client_id`}
+            name={`actions[${idx}].client_id`}
             action={action}
             clients={clients}
           />
@@ -29,7 +29,7 @@ export const RTorrent = ({ idx, action, clients }: ClientActionProps) => {
 
         <FilterHalfRow>
           <TextField
-            name={`actions.${idx}.label`}
+            name={`actions[${idx}].label`}
             label={t("actionComponents.rtorrent.label")}
             columns={6}
             placeholder={t("actionComponents.rtorrent.labelPlaceholder")}
@@ -38,7 +38,7 @@ export const RTorrent = ({ idx, action, clients }: ClientActionProps) => {
       </FilterLayout>
 
       <TextAreaAutoResize
-        name={`actions.${idx}.save_path`}
+        name={`actions[${idx}].save_path`}
         label={t("actionComponents.common.savePath")}
         placeholder={t("actionComponents.common.savePathPlaceholder")}
       />
@@ -46,13 +46,13 @@ export const RTorrent = ({ idx, action, clients }: ClientActionProps) => {
       <FilterLayout>
         <FilterHalfRow>
           <SwitchGroup
-            name={`actions.${idx}.paused`}
+            name={`actions[${idx}].paused`}
             label={t("actionComponents.common.addPaused")}
             description={t("actionComponents.common.addPausedDescription")}
             className="pt-2 pb-4"
           />
           <Select
-            name={`actions.${idx}.content_layout`}
+            name={`actions[${idx}].content_layout`}
             label={t("actionComponents.rtorrent.renameToPath")}
             optionDefaultText={t("actionComponents.rtorrent.renameDefault")}
             options={ActionRtorrentRenameOptions}

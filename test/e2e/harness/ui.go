@@ -219,13 +219,15 @@ func (u *UI) ExpectText(text string) {
 	}
 }
 
-// escapeID escapes the dots Formik puts in nested field names ("feed.url"),
-// which CSS would otherwise read as a class selector.
+// escapeID escapes the characters TanStack Form puts in nested field names
+// ("feed.url", "actions[0].watch_folder"), which CSS would otherwise read as
+// class or attribute selectors.
 func escapeID(id string) string {
 	escaped := make([]rune, 0, len(id)+4)
 
 	for _, r := range id {
-		if r == '.' || r == ':' {
+		switch r {
+		case '.', ':', '[', ']':
 			escaped = append(escaped, '\\')
 		}
 

@@ -4,10 +4,9 @@
  */
 
 import { useMemo } from "react";
-import type { FieldProps } from "formik";
-import { Field, Form, Formik, FormikErrors, FormikValues, useFormikContext } from "formik";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import Select from "react-select";
+import { useSelector } from "@tanstack/react-form";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
@@ -16,6 +15,8 @@ import { APIClient } from "@api/APIClient";
 import { NotificationKeys } from "@api/query_keys";
 import { PushoverSoundsQueryOptions } from "@api/queries";
 import { ExternalFilterWebhookMethodOptions, getEventOptions, getNotificationTypeOptions, PushoverSoundOptions, SelectOption } from "@domain/constants";
+import { useAppForm, useFormContext, useFormValues, fieldErrors } from "@hooks/form";
+import type { FormFieldErrors } from "@hooks/form";
 import { DEBUG } from "@components/debug";
 import { SlideOver, SlideOverShell, SlideOverTitle } from "@components/panels";
 import { ExternalLink } from "@components/ExternalLink";
@@ -401,8 +402,19 @@ interface NotificationAddFormValues {
 }
 
 export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
+  return (
+    <SlideOverShell isOpen={isOpen} toggle={toggle}>
+      <NotificationAddFormPanel toggle={toggle} />
+    </SlideOverShell>
+  );
+}
+
+interface NotificationAddFormPanelProps {
+  toggle: () => void;
+}
+
+function NotificationAddFormPanel({ toggle }: NotificationAddFormPanelProps) {
   const { t } = useTranslation(["options", "settings"]);
-  const notificationTypeOptions = getNotificationTypeOptions(t);
   const queryClient = useQueryClient();
 
   const createMutation = useMutation({
@@ -430,201 +442,215 @@ export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
   const testNotification = (data: unknown) => testMutation.mutate(data as ServiceNotification);
 
   const validate = (values: NotificationAddFormValues) => {
-    const errors = {} as FormikErrors<FormikValues>;
+    const errors: FormFieldErrors = {};
     if (!values.name)
       errors.name = t("settings:forms.notification.required");
 
     return errors;
   };
 
+  const initialValues = {
+    enabled: true,
+    type: "",
+    name: "",
+    webhook: "",
+    events: [],
+    username: "",
+    sound: "",
+    event_sounds: {}
+  };
+
+  const form = useAppForm({
+    defaultValues: initialValues,
+    validators: {
+      onChange: ({ value }) => fieldErrors(validate(value))
+    },
+    onSubmit: ({ value }) => onSubmit(value)
+  });
+
+  const values = useSelector(form.store, (state) => state.values);
+
   return (
-    <SlideOverShell isOpen={isOpen} toggle={toggle}>
-      <Formik
-        enableReinitialize={true}
-        initialValues={{
-          enabled: true,
-          type: "",
-          name: "",
-          webhook: "",
-          events: [],
-          username: "",
-          sound: "",
-          event_sounds: {}
+    <form.AppForm>
+      <form
+        className="h-full min-h-0 flex flex-col bg-white dark:bg-gray-800"
+        onSubmit={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          form.handleSubmit();
         }}
-        onSubmit={onSubmit}
-        validate={validate}
       >
-        {({ values }) => (
-          <Form className="h-full min-h-0 flex flex-col bg-white dark:bg-gray-800">
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
-                <div className="flex items-start justify-between space-x-3">
-                  <div className="space-y-1">
-                    <SlideOverTitle>
-                      {t("settings:forms.notification.addTitle")}
-                    </SlideOverTitle>
-                    <p className="text-sm text-gray-500 dark:text-gray-200">
-                      {t("settings:forms.notification.addDescription")}
-                    </p>
-                  </div>
-                  <div className="h-7 flex items-center">
-                    <button
-                      type="button"
-                      className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                      onClick={toggle}
-                    >
-                      <span className="sr-only">{t("settings:forms.notification.closePanel")}</span>
-                      <XMarkIcon className="h-6 w-6" aria-hidden="true" />
-                    </button>
-                  </div>
-                </div>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
+            <div className="flex items-start justify-between space-x-3">
+              <div className="space-y-1">
+                <SlideOverTitle>
+                  {t("settings:forms.notification.addTitle")}
+                </SlideOverTitle>
+                <p className="text-sm text-gray-500 dark:text-gray-200">
+                  {t("settings:forms.notification.addDescription")}
+                </p>
               </div>
-
-              <div className="flex flex-col space-y-4 px-1 pt-6 sm:py-0 sm:space-y-0">
-                <TextFieldWide
-                  name="name"
-                  label={t("settings:forms.notification.name")}
-                  required={true}
-                />
-
-                <div className="flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
-                  <div>
-                    <label
-                      htmlFor="type"
-                      className="block text-sm font-medium text-gray-900 dark:text-white"
-                    >
-                      {t("settings:forms.notification.type")}
-                    </label>
-                  </div>
-                  <div className="sm:col-span-2">
-                    <Field name="type" type="select">
-                      {({
-                        field,
-                        form: { setFieldValue, resetForm }
-                      }: FieldProps) => (
-                        <Select
-                          {...field}
-                          isClearable={true}
-                          isSearchable={true}
-                          components={{
-                            Input: common.SelectInput,
-                            Control: common.SelectControl,
-                            Menu: common.SelectMenu,
-                            Option: common.SelectOption,
-                            IndicatorSeparator: common.IndicatorSeparator,
-                            DropdownIndicator: common.DropdownIndicator
-                          }}
-                          placeholder={t("settings:forms.notification.chooseType")}
-                          styles={{
-                            singleValue: (base) => ({
-                              ...base,
-                              color: "unset"
-                            })
-                          }}
-                          theme={(theme) => ({
-                            ...theme,
-                            spacing: {
-                              ...theme.spacing,
-                              controlHeight: 30,
-                              baseUnit: 2
-                            }
-                          })}
-                          value={field?.value && field.value.value}
-                          onChange={(option: unknown) => {
-                            resetForm();
-
-                            const opt = option as SelectOption;
-                            // setFieldValue("name", option?.label ?? "")
-                            setFieldValue(
-                              field.name,
-                              opt.value ?? ""
-                            );
-                          }}
-                          options={notificationTypeOptions}
-                        />
-                      )}
-                    </Field>
-                  </div>
-                </div>
-
-                <SwitchGroupWide name="enabled" label={t("settings:forms.notification.enabled")} />
-
-                <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-                  <div className="px-4">
-                    <h2 className="text-lg font-medium text-gray-900 dark:text-white">
-                      {t("settings:forms.notification.globalEvents")}
-                    </h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {t("settings:forms.notification.globalEventsDesc")}
-                    </p>
-                  </div>
-
-                  <div className="p-4 sm:grid sm:gap-4">
-                    <EventCheckBoxes />
-                  </div>
-                </div>
-              </div>
-              {componentMap[values.type]}
-
-              <DEBUG values={values} />
-            </div>
-
-            <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4 sm:px-6">
-              <div className="space-x-3 flex justify-end">
+              <div className="h-7 flex items-center">
                 <button
                   type="button"
-                  className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                  onClick={() => testNotification(values)}
-                >
-                  {t("settings:forms.notification.test")}
-                </button>
-                <button
-                  type="button"
-                  className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                  className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                   onClick={toggle}
                 >
-                  {t("settings:forms.notification.cancel")}
-                </button>
-                <button
-                  type="submit"
-                  className="inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                >
-                  {t("settings:forms.notification.save")}
+                  <span className="sr-only">{t("settings:forms.notification.closePanel")}</span>
+                  <XMarkIcon className="h-6 w-6" aria-hidden="true" />
                 </button>
               </div>
             </div>
-          </Form>
-        )}
-      </Formik>
-    </SlideOverShell>
+          </div>
+
+          <div className="flex flex-col space-y-4 px-1 pt-6 sm:py-0 sm:space-y-0">
+            <TextFieldWide
+              name="name"
+              label={t("settings:forms.notification.name")}
+              required={true}
+            />
+
+            <div className="flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
+              <div>
+                <label
+                  htmlFor="type"
+                  className="block text-sm font-medium text-gray-900 dark:text-white"
+                >
+                  {t("settings:forms.notification.type")}
+                </label>
+              </div>
+              <div className="sm:col-span-2">
+                <NotificationTypeSelector />
+              </div>
+            </div>
+
+            <SwitchGroupWide name="enabled" label={t("settings:forms.notification.enabled")} />
+
+            <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+              <div className="px-4">
+                <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+                  {t("settings:forms.notification.globalEvents")}
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {t("settings:forms.notification.globalEventsDesc")}
+                </p>
+              </div>
+
+              <div className="p-4 sm:grid sm:gap-4">
+                <EventCheckBoxes />
+              </div>
+            </div>
+          </div>
+          {componentMap[values.type]}
+
+          <DEBUG values={values} />
+        </div>
+
+        <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4 sm:px-6">
+          <div className="space-x-3 flex justify-end">
+            <button
+              type="button"
+              className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+              onClick={() => testNotification(values)}
+            >
+              {t("settings:forms.notification.test")}
+            </button>
+            <button
+              type="button"
+              className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+              onClick={toggle}
+            >
+              {t("settings:forms.notification.cancel")}
+            </button>
+            <button
+              type="submit"
+              className="inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+            >
+              {t("settings:forms.notification.save")}
+            </button>
+          </div>
+        </div>
+      </form>
+    </form.AppForm>
   );
 }
 
-const EventCheckBox = ({ event }: { event: NotificationEventOption; }) => (
-  <Field name="events">
-    {({ field, form }: FieldProps<string[]>) => (
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="text-sm">
-            <span className="font-medium text-gray-900 dark:text-gray-100">{event.label}</span>
-            {event.description && <p className="text-gray-500">{event.description}</p>}
-          </span>
-          <Checkbox
-            name={`events-${event.value}`}
-            value={field.value.includes(event.value)}
-            setValue={(checked) =>
-              form.setFieldValue('events',
-                checked
-                  ? [...field.value, event.value]
-                  : field.value.filter(e => e !== event.value)
-              )
+const NotificationTypeSelector = () => {
+  const { t } = useTranslation(["options", "settings"]);
+  const notificationTypeOptions = getNotificationTypeOptions(t);
+  const form = useFormContext();
+
+  return (
+    <form.Field name="type">
+      {(field) => (
+        <Select
+          name={field.name}
+          onBlur={field.handleBlur}
+          isClearable={true}
+          isSearchable={true}
+          components={{
+            Input: common.SelectInput,
+            Control: common.SelectControl,
+            Menu: common.SelectMenu,
+            Option: common.SelectOption,
+            IndicatorSeparator: common.IndicatorSeparator,
+            DropdownIndicator: common.DropdownIndicator
+          }}
+          placeholder={t("settings:forms.notification.chooseType")}
+          styles={{
+            singleValue: (base) => ({
+              ...base,
+              color: "unset"
+            })
+          }}
+          theme={(theme) => ({
+            ...theme,
+            spacing: {
+              ...theme.spacing,
+              controlHeight: 30,
+              baseUnit: 2
             }
-          />
-        </div>
+          })}
+          value={field.state.value && notificationTypeOptions.find(o => o.value == field.state.value)}
+          onChange={(option: unknown) => {
+            form.reset();
+            const opt = option as SelectOption | null;
+            field.handleChange(opt?.value ?? "");
+          }}
+          options={notificationTypeOptions}
+        />
+      )}
+    </form.Field>
+  );
+};
+
+const EventCheckBox = ({ event }: { event: NotificationEventOption; }) => {
+  const form = useFormContext();
+  const { events } = useFormValues<ServiceNotification>();
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-sm">
+          <span className="font-medium text-gray-900 dark:text-gray-100">{event.label}</span>
+          {event.description && <p className="text-gray-500">{event.description}</p>}
+        </span>
+        <Checkbox
+          name={`events-${event.value}`}
+          value={events.includes(event.value)}
+          setValue={(checked) =>
+            form.setFieldValue("events",
+              checked
+                ? [...events, event.value]
+                : events.filter(e => e !== event.value)
+            )
+          }
+        />
       </div>
-    )}
-  </Field>
-);
+    </div>
+  );
+};
 
 const EventCheckBoxes = () => {
   const { t } = useTranslation(["options", "settings"]);
@@ -648,7 +674,8 @@ const EventSoundSelector = ({event, soundOptions}: {
   soundOptions: SoundOption[];
 }) => {
   const { t } = useTranslation(["options", "settings"]);
-  const {values, setFieldValue} = useFormikContext<ServiceNotification>();
+  const form = useFormContext();
+  const values = useFormValues<ServiceNotification>();
   const eventSounds = values.event_sounds || {};
   const currentSound = eventSounds[event.value] || "";
 
@@ -659,10 +686,11 @@ const EventSoundSelector = ({event, soundOptions}: {
       </span>
 
       <div className="sm:col-span-2">
-        <Field name={`event_sounds.${event.value}`} type="select">
-          {({field: soundField}: FieldProps) => (
+        <form.Field name={`event_sounds.${event.value}`}>
+          {(soundField) => (
             <Select
-              {...soundField}
+              name={soundField.name}
+              onBlur={soundField.handleBlur}
               isClearable={true}
               isSearchable={true}
               components={{
@@ -697,12 +725,12 @@ const EventSoundSelector = ({event, soundOptions}: {
                 } else {
                   delete newEventSounds[event.value];
                 }
-                setFieldValue("event_sounds", newEventSounds);
+                form.setFieldValue("event_sounds", newEventSounds);
               }}
               options={soundOptions}
             />
           )}
-        </Field>
+        </form.Field>
       </div>
     </div>
   );
@@ -711,7 +739,7 @@ const EventSoundSelector = ({event, soundOptions}: {
 const EventSounds = () => {
   const { t } = useTranslation(["options", "settings"]);
   const eventOptions = getEventOptions(t);
-  const { values } = useFormikContext<ServiceNotification>();
+  const values = useFormValues<ServiceNotification>();
   const apiKey = values.api_key || "";
 
   const canFetchCustomSounds = Boolean(apiKey && apiKey !== "<redacted>");
@@ -769,12 +797,13 @@ interface InitialValues {
   events: NotificationEvent[];
   username?: string;
   password?: string;
+  method?: string;
+  headers?: string;
   used_by_filters?: NotificationFilter[];
 }
 
 export function NotificationUpdateForm({ isOpen, toggle, data: notification }: UpdateFormProps<ServiceNotification>) {
   const { t } = useTranslation(["options", "settings"]);
-  const notificationTypeOptions = getNotificationTypeOptions(t);
   const filterEventOptions: Record<NotificationFilterEvent, string> = {
     "PUSH_APPROVED": t("event.PUSH_APPROVED.label"),
     "PUSH_REJECTED": t("event.PUSH_REJECTED.label"),
@@ -793,7 +822,7 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
     }
   });
 
-  const onSubmit = (formData: unknown) => mutation.mutate(formData as ServiceNotification);
+  const onSubmit = (formData: InitialValues) => mutation.mutate(formData);
 
   const deleteMutation = useMutation({
     mutationFn: (notificationID: number) => APIClient.notifications.delete(notificationID),
@@ -832,6 +861,8 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
     events: notification.events || [],
     username: notification.username,
     password: notification.password,
+    method: notification.method,
+    headers: notification.headers,
     used_by_filters: notification.used_by_filters || [],
   };
 
@@ -861,44 +892,7 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
                 </label>
               </div>
               <div className="sm:col-span-2">
-                <Field name="type" type="select">
-                  {({ field, form: { setFieldValue, resetForm } }: FieldProps) => (
-                    <Select {...field}
-                      isClearable={true}
-                      isSearchable={true}
-                      components={{
-                        Input: common.SelectInput,
-                        Control: common.SelectControl,
-                        Menu: common.SelectMenu,
-                        Option: common.SelectOption,
-                        IndicatorSeparator: common.IndicatorSeparator,
-                        DropdownIndicator: common.DropdownIndicator
-                      }}
-                      placeholder={t("settings:forms.notification.chooseType")}
-                      styles={{
-                        singleValue: (base) => ({
-                          ...base,
-                          color: "unset"
-                        })
-                      }}
-                      theme={(theme) => ({
-                        ...theme,
-                        spacing: {
-                          ...theme.spacing,
-                          controlHeight: 30,
-                          baseUnit: 2
-                        }
-                      })}
-                      value={field?.value && notificationTypeOptions.find(o => o.value == field?.value)}
-                      onChange={(option: unknown) => {
-                        resetForm();
-                        const opt = option as SelectOption;
-                        setFieldValue(field.name, opt.value ?? "");
-                      }}
-                      options={notificationTypeOptions}
-                    />
-                  )}
-                </Field>
+                <NotificationTypeSelector />
               </div>
             </div>
             <SwitchGroupWide name="enabled" label={t("settings:forms.notification.enabled")} />

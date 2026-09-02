@@ -20,14 +20,14 @@ export const SABnzbd = ({ idx, action, clients }: ClientActionProps) => {
     <FilterLayout>
       <FilterHalfRow>
         <DownloaderSelect
-          name={`actions.${idx}.client_id`}
+          name={`actions[${idx}].client_id`}
           action={action}
           clients={clients}
         />
       </FilterHalfRow>
       <FilterHalfRow>
         <TextField
-          name={`actions.${idx}.category`}
+          name={`actions[${idx}].category`}
           label={t("actionComponents.common.category")}
           columns={6}
           placeholder={t("actionComponents.common.categoryPlaceholder")}
@@ -50,14 +50,14 @@ export const NZBGet = ({ idx, action, clients }: ClientActionProps) => {
     <FilterLayout>
       <FilterHalfRow>
         <DownloaderSelect
-          name={`actions.${idx}.client_id`}
+          name={`actions[${idx}].client_id`}
           action={action}
           clients={clients}
         />
       </FilterHalfRow>
       <FilterHalfRow>
         <TextField
-          name={`actions.${idx}.category`}
+          name={`actions[${idx}].category`}
           label={t("actionComponents.common.category")}
           columns={6}
           placeholder={t("actionComponents.common.categoryPlaceholder")}
@@ -92,13 +92,13 @@ export const Exec = ({ idx }: ClientActionProps) => {
   >
     <FilterLayout>
       <TextField
-        name={`actions.${idx}.exec_cmd`}
+        name={`actions[${idx}].exec_cmd`}
         label={t("actionComponents.exec.path")}
         placeholder={t("actionComponents.exec.pathPlaceholder")}
       />
 
       <TextAreaAutoResize
-        name={`actions.${idx}.exec_args`}
+        name={`actions[${idx}].exec_args`}
         label={t("actionComponents.exec.arguments")}
         placeholder={t("actionComponents.exec.argumentsPlaceholder")}
       />
@@ -118,7 +118,7 @@ export const WatchFolder = ({ idx }: ClientActionProps) => {
   >
     <FilterLayout>
       <TextAreaAutoResize
-        name={`actions.${idx}.watch_folder`}
+        name={`actions[${idx}].watch_folder`}
         label={t("actionComponents.watchFolder.directory")}
         placeholder={t("actionComponents.watchFolder.directoryPlaceholder")}
       />
@@ -137,7 +137,7 @@ export const WebHook = ({ idx }: ClientActionProps) => {
   >
     <FilterLayout>
       <TextField
-        name={`actions.${idx}.webhook_host`}
+        name={`actions[${idx}].webhook_host`}
         label={t("actionComponents.webhook.endpoint")}
         columns={6}
         placeholder={t("actionComponents.webhook.endpointPlaceholder")}
@@ -147,7 +147,7 @@ export const WebHook = ({ idx }: ClientActionProps) => {
       />
     </FilterLayout>
     <TextAreaAutoResize
-      name={`actions.${idx}.webhook_data`}
+      name={`actions[${idx}].webhook_data`}
       label={t("actionComponents.webhook.payload")}
       placeholder={t("actionComponents.webhook.payloadPlaceholder")}
     />
@@ -166,7 +166,7 @@ export const Arr = ({ idx, action, clients }: ClientActionProps) => {
     <FilterLayout>
       <FilterHalfRow>
         <DownloaderSelect
-          name={`actions.${idx}.client_id`}
+          name={`actions[${idx}].client_id`}
           action={action}
           clients={clients}
         />
@@ -175,14 +175,14 @@ export const Arr = ({ idx, action, clients }: ClientActionProps) => {
       <FilterHalfRow>
         <div className="">
           <TextField
-            name={`actions.${idx}.external_download_client`}
+            name={`actions[${idx}].external_download_client`}
             label={t("actionComponents.arr.overrideClientName")}
             tooltip={
               <p>{t("actionComponents.arr.overrideClientNameTooltip")}</p>
             }
           />
           <NumberField
-            name={`actions.${idx}.external_download_client_id`}
+            name={`actions[${idx}].external_download_client_id`}
             label={t("actionComponents.arr.overrideClientId")}
             className="mt-4"
             tooltip={

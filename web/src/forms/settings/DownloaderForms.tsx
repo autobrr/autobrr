@@ -6,7 +6,7 @@
 import { useRef, useState, ReactElement } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { XMarkIcon } from "@heroicons/react/24/solid";
-import { Form, Formik, useFormikContext } from "formik";
+import { useSelector } from "@tanstack/react-form";
 import { useTranslation } from "react-i18next";
 
 import { classNames, sleep } from "@utils";
@@ -17,6 +17,7 @@ import { DownloaderAuthType, DownloadRuleConditionOptions, getDownloaderTypeOpti
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { useToggle } from "@hooks/hooks";
+import { useAppForm, useFormValues } from "@hooks/form";
 import { DeleteModal } from "@components/modals";
 import { SlideOverShell, SlideOverTitle } from "@components/panels";
 import {
@@ -68,9 +69,7 @@ interface InitialValues {
 
 function FormFieldsDeluge() {
   const { t } = useTranslation("settings");
-  const {
-    values: { tls }
-  } = useFormikContext<InitialValues>();
+  const { tls } = useFormValues<InitialValues>();
 
   return (
     <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
@@ -114,9 +113,7 @@ function FormFieldsDeluge() {
 
 function FormFieldsArr() {
   const { t } = useTranslation("settings");
-  const {
-    values: { tls, settings }
-  } = useFormikContext<InitialValues>();
+  const { tls, settings } = useFormValues<InitialValues>();
 
   return (
     <div className="flex flex-col space-y-4 px-1 mb-4 sm:py-0 sm:space-y-0">
@@ -162,9 +159,7 @@ function FormFieldsArr() {
 
 function FormFieldsQbit() {
   const { t } = useTranslation("settings");
-  const {
-    values: { port, tls, settings }
-  } = useFormikContext<InitialValues>();
+  const { port, tls, settings } = useFormValues<InitialValues>();
 
   return (
     <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
@@ -221,9 +216,7 @@ function FormFieldsQbit() {
 
 function FormFieldsPorla() {
   const { t } = useTranslation("settings");
-  const {
-    values: { tls, settings }
-  } = useFormikContext<InitialValues>();
+  const { tls, settings } = useFormValues<InitialValues>();
 
   return (
     <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
@@ -259,9 +252,7 @@ function FormFieldsPorla() {
 
 function FormFieldsAria2() {
   const { t } = useTranslation("settings");
-  const {
-    values: { tls, settings }
-  } = useFormikContext<InitialValues>();
+  const { tls, settings } = useFormValues<InitialValues>();
 
   return (
     <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
@@ -301,9 +292,7 @@ function FormFieldsAria2() {
 
 function FormFieldsRTorrent() {
   const { t } = useTranslation("settings");
-  const {
-    values: { tls, settings }
-  } = useFormikContext<InitialValues>();
+  const { tls, settings } = useFormValues<InitialValues>();
 
   return (
     <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
@@ -354,9 +343,7 @@ function FormFieldsRTorrent() {
 
 function FormFieldsTransmission() {
   const { t } = useTranslation("settings");
-  const {
-    values: { port, tls }
-  } = useFormikContext<InitialValues>();
+  const { port, tls } = useFormValues<InitialValues>();
 
   return (
     <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
@@ -402,9 +389,7 @@ function FormFieldsTransmission() {
 
 function FormFieldsSabnzbd() {
   const { t } = useTranslation("settings");
-  const {
-    values: { port, tls, settings }
-  } = useFormikContext<InitialValues>();
+  const { port, tls, settings } = useFormValues<InitialValues>();
 
   return (
     <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
@@ -499,9 +484,7 @@ export const componentMap: componentMapType = {
 
 function FormFieldsRulesBasic() {
   const { t } = useTranslation("settings");
-  const {
-    values: { settings }
-  } = useFormikContext<InitialValues>();
+  const { settings } = useFormValues<InitialValues>();
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5">
@@ -536,9 +519,6 @@ function FormFieldsRulesBasic() {
 
 function FormFieldsRulesArr() {
   const { t } = useTranslation("settings");
-  // const {
-  //   values: { settings }
-  // } = useFormikContext<InitialValues>();
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5 px-2">
@@ -560,9 +540,7 @@ function FormFieldsRulesArr() {
 
 function FormFieldsRulesQbit() {
   const { t } = useTranslation("settings");
-  const {
-    values: { settings }
-  } = useFormikContext<InitialValues>();
+  const { settings } = useFormValues<InitialValues>();
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5 px-2">
@@ -629,9 +607,7 @@ function FormFieldsRulesQbit() {
 
 function FormFieldsRulesTransmission() {
   const { t } = useTranslation("settings");
-  const {
-    values: { settings }
-  } = useFormikContext<InitialValues>();
+  const { settings } = useFormValues<InitialValues>();
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5 px-2">
@@ -788,6 +764,18 @@ function DownloaderFormButtons({
 }
 
 export function DownloaderAddForm({ isOpen, toggle }: AddFormProps) {
+  return (
+    <SlideOverShell isOpen={isOpen} toggle={toggle}>
+      <DownloaderAddFormPanel toggle={toggle} />
+    </SlideOverShell>
+  );
+}
+
+interface DownloaderAddFormPanelProps {
+  toggle: () => void;
+}
+
+function DownloaderAddFormPanel({ toggle }: DownloaderAddFormPanelProps) {
   const { t } = useTranslation(["options", "settings"]);
   const downloaderTypeOptions = getDownloaderTypeOptions(t);
   const [isTesting, setIsTesting] = useState(false);
@@ -854,77 +842,96 @@ export function DownloaderAddForm({ isOpen, toggle }: AddFormProps) {
     settings: {}
   };
 
+  const form = useAppForm({
+    defaultValues: initialValues,
+    onSubmit: ({ value }) => onSubmit(value)
+  });
+
+  const values = useSelector(form.store, (state) => state.values);
+
   return (
-    <SlideOverShell isOpen={isOpen} toggle={toggle}>
-      <Formik
-        initialValues={initialValues}
-        onSubmit={onSubmit}
+    <form.AppForm>
+      <form
+        className="h-full min-h-0 flex flex-col bg-white dark:bg-gray-800"
+        onSubmit={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          form.handleSubmit();
+        }}
       >
-        {({ handleSubmit, values }) => (
-          <Form
-            className="h-full min-h-0 flex flex-col bg-white dark:bg-gray-800"
-            onSubmit={handleSubmit}
-          >
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
-                <div className="flex items-start justify-between space-x-3">
-                  <div className="space-y-1">
-                    <SlideOverTitle>
-                      {t("settings:forms.downloadClient.addTitle")}
-                    </SlideOverTitle>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {t("settings:forms.downloadClient.addDescription")}
-                    </p>
-                  </div>
-                  <div className="h-7 flex items-center">
-                    <button
-                      type="button"
-                      className="bg-white dark:bg-gray-800 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                      onClick={toggle}
-                    >
-                      <span className="sr-only">{t("settings:forms.downloadClient.closePanel")}</span>
-                      <XMarkIcon
-                        className="h-6 w-6"
-                        aria-hidden="true"
-                      />
-                    </button>
-                  </div>
-                </div>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
+            <div className="flex items-start justify-between space-x-3">
+              <div className="space-y-1">
+                <SlideOverTitle>
+                  {t("settings:forms.downloadClient.addTitle")}
+                </SlideOverTitle>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {t("settings:forms.downloadClient.addDescription")}
+                </p>
               </div>
-
-              <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
-                <TextFieldWide required name="name" label={t("settings:forms.downloadClient.name")} />
-                <SwitchGroupWide name="enabled" label={t("settings:forms.downloadClient.enabled")} />
-                <RadioFieldsetWide
-                  name="type"
-                  legend={t("settings:forms.downloadClient.type")}
-                  options={downloaderTypeOptions}
-                />
-                <div>{componentMap[values.type]}</div>
+              <div className="h-7 flex items-center">
+                <button
+                  type="button"
+                  className="bg-white dark:bg-gray-800 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                  onClick={toggle}
+                >
+                  <span className="sr-only">{t("settings:forms.downloadClient.closePanel")}</span>
+                  <XMarkIcon
+                    className="h-6 w-6"
+                    aria-hidden="true"
+                  />
+                </button>
               </div>
-
-              {rulesComponentMap[values.type]}
-
-              <DEBUG values={values} />
             </div>
+          </div>
 
-            <DownloaderFormButtons
-              type="CREATE"
-              isTesting={isTesting}
-              isSuccessfulTest={isSuccessfulTest}
-              isErrorTest={isErrorTest}
-              cancelFn={toggle}
-              testFn={testClient}
-              values={values}
+          <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
+            <TextFieldWide required name="name" label={t("settings:forms.downloadClient.name")} />
+            <SwitchGroupWide name="enabled" label={t("settings:forms.downloadClient.enabled")} />
+            <RadioFieldsetWide
+              name="type"
+              legend={t("settings:forms.downloadClient.type")}
+              options={downloaderTypeOptions}
             />
-          </Form>
-        )}
-      </Formik>
+            <div>{componentMap[values.type]}</div>
+          </div>
+
+          {rulesComponentMap[values.type]}
+
+          <DEBUG values={values} />
+        </div>
+
+        <DownloaderFormButtons
+          type="CREATE"
+          isTesting={isTesting}
+          isSuccessfulTest={isSuccessfulTest}
+          isErrorTest={isErrorTest}
+          cancelFn={toggle}
+          testFn={testClient}
+          values={values}
+        />
+      </form>
+    </form.AppForm>
+  );
+}
+
+export function DownloaderUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Downloader>) {
+  const cancelButtonRef = useRef(null);
+
+  return (
+    <SlideOverShell isOpen={isOpen} toggle={toggle} initialFocus={cancelButtonRef}>
+      <DownloaderUpdateFormPanel toggle={toggle} data={data} />
     </SlideOverShell>
   );
 }
 
-export function DownloaderUpdateForm({ isOpen, toggle, data: client }: UpdateFormProps<Downloader>) {
+interface DownloaderUpdateFormPanelProps {
+  toggle: () => void;
+  data: Downloader;
+}
+
+function DownloaderUpdateFormPanel({ toggle, data: client }: DownloaderUpdateFormPanelProps) {
   const { t } = useTranslation(["options", "settings"]);
   const downloaderTypeOptions = getDownloaderTypeOptions(t);
   const [isTesting, setIsTesting] = useState(false);
@@ -932,7 +939,6 @@ export function DownloaderUpdateForm({ isOpen, toggle, data: client }: UpdateFor
   const [isErrorTest, setIsErrorTest] = useState(false);
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
 
-  const cancelButtonRef = useRef(null);
   const cancelModalButtonRef = useRef(null);
 
   const queryClient = useQueryClient();
@@ -948,7 +954,7 @@ export function DownloaderUpdateForm({ isOpen, toggle, data: client }: UpdateFor
     }
   });
 
-  const onSubmit = (data: unknown) => mutation.mutate(data as Downloader);
+  const onSubmit = (data: Downloader) => mutation.mutate(data);
 
   const deleteMutation = useMutation({
     mutationFn: (clientID: number) => APIClient.downloaders.delete(clientID),
@@ -1008,8 +1014,15 @@ export function DownloaderUpdateForm({ isOpen, toggle, data: client }: UpdateFor
     settings: client.settings
   };
 
+  const form = useAppForm({
+    defaultValues: initialValues,
+    onSubmit: ({ value }) => onSubmit(value)
+  });
+
+  const values = useSelector(form.store, (state) => state.values);
+
   return (
-    <SlideOverShell isOpen={isOpen} toggle={toggle} initialFocus={cancelButtonRef}>
+    <>
       <DeleteModal
         isOpen={deleteModalIsOpen}
         isLoading={deleteMutation.isPending}
@@ -1019,73 +1032,70 @@ export function DownloaderUpdateForm({ isOpen, toggle, data: client }: UpdateFor
         title={t("settings:forms.downloadClient.removeTitle")}
         text={t("settings:forms.downloadClient.removeText")}
       />
-      <Formik
-        initialValues={initialValues}
-        onSubmit={onSubmit}
-      >
-        {({ handleSubmit, values }) => {
-          return (
-            <Form
-              className="h-full min-h-0 flex flex-col bg-white dark:bg-gray-800"
-              onSubmit={handleSubmit}
-            >
-              <div className="min-h-0 flex-1 overflow-y-auto">
-                <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
-                  <div className="flex items-start justify-between space-x-3">
-                    <div className="space-y-1">
-                      <SlideOverTitle>
-                        {t("settings:forms.downloadClient.editTitle")}
-                      </SlideOverTitle>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {t("settings:forms.downloadClient.editDescription")}
-                      </p>
-                    </div>
-                    <div className="h-7 flex items-center">
-                      <button
-                        type="button"
-                        className="bg-white dark:bg-gray-800 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                        onClick={toggle}
-                      >
-                        <span className="sr-only">{t("settings:forms.downloadClient.closePanel")}</span>
-                        <XMarkIcon
-                          className="h-6 w-6"
-                          aria-hidden="true"
-                        />
-                      </button>
-                    </div>
-                  </div>
+      <form.AppForm>
+        <form
+          className="h-full min-h-0 flex flex-col bg-white dark:bg-gray-800"
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            form.handleSubmit();
+          }}
+        >
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
+              <div className="flex items-start justify-between space-x-3">
+                <div className="space-y-1">
+                  <SlideOverTitle>
+                    {t("settings:forms.downloadClient.editTitle")}
+                  </SlideOverTitle>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {t("settings:forms.downloadClient.editDescription")}
+                  </p>
                 </div>
-
-                <div className="py-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y dark:divide-gray-700">
-                  <TextFieldWide required name="name" label={t("settings:forms.downloadClient.name")} />
-                  <SwitchGroupWide name="enabled" label={t("settings:forms.downloadClient.enabled")} />
-                  <RadioFieldsetWide
-                    name="type"
-                    legend={t("settings:forms.downloadClient.type")}
-                    options={downloaderTypeOptions}
-                  />
-                  <div>{componentMap[values.type]}</div>
+                <div className="h-7 flex items-center">
+                  <button
+                    type="button"
+                    className="bg-white dark:bg-gray-800 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                    onClick={toggle}
+                  >
+                    <span className="sr-only">{t("settings:forms.downloadClient.closePanel")}</span>
+                    <XMarkIcon
+                      className="h-6 w-6"
+                      aria-hidden="true"
+                    />
+                  </button>
                 </div>
-
-                {rulesComponentMap[values.type]}
-
-                <DEBUG values={values} />
               </div>
+            </div>
 
-              <DownloaderFormButtons
-                type="UPDATE"
-                toggleDeleteModal={toggleDeleteModal}
-                isTesting={isTesting}
-                isSuccessfulTest={isSuccessfulTest}
-                isErrorTest={isErrorTest}
-                cancelFn={toggle}
-                testFn={testClient}
-                values={values}
+            <div className="py-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y dark:divide-gray-700">
+              <TextFieldWide required name="name" label={t("settings:forms.downloadClient.name")} />
+              <SwitchGroupWide name="enabled" label={t("settings:forms.downloadClient.enabled")} />
+              <RadioFieldsetWide
+                name="type"
+                legend={t("settings:forms.downloadClient.type")}
+                options={downloaderTypeOptions}
               />
-            </Form>
-          );
-        }}
-      </Formik>
-    </SlideOverShell>
+              <div>{componentMap[values.type]}</div>
+            </div>
+
+            {rulesComponentMap[values.type]}
+
+            <DEBUG values={values} />
+          </div>
+
+          <DownloaderFormButtons
+            type="UPDATE"
+            toggleDeleteModal={toggleDeleteModal}
+            isTesting={isTesting}
+            isSuccessfulTest={isSuccessfulTest}
+            isErrorTest={isErrorTest}
+            cancelFn={toggle}
+            testFn={testClient}
+            values={values}
+          />
+        </form>
+      </form.AppForm>
+    </>
   );
 }

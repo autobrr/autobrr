@@ -5,7 +5,6 @@
 
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useFormikContext } from "formik";
 import { useTranslation } from "react-i18next";
 
 import { APIClient } from "@api/APIClient";
@@ -19,6 +18,7 @@ import { sleep } from "@utils";
 import { ImplementationBadges } from "@screens/settings/Indexer";
 import { FeedDownloadTypeOptions } from "@domain/constants";
 import { UpdateFormProps } from "@forms/_shared";
+import { useFormContext, useFormValues } from "@hooks/form";
 import { extractCategoryTreeFromCaps, flattenCategoryIds, parseCapabilitiesPayload } from "@utils/caps";
 
 interface InitialValues {
@@ -59,7 +59,7 @@ export function FeedUpdateForm({ isOpen, toggle, data}: UpdateFormProps<Feed>) {
     }
   });
 
-  const onSubmit = (formData: unknown) => mutation.mutate(formData as Feed);
+  const onSubmit = (formData: InitialValues) => mutation.mutate(formData as Feed);
 
   const deleteMutation = useMutation({
     mutationFn: (feedID: number) => APIClient.feeds.delete(feedID),
@@ -191,9 +191,7 @@ function WarningLabel() {
 
 function FormFieldsTorznab({ feedID }: { feedID: number }) {
   const { t } = useTranslation("settings");
-  const {
-    values: { interval }
-  } = useFormikContext<InitialValues>();
+  const { interval } = useFormValues<InitialValues>();
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5">
@@ -233,9 +231,7 @@ function FormFieldsTorznab({ feedID }: { feedID: number }) {
 
 function FormFieldsNewznab({ feedID }: { feedID: number }) {
   const { t } = useTranslation("settings");
-  const {
-    values: { interval }
-  } = useFormikContext<InitialValues>();
+  const { interval } = useFormValues<InitialValues>();
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5">
@@ -273,9 +269,7 @@ function FormFieldsNewznab({ feedID }: { feedID: number }) {
 
 function FormFieldsRSS() {
   const { t } = useTranslation("settings");
-  const {
-    values: { interval }
-  } = useFormikContext<InitialValues>();
+  const { interval } = useFormValues<InitialValues>();
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5">
@@ -304,7 +298,8 @@ function FormFieldsRSS() {
 
 function FeedCategoriesSection({ feedID }: { feedID: number }) {
   const { t } = useTranslation("settings");
-  const { values, setFieldValue } = useFormikContext<InitialValues>();
+  const form = useFormContext();
+  const values = useFormValues<InitialValues>();
   const capsPayload = useMemo(() => parseCapabilitiesPayload(values.capabilities), [values.capabilities]);
   const categoriesTree = useMemo(() => extractCategoryTreeFromCaps(capsPayload), [capsPayload]);
   const hasCaps = Boolean(values.capabilities);
@@ -315,8 +310,8 @@ function FeedCategoriesSection({ feedID }: { feedID: number }) {
       const nextCategories = flattenCategoryIds(extractCategoryTreeFromCaps(caps));
       const selected = values.categories ?? [];
 
-      setFieldValue("capabilities", caps ?? null);
-      setFieldValue(
+      form.setFieldValue("capabilities", caps ?? null);
+      form.setFieldValue(
         "categories",
         selected.filter((id) => nextCategories.includes(id))
       );
@@ -330,27 +325,27 @@ function FeedCategoriesSection({ feedID }: { feedID: number }) {
   const toggleCategory = (id: number) => {
     const selected = values.categories ?? [];
     if (selected.includes(id)) {
-      setFieldValue(
+      form.setFieldValue(
         "categories",
         selected.filter((category) => category !== id)
       );
       return;
     }
 
-    setFieldValue("categories", [...selected, id]);
+    form.setFieldValue("categories", [...selected, id]);
   };
 
   const toggleParentCategory = (id: number, childIds: number[]) => {
     const selected = values.categories ?? [];
     if (selected.includes(id)) {
-      setFieldValue(
+      form.setFieldValue(
         "categories",
         selected.filter((category) => category !== id)
       );
       return;
     }
 
-    setFieldValue(
+    form.setFieldValue(
       "categories",
       [...selected.filter((category) => !childIds.includes(category)), id]
     );

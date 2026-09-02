@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useFormikContext } from "formik";
 import { useTranslation } from "react-i18next";
 
+import { useFormValues } from "@hooks/form";
 import { DocsLink } from "@components/ExternalLink";
 import { FilterLayout, FilterPage, FilterRow, FilterSection } from "./_components";
 import { MultiSelect, NumberField, SwitchGroup, TextAreaAutoResize, TextField } from "@components/inputs";
@@ -15,7 +15,7 @@ import * as CONSTS from "@domain/constants";
 
 export const Music = () => {
   const { t } = useTranslation("filters");
-  const { values } = useFormikContext<Filter>();
+  const values = useFormValues<Filter>();
 
   return (
     <FilterPage>

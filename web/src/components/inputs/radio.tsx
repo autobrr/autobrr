@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Field, useFormikContext } from "formik";
 import { RadioGroup, Description, Label, Radio } from "@headlessui/react";
+
 import { classNames } from "@utils";
+import { useFormContext } from "@hooks/form";
 
 export interface radioFieldsetOption {
     label: string;
@@ -20,19 +21,8 @@ interface props {
     options: radioFieldsetOption[];
 }
 
-interface anyObj {
-    [key: string]: string
-}
-
 function RadioFieldsetWide({ name, legend, options }: props) {
-  const {
-    values,
-    setFieldValue
-  } = useFormikContext<anyObj>();
-
-  const onChange = (value: string) => {
-    setFieldValue(name, value);
-  };
+  const form = useFormContext();
 
   return (
     <fieldset>
@@ -44,9 +34,9 @@ function RadioFieldsetWide({ name, legend, options }: props) {
         </div>
         <div className="space-y-5 sm:col-span-2">
           <div className="space-y-5 sm:mt-0">
-            <Field name={name} type="radio">
-              {() => (
-                <RadioGroup value={values[name]} onChange={onChange}>
+            <form.Field name={name}>
+              {(field) => (
+                <RadioGroup value={field.state.value} onChange={(value: string) => field.handleChange(value)}>
                   <Label className="sr-only">
                     {legend}
                   </Label>
@@ -108,7 +98,7 @@ function RadioFieldsetWide({ name, legend, options }: props) {
                   </div>
                 </RadioGroup>
               )}
-            </Field>
+            </form.Field>
           </div>
         </div>
       </div>
