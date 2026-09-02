@@ -4,13 +4,15 @@
  */
 
 import { useRef } from "react";
-import { ChevronDownIcon, ChevronRightIcon } from "@heroicons/react/24/solid";
+import { useMutation } from "@tanstack/react-query";
+import { ChevronDownIcon, ChevronRightIcon, XMarkIcon } from "@heroicons/react/24/solid";
 import { ArrowDownIcon, ArrowUpIcon, SquaresPlusIcon } from "@heroicons/react/24/outline";
 import { Field, FieldArray, FieldArrayRenderProps, FieldProps, useFormikContext } from "formik";
 import { useTranslation } from "react-i18next";
 
 import { classNames } from "@utils";
 import { useToggle } from "@hooks/hooks";
+import { APIClient } from "@api/APIClient";
 import { TextAreaAutoResize } from "@components/inputs/input";
 import { EmptyListState } from "@components/emptystates";
 import { NumberField, Select, TextField } from "@components/inputs";
@@ -103,6 +105,10 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
 
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
   const [edit, toggleEdit] = useToggle(initialEdit);
+
+  const testMutation = useMutation({
+    mutationFn: (external: ExternalFilter) => APIClient.filters.external.test(external)
+  });
 
   const removeAction = () => {
     remove(idx);
@@ -239,22 +245,39 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
 
             <TypeForm external={external} idx={idx} />
 
-            <div className="pt-6 pb-4 space-x-2 flex justify-between">
-              <button
-                type="button"
-                className="inline-flex items-center justify-center px-4 py-2 rounded-md sm:text-sm bg-red-700 dark:bg-red-900 dark:hover:bg-red-700 hover:bg-red-800 text-white focus:outline-hidden"
-                onClick={toggleDeleteModal}
-              >
-                {t("external.remove")}
-              </button>
+            <div className="pt-6 pb-4">
+              {testMutation.data && (
+                <TestResult result={testMutation.data} dismiss={testMutation.reset} />
+              )}
 
-              <button
-                type="button"
-                className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden"
-                onClick={toggleEdit}
-              >
-                {t("external.close")}
-              </button>
+              <div className="space-x-2 flex justify-between">
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center px-4 py-2 rounded-md sm:text-sm bg-red-700 dark:bg-red-900 dark:hover:bg-red-700 hover:bg-red-800 text-white focus:outline-hidden"
+                  onClick={toggleDeleteModal}
+                >
+                  {t("external.remove")}
+                </button>
+
+                <div className="space-x-2">
+                  <button
+                    type="button"
+                    className="bg-white dark:bg-gray-700 py-2 px-4 cursor-pointer border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={testMutation.isPending}
+                    onClick={() => testMutation.mutate(external)}
+                  >
+                    {testMutation.isPending ? t("external.testing") : t("external.test")}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden"
+                    onClick={toggleEdit}
+                  >
+                    {t("external.close")}
+                  </button>
+                </div>
+              </div>
             </div>
           </FilterPage>
         </div>
@@ -386,4 +409,46 @@ const TypeForm = ({ external, idx }: TypeFormProps) => {
     return null;
   }
   }
+};
+
+interface TestResultProps {
+  result: ExternalFilterTestResult;
+  dismiss: () => void;
+}
+
+const TestResult = ({ result, dismiss }: TestResultProps) => {
+  const { t } = useTranslation("filters");
+
+  return (
+    <div
+      className={classNames(
+        result.success
+          ? "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300"
+          : "border-red-500 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300",
+        "mb-4 px-4 py-3 border rounded-md text-sm"
+      )}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <p className="font-medium break-all">
+          {result.error
+            ? t(`external.testResult.error.${result.type}`, { error: result.error })
+            : t(`external.testResult.status.${result.type}`, { status: result.status, expected: result.expect_status, duration: result.duration_ms })}
+        </p>
+        <button
+          type="button"
+          className="shrink-0 cursor-pointer"
+          aria-label={t("external.testResult.dismiss")}
+          onClick={dismiss}
+        >
+          <XMarkIcon className="h-5 w-5" aria-hidden="true" />
+        </button>
+      </div>
+
+      {result.output && (
+        <pre className="mt-2 px-3 py-2 max-h-64 overflow-auto whitespace-pre-wrap break-all rounded-sm font-mono text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-300">
+          {result.output}
+        </pre>
+      )}
+    </div>
+  );
 };

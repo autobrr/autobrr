@@ -978,8 +978,7 @@ func (s *Service) RunExternalFilters(ctx context.Context, f *domain.Filter, exte
 
 		switch external.Type {
 		case domain.ExternalFilterTypeExec:
-			// run external script
-			exitCode, err := s.execCmd(ctx, external, release)
+			exitCode, _, err := s.execCmd(ctx, external, release)
 			if err != nil {
 				l.Error().Err(err).Msg("error executing external script")
 
@@ -997,8 +996,7 @@ func (s *Service) RunExternalFilters(ctx context.Context, f *domain.Filter, exte
 			}
 
 		case domain.ExternalFilterTypeWebhook:
-			// run external webhook
-			statusCode, err := s.webhook(ctx, external, release)
+			res, err := s.webhook(ctx, external, release)
 			if err != nil {
 				l.Error().Err(err).Msg("error executing external webhook")
 
@@ -1010,9 +1008,9 @@ func (s *Service) RunExternalFilters(ctx context.Context, f *domain.Filter, exte
 				return false, errors.Wrap(err, "error executing external webhook")
 			}
 
-			if statusCode != external.WebhookExpectStatus {
-				l.Debug().Int("expected_status", external.WebhookExpectStatus).Int("actual_status", statusCode).Msg("external webhook got unexpected status code")
-				f.RejectReasons.Add("external webhook status code", statusCode, external.WebhookExpectStatus)
+			if res.statusCode != external.WebhookExpectStatus {
+				l.Debug().Int("expected_status", external.WebhookExpectStatus).Int("actual_status", res.statusCode).Msg("external webhook got unexpected status code")
+				f.RejectReasons.Add("external webhook status code", res.statusCode, external.WebhookExpectStatus)
 				return false, nil
 			}
 		}
@@ -1021,91 +1019,149 @@ func (s *Service) RunExternalFilters(ctx context.Context, f *domain.Filter, exte
 	return true, nil
 }
 
-func (s *Service) execCmd(_ context.Context, external domain.FilterExternal, release *domain.Release) (int, error) {
-	s.log.Trace().Str("release", release.TorrentName).Msg("filter exec release")
+// TestExternal runs one external filter against a sample release so a script
+// or webhook can be verified from the filter form before it is saved. Failures
+// are reported in the result rather than returned, since they are the point of
+// the test.
+func (s *Service) TestExternal(ctx context.Context, external *domain.FilterExternal) (*domain.FilterExternalTestResult, error) {
+	l := s.log.With().Str("method", "TestExternal").Str("external_filter", external.Name).Logger()
 
-	// check if program exists
-	cmd, err := exec.LookPath(external.ExecCmd)
-	if err != nil {
-		return 0, errors.Wrap(err, "exec failed, could not find program: %s", cmd)
-	}
+	release := newSampleRelease()
 
-	// handle args and replace vars
-	m := domain.NewMacro(*release)
-
-	// parse and replace values in argument string before continuing
-	parsedArgs, err := m.Parse(external.ExecArgs)
-	if err != nil {
-		return 0, errors.Wrap(err, "could not parse macro")
-	}
-
-	// we need to split on space into a string slice, so we can spread the args into exec
-	commandArgs, err := shellquote.Split(parsedArgs)
-	if err != nil {
-		return 0, errors.Wrap(err, "could not parse into shell-words")
-	}
+	result := &domain.FilterExternalTestResult{Type: external.Type}
 
 	start := time.Now()
 
-	// setup command and args
-	command := exec.Command(cmd, commandArgs...)
-
-	s.log.Debug().Str("script", cmd).Str("args", strings.Join(commandArgs, " ")).Msg("executing script")
-
-	// Create a pipe to capture the standard output of the command
-	cmdOutput, err := command.StdoutPipe()
-	if err != nil {
-		s.log.Error().Err(err).Msg("could not create stdout pipe")
-		return 0, err
-	}
-
-	duration := time.Since(start)
-
-	// Start the command
-	if err := command.Start(); err != nil {
-		s.log.Error().Err(err).Msg("error starting command")
-		return 0, err
-	}
-
-	// Create a buffer to store the output
-	outputBuffer := make([]byte, 4096)
-
-	execLogger := s.log.With().Str("trace_id", release.TraceID).Str("release", release.TorrentName).Str("filter", release.FilterName).Logger()
-
-	for {
-		// Read the output into the buffer
-		n, err := cmdOutput.Read(outputBuffer)
+	switch external.Type {
+	case domain.ExternalFilterTypeExec:
+		exitCode, output, err := s.execCmd(ctx, *external, release)
 		if err != nil {
-			break
+			l.Debug().Err(err).Msg("external script test failed")
+			result.Error = err.Error()
 		}
 
-		// Write the output to the logger
-		execLogger.Trace().Msg(string(outputBuffer[:n]))
-	}
+		result.Status = exitCode
+		result.ExpectStatus = external.ExecExpectStatus
+		result.Output = output
 
-	// Wait for the command to finish and check for any errors
-	if err := command.Wait(); err != nil {
-		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
-			s.log.Debug().Int("exit_code", exitErr.ExitCode()).Msg("filter script exited with non-zero code")
-			return exitErr.ExitCode(), nil
+	case domain.ExternalFilterTypeWebhook:
+		res, err := s.webhook(ctx, *external, release)
+		if err != nil {
+			l.Debug().Err(err).Msg("external webhook test failed")
+			result.Error = err.Error()
 		}
 
-		s.log.Error().Err(err).Msg("error waiting for command")
-		return 0, err
+		result.Status = res.statusCode
+		result.ExpectStatus = external.WebhookExpectStatus
+		result.Output = res.body
+
+	default:
+		return nil, errors.Wrap(domain.ErrExternalFilterTypeUnsupported, "external filter type '%s' is not supported", external.Type)
 	}
 
-	s.log.Debug().Str("script", cmd).Str("args", parsedArgs).Str("release", release.TorrentName).Str("indexer", release.Indexer.Identifier).Dur("duration", duration).Msg("executed external script")
+	result.DurationMs = time.Since(start).Milliseconds()
+	result.Success = result.Error == "" && result.Status == result.ExpectStatus
 
-	return 0, nil
+	return result, nil
 }
 
-func (s *Service) webhook(ctx context.Context, external domain.FilterExternal, release *domain.Release) (int, error) {
+// newSampleRelease stands in for an announce when an external filter is
+// tested, so every macro expands to something realistic.
+func newSampleRelease() *domain.Release {
+	rls := domain.NewRelease(domain.IndexerMinimal{ID: 0, Name: "MockIndexer", Identifier: "mock", IdentifierExternal: "MockIndexer"})
+	rls.ParseString("Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP")
+	rls.FilterName = "TV"
+	rls.Category = "TV"
+	rls.Size = 1500000000
+	rls.TorrentID = "12345"
+	rls.InfoURL = "https://mock.local/torrents/12345"
+	rls.DownloadURL = "https://mock.local/torrents/12345/download"
+	rls.Uploader = "Uploader"
+
+	return rls
+}
+
+// externalOutputMaxBytes caps how much script output or webhook response body
+// is kept for logging and the test result.
+const externalOutputMaxBytes = 4096
+
+// outputBuffer keeps the first externalOutputMaxBytes written and drops the
+// rest, so a chatty script cannot grow memory unbounded. The bytes.Buffer is a
+// named field rather than embedded: os/exec pumps output with io.Copy, which
+// would take a promoted ReadFrom and bypass the cap.
+type outputBuffer struct {
+	buf bytes.Buffer
+}
+
+func (b *outputBuffer) Write(p []byte) (int, error) {
+	if remaining := externalOutputMaxBytes - b.buf.Len(); remaining > 0 {
+		b.buf.Write(p[:min(len(p), remaining)])
+	}
+
+	return len(p), nil
+}
+
+func (b *outputBuffer) String() string {
+	return b.buf.String()
+}
+
+func (s *Service) execCmd(_ context.Context, external domain.FilterExternal, release *domain.Release) (int, string, error) {
+	l := s.log.With().Str("method", "execCmd").Str("trace_id", release.TraceID).Str("external_filter", external.Name).Str("release", release.TorrentName).Logger()
+
+	cmd, err := exec.LookPath(external.ExecCmd)
+	if err != nil {
+		return 0, "", errors.Wrap(err, "exec failed, could not find program: %s", external.ExecCmd)
+	}
+
+	m := domain.NewMacro(*release)
+
+	parsedArgs, err := m.Parse(external.ExecArgs)
+	if err != nil {
+		return 0, "", errors.Wrap(err, "could not parse macro")
+	}
+
+	commandArgs, err := shellquote.Split(parsedArgs)
+	if err != nil {
+		return 0, "", errors.Wrap(err, "could not parse into shell-words")
+	}
+
+	var output outputBuffer
+
+	command := exec.Command(cmd, commandArgs...)
+	command.Stdout = &output
+	command.Stderr = &output
+
+	l.Debug().Str("script", cmd).Str("args", strings.Join(commandArgs, " ")).Msg("executing script")
+
+	start := time.Now()
+
+	if err := command.Run(); err != nil {
+		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
+			l.Debug().Int("exit_code", exitErr.ExitCode()).Str("output", output.String()).Msg("filter script exited with non-zero code")
+			return exitErr.ExitCode(), output.String(), nil
+		}
+
+		return 0, output.String(), errors.Wrap(err, "error running command")
+	}
+
+	l.Debug().Str("script", cmd).Str("args", parsedArgs).Str("indexer", release.Indexer.Identifier).Dur("duration", time.Since(start)).Msg("executed external script")
+	l.Trace().Str("output", output.String()).Msg("external script output")
+
+	return 0, output.String(), nil
+}
+
+type webhookResponse struct {
+	statusCode int
+	body       string
+}
+
+func (s *Service) webhook(ctx context.Context, external domain.FilterExternal, release *domain.Release) (webhookResponse, error) {
 	l := s.log.With().Str("method", "webhook").Str("trace_id", release.TraceID).Str("external_filter", external.Name).Str("host", external.WebhookHost).Str("http_method", external.WebhookMethod).Logger()
 
 	l.Trace().Str("payload", external.WebhookData).Msg("preparing to run external webhook filter")
 
 	if external.WebhookHost == "" {
-		return 0, errors.New("external filter: missing host for webhook")
+		return webhookResponse{}, errors.New("external filter: missing host for webhook")
 	}
 
 	m := domain.NewMacro(*release)
@@ -1113,7 +1169,7 @@ func (s *Service) webhook(ctx context.Context, external domain.FilterExternal, r
 	// parse and replace values in argument string before continuing
 	dataArgs, err := m.Parse(external.WebhookData)
 	if err != nil {
-		return 0, errors.Wrap(err, "could not parse webhook data macro: %s", external.WebhookData)
+		return webhookResponse{}, errors.Wrap(err, "could not parse webhook data macro: %s", external.WebhookData)
 	}
 
 	l.Debug().Str("payload", external.WebhookData).Msg("sending external webhook filter request")
@@ -1125,7 +1181,7 @@ func (s *Service) webhook(ctx context.Context, external domain.FilterExternal, r
 
 	req, err := http.NewRequestWithContext(ctx, method, external.WebhookHost, nil)
 	if err != nil {
-		return 0, errors.Wrap(err, "could not build request for webhook")
+		return webhookResponse{}, errors.Wrap(err, "could not build request for webhook")
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -1166,8 +1222,8 @@ func (s *Service) webhook(ctx context.Context, external domain.FilterExternal, r
 
 	start := time.Now()
 
-	statusCode, err := retry.DoWithData(
-		func() (int, error) {
+	response, err := retry.DoWithData(
+		func() (webhookResponse, error) {
 			clonereq := req.Clone(ctx)
 			if external.WebhookData != "" && dataArgs != "" {
 				clonereq.Body = io.NopCloser(bytes.NewBufferString(dataArgs))
@@ -1177,39 +1233,33 @@ func (s *Service) webhook(ctx context.Context, external domain.FilterExternal, r
 
 			res, err := s.httpClient.Do(clonereq)
 			if err != nil {
-				return 0, errors.Wrap(err, "could not make request for webhook")
+				return webhookResponse{}, errors.Wrap(err, "could not make request for webhook")
 			}
 
 			defer sharedhttp.DrainAndClose(res)
 
-			l.Debug().Int("status_code", res.StatusCode).Msg("filter external webhook response")
-
-			if s.log.Debug().Enabled() {
-				body, err := io.ReadAll(io.LimitReader(res.Body, 4096)) // 4KB limit for debug logging
-				if err != nil {
-					return res.StatusCode, errors.Wrap(err, "could not read request body")
-				}
-
-				if len(body) > 0 {
-					l.Debug().Int("status_code", res.StatusCode).Str("body", string(body)).Msg("filter external webhook response body")
-				}
+			body, err := io.ReadAll(io.LimitReader(res.Body, externalOutputMaxBytes))
+			if err != nil {
+				return webhookResponse{}, errors.Wrap(err, "could not read response body")
 			}
+
+			l.Debug().Int("status_code", res.StatusCode).Str("body", string(body)).Msg("filter external webhook response")
 
 			if slices.Contains(retryStatusCodes, strconv.Itoa(res.StatusCode)) {
-				return 0, errors.New("webhook got unwanted status code: %d", res.StatusCode)
+				return webhookResponse{}, errors.New("webhook got unwanted status code: %d", res.StatusCode)
 			}
 
-			return res.StatusCode, nil
+			return webhookResponse{statusCode: res.StatusCode, body: string(body)}, nil
 		},
 		opts...)
 
 	if err != nil {
 		l.Error().Err(err).Msg("error sending webhook")
 
-		return statusCode, errors.Wrap(err, "could not make request for webhook")
+		return webhookResponse{}, err
 	}
 
 	l.Debug().Str("args", dataArgs).TimeDiff("duration", time.Now(), start).Msg("successfully ran external webhook filter")
 
-	return statusCode, nil
+	return response, nil
 }

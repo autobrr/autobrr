@@ -420,6 +420,19 @@
     "onErrorTooltip": "Velg hva som skal gjøres ved feil for dette eksterne filteret.",
     "remove": "Fjern ekstern",
     "close": "Lukk",
+    "test": "Test",
+    "testing": "Tester",
+    "testResult": {
+      "dismiss": "Lukk",
+      "status": {
+        "EXEC": "Skriptet avsluttet med kode {{status}} (forventet {{expected}}) på {{duration}} ms",
+        "WEBHOOK": "Webhook svarte med status {{status}} (forventet {{expected}}) på {{duration}} ms"
+      },
+      "error": {
+        "EXEC": "Skriptet feilet: {{error}}",
+        "WEBHOOK": "Webhook-forespørselen feilet: {{error}}"
+      }
+    },
     "types": {
       "EXEC": "Exec",
       "WEBHOOK": "Webhook"

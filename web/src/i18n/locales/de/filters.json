@@ -420,6 +420,19 @@
     "onErrorTooltip": "Auswählen, was bei einem Fehler für diesen externen Filter getan werden soll.",
     "remove": "Extern entfernen",
     "close": "Schließen",
+    "test": "Testen",
+    "testing": "Wird getestet",
+    "testResult": {
+      "dismiss": "Ausblenden",
+      "status": {
+        "EXEC": "Skript wurde mit Code {{status}} beendet (erwartet {{expected}}) in {{duration}} ms",
+        "WEBHOOK": "Webhook antwortete mit Status {{status}} (erwartet {{expected}}) in {{duration}} ms"
+      },
+      "error": {
+        "EXEC": "Skript fehlgeschlagen: {{error}}",
+        "WEBHOOK": "Webhook-Anfrage fehlgeschlagen: {{error}}"
+      }
+    },
     "types": {
       "EXEC": "Exec",
       "WEBHOOK": "Webhook"

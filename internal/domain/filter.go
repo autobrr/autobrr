@@ -250,6 +250,19 @@ const (
 	ExternalFilterTypeWebhook FilterExternalType = "WEBHOOK"
 )
 
+// FilterExternalTestResult is the outcome of running one external filter
+// against a sample release from the filter form. Status holds the exit code
+// for scripts and the HTTP status code for webhooks.
+type FilterExternalTestResult struct {
+	Type         FilterExternalType `json:"type"`
+	Success      bool               `json:"success"`
+	Status       int                `json:"status"`
+	ExpectStatus int                `json:"expect_status"`
+	Output       string             `json:"output"`
+	Error        string             `json:"error,omitempty"`
+	DurationMs   int64              `json:"duration_ms"`
+}
+
 type FilterNotification struct {
 	FilterID       int      `json:"filter_id"`
 	FilterName     string   `json:"filter_name"`

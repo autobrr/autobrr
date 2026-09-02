@@ -4,7 +4,12 @@
 package filter
 
 import (
+	"bytes"
 	"context"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -260,4 +265,123 @@ func TestService_UpdateNotifications_ValidatesBeforePersisting(t *testing.T) {
 
 	assert.ErrorIs(t, err, domain.ErrNotificationNotFound)
 	assert.Zero(t, notificationSvc.storedFilterID)
+}
+
+func TestService_TestExternal_Webhook(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		if r.Method != http.MethodPost || !strings.Contains(string(body), "Best.Show.Ever") {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"ok":true}`))
+	}))
+	defer srv.Close()
+
+	svc := &Service{log: zerolog.Nop(), httpClient: srv.Client()}
+
+	t.Run("matches expected status", func(t *testing.T) {
+		result, err := svc.TestExternal(t.Context(), &domain.FilterExternal{
+			Name:                "webhook",
+			Type:                domain.ExternalFilterTypeWebhook,
+			WebhookHost:         srv.URL,
+			WebhookData:         `{"name":"{{ .TorrentName }}"}`,
+			WebhookExpectStatus: http.StatusOK,
+		})
+		assert.NoError(t, err)
+		assert.True(t, result.Success)
+		assert.Equal(t, http.StatusOK, result.Status)
+		assert.Equal(t, http.StatusOK, result.ExpectStatus)
+		assert.Equal(t, `{"ok":true}`, result.Output)
+		assert.Empty(t, result.Error)
+	})
+
+	t.Run("reports unexpected status", func(t *testing.T) {
+		result, err := svc.TestExternal(t.Context(), &domain.FilterExternal{
+			Name:                "webhook",
+			Type:                domain.ExternalFilterTypeWebhook,
+			WebhookHost:         srv.URL,
+			WebhookData:         `{"name":"{{ .TorrentName }}"}`,
+			WebhookExpectStatus: http.StatusCreated,
+		})
+		assert.NoError(t, err)
+		assert.False(t, result.Success)
+		assert.Equal(t, http.StatusOK, result.Status)
+		assert.Empty(t, result.Error)
+	})
+
+	t.Run("reports missing host", func(t *testing.T) {
+		result, err := svc.TestExternal(t.Context(), &domain.FilterExternal{
+			Name:                "webhook",
+			Type:                domain.ExternalFilterTypeWebhook,
+			WebhookExpectStatus: http.StatusOK,
+		})
+		assert.NoError(t, err)
+		assert.False(t, result.Success)
+		assert.Equal(t, 0, result.Status)
+		assert.NotEmpty(t, result.Error)
+	})
+
+	t.Run("rejects unknown type", func(t *testing.T) {
+		_, err := svc.TestExternal(t.Context(), &domain.FilterExternal{Type: "UNKNOWN"})
+		assert.ErrorIs(t, err, domain.ErrExternalFilterTypeUnsupported)
+	})
+}
+
+func TestService_TestExternal_Exec(t *testing.T) {
+	svc := &Service{log: zerolog.Nop()}
+
+	t.Run("captures output and exit code", func(t *testing.T) {
+		result, err := svc.TestExternal(t.Context(), &domain.FilterExternal{
+			Name:             "script",
+			Type:             domain.ExternalFilterTypeExec,
+			ExecCmd:          "sh",
+			ExecArgs:         `-c 'echo "{{ .TorrentName }}"; echo oops >&2; exit 3'`,
+			ExecExpectStatus: 3,
+		})
+		assert.NoError(t, err)
+		assert.True(t, result.Success)
+		assert.Equal(t, 3, result.Status)
+		assert.Equal(t, "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP\noops\n", result.Output)
+		assert.Empty(t, result.Error)
+	})
+
+	t.Run("caps combined output", func(t *testing.T) {
+		result, err := svc.TestExternal(t.Context(), &domain.FilterExternal{
+			Name:     "script",
+			Type:     domain.ExternalFilterTypeExec,
+			ExecCmd:  "sh",
+			ExecArgs: `-c 'printf "%05000d" 0; printf "%05000d" 0 >&2; exit 7'`,
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, 7, result.Status)
+		assert.Len(t, result.Output, externalOutputMaxBytes)
+	})
+
+	t.Run("reports missing program", func(t *testing.T) {
+		result, err := svc.TestExternal(t.Context(), &domain.FilterExternal{
+			Name:    "script",
+			Type:    domain.ExternalFilterTypeExec,
+			ExecCmd: "/nonexistent/autobrr-test-program",
+		})
+		assert.NoError(t, err)
+		assert.False(t, result.Success)
+		assert.NotEmpty(t, result.Error)
+	})
+}
+
+func Test_outputBuffer_Write(t *testing.T) {
+	var b outputBuffer
+
+	n, err := b.Write(bytes.Repeat([]byte("a"), externalOutputMaxBytes+100))
+	assert.NoError(t, err)
+	assert.Equal(t, externalOutputMaxBytes+100, n)
+	assert.Len(t, b.String(), externalOutputMaxBytes)
+
+	n, err = b.Write([]byte("more"))
+	assert.NoError(t, err)
+	assert.Equal(t, 4, n)
+	assert.Len(t, b.String(), externalOutputMaxBytes)
 }

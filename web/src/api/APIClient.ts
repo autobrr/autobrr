@@ -332,6 +332,11 @@ export const APIClient = {
       body: { identifiers }
     }),
     delete: (id: number) => appClient.Delete(`api/filters/${id}`),
+    external: {
+      test: (external: ExternalFilter) => appClient.Post<ExternalFilterTestResult>("api/filters/external/test", {
+        body: external
+      })
+    },
     notifications: {
       get: (filterId: number) => appClient.Get<FilterNotification[]>(`api/filters/${filterId}/notifications`),
       update: (filterId: number, notifications: FilterNotification[]) => 
