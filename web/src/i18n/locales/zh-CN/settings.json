@@ -497,7 +497,7 @@
       "cancel": "取消",
       "save": "保存",
       "usageTitle": "此代理仍在使用中",
-      "usageText": "移除前请先更改或禁用以下项目的代理：",
+      "usageText": "移除后将与以下项目解除关联，它们随后将不使用代理直接连接：",
       "usageIndexers": "索引器",
       "usageIrcNetworks": "IRC 网络",
       "usageFeeds": "订阅源"

@@ -163,7 +163,7 @@ func main() {
 		schedulingService   = scheduler.NewService(log, eventBus, cfg.Config, updateService)
 		userService         = user.NewService(userRepo)
 		authService         = auth.NewService(log, userService)
-		proxyService        = proxy.NewService(log, proxyRepo)
+		proxyService        = proxy.NewService(log, eventBus, proxyRepo)
 		indexerAPIService   = indexer.NewAPIService(log, proxyService)
 		rlsDownloadService  = release.NewDownloadService(log, indexerRepo, proxyService)
 		downloaderService   = downloader.NewService(log, downloaderRepo)

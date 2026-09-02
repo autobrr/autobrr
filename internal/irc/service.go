@@ -54,6 +54,7 @@ type sseServer interface {
 
 type eventBus interface {
 	EmitIRC(ctx context.Context, event events.IRCEvent)
+	OnProxy(handler func(ctx context.Context, event events.ProxyChangeEvent) error) func()
 }
 
 type Service struct {
@@ -74,7 +75,7 @@ type Service struct {
 }
 
 func NewService(log zerolog.Logger, eventBus eventBus, sse sseServer, repo ircRepo, releaseSvc releaseService, indexerSvc indexerService, proxySvc proxyService) *Service {
-	return &Service{
+	s := &Service{
 		log:             log.With().Str("module", "irc").Logger(),
 		eventBus:        eventBus,
 		sse:             sse,
@@ -85,6 +86,44 @@ func NewService(log zerolog.Logger, eventBus eventBus, sse sseServer, repo ircRe
 		networkCache:    haxmap.New[int64, *domain.IrcNetwork](),
 		networkHandlers: haxmap.New[int64, *Handler](),
 	}
+
+	s.setupEventListeners()
+
+	return s
+}
+
+func (s *Service) setupEventListeners() {
+	s.eventBus.OnProxy(func(ctx context.Context, event events.ProxyChangeEvent) error {
+		if event.Type != events.ProxyDeleted || event.Usage == nil {
+			return nil
+		}
+
+		return s.onProxyDeleted(ctx, event)
+	})
+}
+
+// onProxyDeleted reloads every network that routed through the deleted proxy from its detached
+// row and restarts the running ones so they reconnect directly.
+func (s *Service) onProxyDeleted(ctx context.Context, event events.ProxyChangeEvent) error {
+	for _, item := range event.Usage.IrcNetworks {
+		network, err := s.GetNetworkByID(ctx, item.ID)
+		if err != nil {
+			s.log.Error().Err(err).Int64("network_id", item.ID).Int64("proxy_id", event.ProxyID).Msg("could not load network detached from deleted proxy")
+			continue
+		}
+
+		s.networkCache.Set(network.ID, network)
+
+		if !network.Enabled {
+			continue
+		}
+
+		if err := s.checkIfNetworkRestartNeeded(network); err != nil {
+			s.log.Error().Err(err).Str("network", network.Name).Int64("proxy_id", event.ProxyID).Msg("could not restart network detached from deleted proxy")
+		}
+	}
+
+	return nil
 }
 
 func (s *Service) StartHandlers() {

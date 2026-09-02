@@ -43,6 +43,7 @@ type indexerRepo interface {
 
 type eventBus interface {
 	EmitIndexer(ctx context.Context, event events.IndexerChangeEvent)
+	OnProxy(handler func(ctx context.Context, event events.ProxyChangeEvent) error) func()
 }
 
 type Service struct {
@@ -62,7 +63,7 @@ type Service struct {
 }
 
 func NewService(log zerolog.Logger, bus eventBus, config *domain.Config, repo indexerRepo, releaseRepo releaseRepo, apiService apiService) *Service {
-	return &Service{
+	s := &Service{
 		log:                       log.With().Str("module", "indexer").Logger(),
 		eventBus:                  bus,
 		config:                    config,
@@ -73,6 +74,38 @@ func NewService(log zerolog.Logger, bus eventBus, config *domain.Config, repo in
 		definitions:               make(map[string]domain.IndexerDefinition),
 		mappedDefinitions:         make(map[string]*domain.IndexerDefinition),
 	}
+
+	s.setupEventListeners()
+
+	return s
+}
+
+func (s *Service) setupEventListeners() {
+	s.eventBus.OnProxy(func(ctx context.Context, event events.ProxyChangeEvent) error {
+		if event.Type != events.ProxyDeleted || event.Usage == nil {
+			return nil
+		}
+
+		return s.onProxyDeleted(ctx, event)
+	})
+}
+
+// onProxyDeleted reloads every indexer that routed through the deleted proxy from its detached
+// row so the mapped definition and api client stop using it.
+func (s *Service) onProxyDeleted(ctx context.Context, event events.ProxyChangeEvent) error {
+	for _, item := range event.Usage.Indexers {
+		indexer, err := s.repo.FindByID(ctx, int(item.ID))
+		if err != nil {
+			s.log.Error().Err(err).Int64("indexer_id", item.ID).Int64("proxy_id", event.ProxyID).Msg("could not load indexer detached from deleted proxy")
+			continue
+		}
+
+		if err := s.updateIndexer(indexer); err != nil {
+			s.log.Error().Err(err).Str("indexer", indexer.Identifier).Int64("proxy_id", event.ProxyID).Msg("could not reload indexer detached from deleted proxy")
+		}
+	}
+
+	return nil
 }
 
 func (s *Service) Store(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error) {

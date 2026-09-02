@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
@@ -27,18 +28,24 @@ type proxyRepo interface {
 	Usage(ctx context.Context, id int64) (*domain.ProxyUsage, error)
 }
 
+type eventBus interface {
+	EmitProxy(ctx context.Context, event events.ProxyChangeEvent)
+}
+
 type Service struct {
-	log zerolog.Logger
+	log      zerolog.Logger
+	eventBus eventBus
 
 	repo  proxyRepo
 	cache map[int64]*domain.Proxy
 }
 
-func NewService(log zerolog.Logger, repo proxyRepo) *Service {
+func NewService(log zerolog.Logger, eventBus eventBus, repo proxyRepo) *Service {
 	return &Service{
-		log:   log.With().Str("module", "proxy").Logger(),
-		repo:  repo,
-		cache: make(map[int64]*domain.Proxy),
+		log:      log.With().Str("module", "proxy").Logger(),
+		eventBus: eventBus,
+		repo:     repo,
+		cache:    make(map[int64]*domain.Proxy),
 	}
 }
 
@@ -116,14 +123,22 @@ func (s *Service) ToggleEnabled(ctx context.Context, id int64, enabled bool) err
 }
 
 func (s *Service) Delete(ctx context.Context, id int64) error {
-	err := s.repo.Delete(ctx, id)
+	usage, err := s.repo.Usage(ctx, id)
 	if err != nil {
+		return err
+	}
+
+	if err := s.repo.Delete(ctx, id); err != nil {
 		return err
 	}
 
 	delete(s.cache, id)
 
-	// TODO update IRC handlers
+	s.eventBus.EmitProxy(ctx, events.ProxyChangeEvent{
+		Type:    events.ProxyDeleted,
+		ProxyID: id,
+		Usage:   usage,
+	})
 
 	return nil
 }

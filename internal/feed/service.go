@@ -67,6 +67,7 @@ type releaseService interface {
 
 type eventBus interface {
 	OnIndexer(handler func(ctx context.Context, event events.IndexerChangeEvent) error) func()
+	OnProxy(handler func(ctx context.Context, event events.ProxyChangeEvent) error) func()
 }
 
 type feedInstance struct {
@@ -157,6 +158,21 @@ func (s *Service) setupEventListeners() {
 		case events.IndexerDeleted:
 			if err := s.onIndexerDeleted(ctx, event); err != nil {
 				s.log.Error().Err(err).Int("indexer_id", int(event.Indexer.ID)).Msg("could not clean up feed for deleted indexer")
+			}
+		}
+
+		return nil
+	})
+
+	s.eventBus.OnProxy(func(ctx context.Context, event events.ProxyChangeEvent) error {
+		if event.Type != events.ProxyDeleted || event.Usage == nil {
+			return nil
+		}
+
+		// the rows are already detached, so a fresh sync rebuilds each job without the proxy
+		for _, item := range event.Usage.Feeds {
+			if err := s.syncFeedJob(ctx, int(item.ID)); err != nil {
+				s.log.Error().Err(err).Int64("feed_id", item.ID).Int64("proxy_id", event.ProxyID).Msg("could not reconcile feed job for deleted proxy")
 			}
 		}
 

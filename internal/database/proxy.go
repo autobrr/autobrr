@@ -157,6 +157,10 @@ func (r *ProxyRepo) Delete(ctx context.Context, id int64) error {
 
 	defer tx.Rollback()
 
+	if err := r.detachReferences(ctx, tx, id); err != nil {
+		return err
+	}
+
 	queryBuilder := r.db.squirrel.
 		Delete("proxy").
 		Where(sq.Eq{"id": id})
@@ -183,6 +187,30 @@ func (r *ProxyRepo) Delete(ctx context.Context, id int64) error {
 	err = tx.Commit()
 	if err != nil {
 		return errors.Wrap(err, "error commit deleting proxy")
+	}
+
+	return nil
+}
+
+// detachReferences clears the proxy from every indexer and irc network pointing at it: SQLite
+// does not enforce the ON DELETE SET NULL constraint, and Postgres leaves use_proxy set.
+func (r *ProxyRepo) detachReferences(ctx context.Context, tx *Tx, id int64) error {
+	for _, table := range []string{"indexer", "irc_network"} {
+		queryBuilder := r.db.squirrel.
+			Update(table).
+			Set("use_proxy", false).
+			Set("proxy_id", nil).
+			Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
+			Where(sq.Eq{"proxy_id": id})
+
+		query, args, err := queryBuilder.ToSql()
+		if err != nil {
+			return errors.Wrap(err, "error building query")
+		}
+
+		if _, err := tx.ExecContext(ctx, query, args...); err != nil {
+			return errors.Wrap(err, "error detaching proxy from %s", table)
+		}
 	}
 
 	return nil

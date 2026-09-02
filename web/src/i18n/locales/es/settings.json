@@ -497,7 +497,7 @@
       "cancel": "Cancelar",
       "save": "Guardar",
       "usageTitle": "Este proxy todavía está en uso",
-      "usageText": "Cambia o desactiva el proxy en los siguientes elementos antes de eliminarlo:",
+      "usageText": "Al eliminarlo se desvinculará de los siguientes elementos, que pasarán a conectarse sin proxy:",
       "usageIndexers": "Indexadores",
       "usageIrcNetworks": "Redes IRC",
       "usageFeeds": "Feeds"

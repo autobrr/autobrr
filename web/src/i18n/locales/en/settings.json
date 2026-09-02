@@ -498,7 +498,7 @@
       "cancel": "Cancel",
       "save": "Save",
       "usageTitle": "This proxy is still in use",
-      "usageText": "Change or disable the proxy on the following before removing it:",
+      "usageText": "Removing it will detach it from the following, which will then connect without a proxy:",
       "usageIndexers": "Indexers",
       "usageIrcNetworks": "IRC networks",
       "usageFeeds": "Feeds"

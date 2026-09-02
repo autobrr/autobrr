@@ -152,6 +152,47 @@ func TestProxyRepo_Delete(t *testing.T) {
 			assert.Error(t, err)
 			assert.ErrorIs(t, err, domain.ErrDeleteFailed)
 		})
+
+		t.Run(fmt.Sprintf("Delete_Detaches_Indexer_And_Network [%s]", dbType), func(t *testing.T) {
+			// Setup
+			indexerRepo := NewIndexerRepo(log, db)
+			ircRepo := NewIrcRepo(log, db)
+
+			mockData := getMockProxy()
+			err := repo.Store(ctx, mockData)
+			assert.NoError(t, err)
+
+			mockIndexer := getMockIndexer()
+			mockIndexer.UseProxy = true
+			mockIndexer.ProxyID = mockData.ID
+			indexer, err := indexerRepo.Store(ctx, mockIndexer)
+			assert.NoError(t, err)
+
+			network := getMockIrcNetwork()
+			network.UseProxy = true
+			network.ProxyId = mockData.ID
+			err = ircRepo.StoreNetwork(ctx, &network)
+			assert.NoError(t, err)
+
+			// Execute
+			err = repo.Delete(ctx, mockData.ID)
+			assert.NoError(t, err)
+
+			// Verify
+			detachedIndexer, err := indexerRepo.FindByID(ctx, int(indexer.ID))
+			assert.NoError(t, err)
+			assert.False(t, detachedIndexer.UseProxy)
+			assert.Equal(t, int64(0), detachedIndexer.ProxyID)
+
+			detachedNetwork, err := ircRepo.GetNetworkByID(ctx, network.ID)
+			assert.NoError(t, err)
+			assert.False(t, detachedNetwork.UseProxy)
+			assert.Equal(t, int64(0), detachedNetwork.ProxyId)
+
+			// Cleanup
+			_ = ircRepo.DeleteNetwork(ctx, network.ID)
+			_ = indexerRepo.Delete(ctx, int(indexer.ID))
+		})
 	}
 }
 

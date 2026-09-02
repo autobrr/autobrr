@@ -497,7 +497,7 @@
         "cancel": "Zrušit",
         "save": "Uložit",
         "usageTitle": "Tento proxy server se stále používá",
-        "usageText": "Před odstraněním změňte nebo vypněte proxy u následujících položek:",
+        "usageText": "Odstraněním se odpojí od následujících položek, které se poté budou připojovat bez proxy:",
         "usageIndexers": "Indexery",
         "usageIrcNetworks": "IRC sítě",
         "usageFeeds": "Kanály"

@@ -15,7 +15,7 @@ import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/i
 import { SelectFieldBasic } from "@components/inputs/select_wide";
 import { ProxyTypeOptions } from "@domain/constants";
 import { APIClient } from "@api/APIClient";
-import { ProxyKeys } from "@api/query_keys";
+import { FeedKeys, IndexerKeys, IrcKeys, ProxyKeys } from "@api/query_keys";
 import { ProxyUsageQueryOptions } from "@api/queries";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
@@ -195,6 +195,9 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
     mutationFn: (proxyId: number) => APIClient.proxy.delete(proxyId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ProxyKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IndexerKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: FeedKeys.lists() });
 
       toast.custom((toastInstance) => <Toast type="success" body={t("forms.proxy.deleted", { name: data.name })} t={toastInstance}/>);
     }

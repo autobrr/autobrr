@@ -13,6 +13,8 @@ const (
 	IndexerDeleted       EventType = "indexer.deleted"
 	IndexerToggleEnabled EventType = "indexer.toggle-enabled"
 
+	ProxyDeleted EventType = "proxy.deleted"
+
 	FilterApproved EventType = "filter.approved"
 	FilterRejected EventType = "filter.rejected"
 	FilterError    EventType = "filter.error"
@@ -62,6 +64,14 @@ type ReleasePushEvent struct {
 type IndexerChangeEvent struct {
 	Event
 	Indexer *domain.Indexer
+}
+
+// ProxyChangeEvent carries the entities that pointed at the proxy before the change, so
+// subscribers can reconcile their running state against the persisted rows.
+type ProxyChangeEvent struct {
+	Event
+	ProxyID int64
+	Usage   *domain.ProxyUsage
 }
 
 type IRCEvent struct {

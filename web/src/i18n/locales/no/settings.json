@@ -497,7 +497,7 @@
       "cancel": "Avbryt",
       "save": "Lagre",
       "usageTitle": "Denne proxyen er fortsatt i bruk",
-      "usageText": "Endre eller deaktiver proxyen på følgende før du fjerner den:",
+      "usageText": "Fjerning kobler den fra følgende, som deretter kobler til uten proxy:",
       "usageIndexers": "Indekserere",
       "usageIrcNetworks": "IRC-nettverk",
       "usageFeeds": "Feeder"
