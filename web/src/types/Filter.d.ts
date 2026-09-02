@@ -161,6 +161,16 @@ interface ExternalFilter {
   filter_id?: number;
 }
 
+interface ExternalFilterTestResult {
+  type: ExternalType;
+  success: boolean;
+  status: number;
+  expect_status: number;
+  output: string;
+  error?: string;
+  duration_ms: number;
+}
+
 interface FilterDownloads {
   period_count: number;
 }

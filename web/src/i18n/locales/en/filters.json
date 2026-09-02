@@ -420,6 +420,19 @@
     "onErrorTooltip": "Select what to do on error for this external filter.",
     "remove": "Remove External",
     "close": "Close",
+    "test": "Test",
+    "testing": "Testing",
+    "testResult": {
+      "dismiss": "Dismiss",
+      "status": {
+        "EXEC": "Script exited with code {{status}} (expected {{expected}}) in {{duration}} ms",
+        "WEBHOOK": "Webhook responded with status {{status}} (expected {{expected}}) in {{duration}} ms"
+      },
+      "error": {
+        "EXEC": "Script failed: {{error}}",
+        "WEBHOOK": "Webhook request failed: {{error}}"
+      }
+    },
     "types": {
       "EXEC": "Exec",
       "WEBHOOK": "Webhook"

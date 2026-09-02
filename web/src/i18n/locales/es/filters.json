@@ -420,6 +420,19 @@
     "onErrorTooltip": "Selecciona qué hacer en caso de error para este filtro externo.",
     "remove": "Eliminar externo",
     "close": "Cerrar",
+    "test": "Probar",
+    "testing": "Probando",
+    "testResult": {
+      "dismiss": "Descartar",
+      "status": {
+        "EXEC": "El script terminó con código {{status}} (esperado {{expected}}) en {{duration}} ms",
+        "WEBHOOK": "El webhook respondió con estado {{status}} (esperado {{expected}}) en {{duration}} ms"
+      },
+      "error": {
+        "EXEC": "El script falló: {{error}}",
+        "WEBHOOK": "La solicitud al webhook falló: {{error}}"
+      }
+    },
     "types": {
       "EXEC": "Exec",
       "WEBHOOK": "Webhook"

@@ -28,6 +28,7 @@ type filterService interface {
 	Duplicate(ctx context.Context, filterID int) (*domain.Filter, error)
 	ToggleEnabled(ctx context.Context, filterID int, enabled bool) error
 	PruneDeprecatedIndexers(ctx context.Context, identifiers []string) (int64, error)
+	TestExternal(ctx context.Context, external *domain.FilterExternal) (*domain.FilterExternalTestResult, error)
 }
 
 type filterHandler struct {
@@ -47,6 +48,7 @@ func (h filterHandler) Routes(r chi.Router) {
 	r.Post("/", h.store)
 
 	r.Post("/indexers/prune-deprecated", h.pruneDeprecatedIndexers)
+	r.Post("/external/test", h.testExternal)
 
 	r.Route("/{filterID}", func(r chi.Router) {
 		r.Get("/", h.getByID)
@@ -159,6 +161,22 @@ func (h filterHandler) pruneDeprecatedIndexers(w http.ResponseWriter, r *http.Re
 	}
 
 	h.encoder.StatusResponse(w, http.StatusOK, map[string]int64{"removed": removed})
+}
+
+func (h filterHandler) testExternal(w http.ResponseWriter, r *http.Request) {
+	var data *domain.FilterExternal
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	result, err := h.service.TestExternal(r.Context(), data)
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusOK, result)
 }
 
 func (h filterHandler) store(w http.ResponseWriter, r *http.Request) {

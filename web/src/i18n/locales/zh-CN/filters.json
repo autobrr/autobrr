@@ -420,6 +420,19 @@
     "onErrorTooltip": "选择此外部过滤器发生错误时的处理方式。",
     "remove": "移除外部过滤器",
     "close": "关闭",
+    "test": "测试",
+    "testing": "测试中",
+    "testResult": {
+      "dismiss": "关闭",
+      "status": {
+        "EXEC": "脚本以退出码 {{status}} 结束（预期 {{expected}}），耗时 {{duration}} 毫秒",
+        "WEBHOOK": "Webhook 返回状态码 {{status}}（预期 {{expected}}），耗时 {{duration}} 毫秒"
+      },
+      "error": {
+        "EXEC": "脚本执行失败：{{error}}",
+        "WEBHOOK": "Webhook 请求失败：{{error}}"
+      }
+    },
     "types": {
       "EXEC": "执行命令",
       "WEBHOOK": "Webhook"
