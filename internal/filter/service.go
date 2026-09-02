@@ -1086,17 +1086,23 @@ func newSampleRelease() *domain.Release {
 const externalOutputMaxBytes = 4096
 
 // outputBuffer keeps the first externalOutputMaxBytes written and drops the
-// rest, so a chatty script cannot grow memory unbounded.
+// rest, so a chatty script cannot grow memory unbounded. The bytes.Buffer is a
+// named field rather than embedded: os/exec pumps output with io.Copy, which
+// would take a promoted ReadFrom and bypass the cap.
 type outputBuffer struct {
-	bytes.Buffer
+	buf bytes.Buffer
 }
 
 func (b *outputBuffer) Write(p []byte) (int, error) {
-	if remaining := externalOutputMaxBytes - b.Len(); remaining > 0 {
-		b.Buffer.Write(p[:min(len(p), remaining)])
+	if remaining := externalOutputMaxBytes - b.buf.Len(); remaining > 0 {
+		b.buf.Write(p[:min(len(p), remaining)])
 	}
 
 	return len(p), nil
+}
+
+func (b *outputBuffer) String() string {
+	return b.buf.String()
 }
 
 func (s *Service) execCmd(_ context.Context, external domain.FilterExternal, release *domain.Release) (int, string, error) {

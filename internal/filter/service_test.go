@@ -348,6 +348,18 @@ func TestService_TestExternal_Exec(t *testing.T) {
 		assert.Empty(t, result.Error)
 	})
 
+	t.Run("caps combined output", func(t *testing.T) {
+		result, err := svc.TestExternal(t.Context(), &domain.FilterExternal{
+			Name:     "script",
+			Type:     domain.ExternalFilterTypeExec,
+			ExecCmd:  "sh",
+			ExecArgs: `-c 'printf "%05000d" 0; printf "%05000d" 0 >&2; exit 7'`,
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, 7, result.Status)
+		assert.Len(t, result.Output, externalOutputMaxBytes)
+	})
+
 	t.Run("reports missing program", func(t *testing.T) {
 		result, err := svc.TestExternal(t.Context(), &domain.FilterExternal{
 			Name:    "script",
@@ -366,10 +378,10 @@ func Test_outputBuffer_Write(t *testing.T) {
 	n, err := b.Write(bytes.Repeat([]byte("a"), externalOutputMaxBytes+100))
 	assert.NoError(t, err)
 	assert.Equal(t, externalOutputMaxBytes+100, n)
-	assert.Equal(t, externalOutputMaxBytes, b.Len())
+	assert.Len(t, b.String(), externalOutputMaxBytes)
 
 	n, err = b.Write([]byte("more"))
 	assert.NoError(t, err)
 	assert.Equal(t, 4, n)
-	assert.Equal(t, externalOutputMaxBytes, b.Len())
+	assert.Len(t, b.String(), externalOutputMaxBytes)
 }
