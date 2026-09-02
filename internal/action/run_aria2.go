@@ -8,7 +8,6 @@ import (
 	"strconv"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/downloader"
 	"github.com/autobrr/autobrr/pkg/aria2"
 	"github.com/autobrr/autobrr/pkg/errors"
 
@@ -34,7 +33,7 @@ func (s *Service) runAria2(ctx context.Context, action *domain.Action, release *
 		return nil, errors.New("client %s %s not enabled", cfg.Type, cfg.Name)
 	}
 
-	client, err := downloader.ClientAs[*aria2.Client](instance)
+	client, err := instance.ClientAs[*aria2.Client]()
 	if err != nil {
 		return nil, err
 	}

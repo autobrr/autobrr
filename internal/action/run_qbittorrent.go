@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/downloader"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/autobrr/go-qbittorrent"
@@ -35,7 +34,7 @@ func (s *Service) runQbittorrent(ctx context.Context, action *domain.Action, rel
 		return nil, errors.New("client %s %s not enabled", cfg.Type, cfg.Name)
 	}
 
-	client, err := downloader.ClientAs[*qbittorrent.Client](instance)
+	client, err := instance.ClientAs[*qbittorrent.Client]()
 	if err != nil {
 		return nil, err
 	}

@@ -149,8 +149,7 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 
 	connectCommands := make([]string, 0)
 	if network.InviteCommand != "" {
-		cmds := strings.Split(strings.ReplaceAll(network.InviteCommand, "/msg", ""), ",")
-		for _, cmd := range cmds {
+		for cmd := range strings.SplitSeq(strings.ReplaceAll(network.InviteCommand, "/msg", ""), ",") {
 			cmd = strings.TrimSpace(cmd)
 
 			connectCommands = append(connectCommands, cmd)
@@ -655,7 +654,7 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 		h.log.Info().Msg("network re-connected after unexpected disconnect")
 
 		h.eventBus.EmitIRC(context.Background(), events.IRCEvent{
-			Event:   events.Event{Type: events.IRCReconnected},
+			Type:    events.IRCReconnected,
 			Network: networkName,
 			State:   string(events.IRCReconnected),
 			Message: fmt.Sprintf("Network: %s", networkName),
@@ -737,7 +736,7 @@ func (h *Handler) onClientDisconnect(client *ircevent.Connection, _ ircmsg.Messa
 			Msg("connection flapping; stopping network")
 
 		h.eventBus.EmitIRC(context.Background(), events.IRCEvent{
-			Event:   events.Event{Type: events.IRCFlapping},
+			Type:    events.IRCFlapping,
 			Network: networkName,
 			State:   string(events.IRCFlapping),
 			Message: fmt.Sprintf("Network: %s stopped after repeated short-lived connections; restart it after resolving the connection issue", networkName),
@@ -754,7 +753,7 @@ func (h *Handler) onClientDisconnect(client *ircevent.Connection, _ ircmsg.Messa
 	if !manuallyDisconnected {
 		// only send notification if we did not initiate disconnect/restart/stop
 		h.eventBus.EmitIRC(context.Background(), events.IRCEvent{
-			Event:   events.Event{Type: events.IRCDisconnected},
+			Type:    events.IRCDisconnected,
 			Network: networkName,
 			State:   string(events.IRCDisconnected),
 			Message: fmt.Sprintf("Network: %s", networkName),
@@ -1565,9 +1564,9 @@ func parseInviteCommands(msg string) ([]string, error) {
 
 // sendConnectCommands sends invite commands
 func (h *Handler) sendConnectCommands(msg string) error {
-	connectCommands := strings.Split(strings.ReplaceAll(msg, "/msg", ""), ",")
+	connectCommands := strings.SplitSeq(strings.ReplaceAll(msg, "/msg", ""), ",")
 
-	for _, command := range connectCommands {
+	for command := range connectCommands {
 		cmd := strings.TrimSpace(command)
 
 		// if there's an extra , (comma) the command will be empty so lets skip that
@@ -1576,12 +1575,12 @@ func (h *Handler) sendConnectCommands(msg string) error {
 		}
 
 		if strings.HasPrefix(cmd, "/sleep") {
-			parts := strings.SplitN(cmd, " ", 2)
-			if len(parts) < 2 {
+			_, duration, ok := strings.Cut(cmd, " ")
+			if !ok {
 				h.log.Warn().Str("command", cmd).Msg("sleep command missing duration")
 				continue
 			}
-			secs, err := strconv.Atoi(strings.TrimSpace(parts[1]))
+			secs, err := strconv.Atoi(strings.TrimSpace(duration))
 			if err != nil {
 				h.log.Error().Err(err).Str("command", cmd).Msg("error parsing sleep command")
 				continue

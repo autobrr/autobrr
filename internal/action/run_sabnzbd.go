@@ -7,7 +7,6 @@ import (
 	"context"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/downloader"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sabnzbd"
 
@@ -37,7 +36,7 @@ func (s *Service) runSabnzbd(ctx context.Context, action *domain.Action, release
 		return nil, errors.New("client %s %s not enabled", cfg.Type, cfg.Name)
 	}
 
-	client, err := downloader.ClientAs[*sabnzbd.Client](instance)
+	client, err := instance.ClientAs[*sabnzbd.Client]()
 	if err != nil {
 		return nil, err
 	}

@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
-	"github.com/autobrr/autobrr/pkg/regexcache"
 	"github.com/autobrr/autobrr/pkg/sanitize"
 	"github.com/autobrr/autobrr/pkg/wildcard"
+	"github.com/autobrr/go-cache/regexcache"
 
 	"github.com/dustin/go-humanize"
 	"github.com/go-andiamo/splitter"
@@ -249,6 +249,19 @@ const (
 	ExternalFilterTypeExec    FilterExternalType = "EXEC"
 	ExternalFilterTypeWebhook FilterExternalType = "WEBHOOK"
 )
+
+// FilterExternalTestResult is the outcome of running one external filter
+// against a sample release from the filter form. Status holds the exit code
+// for scripts and the HTTP status code for webhooks.
+type FilterExternalTestResult struct {
+	Type         FilterExternalType `json:"type"`
+	Success      bool               `json:"success"`
+	Status       int                `json:"status"`
+	ExpectStatus int                `json:"expect_status"`
+	Output       string             `json:"output"`
+	Error        string             `json:"error,omitempty"`
+	DurationMs   int64              `json:"duration_ms"`
+}
 
 type FilterNotification struct {
 	FilterID       int      `json:"filter_id"`
@@ -891,9 +904,7 @@ func matchRegex(tag string, filterList string) bool {
 
 // checkFilterIntStrings "1,2,3-20"
 func containsIntStrings(value int, filterList string) bool {
-	filters := strings.Split(filterList, ",")
-
-	for _, filter := range filters {
+	for filter := range strings.SplitSeq(filterList, ",") {
 		filter = strings.Replace(filter, "%", "", -1)
 		filter = strings.TrimSpace(filter)
 
@@ -915,11 +926,11 @@ func containsIntStrings(value int, filterList string) bool {
 				if minValue > maxValue {
 					// handle error
 					return false
-				} else {
-					// if announcePercent is greater than minValue and less than maxValue return true
-					if value >= int(minValue) && value <= int(maxValue) {
-						return true
-					}
+				}
+
+				// if announcePercent is greater than minValue and less than maxValue return true
+				if value >= int(minValue) && value <= int(maxValue) {
+					return true
 				}
 			}
 
@@ -1164,9 +1175,7 @@ func basicContainsMatch(tags []string, filters []string) bool {
 }
 
 func checkFreeleechPercent(announcePercent int, filterPercent string) bool {
-	filters := strings.Split(filterPercent, ",")
-
-	for _, filter := range filters {
+	for filter := range strings.SplitSeq(filterPercent, ",") {
 		filter = strings.Replace(filter, "%", "", -1)
 		filter = strings.TrimSpace(filter)
 

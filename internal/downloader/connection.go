@@ -80,7 +80,7 @@ func (s *Service) testConnection(ctx context.Context, cfg *domain.Downloader) er
 }
 
 func (s *Service) testConnectionQbittorrent(ctx context.Context, instance *Instance) error {
-	client, err := ClientAs[*qbittorrent.Client](instance)
+	client, err := instance.ClientAs[*qbittorrent.Client]()
 	if err != nil {
 		return err
 	}
@@ -105,7 +105,7 @@ func (s *Service) testConnectionDeluge(ctx context.Context, instance *Instance) 
 
 	switch cfg.Type {
 	case domain.DownloaderTypeDelugeV1:
-		client, err := ClientAs[*deluge.Client](instance)
+		client, err := instance.ClientAs[*deluge.Client]()
 		if err != nil {
 			return err
 		}
@@ -124,7 +124,7 @@ func (s *Service) testConnectionDeluge(ctx context.Context, instance *Instance) 
 		s.log.Debug().Str("version", version).Msg("test client connection for Deluge: success")
 
 	case domain.DownloaderTypeDelugeV2:
-		client, err := ClientAs[*deluge.ClientV2](instance)
+		client, err := instance.ClientAs[*deluge.ClientV2]()
 		if err != nil {
 			return err
 		}
@@ -152,7 +152,7 @@ func (s *Service) testConnectionDeluge(ctx context.Context, instance *Instance) 
 func (s *Service) testConnectionRTorrent(ctx context.Context, instance *Instance) error {
 	cfg := instance.Config()
 
-	client, err := ClientAs[*rtorrent.Client](instance)
+	client, err := instance.ClientAs[*rtorrent.Client]()
 	if err != nil {
 		return err
 	}
@@ -170,7 +170,7 @@ func (s *Service) testConnectionRTorrent(ctx context.Context, instance *Instance
 func (s *Service) testConnectionTransmission(ctx context.Context, instance *Instance) error {
 	cfg := instance.Config()
 
-	client, err := ClientAs[*transmissionrpc.Client](instance)
+	client, err := instance.ClientAs[*transmissionrpc.Client]()
 	if err != nil {
 		return err
 	}
@@ -192,7 +192,7 @@ func (s *Service) testConnectionTransmission(ctx context.Context, instance *Inst
 func (s *Service) testConnectionRadarr(ctx context.Context, instance *Instance) error {
 	cfg := instance.Config()
 
-	client, err := ClientAs[*radarr.Client](instance)
+	client, err := instance.ClientAs[*radarr.Client]()
 	if err != nil {
 		return err
 	}
@@ -209,7 +209,7 @@ func (s *Service) testConnectionRadarr(ctx context.Context, instance *Instance) 
 func (s *Service) testConnectionSportarr(ctx context.Context, instance *Instance) error {
 	cfg := instance.Config()
 
-	client, err := ClientAs[*sportarr.Client](instance)
+	client, err := instance.ClientAs[*sportarr.Client]()
 	if err != nil {
 		return err
 	}
@@ -234,7 +234,7 @@ func (s *Service) testConnectionSportarr(ctx context.Context, instance *Instance
 func (s *Service) testConnectionSonarr(ctx context.Context, instance *Instance) error {
 	cfg := instance.Config()
 
-	client, err := ClientAs[*sonarr.Client](instance)
+	client, err := instance.ClientAs[*sonarr.Client]()
 	if err != nil {
 		return err
 	}
@@ -251,7 +251,7 @@ func (s *Service) testConnectionSonarr(ctx context.Context, instance *Instance) 
 func (s *Service) testConnectionLidarr(ctx context.Context, instance *Instance) error {
 	cfg := instance.Config()
 
-	client, err := ClientAs[*lidarr.Client](instance)
+	client, err := instance.ClientAs[*lidarr.Client]()
 	if err != nil {
 		return err
 	}
@@ -279,7 +279,7 @@ func whisparrVersion(clientType domain.DownloaderType) int {
 func (s *Service) testConnectionWhisparr(ctx context.Context, instance *Instance) error {
 	cfg := instance.Config()
 
-	client, err := ClientAs[*whisparr.Client](instance)
+	client, err := instance.ClientAs[*whisparr.Client]()
 	if err != nil {
 		return err
 	}
@@ -297,7 +297,7 @@ func (s *Service) testConnectionWhisparr(ctx context.Context, instance *Instance
 func (s *Service) testConnectionReadarr(ctx context.Context, instance *Instance) error {
 	cfg := instance.Config()
 
-	client, err := ClientAs[*readarr.Client](instance)
+	client, err := instance.ClientAs[*readarr.Client]()
 	if err != nil {
 		return err
 	}
@@ -314,7 +314,7 @@ func (s *Service) testConnectionReadarr(ctx context.Context, instance *Instance)
 func (s *Service) testConnectionPorla(ctx context.Context, instance *Instance) error {
 	cfg := instance.Config()
 
-	client, err := ClientAs[*porla.Client](instance)
+	client, err := instance.ClientAs[*porla.Client]()
 	if err != nil {
 		return err
 	}
@@ -338,7 +338,7 @@ func (s *Service) testConnectionPorla(ctx context.Context, instance *Instance) e
 func (s *Service) testConnectionAria2(ctx context.Context, instance *Instance) error {
 	cfg := instance.Config()
 
-	client, err := ClientAs[*aria2.Client](instance)
+	client, err := instance.ClientAs[*aria2.Client]()
 	if err != nil {
 		return err
 	}
@@ -356,7 +356,7 @@ func (s *Service) testConnectionAria2(ctx context.Context, instance *Instance) e
 func (s *Service) testConnectionSabnzbd(ctx context.Context, instance *Instance) error {
 	cfg := instance.Config()
 
-	client, err := ClientAs[*sabnzbd.Client](instance)
+	client, err := instance.ClientAs[*sabnzbd.Client]()
 	if err != nil {
 		return err
 	}
@@ -374,7 +374,7 @@ func (s *Service) testConnectionSabnzbd(ctx context.Context, instance *Instance)
 func (s *Service) testConnectionNzbget(ctx context.Context, instance *Instance) error {
 	cfg := instance.Config()
 
-	client, err := ClientAs[*nzbget.Client](instance)
+	client, err := instance.ClientAs[*nzbget.Client]()
 	if err != nil {
 		return err
 	}

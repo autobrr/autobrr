@@ -72,7 +72,7 @@ func Run(m *testing.M) (int, error) {
 	defer playwrightSetup.Stop()
 
 	browser, err = playwrightSetup.Chromium.Launch(playwright.BrowserTypeLaunchOptions{
-		Headless: playwright.Bool(!headed()),
+		Headless: new(!headed()),
 	})
 	if err != nil {
 		return 1, fmt.Errorf("could not launch chromium: %w", err)

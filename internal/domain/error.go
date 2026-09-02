@@ -20,5 +20,6 @@ var (
 	ErrIndexerNotArchived             = errors.New("indexer is not archived")
 	ErrIndexerInUse                   = errors.New("indexer is still used by filters")
 	ErrNotificationNotFound           = errors.New("notification not found")
+	ErrExternalFilterTypeUnsupported  = errors.New("unsupported external filter type")
 	ErrIRCNetworkHandlerNotFound      = errors.New("could not find network handler")
 )

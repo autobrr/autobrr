@@ -25,9 +25,9 @@ type Movie struct {
 	SizeOnDisk            int64               `json:"sizeOnDisk,omitempty"`
 	Status                string              `json:"status,omitempty"`
 	Overview              string              `json:"overview,omitempty"`
-	InCinemas             time.Time           `json:"inCinemas,omitempty"`
-	PhysicalRelease       time.Time           `json:"physicalRelease,omitempty"`
-	DigitalRelease        time.Time           `json:"digitalRelease,omitempty"`
+	InCinemas             time.Time           `json:"inCinemas"`
+	PhysicalRelease       time.Time           `json:"physicalRelease"`
+	DigitalRelease        time.Time           `json:"digitalRelease"`
 	Images                []*arr.Image        `json:"images,omitempty"`
 	Website               string              `json:"website,omitempty"`
 	Year                  int                 `json:"year,omitempty"`
@@ -41,7 +41,7 @@ type Movie struct {
 	Certification         string              `json:"certification,omitempty"`
 	Genres                []string            `json:"genres,omitempty"`
 	Tags                  []int               `json:"tags,omitempty"`
-	Added                 time.Time           `json:"added,omitempty"`
+	Added                 time.Time           `json:"added"`
 	Ratings               *arr.Ratings        `json:"ratings,omitempty"`
 	MovieFile             *MovieFile          `json:"movieFile,omitempty"`
 	Collection            *Collection         `json:"collection,omitempty"`

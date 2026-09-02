@@ -420,6 +420,19 @@
     "onErrorTooltip": "Выберите действие при ошибке этого внешнего фильтра.",
     "remove": "Удалить внешний",
     "close": "Закрыть",
+    "test": "Проверить",
+    "testing": "Проверка",
+    "testResult": {
+      "dismiss": "Закрыть",
+      "status": {
+        "EXEC": "Скрипт завершился с кодом {{status}} (ожидалось {{expected}}) за {{duration}} мс",
+        "WEBHOOK": "Вебхук ответил статусом {{status}} (ожидалось {{expected}}) за {{duration}} мс"
+      },
+      "error": {
+        "EXEC": "Ошибка скрипта: {{error}}",
+        "WEBHOOK": "Ошибка запроса к вебхуку: {{error}}"
+      }
+    },
     "types": {
       "EXEC": "Выполнение",
       "WEBHOOK": "Webhook"

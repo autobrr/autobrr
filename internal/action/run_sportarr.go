@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/downloader"
 	"github.com/autobrr/autobrr/pkg/arr/sportarr"
 	"github.com/autobrr/autobrr/pkg/errors"
 
@@ -34,7 +33,7 @@ func (s *Service) runSportarr(ctx context.Context, action *domain.Action, releas
 		return nil, errors.New("client %s %s not enabled", cfg.Type, cfg.Name)
 	}
 
-	client, err := downloader.ClientAs[*sportarr.Client](instance)
+	client, err := instance.ClientAs[*sportarr.Client]()
 	if err != nil {
 		return nil, err
 	}

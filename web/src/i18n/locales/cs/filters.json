@@ -420,6 +420,19 @@
       "onErrorTooltip": "Vyberte co dělat při chybě tohoto externího filtru.",
       "remove": "Odstranit externí",
       "close": "Zavřít",
+      "test": "Otestovat",
+      "testing": "Testuji",
+      "testResult": {
+        "dismiss": "Zavřít",
+        "status": {
+          "EXEC": "Skript skončil s kódem {{status}} (očekáváno {{expected}}) za {{duration}} ms",
+          "WEBHOOK": "Webhook odpověděl stavem {{status}} (očekáváno {{expected}}) za {{duration}} ms"
+        },
+        "error": {
+          "EXEC": "Skript selhal: {{error}}",
+          "WEBHOOK": "Požadavek na webhook selhal: {{error}}"
+        }
+      },
       "types": {
         "EXEC": "Spustit",
         "WEBHOOK": "Webhook"

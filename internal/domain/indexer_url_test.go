@@ -41,18 +41,14 @@ func TestParseTemplateURL_ConcurrentRenders(t *testing.T) {
 
 	var wg sync.WaitGroup
 	for i := range 32 {
-		wg.Add(1)
-
-		go func(id int) {
-			defer wg.Done()
-
+		wg.Go(func() {
 			got, err := parseTemplateURL("https://tracker.test", source, map[string]string{
-				"torrentId": string(rune('a' + id%26)),
+				"torrentId": string(rune('a' + i%26)),
 			}, "downloadurl")
 
 			assert.NoError(t, err)
-			assert.Equal(t, "https://tracker.test/torrent/"+string(rune('a'+id%26)), got.String())
-		}(i)
+			assert.Equal(t, "https://tracker.test/torrent/"+string(rune('a'+i%26)), got.String())
+		})
 	}
 
 	wg.Wait()
