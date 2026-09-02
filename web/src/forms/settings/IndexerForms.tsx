@@ -1114,32 +1114,30 @@ export function IndexerUpdateForm({ isOpen, toggle, data: indexer }: UpdateFormP
 
           {renderSettingFields(indexer.settings)}
 
-          {indexer.implementation == "irc" && (
-            <div className="border-t border-gray-200 dark:border-gray-700 py-4">
-              <div className="flex justify-between px-4">
-                <div className="space-y-1">
-                  <h2 className="text-lg font-medium text-gray-900 dark:text-white">
-                    {t("forms.indexer.proxy")}
-                  </h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {t("forms.indexer.proxyDesc")}
-                  </p>
-                </div>
-                <SwitchButton name="use_proxy" />
+          <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+            <div className="flex justify-between px-4">
+              <div className="space-y-1">
+                <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+                  {t("forms.indexer.proxy")}
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {t("forms.indexer.proxyDesc")}
+                </p>
               </div>
-
-              {values.use_proxy === true && (
-                <div className="py-4 pt-6">
-                  <SelectField<number>
-                    name="proxy_id"
-                    label={t("forms.indexer.selectProxy")}
-                    placeholder={t("forms.indexer.selectProxyPlaceholder")}
-                    options={proxies.data ? proxies.data.map((p) => ({ label: p.name, value: p.id })) : []}
-                  />
-                </div>
-              )}
+              <SwitchButton name="use_proxy" />
             </div>
-          )}
+
+            {values.use_proxy === true && (
+              <div className="py-4 pt-6">
+                <SelectField<number>
+                  name="proxy_id"
+                  label={t("forms.indexer.selectProxy")}
+                  placeholder={t("forms.indexer.selectProxyPlaceholder")}
+                  options={proxies.data ? proxies.data.map((p) => ({ label: p.name, value: p.id })) : []}
+                />
+              </div>
+            )}
+          </div>
 
           {(indexer.implementation === "torznab" || indexer.implementation === "newznab" || indexer.implementation === "rss") && (
             <div className="py-4 pt-6">
