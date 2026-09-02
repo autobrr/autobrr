@@ -10,16 +10,15 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
-	"github.com/autobrr/autobrr/pkg/ttlcache"
+	"github.com/autobrr/go-cache/ttlcache"
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/dustin/go-humanize"
 )
 
-var templateCache = ttlcache.New(
-	ttlcache.Options[string, *template.Template]{}.
-		SetTimerResolution(5 * time.Minute).
-		SetDefaultTTL(15 * time.Minute),
+var templateCache = ttlcache.New[string, *template.Template](
+	ttlcache.SetTimerResolution(5*time.Minute),
+	ttlcache.SetDefaultTTL(15*time.Minute),
 )
 
 type Macro struct {
@@ -40,7 +39,8 @@ type Macro struct {
 	CurrentMonth              int
 	CurrentSecond             int
 	CurrentYear               int
-	CurrenTimeUnixMS          int64
+	CurrentTimeUnixMS         int64
+	CurrentUnixTimeMS         int64
 	Description               string
 	DownloadUrl               string
 	Episode                   int
@@ -65,12 +65,14 @@ type Macro struct {
 	LogScore                  int
 	MagnetURI                 string
 	MetaIMDB                  string
+	MetaTMDB                  int
 	Origin                    string
 	Other                     []string
 	PreTime                   string
 	Protocol                  string
 	Proper                    bool
 	Region                    string
+	ReleaseTags               string
 	Repack                    bool
 	Resolution                string
 	Season                    int
@@ -92,6 +94,7 @@ type Macro struct {
 	Type                      string
 	Uploader                  string
 	RecordLabel               string
+	RawVars                   map[string]string
 	Website                   string
 	Year                      int
 	Month                     int
@@ -119,7 +122,8 @@ func NewMacro(release Release) Macro {
 		CurrentMonth:              int(currentTime.Month()),
 		CurrentSecond:             currentTime.Second(),
 		CurrentYear:               currentTime.Year(),
-		CurrenTimeUnixMS:          currentTime.UnixMilli(),
+		CurrentTimeUnixMS:         currentTime.UnixMilli(),
+		CurrentUnixTimeMS:         currentTime.UnixMilli(),
 		Description:               release.Description,
 		DownloadUrl:               release.DownloadURL,
 		Episode:                   release.Episode,
@@ -144,12 +148,14 @@ func NewMacro(release Release) Macro {
 		LogScore:                  release.LogScore,
 		MagnetURI:                 release.MagnetURI,
 		MetaIMDB:                  release.MetaIMDB,
+		MetaTMDB:                  release.MetaTMDB,
 		Origin:                    release.Origin,
 		Other:                     release.Other,
 		PreTime:                   release.PreTime,
 		Protocol:                  release.Protocol.String(),
 		Proper:                    release.Proper,
 		Region:                    release.Region,
+		ReleaseTags:               release.ReleaseTags,
 		Repack:                    release.Repack,
 		Resolution:                release.Resolution,
 		Season:                    release.Season,
@@ -172,6 +178,7 @@ func NewMacro(release Release) Macro {
 		Uploader:                  release.Uploader,
 		RecordLabel:               release.RecordLabel,
 		Website:                   release.Website,
+		RawVars:                   release.RawVars,
 		Year:                      release.Year,
 		Month:                     release.Month,
 		Day:                       release.Day,

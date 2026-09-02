@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: TheOldSchool
 name: TheOldSchool
 identifier: theoldschool
@@ -24,10 +25,6 @@ irc:
   server: irc.theoldschool.cc
   port: 1337
   tls: true
-  channels:
-    - "#Announce"
-  announcers:
-    - _TOS_
   settings:
     - name: nick
       type: text
@@ -54,55 +51,51 @@ irc:
       label: Invite command
       help: Invite auth with OldSchool. Replace USERNAME and PID (passkey).
 
-  parse:
-    type: single
-    lines:
-      - tests:
-        - line: '[NEW] [Series] [This.Is.A.New.show.S00E00.720p.WEB.H264-Test] [WEB-DL] [487.27 MiB] [0%] [pre 0h 1m 52s] par oldschool -> https://theoldschool.cc/torrents/00000'
-          expect:
-            category: Series
-            torrentName: This.Is.A.New.show.S00E00.720p.WEB.H264-Test
-            source: WEB-DL
-            torrentSize: 487.27 MiB
-            freeleechPercent: "0"
-            preTime: 0h 1m 52s
-            uploader: oldschool
-            baseUrl: https://theoldschool.cc/
-            torrentId: "00000"
-        - line: '[NEW] [Series] [This.Is.A.New.show.S00E00.720p.WEB.H264-Test] [WEB-DL] [487.27 MiB] [0%] par oldschool -> https://theoldschool.cc/torrents/00000'
-          expect:
-            category: Series
-            torrentName: This.Is.A.New.show.S00E00.720p.WEB.H264-Test
-            source: WEB-DL
-            torrentSize: 487.27 MiB
-            freeleechPercent: "0"
-            preTime: ""
-            uploader: oldschool
-            baseUrl: https://theoldschool.cc/
-            torrentId: "00000"
-        - line: ' [EXCLUSiVE] [Series] [A.Show.S07.MULTi.1080p.WEB.H264-GROUP] [WEB] [71.16 GiB] [0%] [pre 23h 15m 54s] par xxx -> https://theoldschool.cc/torrents/00000'
-          expect:
-            category: Series
-            torrentName: A.Show.S07.MULTi.1080p.WEB.H264-GROUP
-            source: WEB
-            torrentSize: 71.16 GiB
-            freeleechPercent: "0"
-            preTime: 23h 15m 54s
-            uploader: xxx
-            baseUrl: https://theoldschool.cc/
-            torrentId: "00000"
-        pattern: '\[.*\] \[(.*)\] \[(.*)\] \[(.*)\] \[(.*)\] \[(.*)%\](?:\s\[pre (.*)\])? par (.*) -> (https?\:\/\/.+\/).+\/(\d+)'
-        vars:
-          - category
-          - torrentName
-          - source
-          - torrentSize
-          - freeleechPercent
-          - preTime
-          - uploader
-          - baseUrl
-          - torrentId
+  channels:
+    - name: "#Announce"
+      announcers:
+        - _TOS_
+      parse:
+        type: single
+        lines:
+          - pattern: '\[.*\] \[(?P<category>.*)\] \[(?P<releaseName>.*)\] \[(?P<source>.*)\] \[(?P<torrentSize>.*)\] \[(?P<freeleechPercent>.*)%\](?:\s\[pre (?P<preTime>.*)\])? par (?P<uploader>.*) -> (?P<baseUrl>https?\:\/\/.+\/).+\/(?P<torrentId>\d+)'
+            tests:
+              - line: '[NEW] [Series] [This.Is.A.New.show.S00E00.720p.WEB.H264-Test] [WEB-DL] [487.27 MiB] [0%] [pre 0h 1m 52s] par oldschool -> https://theoldschool.cc/torrents/00000'
+                expect:
+                  category: Series
+                  releaseName: This.Is.A.New.show.S00E00.720p.WEB.H264-Test
+                  source: WEB-DL
+                  torrentSize: 487.27 MiB
+                  freeleechPercent: "0"
+                  preTime: 0h 1m 52s
+                  uploader: oldschool
+                  baseUrl: https://theoldschool.cc/
+                  torrentId: "00000"
 
-    match:
-      infourl: "/torrents/{{ .torrentId }}"
-      torrenturl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
+              - line: '[NEW] [Series] [This.Is.A.New.show.S00E00.720p.WEB.H264-Test] [WEB-DL] [487.27 MiB] [0%] par oldschool -> https://theoldschool.cc/torrents/00000'
+                expect:
+                  category: Series
+                  releaseName: This.Is.A.New.show.S00E00.720p.WEB.H264-Test
+                  source: WEB-DL
+                  torrentSize: 487.27 MiB
+                  freeleechPercent: "0"
+                  preTime: ""
+                  uploader: oldschool
+                  baseUrl: https://theoldschool.cc/
+                  torrentId: "00000"
+
+              - line: ' [EXCLUSiVE] [Series] [A.Show.S07.MULTi.1080p.WEB.H264-GROUP] [WEB] [71.16 GiB] [0%] [pre 23h 15m 54s] par xxx -> https://theoldschool.cc/torrents/00000'
+                expect:
+                  category: Series
+                  releaseName: A.Show.S07.MULTi.1080p.WEB.H264-GROUP
+                  source: WEB
+                  torrentSize: 71.16 GiB
+                  freeleechPercent: "0"
+                  preTime: 23h 15m 54s
+                  uploader: xxx
+                  baseUrl: https://theoldschool.cc/
+                  torrentId: "00000"
+
+        match:
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

@@ -16,6 +16,8 @@ interface Filter {
   announce_types: string[];
   max_downloads: number;
   max_downloads_unit: string;
+  max_downloads_period: number;
+  max_downloads_window_type: string;
   match_releases: string;
   except_releases: string;
   use_regex: boolean;
@@ -84,6 +86,7 @@ interface Filter {
   external: ExternalFilter[];
   downloads?: FilterDownloads;
   release_profile_duplicate_id?: number;
+  notifications?: FilterNotification[];
 }
 
 interface Action {
@@ -98,6 +101,7 @@ interface Action {
   tags?: string;
   label?: string;
   save_path?: string;
+  download_path?: string;
   paused?: boolean;
   ignore_rules?: boolean;
   first_last_piece_prio?: boolean;
@@ -127,11 +131,13 @@ type ActionContentLayout = "ORIGINAL" | "SUBFOLDER_CREATE" | "SUBFOLDER_NONE" | 
 
 type ActionPriorityLayout = "MAX" | "MIN" | "";
 
-type ActionType = "TEST" | "EXEC" | "WATCH_FOLDER" | "WEBHOOK" | DownloadClientType;
+type ActionType = "TEST" | "EXEC" | "WATCH_FOLDER" | "WEBHOOK" | DownloaderType;
 
-type ExternalType = "EXEC" |  "WEBHOOK";
+type ExternalType = "EXEC" | "WEBHOOK";
 
 type WebhookMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+
+type ExternalFilterOnError = "CONTINUE" | "REJECT";
 
 interface ExternalFilter {
   id: number;
@@ -151,14 +157,26 @@ interface ExternalFilter {
   webhook_retry_status?: string,
   webhook_retry_attempts?: number;
   webhook_retry_delay_seconds?: number;
+  on_error: ExternalFilterOnError;
   filter_id?: number;
 }
 
+interface ExternalFilterTestResult {
+  type: ExternalType;
+  success: boolean;
+  status: number;
+  expect_status: number;
+  output: string;
+  error?: string;
+  duration_ms: number;
+}
+
 interface FilterDownloads {
-  hour_count: number;
-  day_count: number;
-  week_count: number;
-  month_count: number;
-  year_count: number;
-  total_count: number;
+  period_count: number;
+}
+
+interface FilterNotification {
+  notification_id: number;
+  notification?: ServiceNotification;
+  events: string[];
 }

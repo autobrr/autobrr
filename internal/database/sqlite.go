@@ -8,13 +8,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
+	"github.com/autobrr/autobrr/internal/database/migrations"
 	"github.com/autobrr/autobrr/pkg/errors"
 
-	"github.com/lib/pq"
 	_ "modernc.org/sqlite"
 )
 
@@ -28,61 +28,68 @@ func (db *DB) openSQLite() error {
 
 	var err error
 
-	// open database connection
-	if db.Handler, err = sql.Open("sqlite", db.DSN+"?_pragma=busy_timeout%3d1000"); err != nil {
-		db.log.Fatal().Err(err).Msg("could not open db connection")
-		return err
+	pragmaSlice := []string{
+		// Set busy timeout to 10 seconds. It forces the driver to keep retrying a locked operation before giving up.
+		"?_pragma=busy_timeout(10000)",
+
+		// Enable Write-Ahead Logging (WAL). SQLite performs better with the WAL because it allows
+		// multiple readers to operate while data is being written.
+		"_pragma=journal_mode(WAL)",
+
+		// Default is FULL. Reducing this to NORMAL saves a significant amount of disk I/O (fsyncs).
+		"_pragma=synchronous(NORMAL)",
+
+		// When Autobrr does not cleanly shut down, the WAL will still be present and not committed.
+		// This is a no-op if the WAL is empty, and a commit when the WAL is not to start fresh.
+		// When commits hit 1000, PRAGMA wal_checkpoint(PASSIVE); is invoked which tries its best
+		// to commit from the WAL (and can fail to commit all pending operations).
+		// Forcing a PRAGMA wal_checkpoint(RESTART); in the future on a "quiet period" could be
+		// considered.
+		//"_pragma=wal_checkpoint(TRUNCATE)",
+
+		// SQLite has a query planner that uses lifecycle stats to fund optimizations.
+		// This restricts the SQLite query planner optimizer to only run if sufficient
+		// information has been gathered over the lifecycle of the connection.
+		// The SQLite documentation is inconsistent in this regard,
+		// suggestions of 400 and 1000 are both "recommended", so lets use the lower bound.
+		"_pragma=analysis_limit(400)",
+
+		// Memory-mapping the first 256MB of the database
+		// allows SQLite to read the file directly from memory, bypassing system call overhead.
+		"_pragma=mmap_size(268435456)",
+
+		// The default cache size is usually small (~2MB).
+		// Bumping this to 64MB reduces disk reads significantly
+		"_pragma=cache_size(-64000)",
+
+		"_pragma=page_size(4096)",
 	}
 
-	// Set busy timeout
-	if _, err = db.Handler.Exec(`PRAGMA busy_timeout = 5000;`); err != nil {
-		return errors.Wrap(err, "busy timeout pragma")
-	}
-
-	// Enable WAL. SQLite performs better with the WAL  because it allows
-	// multiple readers to operate while data is being written.
-	if _, err = db.Handler.Exec(`PRAGMA journal_mode = wal;`); err != nil {
-		return errors.Wrap(err, "enable wal")
-	}
-
-	// SQLite has a query planner that uses lifecycle stats to fund optimizations.
-	// This restricts the SQLite query planner optimizer to only run if sufficient
-	// information has been gathered over the lifecycle of the connection.
-	// The SQLite documentation is inconsistent in this regard,
-	// suggestions of 400 and 1000 are both "recommended", so lets use the lower bound.
-	if _, err = db.Handler.Exec(`PRAGMA analysis_limit = 400;`); err != nil {
-		return errors.Wrap(err, "analysis_limit")
-	}
-
-	// When Autobrr does not cleanly shutdown, the WAL will still be present and not committed.
-	// This is a no-op if the WAL is empty, and a commit when the WAL is not to start fresh.
-	// When commits hit 1000, PRAGMA wal_checkpoint(PASSIVE); is invoked which tries its best
-	// to commit from the WAL (and can fail to commit all pending operations).
-	// Forcing a PRAGMA wal_checkpoint(RESTART); in the future on a "quiet period" could be
-	// considered.
-	if _, err = db.Handler.Exec(`PRAGMA wal_checkpoint(TRUNCATE);`); err != nil {
-		return errors.Wrap(err, "commit wal")
-	}
-
-	// Enable foreign key checks. For historical reasons, SQLite does not check
-	// foreign key constraints by default. There's some overhead on inserts to
-	// verify foreign key integrity, but it's definitely worth it.
-
-	// Enable it for testing for consistency with postgres.
 	if os.Getenv("IS_TEST_ENV") == "true" {
-		if _, err = db.Handler.Exec(`PRAGMA foreign_keys = ON;`); err != nil {
-			return errors.New("foreign keys pragma")
-		}
+		// Enable foreign key checks. For historical reasons, SQLite does not check
+		// foreign key constraints by default. There's some overhead on inserts to
+		// verify foreign key integrity, but it's definitely worth it.
+
+		// Enable it for testing for consistency with postgres.
+		pragmaSlice = append(pragmaSlice, "_pragma=foreign_keys(ON)")
 	}
 
-	//if _, err = db.Handler.Exec(`PRAGMA foreign_keys = ON;`); err != nil {
-	//	return errors.New("foreign keys pragma: %w", err)
-	//}
+	pragmas := strings.Join(pragmaSlice, "&")
+
+	// open database connection
+	if db.Handler, err = sql.Open("sqlite", db.DSN+pragmas); err != nil {
+		return errors.Wrap(err, "could not open db connection")
+	}
+
+	db.Handler.SetMaxOpenConns(1)
+	db.Handler.SetMaxIdleConns(5)
+	db.Handler.SetConnMaxLifetime(0)
 
 	// migrate db
-	if err = db.migrateSQLite(); err != nil {
-		db.log.Fatal().Err(err).Msg("could not migrate db")
-		return err
+	if db.cfg.DatabaseAutoMigrate {
+		if err = db.migrateSQLite(); err != nil {
+			return errors.Wrap(err, "could not migrate db")
+		}
 	}
 
 	return nil
@@ -104,36 +111,12 @@ func (db *DB) closingSQLite() error {
 }
 
 func (db *DB) migrateSQLite() error {
-	db.lock.Lock()
-	defer db.lock.Unlock()
-
-	var version int
-	if err := db.Handler.QueryRow("PRAGMA user_version").Scan(&version); err != nil {
-		return errors.Wrap(err, "failed to query schema version")
-	}
-
-	if version == len(sqliteMigrations) {
-		return nil
-	} else if version > len(sqliteMigrations) {
-		return errors.New("autobrr (version %d) older than schema (version: %d)", len(sqliteMigrations), version)
-	}
-
-	db.log.Info().Msgf("Beginning database schema upgrade from version %d to version: %d", version, len(sqliteMigrations))
-
-	tx, err := db.Handler.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
-	if version == 0 {
-		if _, err := tx.Exec(sqliteSchema); err != nil {
-			return errors.Wrap(err, "failed to initialize schema")
-		}
-	} else {
+	migrate := migrations.SQLiteMigrations(db.Handler, db.log)
+	migrate.PreMigrationHook = func() error {
 		if db.cfg.DatabaseMaxBackups > 0 {
 			if err := db.databaseConsistencyCheckSQLite(); err != nil {
 				return errors.Wrap(err, "database image malformed")
+
 			}
 
 			if err := db.backupSQLiteDatabase(); err != nil {
@@ -141,35 +124,12 @@ func (db *DB) migrateSQLite() error {
 			}
 		}
 
-		for i := version; i < len(sqliteMigrations); i++ {
-			db.log.Info().Msgf("Upgrading Database schema to version: %v", i+1)
-
-			if _, err := tx.Exec(sqliteMigrations[i]); err != nil {
-				return errors.Wrap(err, "failed to execute migration #%v", i)
-			}
-		}
-
-		// temp custom data migration
-		// get data from filter.sources, check if specific types, move to new table and clear
-		// if migration 6
-		// TODO 2022-01-30 remove this in future version
-		if version == 5 && len(sqliteMigrations) == 6 {
-			if err := customMigrateCopySourcesToMedia(tx); err != nil {
-				return errors.Wrap(err, "could not run custom data migration")
-			}
-		}
+		return nil
 	}
 
-	_, err = tx.Exec(fmt.Sprintf("PRAGMA user_version = %d", len(sqliteMigrations)))
-	if err != nil {
-		return errors.Wrap(err, "failed to bump schema version")
+	if err := migrate.Migrate(); err != nil {
+		return errors.Wrap(err, "failed to migrate database")
 	}
-
-	if err := tx.Commit(); err != nil {
-		return errors.Wrap(err, "failed to commit migration transaction")
-	}
-
-	db.log.Info().Msgf("Database schema upgraded to version: %d", len(sqliteMigrations))
 
 	if err := db.cleanupSQLiteBackups(); err != nil {
 		return err
@@ -178,116 +138,34 @@ func (db *DB) migrateSQLite() error {
 	return nil
 }
 
-// customMigrateCopySourcesToMedia move music specific sources to media
-func customMigrateCopySourcesToMedia(tx *sql.Tx) error {
-	rows, err := tx.Query(`
-		SELECT id, sources
-		FROM filter
-		WHERE sources LIKE '%"CD"%'
-		   OR sources LIKE '%"WEB"%'
-		   OR sources LIKE '%"DVD"%'
-		   OR sources LIKE '%"Vinyl"%'
-		   OR sources LIKE '%"Soundboard"%'
-		   OR sources LIKE '%"DAT"%'
-		   OR sources LIKE '%"Cassette"%'
-		   OR sources LIKE '%"Blu-Ray"%'
-		   OR sources LIKE '%"SACD"%'
-		;`)
-	if err != nil {
-		return errors.Wrap(err, "could not run custom data migration")
-	}
+// startProgressLogger logs a heartbeat until the returned stop func is called,
+// so long-running maintenance operations do not look like a hang at startup.
+func (db *DB) startProgressLogger(op string) func() {
+	start := time.Now()
+	done := make(chan struct{})
 
-	defer rows.Close()
+	go func() {
+		tick := time.Tick(30 * time.Second)
 
-	type tmpDataStruct struct {
-		id      int
-		sources []string
-	}
-
-	var tmpData []tmpDataStruct
-
-	// scan data
-	for rows.Next() {
-		var t tmpDataStruct
-
-		if err := rows.Scan(&t.id, pq.Array(&t.sources)); err != nil {
-			return err
-		}
-
-		tmpData = append(tmpData, t)
-	}
-	if err := rows.Err(); err != nil {
-		return err
-	}
-
-	// manipulate data
-	for _, d := range tmpData {
-		// create new slice with only music source if they exist in d.sources
-		mediaSources := []string{}
-		for _, source := range d.sources {
-			switch source {
-			case "CD":
-				mediaSources = append(mediaSources, source)
-			case "DVD":
-				mediaSources = append(mediaSources, source)
-			case "Vinyl":
-				mediaSources = append(mediaSources, source)
-			case "Soundboard":
-				mediaSources = append(mediaSources, source)
-			case "DAT":
-				mediaSources = append(mediaSources, source)
-			case "Cassette":
-				mediaSources = append(mediaSources, source)
-			case "Blu-Ray":
-				mediaSources = append(mediaSources, source)
-			case "SACD":
-				mediaSources = append(mediaSources, source)
+		for {
+			select {
+			case <-done:
+				return
+			case <-tick:
+				db.log.Info().Msgf("%s still running, elapsed: %s", op, time.Since(start).Round(time.Second))
 			}
 		}
-		_, err = tx.Exec(`UPDATE filter SET media = ? WHERE id = ?`, pq.Array(mediaSources), d.id)
-		if err != nil {
-			return err
-		}
+	}()
 
-		// remove all music specific sources
-		cleanSources := []string{}
-		for _, source := range d.sources {
-			switch source {
-			case "CD", "WEB", "DVD", "Vinyl", "Soundboard", "DAT", "Cassette", "Blu-Ray", "SACD":
-				continue
-			}
-			cleanSources = append(cleanSources, source)
-		}
-		_, err := tx.Exec(`UPDATE filter SET sources = ? WHERE id = ?`, pq.Array(cleanSources), d.id)
-		if err != nil {
-			return err
-		}
-
-	}
-
-	return nil
+	return func() { close(done) }
 }
 
 func (db *DB) databaseConsistencyCheckSQLite() error {
 	db.log.Info().Msg("Database integrity check..")
 
-	rows, err := db.Handler.Query("PRAGMA integrity_check;")
+	results, err := db.sqliteIntegrityCheck()
 	if err != nil {
-		return errors.Wrap(err, "failed to query integrity check")
-	}
-
-	var results []string
-	for rows.Next() {
-		var result string
-		if err := rows.Scan(&result); err != nil {
-			return errors.Wrap(err, "backup integrity unexpected state")
-		}
-
-		results = append(results, result)
-	}
-
-	if err := rows.Err(); err != nil {
-		return errors.Wrap(err, "backup integrity unexpected state")
+		return err
 	}
 
 	if len(results) == 1 && results[0] == "ok" {
@@ -301,20 +179,47 @@ func (db *DB) databaseConsistencyCheckSQLite() error {
 
 	db.log.Info().Msg("Database integrity check post re-indexing..")
 
-	row := db.Handler.QueryRow("PRAGMA integrity_check;")
-
-	var status string
-	if err := row.Scan(&status); err != nil {
-		return errors.Wrap(err, "backup integrity unexpected state")
+	results, err = db.sqliteIntegrityCheck()
+	if err != nil {
+		return err
 	}
 
-	db.log.Info().Msgf("Database integrity check: %s", status)
+	status := strings.Join(results, "; ")
 
-	if status != "ok" {
+	db.log.Info().Msgf("database integrity check status: %s", status)
+
+	if len(results) != 1 || results[0] != "ok" {
 		return errors.New("backup integrity check failed: %q", status)
 	}
 
 	return nil
+}
+
+func (db *DB) sqliteIntegrityCheck() ([]string, error) {
+	stop := db.startProgressLogger("database integrity check")
+	defer stop()
+
+	rows, err := db.Handler.Query("PRAGMA integrity_check;")
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to query integrity check")
+	}
+	defer rows.Close()
+
+	var results []string
+	for rows.Next() {
+		var result string
+		if err := rows.Scan(&result); err != nil {
+			return nil, errors.Wrap(err, "backup integrity unexpected state")
+		}
+
+		results = append(results, result)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "backup integrity unexpected state")
+	}
+
+	return results, nil
 }
 
 // sqlitePerformReIndexing try to reindex bad indexes
@@ -334,7 +239,7 @@ func (db *DB) sqlitePerformReIndexing(results []string) error {
 	for _, issue := range results {
 		index, found := strings.CutPrefix(issue, "wrong # of entries in index ")
 		if found {
-			db.log.Warn().Msgf("Database integrity check failed on index: %s", index)
+			db.log.Warn().Str("index", index).Msg("database integrity check failed on index")
 
 			badIndexes = append(badIndexes, index)
 		}
@@ -344,12 +249,15 @@ func (db *DB) sqlitePerformReIndexing(results []string) error {
 		return errors.New("found no indexes to reindex")
 	}
 
+	stop := db.startProgressLogger("database re-indexing")
+	defer stop()
+
 	for _, index := range badIndexes {
-		db.log.Info().Msgf("Database attempt to re-index: %s", index)
+		db.log.Info().Str("index", index).Msg("database attempt to re-index")
 
 		_, err := db.Handler.Exec(fmt.Sprintf("REINDEX %s;", index))
 		if err != nil {
-			return errors.Wrap(err, "failed to backup database")
+			return errors.Wrap(err, "could not reindex %s", index)
 		}
 	}
 
@@ -366,14 +274,17 @@ func (db *DB) backupSQLiteDatabase() error {
 
 	backupFile := db.DSN + fmt.Sprintf("_sv%v_%s.backup", version, time.Now().UTC().Format(timeFormat))
 
-	db.log.Info().Msgf("Creating database backup: %s", backupFile)
+	db.log.Info().Str("path", backupFile).Msg("creating database backup")
 
+	stop := db.startProgressLogger("database backup")
 	_, err := db.Handler.Exec("VACUUM INTO ?;", backupFile)
+	stop()
+
 	if err != nil {
 		return errors.Wrap(err, "failed to backup database")
 	}
 
-	db.log.Info().Msgf("Database backup created at: %s", backupFile)
+	db.log.Info().Str("path", backupFile).Msg("database backup created")
 
 	return nil
 }
@@ -409,37 +320,37 @@ func (db *DB) cleanupSQLiteBackups() error {
 		}
 	}
 
-	db.log.Info().Msgf("Found %d SQLite backups", len(backups))
+	db.log.Info().Int("count", len(backups)).Msg("found SQLite backups")
 
 	if len(backups) == 0 {
 		return nil
 	}
 
 	// Sort backups by timestamp
-	sort.Slice(backups, func(i, j int) bool {
-		t1, _ := time.Parse(timeFormat, strings.TrimSuffix(strings.Split(backups[i], "_")[2], ".backup"))
-		t2, _ := time.Parse(timeFormat, strings.TrimSuffix(strings.Split(backups[j], "_")[2], ".backup"))
-		return t1.After(t2)
+	slices.SortFunc(backups, func(a, b string) int {
+		ta, _ := time.Parse(timeFormat, strings.TrimSuffix(strings.Split(a, "_")[2], ".backup"))
+		tb, _ := time.Parse(timeFormat, strings.TrimSuffix(strings.Split(b, "_")[2], ".backup"))
+		return tb.Compare(ta)
 	})
 
 	for i := 0; len(broken) != 0 && len(backups) == db.cfg.DatabaseMaxBackups && i < len(broken); i++ {
-		db.log.Info().Msgf("Remove Old SQLite backup: %s", broken[i])
+		db.log.Info().Str("backup", broken[i]).Msg("remove old SQLite backup")
 
 		if err := os.Remove(filepath.Join(backupDir, broken[i])); err != nil {
 			return errors.Wrap(err, "failed to remove old backups")
 		}
 
-		db.log.Info().Msgf("Removed Old SQLite backup: %s", broken[i])
+		db.log.Info().Str("backup", broken[i]).Msg("removed old SQLite backup")
 	}
 
 	for i := db.cfg.DatabaseMaxBackups; i < len(backups); i++ {
-		db.log.Info().Msgf("Remove SQLite backup: %s", backups[i])
+		db.log.Info().Str("backup", backups[i]).Msg("remove SQLite backup")
 
 		if err := os.Remove(filepath.Join(backupDir, backups[i])); err != nil {
 			return errors.Wrap(err, "failed to remove old backups")
 		}
 
-		db.log.Info().Msgf("Removed SQLite backup: %s", backups[i])
+		db.log.Info().Str("backup", backups[i]).Msg("removed SQLite backup")
 	}
 
 	return nil

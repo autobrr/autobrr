@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -21,7 +20,7 @@ type IrcRepo struct {
 	db  *DB
 }
 
-func NewIrcRepo(log logger.Logger, db *DB) domain.IrcRepo {
+func NewIrcRepo(log zerolog.Logger, db *DB) *IrcRepo {
 	return &IrcRepo{
 		log: log.With().Str("repo", "irc").Logger(),
 		db:  db,
@@ -30,7 +29,7 @@ func NewIrcRepo(log logger.Logger, db *DB) domain.IrcRepo {
 
 func (r *IrcRepo) GetNetworkByID(ctx context.Context, id int64) (*domain.IrcNetwork, error) {
 	queryBuilder := r.db.squirrel.
-		Select("id", "enabled", "name", "server", "port", "tls", "pass", "nick", "auth_mechanism", "auth_account", "auth_password", "invite_command", "bouncer_addr", "use_bouncer", "bot_mode", "use_proxy", "proxy_id").
+		Select("id", "enabled", "name", "server", "port", "tls", "tls_skip_verify", "pass", "nick", "auth_mechanism", "auth_account", "auth_password", "invite_command", "bouncer_addr", "use_bouncer", "bot_mode", "use_proxy", "proxy_id").
 		From("irc_network").
 		Where(sq.Eq{"id": id})
 
@@ -38,17 +37,17 @@ func (r *IrcRepo) GetNetworkByID(ctx context.Context, id int64) (*domain.IrcNetw
 	if err != nil {
 		return nil, errors.Wrap(err, "error building query")
 	}
-	r.log.Trace().Str("database", "irc.check_existing_network").Msgf("query: '%s', args: '%v'", query, args)
+	r.log.Trace().Str("database", "irc.check_existing_network").Str("query", query).Interface("args", args).Msg("checking existing network")
 
 	var n domain.IrcNetwork
 
 	var pass, nick, inviteCmd, bouncerAddr sql.Null[string]
 	var account, password sql.Null[string]
-	var tls sql.Null[bool]
+	var tls, tlsSkipVerify sql.Null[bool]
 	var proxyId sql.Null[int64]
 
 	row := r.db.Handler.QueryRowContext(ctx, query, args...)
-	if err := row.Scan(&n.ID, &n.Enabled, &n.Name, &n.Server, &n.Port, &tls, &pass, &nick, &n.Auth.Mechanism, &account, &password, &inviteCmd, &bouncerAddr, &n.UseBouncer, &n.BotMode, &n.UseProxy, &proxyId); err != nil {
+	if err := row.Scan(&n.ID, &n.Enabled, &n.Name, &n.Server, &n.Port, &tls, &tlsSkipVerify, &pass, &nick, &n.Auth.Mechanism, &account, &password, &inviteCmd, &bouncerAddr, &n.UseBouncer, &n.BotMode, &n.UseProxy, &proxyId); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRecordNotFound
 		}
@@ -56,6 +55,7 @@ func (r *IrcRepo) GetNetworkByID(ctx context.Context, id int64) (*domain.IrcNetw
 	}
 
 	n.TLS = tls.V
+	n.TLSSkipVerify = tlsSkipVerify.V
 	n.Pass = pass.V
 	n.Nick = nick.V
 	n.InviteCommand = inviteCmd.V
@@ -112,7 +112,7 @@ func (r *IrcRepo) DeleteNetwork(ctx context.Context, id int64) error {
 
 func (r *IrcRepo) FindActiveNetworks(ctx context.Context) ([]domain.IrcNetwork, error) {
 	queryBuilder := r.db.squirrel.
-		Select("id", "enabled", "name", "server", "port", "tls", "pass", "nick", "auth_mechanism", "auth_account", "auth_password", "invite_command", "bouncer_addr", "use_bouncer", "bot_mode", "use_proxy", "proxy_id").
+		Select("id", "enabled", "name", "server", "port", "tls", "tls_skip_verify", "pass", "nick", "auth_mechanism", "auth_account", "auth_password", "invite_command", "bouncer_addr", "use_bouncer", "bot_mode", "use_proxy", "proxy_id").
 		From("irc_network").
 		Where(sq.Eq{"enabled": true})
 
@@ -134,14 +134,15 @@ func (r *IrcRepo) FindActiveNetworks(ctx context.Context) ([]domain.IrcNetwork, 
 
 		var pass, nick, inviteCmd, bouncerAddr sql.Null[string]
 		var account, password sql.Null[string]
-		var tls sql.Null[bool]
+		var tls, tlsSkipVerify sql.Null[bool]
 		var proxyId sql.Null[int64]
 
-		if err := rows.Scan(&net.ID, &net.Enabled, &net.Name, &net.Server, &net.Port, &tls, &pass, &nick, &net.Auth.Mechanism, &account, &password, &inviteCmd, &bouncerAddr, &net.UseBouncer, &net.BotMode, &net.UseProxy, &proxyId); err != nil {
+		if err := rows.Scan(&net.ID, &net.Enabled, &net.Name, &net.Server, &net.Port, &tls, &tlsSkipVerify, &pass, &nick, &net.Auth.Mechanism, &account, &password, &inviteCmd, &bouncerAddr, &net.UseBouncer, &net.BotMode, &net.UseProxy, &proxyId); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
 		net.TLS = tls.V
+		net.TLSSkipVerify = tlsSkipVerify.V
 		net.Pass = pass.V
 		net.Nick = nick.V
 		net.InviteCommand = inviteCmd.V
@@ -162,7 +163,7 @@ func (r *IrcRepo) FindActiveNetworks(ctx context.Context) ([]domain.IrcNetwork, 
 
 func (r *IrcRepo) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error) {
 	queryBuilder := r.db.squirrel.
-		Select("id", "enabled", "name", "server", "port", "tls", "pass", "nick", "auth_mechanism", "auth_account", "auth_password", "invite_command", "bouncer_addr", "use_bouncer", "bot_mode", "use_proxy", "proxy_id").
+		Select("id", "enabled", "name", "server", "port", "tls", "tls_skip_verify", "pass", "nick", "auth_mechanism", "auth_account", "auth_password", "invite_command", "bouncer_addr", "use_bouncer", "bot_mode", "use_proxy", "proxy_id").
 		From("irc_network").
 		OrderBy("name ASC")
 
@@ -184,14 +185,15 @@ func (r *IrcRepo) ListNetworks(ctx context.Context) ([]domain.IrcNetwork, error)
 
 		var pass, nick, inviteCmd, bouncerAddr sql.Null[string]
 		var account, password sql.Null[string]
-		var tls sql.Null[bool]
+		var tls, tlsSkipVerify sql.Null[bool]
 		var proxyId sql.Null[int64]
 
-		if err := rows.Scan(&net.ID, &net.Enabled, &net.Name, &net.Server, &net.Port, &tls, &pass, &nick, &net.Auth.Mechanism, &account, &password, &inviteCmd, &bouncerAddr, &net.UseBouncer, &net.BotMode, &net.UseProxy, &proxyId); err != nil {
+		if err := rows.Scan(&net.ID, &net.Enabled, &net.Name, &net.Server, &net.Port, &tls, &tlsSkipVerify, &pass, &nick, &net.Auth.Mechanism, &account, &password, &inviteCmd, &bouncerAddr, &net.UseBouncer, &net.BotMode, &net.UseProxy, &proxyId); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
 		net.TLS = tls.V
+		net.TLSSkipVerify = tlsSkipVerify.V
 		net.Pass = pass.V
 		net.Nick = nick.V
 		net.InviteCommand = inviteCmd.V
@@ -249,7 +251,7 @@ func (r *IrcRepo) ListChannels(networkID int64) ([]domain.IrcChannel, error) {
 
 func (r *IrcRepo) CheckExistingNetwork(ctx context.Context, network *domain.IrcNetwork) (*domain.IrcNetwork, error) {
 	queryBuilder := r.db.squirrel.
-		Select("id", "enabled", "name", "server", "port", "tls", "pass", "nick", "auth_mechanism", "auth_account", "auth_password", "invite_command", "bouncer_addr", "use_bouncer", "bot_mode", "use_proxy", "proxy_id").
+		Select("id", "enabled", "name", "server", "port", "tls", "tls_skip_verify", "pass", "nick", "auth_mechanism", "auth_account", "auth_password", "invite_command", "bouncer_addr", "use_bouncer", "bot_mode", "use_proxy", "proxy_id").
 		From("irc_network").
 		Where(sq.Eq{"server": network.Server}).
 		Where(sq.Eq{"port": network.Port}).
@@ -259,7 +261,7 @@ func (r *IrcRepo) CheckExistingNetwork(ctx context.Context, network *domain.IrcN
 	if err != nil {
 		return nil, errors.Wrap(err, "error building query")
 	}
-	r.log.Trace().Str("database", "irc.checkExistingNetwork").Msgf("query: '%s', args: '%v'", query, args)
+	r.log.Trace().Str("database", "irc.checkExistingNetwork").Str("query", query).Interface("args", args).Msg("checking existing network")
 
 	row := r.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
@@ -270,10 +272,10 @@ func (r *IrcRepo) CheckExistingNetwork(ctx context.Context, network *domain.IrcN
 
 	var pass, nick, inviteCmd, bouncerAddr sql.Null[string]
 	var account, password sql.Null[string]
-	var tls sql.Null[bool]
+	var tls, tlsSkipVerify sql.Null[bool]
 	var proxyId sql.Null[int64]
 
-	if err = row.Scan(&net.ID, &net.Enabled, &net.Name, &net.Server, &net.Port, &tls, &pass, &nick, &net.Auth.Mechanism, &account, &password, &inviteCmd, &bouncerAddr, &net.UseBouncer, &net.BotMode, &net.UseProxy, &proxyId); err != nil {
+	if err = row.Scan(&net.ID, &net.Enabled, &net.Name, &net.Server, &net.Port, &tls, &tlsSkipVerify, &pass, &nick, &net.Auth.Mechanism, &account, &password, &inviteCmd, &bouncerAddr, &net.UseBouncer, &net.BotMode, &net.UseProxy, &proxyId); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			// no result is not an error in our case
 			return nil, nil
@@ -283,6 +285,7 @@ func (r *IrcRepo) CheckExistingNetwork(ctx context.Context, network *domain.IrcN
 	}
 
 	net.TLS = tls.V
+	net.TLSSkipVerify = tlsSkipVerify.V
 	net.Pass = pass.V
 	net.Nick = nick.V
 	net.InviteCommand = inviteCmd.V
@@ -304,6 +307,7 @@ func (r *IrcRepo) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 			"server",
 			"port",
 			"tls",
+			"tls_skip_verify",
 			"pass",
 			"nick",
 			"auth_mechanism",
@@ -313,6 +317,8 @@ func (r *IrcRepo) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 			"bouncer_addr",
 			"use_bouncer",
 			"bot_mode",
+			"use_proxy",
+			"proxy_id",
 		).
 		Values(
 			network.Enabled,
@@ -320,6 +326,7 @@ func (r *IrcRepo) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 			network.Server,
 			network.Port,
 			network.TLS,
+			network.TLSSkipVerify,
 			toNullString(network.Pass),
 			toNullString(network.Nick),
 			network.Auth.Mechanism,
@@ -329,6 +336,8 @@ func (r *IrcRepo) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 			toNullString(network.BouncerAddr),
 			network.UseBouncer,
 			network.BotMode,
+			network.UseProxy,
+			toNullInt64(network.ProxyId),
 		).
 		Suffix("RETURNING id").
 		RunWith(r.db.Handler)
@@ -348,6 +357,7 @@ func (r *IrcRepo) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 		Set("server", network.Server).
 		Set("port", network.Port).
 		Set("tls", network.TLS).
+		Set("tls_skip_verify", network.TLSSkipVerify).
 		Set("pass", toNullString(network.Pass)).
 		Set("nick", toNullString(network.Nick)).
 		Set("auth_mechanism", network.Auth.Mechanism).
@@ -373,6 +383,25 @@ func (r *IrcRepo) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 	}
 
 	return err
+}
+
+func (r *IrcRepo) ToggleNetworkEnabled(ctx context.Context, id int64, enabled bool) error {
+	queryBuilder := r.db.squirrel.
+		Update("irc_network").
+		Set("enabled", enabled).
+		Set("updated_at", time.Now().Format(time.RFC3339)).
+		Where(sq.Eq{"id": id})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	if _, err := r.db.Handler.ExecContext(ctx, query, args...); err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	return nil
 }
 
 // TODO create new channel Handler to only add, not delete

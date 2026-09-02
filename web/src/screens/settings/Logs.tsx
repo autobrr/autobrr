@@ -6,6 +6,7 @@
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { getRouteApi } from "@tanstack/react-router";
 import Select from "react-select";
+import { useTranslation } from "react-i18next";
 
 import { APIClient } from "@api/APIClient";
 import { ConfigQueryOptions } from "@api/queries";
@@ -25,39 +26,44 @@ type SelectWrapperProps = {
   options: unknown[];
 };
 
-const SelectWrapper = ({ id, value, onChange, options }: SelectWrapperProps) => (
-  <Select
-    id={id}
-    components={{
-      Input: common.SelectInput,
-      Control: common.SelectControl,
-      Menu: common.SelectMenu,
-      Option: common.SelectOption,
-      IndicatorSeparator: common.IndicatorSeparator,
-      DropdownIndicator: common.DropdownIndicator
-    }}
-    placeholder="Choose a type"
-    styles={{
-      singleValue: (base) => ({
-        ...base,
-        color: "unset"
-      })
-    }}
-    theme={(theme) => ({
-      ...theme,
-      spacing: {
-        ...theme.spacing,
-        controlHeight: 30,
-        baseUnit: 2
-      }
-    })}
-    value={value && options.find((o: any) => o.value == value)}
-    onChange={onChange}
-    options={options}
-  />
-);
+const SelectWrapper = ({ id, value, onChange, options }: SelectWrapperProps) => {
+  const { t } = useTranslation("settings");
+
+  return (
+    <Select
+      id={id}
+      components={{
+        Input: common.SelectInput,
+        Control: common.SelectControl,
+        Menu: common.SelectMenu,
+        Option: common.SelectOption,
+        IndicatorSeparator: common.IndicatorSeparator,
+        DropdownIndicator: common.DropdownIndicator
+      }}
+      placeholder={t("logsPage.chooseType")}
+      styles={{
+        singleValue: (base) => ({
+          ...base,
+          color: "unset"
+        })
+      }}
+      theme={(theme) => ({
+        ...theme,
+        spacing: {
+          ...theme.spacing,
+          controlHeight: 30,
+          baseUnit: 2
+        }
+      })}
+      value={value && options.find((o: any) => o.value == value)}
+      onChange={onChange}
+      options={options}
+    />
+  );
+};
 
 function LogSettings() {
+  const { t } = useTranslation("settings");
   const settingsLogRoute = getRouteApi("/auth/authenticated-routes/settings/logs");
   const { queryClient} =  settingsLogRoute.useRouteContext();
 
@@ -68,7 +74,7 @@ function LogSettings() {
   const setLogLevelUpdateMutation = useMutation({
     mutationFn: (value: string) => APIClient.config.update({ log_level: value }),
     onSuccess: () => {
-      toast.custom((t) => <Toast type="success" body={"Config successfully updated!"} t={t} />);
+      toast.custom((toastInstance) => <Toast type="success" body={t("logsPage.updated")} t={toastInstance} />);
 
       queryClient.invalidateQueries({ queryKey: SettingsKeys.config() });
     }
@@ -76,18 +82,18 @@ function LogSettings() {
 
   return (
     <Section
-      title="Logs"
-      description="Configure log level, log size rotation, etc. You can download your old log files below."
+      title={t("logsPage.title")}
+      description={t("logsPage.description")}
     >
       <div className="-mx-4 lg:col-span-9">
         <div className="divide-y divide-gray-200 dark:divide-gray-750">
           {!configQuery.isLoading && config && (
             <form className="divide-y divide-gray-200 dark:divide-gray-750" action="#" method="POST">
-              <RowItem label="Path" value={config?.log_path} title="Set in config.toml" emptyText="Not set!"/>
+              <RowItem label={t("logsPage.path")} value={config?.log_path} title={t("logsPage.setInConfig")} emptyText={t("logsPage.notSet")}/>
               <RowItem
                 className="sm:col-span-1"
-                label="Level"
-                title="Log level"
+                label={t("logsPage.level")}
+                title={t("logsPage.logLevel")}
                 value={
                   <SelectWrapper
                     id="log_level"
@@ -97,8 +103,8 @@ function LogSettings() {
                   />
                 }
               />
-              <RowItem label="Max Size" value={config?.log_max_size} title="Set in config.toml" rightSide="MB"/>
-              <RowItem label="Max Backups" value={config?.log_max_backups} title="Set in config.toml"/>
+              <RowItem label={t("logsPage.maxSize")} value={config?.log_max_size} title={t("logsPage.setInConfig")} rightSide="MB"/>
+              <RowItem label={t("logsPage.maxBackups")} value={config?.log_max_backups} title={t("logsPage.setInConfig")}/>
             </form>
           )}
 

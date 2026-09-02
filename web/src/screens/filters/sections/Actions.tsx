@@ -5,14 +5,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Field, FieldArray, useFormikContext } from "formik";
-import type { FieldProps, FieldArrayRenderProps } from "formik";
 import { ChevronRightIcon, BoltIcon } from "@heroicons/react/24/solid";
+import { useTranslation } from "react-i18next";
 
 import { classNames } from "@utils";
 import { useToggle } from "@hooks/hooks";
+import { useFormContext, useFormValues } from "@hooks/form";
 import { APIClient } from "@api/APIClient";
-import { ActionTypeNameMap, ActionTypeOptions, DOWNLOAD_CLIENTS } from "@domain/constants";
+import { DOWNLOAD_CLIENTS, getActionTypeNameMap, getActionTypeOptions } from "@domain/constants";
 
 import { Select, TextField } from "@components/inputs";
 import { DeleteModal } from "@components/modals";
@@ -23,11 +23,13 @@ import Toast from "@components/notifications/Toast";
 import { Checkbox } from "@components/Checkbox";
 import { TitleSubtitle } from "@components/headings";
 
-import { DownloadClientsQueryOptions } from "@api/queries";
+import { DownloadersQueryOptions } from "@api/queries";
 import { FilterHalfRow, FilterLayout, FilterPage, FilterSection } from "@screens/filters/sections/_components.tsx";
 import {
+  Aria2,
   Arr,
   Deluge, Exec,
+  NZBGet,
   Porla,
   QBittorrent,
   RTorrent,
@@ -35,15 +37,13 @@ import {
   Transmission, WatchFolder, WebHook
 } from "@screens/filters/sections/action_components";
 
-// interface FilterActionsProps {
-//   filter: Filter;
-//   values: FormikValues;
-// }
-
 export function Actions() {
-  const { values } = useFormikContext<Filter>();
+  const { t } = useTranslation(["options", "filters"]);
+  const form = useFormContext();
+  const values = useFormValues<Filter>();
+  const actionTypeOptions = getActionTypeOptions(t);
 
-  const { data } = useQuery(DownloadClientsQueryOptions());
+  const { data } = useQuery(DownloadersQueryOptions());
 
   const newAction: Action = {
     id: 0,
@@ -82,69 +82,65 @@ export function Actions() {
     client_id: 0
   };
 
+  const remove = (index: number) => form.removeFieldValue("actions", index);
+
   return (
     <div className="mt-5">
-      <FieldArray name="actions">
-        {({ remove, push }: FieldArrayRenderProps) => (
-          <>
-            <div className="-ml-4 -mt-4 mb-6 flex justify-between items-center flex-wrap sm:flex-nowrap">
-              <TitleSubtitle
-                className="ml-4 mt-4"
-                title="Actions"
-                subtitle="Add to download clients or run custom commands."
-              />
-              <div className="ml-4 mt-4 shrink-0">
-                <button
-                  type="button"
-                  className="relative inline-flex items-center px-4 py-2 border border-transparent transition shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                  onClick={() => push(newAction)}
-                >
-                  <BoltIcon
-                    className="w-5 h-5 mr-1"
-                    aria-hidden="true"
-                  />
-                  Add new
-                </button>
-              </div>
-            </div>
+      <div className="-ml-4 -mt-4 mb-6 flex justify-between items-center flex-wrap sm:flex-nowrap">
+        <TitleSubtitle
+          className="ml-4 mt-4"
+          title={t("filters:actionsSection.title")}
+          subtitle={t("filters:actionsSection.subtitle")}
+        />
+        <div className="ml-4 mt-4 shrink-0">
+          <button
+            type="button"
+            className="relative inline-flex items-center px-4 py-2 border border-transparent transition shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+            onClick={() => form.pushFieldValue("actions", newAction)}
+          >
+            <BoltIcon
+              className="w-5 h-5 mr-1"
+              aria-hidden="true"
+            />
+            {t("filters:actionsSection.addNew")}
+          </button>
+        </div>
+      </div>
 
-            {values.actions.length > 0 ? (
-              <ul className="rounded-md">
-                {values.actions.map((action: Action, index: number) => (
-                  <FilterActionsItem
-                    key={action.id}
-                    action={action}
-                    clients={data ?? []}
-                    idx={index}
-                    initialEdit={values.actions.length === 1}
-                    remove={remove}
-                  />
-                ))}
-              </ul>
-            ) : (
-              <EmptyListState text="No actions yet!" />
-            )}
-          </>
-        )}
-      </FieldArray>
+      {values.actions.length > 0 ? (
+        <ul className="rounded-md">
+          {values.actions.map((action: Action, index: number) => (
+            <FilterActionsItem
+              key={action.id}
+              action={action}
+              actionTypeOptions={actionTypeOptions}
+              clients={data ?? []}
+              idx={index}
+              initialEdit={values.actions.length === 1}
+              remove={remove}
+            />
+          ))}
+        </ul>
+      ) : (
+        <EmptyListState text={t("filters:actionsSection.empty")} />
+      )}
     </div>
   );
 }
 
 const TypeForm = (props: ClientActionProps) => {
-  const { setFieldValue } = useFormikContext();
+  const form = useFormContext();
   const [prevActionType, setPrevActionType] = useState<string | null>(null);
 
   const { action, idx } = props;
 
   useEffect(() => {
     if (prevActionType !== null && prevActionType !== action.type && DOWNLOAD_CLIENTS.includes(action.type)) {
-      // Reset the client_id field value
-      setFieldValue(`actions.${idx}.client_id`, 0);
+      form.setFieldValue(`actions[${idx}].client_id`, 0, { dontUpdateMeta: true });
     }
 
     setPrevActionType(action.type);
-  }, [action.type, idx, prevActionType, setFieldValue]);
+  }, [action.type, idx, prevActionType, form]);
 
   switch (action.type) {
   // torrent clients
@@ -159,16 +155,22 @@ const TypeForm = (props: ClientActionProps) => {
     return <Transmission {...props} />;
   case "PORLA":
     return <Porla {...props} />;
+  case "ARIA2":
+    return <Aria2 {...props} />;
   // arrs
   case "RADARR":
   case "SONARR":
   case "LIDARR":
   case "WHISPARR":
+  case "WHISPARR_V3":
   case "READARR":
+  case "SPORTARR":
     return <Arr {...props} />;
   // nzb
   case "SABNZBD":
     return <SABnzbd {...props} />;
+  case "NZBGET":
+    return <NZBGet {...props} />;
   // autobrr actions
   case "TEST":
     return <Test />;
@@ -186,14 +188,18 @@ const TypeForm = (props: ClientActionProps) => {
 
 interface FilterActionsItemProps {
   action: Action;
-  clients: DownloadClient[];
+  actionTypeOptions: ReturnType<typeof getActionTypeOptions>;
+  clients: Downloader[];
   idx: number;
   initialEdit: boolean;
-  remove: <T>(index: number) => T | undefined;
+  remove: (index: number) => void;
 }
 
-function FilterActionsItem({ action, clients, idx, initialEdit, remove }: FilterActionsItemProps) {
+function FilterActionsItem({ action, actionTypeOptions, clients, idx, initialEdit, remove }: FilterActionsItemProps) {
+  const { t } = useTranslation(["options", "filters"]);
+  const form = useFormContext();
   const cancelButtonRef = useRef(null);
+  const actionTypeNameMap = getActionTypeNameMap(t);
 
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
   const [edit, toggleEdit] = useToggle(initialEdit);
@@ -205,8 +211,8 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
       // Invalidate filters just in case, most likely not necessary but can't hurt.
       // queryClient.invalidateQueries({ queryKey: filterKeys.detail(id) });
 
-      toast.custom((t) => (
-        <Toast type="success" body={`Action ${action?.name} was deleted`} t={t} />
+      toast.custom((tst) => (
+        <Toast type="success" body={t("filters:actionsSection.deleted", { name: action?.name })} t={tst} />
       ));
     }
   });
@@ -225,20 +231,15 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
           "flex items-center transition px-2 sm:px-6 rounded-md my-1 border border-gray-150 dark:border-gray-750 hover:bg-gray-200 dark:hover:bg-gray-850"
         )}
       >
-        <Field name={`actions.${idx}.enabled`} type="checkbox">
-          {({
-            field,
-            form: { setFieldValue }
-          }: FieldProps) => (
+        <form.Field name={`actions[${idx}].enabled`}>
+          {(field) => (
             <Checkbox
-              {...field}
-              value={!!field.checked}
-              setValue={(value: boolean) => {
-                setFieldValue(field.name, value);
-              }}
+              name={field.name}
+              value={!!field.state.value}
+              setValue={(value: boolean) => field.handleChange(value)}
             />
           )}
-        </Field>
+        </form.Field>
 
         <button className="pl-2 pr-0 sm:px-4 py-4 w-full flex items-center" type="button" onClick={toggleEdit}>
           <div className="min-w-0 flex-1 sm:flex sm:items-center sm:justify-between">
@@ -250,7 +251,7 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
             <div className="shrink-0 sm:mt-0 sm:ml-5">
               <div className="flex overflow-hidden -space-x-1">
                 <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
-                  {ActionTypeNameMap[action.type]}
+                  {actionTypeNameMap[action.type]}
                 </span>
               </div>
             </div>
@@ -272,28 +273,28 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
             buttonRef={cancelButtonRef}
             toggle={toggleDeleteModal}
             deleteAction={() => removeAction(action.id)}
-            title="Remove filter action"
-            text="Are you sure you want to remove this action? This action cannot be undone."
+            title={t("filters:actionsSection.removeTitle")}
+            text={t("filters:actionsSection.removeText")}
           />
 
           <FilterPage gap="sm:gap-y-6">
             <FilterSection
-              title="Action"
-              subtitle="Define the download client for your action and its name"
+              title={t("filters:actionsSection.actionTitle")}
+              subtitle={t("filters:actionsSection.actionSubtitle")}
             >
               <FilterLayout>
                 <FilterHalfRow>
                   <Select
-                    name={`actions.${idx}.type`}
-                    label="Action type"
-                    optionDefaultText="Select type"
-                    options={ActionTypeOptions}
-                    tooltip={<div><p>Select the action type for this action.</p></div>}
+                    name={`actions[${idx}].type`}
+                    label={t("filters:actionsSection.actionType")}
+                    optionDefaultText={t("filters:actionsSection.selectType")}
+                    options={actionTypeOptions}
+                    tooltip={<div><p>{t("filters:actionsSection.actionTypeTooltip")}</p></div>}
                   />
                 </FilterHalfRow>
 
                 <FilterHalfRow>
-                  <TextField name={`actions.${idx}.name`} label="Name" />
+                  <TextField name={`actions[${idx}].name`} label={t("filters:actionsSection.name")} />
                 </FilterHalfRow>
               </FilterLayout>
             </FilterSection>
@@ -306,7 +307,7 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
                 className="inline-flex items-center justify-center px-4 py-2 rounded-md sm:text-sm bg-red-700 dark:bg-red-900 dark:hover:bg-red-700 hover:bg-red-800 text-white focus:outline-hidden"
                 onClick={toggleDeleteModal}
               >
-                Remove Action
+                {t("filters:actionsSection.removeAction")}
               </button>
 
               <button
@@ -314,7 +315,7 @@ function FilterActionsItem({ action, clients, idx, initialEdit, remove }: Filter
                 className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden"
                 onClick={toggleEdit}
               >
-                Close
+                {t("filters:actionsSection.close")}
               </button>
             </div>
           </FilterPage>

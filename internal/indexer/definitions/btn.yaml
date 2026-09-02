@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: btn
 name: BroadcasTheNet
 identifier: btn
@@ -49,10 +50,6 @@ irc:
   server: irc.broadcasthe.net
   port: 6697
   tls: true
-  channels:
-    - "#BTN-Announce"
-  announcers:
-    - Barney
   settings:
     - name: nick
       type: text
@@ -72,50 +69,43 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-  parse:
-    type: multi
-    lines:
-      - tests:
-        - line: NOW BROADCASTING! [ The Show S06E07 720p WEB-DL DD 5.1 H.264 - LP ]
-          expect:
-            torrentName: The Show S06E07 720p WEB-DL DD 5.1 H.264 - LP
-        pattern: ^NOW BROADCASTING! \[ (.*) \]
-        vars:
-          - torrentName
-      - tests:
-        - line: '[ Title: S06E07 ] [ Series: The Show ]'
-          expect:
-            title: The Show
-        pattern: '^\[ Title: .* \] \[ Series: (.*) \]'
-        vars:
-          - title
-      - tests:
-        - line: '[ 2010 ] [ Episode ] [ MKV | x264 | WEB | P2P ] [ Uploader: Uploader1 ]'
-          expect:
-            year: "2010"
-            category: Episode
-            releaseTags: MKV | x264 | WEB | P2P
-            uploader: Uploader1
-            preTime: ""
-        pattern: '^(?:\[ (\d+) \] )?\[ (.*) \] \[ (.*) \] \[ Uploader: (.*?) \](?: \[ Pretime: (.*) \])?'
-        vars:
-          - year
-          - category
-          - releaseTags
-          - uploader
-          - preTime
-      - tests:
-        - line: '[ https://XXXXXXXXX/torrents.php?id=7338 / https://XXXXXXXXX/torrents.php?action=download&id=9116 ]'
-          expect:
-            baseUrl: https://XXXXXXXXX/
-            groupId: "7338"
-            torrentId: "9116"
-        pattern: \[ (https?:\/\/.*\/).+id=(\d+) \/ https?:\/\/.*\/.+id=(\d+) \]
-        vars:
-          - baseUrl
-          - groupId
-          - torrentId
+  channels:
+    - name: "#BTN-Announce"
+      announcers:
+        - Barney
+      parse:
+        type: multi
+        lines:
+          - pattern: ^NOW BROADCASTING! \[ (?P<releaseName>.*) \]
+            tests:
+              - line: NOW BROADCASTING! [ The Show S06E07 720p WEB-DL DD 5.1 H.264 - LP ]
+                expect:
+                  releaseName: The Show S06E07 720p WEB-DL DD 5.1 H.264 - LP
 
-    match:
-      infourl: "/torrents.php?id={{ .groupId }}&torrentid={{ .torrentId }}"
-      torrenturl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
+          - pattern: '^\[ Title: .* \] \[ Series: (?P<title>.*) \]'
+            tests:
+              - line: '[ Title: S06E07 ] [ Series: The Show ]'
+                expect:
+                  title: The Show
+
+          - pattern: '^(?:\[ (?P<year>\d+) \] )?\[ (?P<category>.*) \] \[ (?P<releaseTags>.*) \] \[ Uploader: (?P<uploader>.*?) \](?: \[ Pretime: (?P<preTime>.*) \])?'
+            tests:
+              - line: '[ 2010 ] [ Episode ] [ MKV | x264 | WEB | P2P ] [ Uploader: Uploader1 ]'
+                expect:
+                  year: "2010"
+                  category: Episode
+                  releaseTags: MKV | x264 | WEB | P2P
+                  uploader: Uploader1
+                  preTime: ""
+
+          - pattern: \[ (?P<baseUrl>https?:\/\/.*\/).+id=(?P<groupId>\d+) \/ https?:\/\/.*\/.+id=(?P<torrentId>\d+) \]
+            tests:
+              - line: '[ https://XXXXXXXXX/torrents.php?id=7338 / https://XXXXXXXXX/torrents.php?action=download&id=9116 ]'
+                expect:
+                  baseUrl: https://XXXXXXXXX/
+                  groupId: "7338"
+                  torrentId: "9116"
+
+        match:
+          infourl: "/torrents.php?id={{ .groupId }}&torrentid={{ .torrentId }}"
+          downloadurl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

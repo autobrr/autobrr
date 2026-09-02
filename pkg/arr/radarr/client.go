@@ -13,6 +13,7 @@ import (
 	"path"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
 )
 
 func (c *Client) get(ctx context.Context, endpoint string) (int, []byte, error) {
@@ -26,7 +27,7 @@ func (c *Client) get(ctx context.Context, endpoint string) (int, []byte, error) 
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqUrl, http.NoBody)
 	if err != nil {
-		return 0, nil, errors.Wrap(err, "could not build request: %v", reqUrl)
+		return 0, nil, errors.Wrap(err, "could not build request: %s", u.Redacted())
 	}
 
 	if c.config.BasicAuth {
@@ -37,10 +38,10 @@ func (c *Client) get(ctx context.Context, endpoint string) (int, []byte, error) 
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return 0, nil, errors.Wrap(err, "radarr.http.Do(req): %v", reqUrl)
+		return 0, nil, errors.Wrap(err, "could not make request")
 	}
 
-	defer resp.Body.Close()
+	defer sharedhttp.DrainAndClose(resp)
 
 	if resp.Body == nil {
 		return resp.StatusCode, nil, errors.New("response body is nil")
@@ -78,10 +79,10 @@ func (c *Client) getJSON(ctx context.Context, endpoint string, params url.Values
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return errors.Wrap(err, "radarr.http.Do(req): %+v", req)
+		return errors.Wrap(err, "could not make request")
 	}
 
-	defer resp.Body.Close()
+	defer sharedhttp.DrainAndClose(resp)
 
 	if resp.Body == nil {
 		return errors.New("response body is nil")
@@ -94,7 +95,7 @@ func (c *Client) getJSON(ctx context.Context, endpoint string, params url.Values
 	return nil
 }
 
-func (c *Client) post(ctx context.Context, endpoint string, data interface{}) (*http.Response, error) {
+func (c *Client) post(ctx context.Context, endpoint string, data any) (*http.Response, error) {
 	u, err := url.Parse(c.config.Hostname)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not parse url: %s", c.config.Hostname)
@@ -110,7 +111,7 @@ func (c *Client) post(ctx context.Context, endpoint string, data interface{}) (*
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqUrl, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return nil, errors.Wrap(err, "could not build request: %v", reqUrl)
+		return nil, errors.Wrap(err, "could not build request: %s", u.Redacted())
 	}
 
 	if c.config.BasicAuth {
@@ -123,7 +124,7 @@ func (c *Client) post(ctx context.Context, endpoint string, data interface{}) (*
 
 	res, err := c.http.Do(req)
 	if err != nil {
-		return res, errors.Wrap(err, "could not make request: %+v", req)
+		return res, errors.Wrap(err, "could not make request")
 	}
 
 	// validate response
@@ -139,7 +140,7 @@ func (c *Client) post(ctx context.Context, endpoint string, data interface{}) (*
 	return res, nil
 }
 
-func (c *Client) postBody(ctx context.Context, endpoint string, data interface{}) (int, []byte, error) {
+func (c *Client) postBody(ctx context.Context, endpoint string, data any) (int, []byte, error) {
 	u, err := url.Parse(c.config.Hostname)
 	if err != nil {
 		return 0, nil, errors.Wrap(err, "could not parse url: %s", c.config.Hostname)
@@ -155,7 +156,7 @@ func (c *Client) postBody(ctx context.Context, endpoint string, data interface{}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqUrl, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return 0, nil, errors.Wrap(err, "could not build request: %v", reqUrl)
+		return 0, nil, errors.Wrap(err, "could not build request: %s", u.Redacted())
 	}
 
 	if c.config.BasicAuth {
@@ -166,10 +167,10 @@ func (c *Client) postBody(ctx context.Context, endpoint string, data interface{}
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return 0, nil, errors.Wrap(err, "radarr.http.Do(req): %+v", req)
+		return 0, nil, errors.Wrap(err, "could not make request")
 	}
 
-	defer resp.Body.Close()
+	defer sharedhttp.DrainAndClose(resp)
 
 	if resp.Body == nil {
 		return resp.StatusCode, nil, errors.New("response body is nil")

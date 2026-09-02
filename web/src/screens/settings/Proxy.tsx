@@ -6,14 +6,16 @@
 import { useToggle } from "@hooks/hooks.ts";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { PlusIcon } from "@heroicons/react/24/solid";
+import { useTranslation } from "react-i18next";
 
 import { APIClient } from "@api/APIClient";
-import { ProxyKeys } from "@api/query_keys";
+import { IrcKeys, ProxyKeys } from "@api/query_keys";
 import { ProxiesQueryOptions } from "@api/queries";
 import { Section } from "./_components";
 import { EmptySimple } from "@components/emptystates";
 import { Checkbox } from "@components/Checkbox";
-import { ProxyAddForm, ProxyUpdateForm } from "@forms/settings/ProxyForms";
+import { DeleteModal } from "@components/modals";
+import { ProxyAddForm, ProxyUpdateForm, ProxyUsageWarning } from "@forms/settings/ProxyForms";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 
@@ -22,23 +24,43 @@ interface ListItemProps {
 }
 
 function ListItem({ proxy }: ListItemProps) {
+  const { t } = useTranslation("settings");
   const [isOpen, toggleUpdate] = useToggle(false);
+  const [disableIsOpen, toggleDisable] = useToggle(false);
 
   const queryClient = useQueryClient();
 
   const updateMutation = useMutation({
     mutationFn: (req: Proxy) => APIClient.proxy.update(req),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ProxyKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
 
-      toast.custom(t => <Toast type="success" body={`Proxy ${proxy.name} was ${proxy.enabled ? "enabled" : "disabled"} successfully.`} t={t} />);
+      toast.custom((toastInstance) => (
+        <Toast
+          type="success"
+          body={t("listScreens.proxies.toggleSuccess", {
+            name: proxy.name,
+            state: variables.enabled
+              ? t("listScreens.proxies.enabledState")
+              : t("listScreens.proxies.disabledState")
+          })}
+          t={toastInstance}
+        />
+      ));
     },
     onError: () => {
-      toast.custom((t) => <Toast type="error" body="Proxy state could not be updated" t={t} />);
+      toast.custom((toastInstance) => <Toast type="error" body={t("listScreens.proxies.toggleError")} t={toastInstance} />);
     }
   });
 
   const onToggleMutation = (newState: boolean) => {
+    // disabling takes every irc network behind the proxy down with it, so confirm first
+    if (!newState && proxy.enabled) {
+      toggleDisable();
+      return;
+    }
+
     updateMutation.mutate({
       ...proxy,
       enabled: newState
@@ -49,22 +71,35 @@ function ListItem({ proxy }: ListItemProps) {
     <li>
       <ProxyUpdateForm isOpen={isOpen} toggle={toggleUpdate} data={proxy} />
 
+      <DeleteModal
+        isOpen={disableIsOpen}
+        isLoading={updateMutation.isPending}
+        toggle={toggleDisable}
+        buttonRef={undefined}
+        deleteAction={() => updateMutation.mutate({ ...proxy, enabled: false })}
+        title={t("listScreens.proxies.disableTitle", { name: proxy.name })}
+        text={t("listScreens.proxies.disableText")}
+        confirmLabel={t("listScreens.proxies.disable")}
+      >
+        <ProxyUsageWarning proxyId={proxy.id} text={t("forms.proxy.usageDisableText")} />
+      </DeleteModal>
+
       <div className="grid grid-cols-12 items-center py-1.5">
         <div className="col-span-2 sm:col-span-1 flex pl-1 sm:pl-5 items-center">
-          <Checkbox value={proxy.enabled ?? false} setValue={onToggleMutation} />
+          <Checkbox name="enabled" value={proxy.enabled ?? false} setValue={onToggleMutation} />
         </div>
-        <div className="col-span-7 sm:col-span-8 pl-12 sm:pr-6 py-3 block flex-col text-sm font-medium text-gray-900 dark:text-white truncate">
+        <div className="col-span-7 pl-6 sm:pl-12 sm:pr-6 py-3 block flex-col text-sm font-medium text-gray-900 dark:text-white truncate">
           {proxy.name}
         </div>
         <div className="hidden md:block col-span-2 pr-6 py-3 text-left items-center whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 truncate">
           {proxy.type}
         </div>
-        <div className="col-span-1 flex first-letter:px-6 py-3 whitespace-nowrap text-right text-sm font-medium">
+        <div className="col-span-3 sm:col-span-2 flex first-letter:px-6 py-3 whitespace-nowrap justify-end text-sm font-medium">
           <span
-            className="col-span-1 px-6 text-blue-600 dark:text-gray-300 hover:text-blue-900 dark:hover:text-blue-500 cursor-pointer"
+            className="col-span-3 sm:col-span-2 px-6 text-blue-600 dark:text-gray-300 hover:text-blue-900 dark:hover:text-blue-500 cursor-pointer"
             onClick={toggleUpdate}
           >
-            Edit
+            {t("listScreens.common.edit")}
           </span>
         </div>
       </div>
@@ -73,6 +108,7 @@ function ListItem({ proxy }: ListItemProps) {
 }
 
 function ProxySettings() {
+  const { t } = useTranslation("settings");
   const [addProxyIsOpen, toggleAddProxy] = useToggle(false);
 
   const proxiesQuery = useSuspenseQuery(ProxiesQueryOptions())
@@ -80,8 +116,8 @@ function ProxySettings() {
 
   return (
     <Section
-      title="Proxies"
-      description="Proxies that can be used with Indexers, feeds and IRC."
+      title={t("listScreens.proxies.title")}
+      description={t("listScreens.proxies.description")}
       rightSide={
         <button
           type="button"
@@ -89,7 +125,7 @@ function ProxySettings() {
           className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
         >
           <PlusIcon className="h-5 w-5 mr-1"/>
-          Add new
+          {t("listScreens.common.addNew")}
         </button>
       }
     >
@@ -103,21 +139,21 @@ function ProxySettings() {
                 className="flex col-span-2 sm:col-span-1 pl-0 sm:pl-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-250 transition-colors uppercase tracking-wider cursor-pointer"
                 // onClick={() => sortedIndexers.requestSort("enabled")}
               >
-                Enabled
+                {t("listScreens.common.enabled")}
                 {/*<span className="sort-indicator">{sortedIndexers.getSortIndicator("enabled")}</span>*/}
               </div>
               <div
-                className="col-span-7 sm:col-span-8 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-250 transition-colors uppercase tracking-wider cursor-pointer"
+                className="col-span-7 pl-6 sm:pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-250 transition-colors uppercase tracking-wider cursor-pointer"
                 // onClick={() => sortedIndexers.requestSort("name")}
               >
-                Name
+                {t("listScreens.common.name")}
                 {/*<span className="sort-indicator">{sortedIndexers.getSortIndicator("name")}</span>*/}
               </div>
               <div
                 className="hidden md:flex col-span-1 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-250 transition-colors uppercase tracking-wider cursor-pointer"
                 // onClick={() => sortedIndexers.requestSort("implementation")}
               >
-                Type
+                {t("listScreens.common.type")}
                 {/*<span className="sort-indicator">{sortedIndexers.getSortIndicator("implementation")}</span>*/}
               </div>
             </li>
@@ -127,9 +163,9 @@ function ProxySettings() {
           </ul>
         ) : (
           <EmptySimple
-            title="No proxies"
+            title={t("listScreens.proxies.noItems")}
             subtitle=""
-            buttonText="Add new proxy"
+            buttonText={t("listScreens.proxies.addNewItem")}
             buttonAction={toggleAddProxy}
           />
         )}

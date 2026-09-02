@@ -32,7 +32,17 @@ export const ReleaseKeys = {
   detail: (id: number) => [...ReleaseKeys.details(), id] as const,
   indexers: () => [...ReleaseKeys.all, "indexers"] as const,
   stats: () => [...ReleaseKeys.all, "stats"] as const,
+  statsActivity: (days: number) => [...ReleaseKeys.all, "stats-activity", days] as const,
+  statsVolume: (days: number) => [...ReleaseKeys.all, "stats-volume", days] as const,
+  statsHeatmap: (days: number) => [...ReleaseKeys.all, "stats-heatmap", days] as const,
+  statsTopIndexers: (days: number) => [...ReleaseKeys.all, "stats-top-indexers", days] as const,
+  statsTopFilters: (days: number) => [...ReleaseKeys.all, "stats-top-filters", days] as const,
   latestActivity: () => [...ReleaseKeys.all, "latest-activity"] as const,
+  cleanupJobs: {
+    all: () => [...ReleaseKeys.all, "cleanup-jobs"] as const,
+    lists: () => [...ReleaseKeys.cleanupJobs.all(), "list"] as const,
+    detail: (id: number) => [...ReleaseKeys.cleanupJobs.all(), id] as const,
+  }
 };
 
 export const ReleaseProfileDuplicateKeys = {
@@ -49,13 +59,13 @@ export const ApiKeys = {
   detail: (id: string) => [...ApiKeys.details(), id] as const
 };
 
-export const DownloadClientKeys = {
-  all: ["download_clients"] as const,
-  lists: () => [...DownloadClientKeys.all, "list"] as const,
+export const DownloaderKeys = {
+  all: ["downloaders"] as const,
+  lists: () => [...DownloaderKeys.all, "list"] as const,
   // list: (indexers: string[], sortOrder: string) => [...clientKeys.lists(), { indexers, sortOrder }] as const,
-  details: () => [...DownloadClientKeys.all, "detail"] as const,
-  detail: (id: number) => [...DownloadClientKeys.details(), id] as const,
-  arrTags: (id: number) => [...DownloadClientKeys.details(), id, "arr-tags"] as const
+  details: () => [...DownloaderKeys.all, "detail"] as const,
+  detail: (id: number) => [...DownloaderKeys.details(), id] as const,
+  arrTags: (id: number) => [...DownloaderKeys.details(), id, "arr-tags"] as const
 };
 
 export const FeedKeys = {
@@ -70,6 +80,7 @@ export const IndexerKeys = {
   all: ["indexers"] as const,
   schema: () => [...IndexerKeys.all, "indexer-definitions"] as const,
   options: () => [...IndexerKeys.all, "options"] as const,
+  deprecations: () => [...IndexerKeys.all, "deprecations"] as const,
   lists: () => [...IndexerKeys.all, "list"] as const,
   // list: (indexers: string[], sortOrder: string) => [...indexerKeys.lists(), { indexers, sortOrder }] as const,
   details: () => [...IndexerKeys.all, "detail"] as const,
@@ -88,14 +99,16 @@ export const NotificationKeys = {
   all: ["notifications"] as const,
   lists: () => [...NotificationKeys.all, "list"] as const,
   details: () => [...NotificationKeys.all, "detail"] as const,
-  detail: (id: number) => [...NotificationKeys.details(), id] as const
+  detail: (id: number) => [...NotificationKeys.details(), id] as const,
+  pushoverSounds: (apiToken: string) => [...NotificationKeys.all, "pushover-sounds", apiToken] as const
 };
 
 export const ProxyKeys = {
   all: ["proxy"] as const,
   lists: () => [...ProxyKeys.all, "list"] as const,
   details: () => [...ProxyKeys.all, "detail"] as const,
-  detail: (id: number) => [...ProxyKeys.details(), id] as const
+  detail: (id: number) => [...ProxyKeys.details(), id] as const,
+  usage: (id: number) => [...ProxyKeys.details(), id, "usage"] as const
 };
 
 export const ListKeys = {

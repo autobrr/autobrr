@@ -6,7 +6,6 @@
 package ops
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -105,7 +104,7 @@ func TestOrpheusClient_GetTorrentByID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewClient(tt.fields.APIKey, WithUrl(ts.URL))
 
-			got, err := c.GetTorrentByID(context.Background(), tt.args.torrentID)
+			got, err := c.GetTorrentByID(t.Context(), tt.args.torrentID)
 			if tt.wantErr != "" && assert.Error(t, err) {
 				assert.EqualErrorf(t, err, tt.wantErr, "Error should be: %v, got: %v", tt.wantErr, err)
 			}

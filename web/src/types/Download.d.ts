@@ -3,21 +3,25 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-type DownloadClientType =
+type DownloaderType =
   "QBITTORRENT" |
   "DELUGE_V1" |
   "DELUGE_V2" |
   "RTORRENT" |
   "TRANSMISSION" |
   "PORLA" |
+  "ARIA2" |
   "RADARR" |
   "SONARR" |
   "LIDARR" |
   "WHISPARR" |
+  "WHISPARR_V3" |
   "READARR" |
-  "SABNZBD";
+  "SPORTARR" |
+  "SABNZBD" |
+  "NZBGET";
 
-// export enum DownloadClientTypeEnum {
+// export enum DownloaderTypeEnum {
 //     QBITTORRENT = "QBITTORRENT",
 //     DELUGE_V1 = "DELUGE_V1",
 //     DELUGE_V2 = "DELUGE_V2",
@@ -27,7 +31,7 @@ type DownloadClientType =
 //     WHISPARR = "WHISPARR"
 // }
 
-interface DownloadClientRules {
+interface DownloaderRules {
   enabled: boolean;
   max_active_downloads: number;
   ignore_slow_torrents: boolean;
@@ -38,24 +42,24 @@ interface DownloadClientRules {
 
 type IgnoreTorrentsCondition = "ALWAYS" | "MAX_DOWNLOADS_REACHED";
 
-interface DownloadClientBasicAuth {
+interface DownloaderBasicAuth {
   auth: boolean;
   username: string;
   password: string;
 }
 
-interface DownloadClientSettings {
+interface DownloaderSettings {
   apikey?: string;
-  basic?: DownloadClientBasicAuth;
-  rules?: DownloadClientRules;
+  basic?: DownloaderBasicAuth;
+  rules?: DownloaderRules;
   external_download_client_id?: number;
   external_download_client?: string;
 }
 
-interface DownloadClient {
+interface Downloader {
   id: number;
   name: string;
-  type: DownloadClientType;
+  type: DownloaderType;
   enabled: boolean;
   host: string;
   port: number;
@@ -63,7 +67,7 @@ interface DownloadClient {
   tls_skip_verify: boolean;
   username: string;
   password: string;
-  settings?: DownloadClientSettings;
+  settings?: DownloaderSettings;
 }
 
 interface ArrTag {

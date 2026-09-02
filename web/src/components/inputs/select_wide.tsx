@@ -4,12 +4,12 @@
  */
 
 import { JSX } from "react";
-import { Field } from "formik";
 import Select from "react-select";
 import CreatableSelect from "react-select/creatable";
-import type { FieldProps } from "formik";
+import { useTranslation } from "react-i18next";
 
 import { OptionBasicTyped } from "@domain/constants";
+import { useFormContext } from "@hooks/form";
 import * as common from "@components/inputs/common";
 import { DocsTooltip } from "@components/tooltips/DocsTooltip";
 import { MultiSelect as RMSC } from "react-multi-select-component";
@@ -27,6 +27,9 @@ interface SelectFieldProps<T> {
 }
 
 export function SelectFieldCreatable<T>({ name, label, help, placeholder, tooltip, options }: SelectFieldProps<T>) {
+  const { t } = useTranslation("common");
+  const form = useFormContext();
+
   return (
     <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
       <div>
@@ -42,14 +45,11 @@ export function SelectFieldCreatable<T>({ name, label, help, placeholder, toolti
         </label>
       </div>
       <div className="sm:col-span-2">
-        <Field name={name} type="select">
-          {({
-            field,
-            form: { setFieldValue }
-          }: FieldProps) => (
+        <form.Field name={name}>
+          {(field) => (
             <CreatableSelect
-              {...field}
               id={name}
+              name={name}
               isClearable={true}
               isSearchable={true}
               components={{
@@ -60,7 +60,7 @@ export function SelectFieldCreatable<T>({ name, label, help, placeholder, toolti
                 IndicatorSeparator: common.IndicatorSeparator,
                 DropdownIndicator: common.DropdownIndicator
               }}
-              placeholder={placeholder ?? "Choose an option"}
+              placeholder={placeholder ?? t("forms.chooseOption")}
               styles={{
                 singleValue: (base) => ({
                   ...base,
@@ -75,16 +75,16 @@ export function SelectFieldCreatable<T>({ name, label, help, placeholder, toolti
                   baseUnit: 2
                 }
               })}
-              // value={field?.value ? field.value : options.find(o => o.value == field?.value)}
-              value={field?.value ? { value: field.value, label: field.value  } : field.value}
+              value={field.state.value ? { value: field.state.value, label: field.state.value } : field.state.value}
               onChange={(newValue: unknown) => {
                 const option = newValue as { value: string };
-                setFieldValue(field.name, option?.value ?? "");
+                field.handleChange(option?.value ?? "");
               }}
-              options={[...[...options, { value: field.value, label: field.value  }].reduce((map, obj) => map.set(obj.value, obj), new Map()).values()]}
+              onBlur={field.handleBlur}
+              options={[...[...options, { value: field.state.value, label: field.state.value }].reduce((map, obj) => map.set(obj.value, obj), new Map()).values()]}
             />
           )}
-        </Field>
+        </form.Field>
         {help && (
           <p className="mt-2 text-sm text-gray-500" id={`${name}-description`}>{help}</p>
         )}
@@ -94,6 +94,9 @@ export function SelectFieldCreatable<T>({ name, label, help, placeholder, toolti
 }
 
 export function SelectField<T>({ name, label, help, placeholder, options }: SelectFieldProps<T>) {
+  const { t } = useTranslation("common");
+  const form = useFormContext();
+
   return (
     <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
       <div>
@@ -105,14 +108,11 @@ export function SelectField<T>({ name, label, help, placeholder, options }: Sele
         </label>
       </div>
       <div className="sm:col-span-2">
-        <Field name={name} type="select">
-          {({
-            field,
-            form: { setFieldValue }
-          }: FieldProps) => (
+        <form.Field name={name}>
+          {(field) => (
             <Select
-              {...field}
               id={name}
+              name={name}
               components={{
                 Input: common.SelectInput,
                 Control: common.SelectControl,
@@ -121,7 +121,7 @@ export function SelectField<T>({ name, label, help, placeholder, options }: Sele
                 IndicatorSeparator: common.IndicatorSeparator,
                 DropdownIndicator: common.DropdownIndicator
               }}
-              placeholder={placeholder ?? "Choose an option"}
+              placeholder={placeholder ?? t("forms.chooseOption")}
               styles={{
                 singleValue: (base) => ({
                   ...base,
@@ -136,16 +136,16 @@ export function SelectField<T>({ name, label, help, placeholder, options }: Sele
                   baseUnit: 2
                 }
               })}
-              // value={field?.value ? field.value : options.find(o => o.value == field?.value)}
-              value={field?.value ? { value: field.value, label: field.value  } : field.value}
+              value={field.state.value ? { value: field.state.value, label: field.state.value } : field.state.value}
               onChange={(newValue: unknown) => {
                 const option = newValue as { value: string };
-                setFieldValue(field.name, option?.value ?? "");
+                field.handleChange(option?.value ?? "");
               }}
-              options={[...[...options, { value: field.value, label: field.value  }].reduce((map, obj) => map.set(obj.value, obj), new Map()).values()]}
+              onBlur={field.handleBlur}
+              options={[...[...options, { value: field.state.value, label: field.state.value }].reduce((map, obj) => map.set(obj.value, obj), new Map()).values()]}
             />
           )}
-        </Field>
+        </form.Field>
         {help && (
           <p className="mt-2 text-sm text-gray-500" id={`${name}-description`}>{help}</p>
         )}
@@ -155,6 +155,9 @@ export function SelectField<T>({ name, label, help, placeholder, options }: Sele
 }
 
 export function SelectFieldBasic<T>({ name, label, help, placeholder, required, tooltip, defaultValue, options }: SelectFieldProps<T>) {
+  const { t } = useTranslation("common");
+  const form = useFormContext();
+
   return (
     <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
       <div>
@@ -170,14 +173,11 @@ export function SelectFieldBasic<T>({ name, label, help, placeholder, required, 
         </label>
       </div>
       <div className="sm:col-span-2">
-        <Field name={name} type="select">
-          {({
-            field,
-            form: { setFieldValue }
-          }: FieldProps) => (
+        <form.Field name={name}>
+          {(field) => (
             <Select
-              {...field}
               id={name}
+              name={name}
               required={required}
               components={{
                 Input: common.SelectInput,
@@ -187,7 +187,7 @@ export function SelectFieldBasic<T>({ name, label, help, placeholder, required, 
                 IndicatorSeparator: common.IndicatorSeparator,
                 DropdownIndicator: common.DropdownIndicator
               }}
-              placeholder={placeholder ?? "Choose an option"}
+              placeholder={placeholder ?? t("forms.chooseOption")}
               styles={{
                 singleValue: (base) => ({
                   ...base,
@@ -203,15 +203,16 @@ export function SelectFieldBasic<T>({ name, label, help, placeholder, required, 
                 }
               })}
               defaultValue={defaultValue}
-              value={field?.value && options.find(o => o.value == field?.value)}
+              value={field.state.value && options.find(o => o.value == field.state.value)}
               onChange={(newValue: unknown) => {
                 const option = newValue as { value: string };
-                setFieldValue(field.name, option?.value ?? "");
+                field.handleChange(option?.value ?? "");
               }}
+              onBlur={field.handleBlur}
               options={options}
             />
           )}
-        </Field>
+        </form.Field>
         {help && (
           <p className="mt-2 text-sm text-gray-500" id={`${name}-description`}>{help}</p>
         )}
@@ -236,6 +237,8 @@ interface ListFilterMultiSelectOption {
 }
 
 export function ListFilterMultiSelectField({ name, label, help, tooltip, options, required }: MultiSelectFieldProps) {
+  const form = useFormContext();
+
   return (
     <div className="flex items-center space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
       <div>
@@ -252,31 +255,22 @@ export function ListFilterMultiSelectField({ name, label, help, tooltip, options
         </label>
       </div>
       <div className="sm:col-span-2">
-        <Field name={name} type="select" required={required}>
-          {({
-              field,
-              form: { setFieldValue }
-            }: FieldProps) => (
-              <>
-                <RMSC
-                  {...field}
-                  options={options}
-                  // disabled={disabled}
-                  labelledBy={name}
-                  // isCreatable={creatable}
-                  // onCreateOption={handleNewField}
-                  value={field.value && field.value.map((item: ListFilterMultiSelectOption) => ({
-                    value: item.id,
-                    label: item.name
-                  }))}
-                  onChange={(values: MultiSelectOption[]) => {
-                    const item = values && values.map((i) => ({ id: i.value, name: i.label }));
-                    setFieldValue(field.name, item);
-                  }}
-                />
-            </>
+        <form.Field name={name}>
+          {(field) => (
+            <RMSC
+              options={options}
+              labelledBy={name}
+              value={field.state.value && field.state.value.map((item: ListFilterMultiSelectOption) => ({
+                value: item.id,
+                label: item.name
+              }))}
+              onChange={(values: MultiSelectOption[]) => {
+                const item = values && values.map((i) => ({ id: i.value, name: i.label }));
+                field.handleChange(item);
+              }}
+            />
           )}
-        </Field>
+        </form.Field>
         {help && (
           <p className="mt-2 text-sm text-gray-500" id={`${name}-description`}>{help}</p>
         )}

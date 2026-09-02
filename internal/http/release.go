@@ -6,10 +6,7 @@ package http
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"net/url"
-	"strconv"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -22,6 +19,11 @@ type releaseService interface {
 	Get(ctx context.Context, req *domain.GetReleaseRequest) (*domain.Release, error)
 	GetIndexerOptions(ctx context.Context) ([]string, error)
 	Stats(ctx context.Context) (*domain.ReleaseStats, error)
+	StatsActivity(ctx context.Context, days int) (*domain.ReleaseActivityStats, error)
+	StatsVolume(ctx context.Context, days int) (*domain.ReleaseVolumeStats, error)
+	StatsHeatmap(ctx context.Context, days int) (*domain.ReleaseHeatmapStats, error)
+	StatsTopIndexers(ctx context.Context, days int) (*domain.ReleaseTopIndexersStats, error)
+	StatsTopFilters(ctx context.Context, days int) (*domain.ReleaseTopFiltersStats, error)
 	Delete(ctx context.Context, req *domain.DeleteReleaseRequest) error
 	Retry(ctx context.Context, req *domain.ReleaseActionRetryReq) error
 	ProcessManual(ctx context.Context, req *domain.ReleaseProcessReq) error
@@ -29,6 +31,14 @@ type releaseService interface {
 	StoreReleaseProfileDuplicate(ctx context.Context, profile *domain.DuplicateReleaseProfile) error
 	FindDuplicateReleaseProfiles(ctx context.Context) ([]*domain.DuplicateReleaseProfile, error)
 	DeleteReleaseProfileDuplicate(ctx context.Context, id int64) error
+
+	ListCleanupJobs(ctx context.Context) ([]*domain.ReleaseCleanupJob, error)
+	GetCleanupJob(ctx context.Context, id int) (*domain.ReleaseCleanupJob, error)
+	StoreCleanupJob(ctx context.Context, job *domain.ReleaseCleanupJob) error
+	UpdateCleanupJob(ctx context.Context, job *domain.ReleaseCleanupJob) error
+	DeleteCleanupJob(ctx context.Context, id int) error
+	ToggleCleanupJobEnabled(ctx context.Context, id int, enabled bool) error
+	ForceRunCleanupJob(ctx context.Context, id int) error
 }
 
 type releaseHandler struct {
@@ -47,6 +57,21 @@ func (h releaseHandler) Routes(r chi.Router) {
 	r.Get("/", h.findReleases)
 	r.Get("/recent", h.findRecentReleases)
 	r.Get("/stats", h.getStats)
+	r.Get("/stats/activity", h.statsHandler(func(ctx context.Context, days int) (any, error) {
+		return h.service.StatsActivity(ctx, days)
+	}))
+	r.Get("/stats/volume", h.statsHandler(func(ctx context.Context, days int) (any, error) {
+		return h.service.StatsVolume(ctx, days)
+	}))
+	r.Get("/stats/heatmap", h.statsHandler(func(ctx context.Context, days int) (any, error) {
+		return h.service.StatsHeatmap(ctx, days)
+	}))
+	r.Get("/stats/indexers", h.statsHandler(func(ctx context.Context, days int) (any, error) {
+		return h.service.StatsTopIndexers(ctx, days)
+	}))
+	r.Get("/stats/filters", h.statsHandler(func(ctx context.Context, days int) (any, error) {
+		return h.service.StatsTopFilters(ctx, days)
+	}))
 	r.Get("/indexers", h.getIndexerOptions)
 	r.Delete("/", h.deleteReleases)
 
@@ -63,65 +88,46 @@ func (h releaseHandler) Routes(r chi.Router) {
 
 		r.Delete("/{profileId}", h.deleteReleaseProfileDuplicate)
 	})
+
+	r.Route("/cleanup-jobs", func(r chi.Router) {
+		r.Get("/", h.listCleanupJobs)
+		r.Post("/", h.storeCleanupJob)
+
+		r.Route("/{jobID}", func(r chi.Router) {
+			r.Get("/", h.getCleanupJob)
+			r.Put("/", h.updateCleanupJob)
+			r.Delete("/", h.deleteCleanupJob)
+			r.Patch("/enabled", h.toggleCleanupJobEnabled)
+			r.Post("/run", h.forceRunCleanupJob)
+		})
+	})
 }
 
 func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
-	limitP := r.URL.Query().Get("limit")
-	limit, err := strconv.Atoi(limitP)
-	if err != nil && limitP != "" {
-		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-			"code":    "BAD_REQUEST_PARAMS",
-			"message": "limit parameter is invalid",
-		})
-		return
-	}
-	if limit == 0 {
-		limit = 20
-	}
-
-	offsetP := r.URL.Query().Get("offset")
-	offset, err := strconv.Atoi(offsetP)
-	if err != nil && offsetP != "" {
-		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-			"code":    "BAD_REQUEST_PARAMS",
-			"message": "offset parameter is invalid",
-		})
+	limit, err := parseQueryParamInt(r, "limit", 20)
+	if err != nil || limit == 0 {
+		h.encoder.BadRequestErr(w, errors.New("limit parameter is invalid"))
 		return
 	}
 
-	cursorP := r.URL.Query().Get("cursor")
-	cursor := 0
-	if cursorP != "" {
-		cursor, err = strconv.Atoi(cursorP)
-		if err != nil && cursorP != "" {
-			h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-				"code":    "BAD_REQUEST_PARAMS",
-				"message": "cursor parameter is invalid",
-			})
-		}
-		return
-	}
-
-	u, err := url.Parse(r.URL.String())
+	offset, err := parseQueryParamInt(r, "offset", 0)
 	if err != nil {
-		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-			"code":    "BAD_REQUEST_PARAMS",
-			"message": "indexer parameter is invalid",
-		})
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
-	vals := u.Query()
-	indexer := vals["indexer"]
+
+	cursor, err := parseQueryParamInt(r, "cursor", 0)
+	if err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
+
+	indexer := r.URL.Query()["indexer"]
 
 	pushStatus := r.URL.Query().Get("push_status")
-	if pushStatus != "" {
-		if !domain.ValidReleasePushStatus(pushStatus) {
-			h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-				"code":    "BAD_REQUEST_PARAMS",
-				"message": fmt.Sprintf("push_status parameter is of invalid type: %v", pushStatus),
-			})
-			return
-		}
+	if pushStatus != "" && !domain.ValidReleasePushStatus(pushStatus) {
+		h.encoder.BadRequestErr(w, errors.New("push_status parameter is of invalid type: %v", pushStatus))
+		return
 	}
 
 	search := r.URL.Query().Get("q")
@@ -140,10 +146,7 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.service.Find(r.Context(), query)
 	if err != nil {
-		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]any{
-			"code":    "INTERNAL_SERVER_ERROR",
-			"message": err.Error(),
-		})
+		h.encoder.Error(w, err)
 		return
 	}
 
@@ -153,10 +156,7 @@ func (h releaseHandler) findReleases(w http.ResponseWriter, r *http.Request) {
 func (h releaseHandler) findRecentReleases(w http.ResponseWriter, r *http.Request) {
 	resp, err := h.service.Find(r.Context(), domain.ReleaseQueryParams{Limit: 10})
 	if err != nil {
-		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]any{
-			"code":    "INTERNAL_SERVER_ERROR",
-			"message": err.Error(),
-		})
+		h.encoder.Error(w, err)
 		return
 	}
 
@@ -164,9 +164,9 @@ func (h releaseHandler) findRecentReleases(w http.ResponseWriter, r *http.Reques
 }
 
 func (h releaseHandler) getReleaseByID(w http.ResponseWriter, r *http.Request) {
-	releaseID, err := strconv.Atoi(chi.URLParam(r, "releaseID"))
+	releaseID, err := parseURLParamInt(r, "releaseID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -187,10 +187,7 @@ func (h releaseHandler) getReleaseByID(w http.ResponseWriter, r *http.Request) {
 func (h releaseHandler) getIndexerOptions(w http.ResponseWriter, r *http.Request) {
 	stats, err := h.service.GetIndexerOptions(r.Context())
 	if err != nil {
-		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]any{
-			"code":    "INTERNAL_SERVER_ERROR",
-			"message": err.Error(),
-		})
+		h.encoder.Error(w, err)
 		return
 	}
 
@@ -200,31 +197,40 @@ func (h releaseHandler) getIndexerOptions(w http.ResponseWriter, r *http.Request
 func (h releaseHandler) getStats(w http.ResponseWriter, r *http.Request) {
 	stats, err := h.service.Stats(r.Context())
 	if err != nil {
-		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]any{
-			"code":    "INTERNAL_SERVER_ERROR",
-			"message": err.Error(),
-		})
+		h.encoder.Error(w, err)
 		return
 	}
 
 	h.encoder.StatusResponse(w, http.StatusOK, stats)
 }
 
+func (h releaseHandler) statsHandler(fetch func(ctx context.Context, days int) (any, error)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		days, err := parseQueryParamInt(r, "days", 30)
+		if err != nil || days > 3650 {
+			h.encoder.BadRequestErr(w, errors.New("days parameter is invalid"))
+			return
+		}
+
+		stats, err := fetch(r.Context(), days)
+		if err != nil {
+			h.encoder.Error(w, err)
+			return
+		}
+
+		h.encoder.StatusResponse(w, http.StatusOK, stats)
+	}
+}
+
 func (h releaseHandler) deleteReleases(w http.ResponseWriter, r *http.Request) {
 	req := domain.DeleteReleaseRequest{}
 
-	olderThanParam := r.URL.Query().Get("olderThan")
-	if olderThanParam != "" {
-		duration, err := strconv.Atoi(olderThanParam)
-		if err != nil {
-			h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-				"code":    "BAD_REQUEST_PARAMS",
-				"message": "olderThan parameter is invalid",
-			})
-			return
-		}
-		req.OlderThan = duration
+	olderThan, err := parseQueryParamInt(r, "olderThan", 0)
+	if err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
 	}
+	req.OlderThan = olderThan
 
 	indexers := r.URL.Query()["indexer"]
 	if len(indexers) > 0 {
@@ -236,16 +242,14 @@ func (h releaseHandler) deleteReleases(w http.ResponseWriter, r *http.Request) {
 		"PUSH_APPROVED": true,
 		"PUSH_REJECTED": true,
 		"PUSH_ERROR":    true,
+		"PENDING":       true,
 	}
 	var filteredStatuses []string
 	for _, status := range releaseStatuses {
 		if _, valid := validStatuses[status]; valid {
 			filteredStatuses = append(filteredStatuses, status)
 		} else {
-			h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-				"code":    "INVALID_RELEASE_STATUS",
-				"message": "releaseStatus contains invalid value",
-			})
+			h.encoder.BadRequestErr(w, errors.New("releaseStatus contains invalid value: %v", status))
 			return
 		}
 	}
@@ -268,17 +272,13 @@ func (h releaseHandler) process(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.IndexerIdentifier == "" {
-		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-			"code":    "VALIDATION_ERROR",
-			"message": "field indexer_identifier empty",
-		})
+		h.encoder.BadRequestErr(w, errors.New("field indexer_identifier empty"))
+		return
 	}
 
 	if len(req.AnnounceLines) == 0 {
-		h.encoder.StatusResponse(w, http.StatusBadRequest, map[string]any{
-			"code":    "VALIDATION_ERROR",
-			"message": "field announce_lines empty",
-		})
+		h.encoder.BadRequestErr(w, errors.New("field announce_lines empty"))
+		return
 	}
 
 	err = h.service.ProcessManual(r.Context(), req)
@@ -291,15 +291,15 @@ func (h releaseHandler) process(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h releaseHandler) retryAction(w http.ResponseWriter, r *http.Request) {
-	releaseID, err := strconv.Atoi(chi.URLParam(r, "releaseID"))
+	releaseID, err := parseURLParamInt(r, "releaseID")
 	if err != nil {
-		h.encoder.StatusError(w, http.StatusBadRequest, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
-	actionStatusId, err := strconv.Atoi(chi.URLParam(r, "actionStatusID"))
+	actionStatusId, err := parseURLParamInt(r, "actionStatusID")
 	if err != nil {
-		h.encoder.StatusError(w, http.StatusBadRequest, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -310,7 +310,7 @@ func (h releaseHandler) retryAction(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.service.Retry(r.Context(), req); err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
-			h.encoder.NotFoundErr(w, err)
+			h.encoder.NotFoundErr(w, errors.New("action status with id %d not found for release %d", actionStatusId, releaseID))
 			return
 		}
 
@@ -340,28 +340,17 @@ func (h releaseHandler) storeReleaseProfileDuplicate(w http.ResponseWriter, r *h
 func (h releaseHandler) findReleaseProfileDuplicate(w http.ResponseWriter, r *http.Request) {
 	profiles, err := h.service.FindDuplicateReleaseProfiles(r.Context())
 	if err != nil {
-		h.encoder.StatusResponse(w, http.StatusInternalServerError, map[string]interface{}{
-			"code":    "INTERNAL_SERVER_ERROR",
-			"message": err.Error(),
-		})
+		h.encoder.Error(w, err)
 		return
 	}
-
-	//ret := struct {
-	//	Data       []*domain.DuplicateReleaseProfile `json:"data"`
-	//}{
-	//	Data:       profiles,
-	//}
 
 	h.encoder.StatusResponse(w, http.StatusOK, profiles)
 }
 
 func (h releaseHandler) deleteReleaseProfileDuplicate(w http.ResponseWriter, r *http.Request) {
-	//profileIdParam := chi.URLParam(r, "releaseId")
-
-	profileId, err := strconv.Atoi(chi.URLParam(r, "profileId"))
+	profileId, err := parseURLParamInt(r, "profileId")
 	if err != nil {
-		h.encoder.StatusError(w, http.StatusBadRequest, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -371,4 +360,141 @@ func (h releaseHandler) deleteReleaseProfileDuplicate(w http.ResponseWriter, r *
 	}
 
 	h.encoder.NoContent(w)
+}
+
+// Cleanup job handlers
+
+func (h releaseHandler) listCleanupJobs(w http.ResponseWriter, r *http.Request) {
+	jobs, err := h.service.ListCleanupJobs(r.Context())
+	if err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusOK, jobs)
+}
+
+func (h releaseHandler) getCleanupJob(w http.ResponseWriter, r *http.Request) {
+	jobID, err := parseURLParamInt(r, "jobID")
+	if err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
+
+	job, err := h.service.GetCleanupJob(r.Context(), jobID)
+	if err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("could not find cleanup job with id %d", jobID))
+			return
+		}
+
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusOK, job)
+}
+
+func (h releaseHandler) storeCleanupJob(w http.ResponseWriter, r *http.Request) {
+	var data *domain.ReleaseCleanupJob
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	if err := h.service.StoreCleanupJob(r.Context(), data); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusCreated, data)
+}
+
+func (h releaseHandler) updateCleanupJob(w http.ResponseWriter, r *http.Request) {
+	var data *domain.ReleaseCleanupJob
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	if err := h.service.UpdateCleanupJob(r.Context(), data); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("could not find cleanup job with id %d", data.ID))
+			return
+		}
+
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusOK, data)
+}
+
+func (h releaseHandler) deleteCleanupJob(w http.ResponseWriter, r *http.Request) {
+	jobID, err := parseURLParamInt(r, "jobID")
+	if err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
+
+	if err := h.service.DeleteCleanupJob(r.Context(), jobID); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("could not find cleanup job with id %d", jobID))
+			return
+		}
+
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.NoContent(w)
+}
+
+func (h releaseHandler) toggleCleanupJobEnabled(w http.ResponseWriter, r *http.Request) {
+	jobID, err := parseURLParamInt(r, "jobID")
+	if err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
+
+	var data struct {
+		Enabled bool `json:"enabled"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	if err := h.service.ToggleCleanupJobEnabled(r.Context(), jobID, data.Enabled); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("could not find cleanup job with id %d", jobID))
+			return
+		}
+
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusNoContent, nil)
+}
+
+func (h releaseHandler) forceRunCleanupJob(w http.ResponseWriter, r *http.Request) {
+	jobID, err := parseURLParamInt(r, "jobID")
+	if err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
+
+	if err := h.service.ForceRunCleanupJob(r.Context(), jobID); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("could not find cleanup job with id %d", jobID))
+			return
+		}
+
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusNoContent, nil)
 }

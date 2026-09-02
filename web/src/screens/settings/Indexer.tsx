@@ -3,20 +3,24 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { PlusIcon } from "@heroicons/react/24/solid";
+import { ArchiveBoxXMarkIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { Trans, useTranslation } from "react-i18next";
 
 import { useToggle } from "@hooks/hooks";
 import { APIClient } from "@api/APIClient";
-import { IndexerKeys } from "@api/query_keys";
-import { IndexersQueryOptions } from "@api/queries";
+import { FilterKeys, IndexerKeys } from "@api/query_keys";
+import { IndexerDeprecationsQueryOptions, IndexersOptionsQueryOptions, IndexersQueryOptions } from "@api/queries";
 import { Checkbox } from "@components/Checkbox";
+import { ExternalLink } from "@components/ExternalLink";
+import { DeleteModal } from "@components/modals";
 import toast from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { EmptySimple } from "@components/emptystates";
 import { IndexerAddForm, IndexerUpdateForm } from "@forms";
-import { componentMapType } from "@forms/settings/DownloadClientForms";
+import { componentMapType } from "@forms/settings/DownloaderForms";
 
 import { Section } from "./_components";
 
@@ -110,6 +114,7 @@ interface ListItemProps {
 }
 
 const ListItem = ({ indexer }: ListItemProps) => {
+  const { t } = useTranslation("settings");
   const [updateIsOpen, toggleUpdate] = useToggle(false);
 
   const queryClient = useQueryClient();
@@ -118,7 +123,7 @@ const ListItem = ({ indexer }: ListItemProps) => {
     mutationFn: (enabled: boolean) => APIClient.indexers.toggleEnable(indexer.id, enabled),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: IndexerKeys.lists() });
-      toast.custom((t) => <Toast type="success" body={`${indexer.name} was updated successfully`} t={t} />);
+      toast.custom((toastItem) => <Toast type="success" body={t("listScreens.indexers.updated", { name: indexer.name })} t={toastItem} />);
     }
   });
 
@@ -139,20 +144,20 @@ const ListItem = ({ indexer }: ListItemProps) => {
           data={indexer}
         />
         <div className="col-span-2 sm:col-span-1 flex pl-1 sm:pl-5 items-center">
-          <Checkbox value={indexer.enabled ?? false} setValue={onToggleMutation} />
+          <Checkbox name="enabled" value={indexer.enabled ?? false} setValue={onToggleMutation} />
         </div>
-        <div className="col-span-7 sm:col-span-8 pl-12 sm:pr-6 py-3 block flex-col text-sm font-medium text-gray-900 dark:text-white truncate">
+        <div className="col-span-7 pl-6 sm:pl-12 sm:pr-6 py-3 block flex-col text-sm font-medium text-gray-900 dark:text-white truncate">
           {indexer.name}
         </div>
         <div className="hidden md:block col-span-2 pr-6 py-3 text-left items-center whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 truncate">
           {ImplementationBadges[indexer.implementation]}
         </div>
-        <div className="col-span-1 flex first-letter:px-6 py-3 whitespace-nowrap text-right text-sm font-medium">
+        <div className="col-span-3 sm:col-span-2 flex first-letter:px-6 py-3 whitespace-nowrap justify-end text-sm font-medium">
           <span
-            className="col-span-1 px-6 text-blue-600 dark:text-gray-300 hover:text-blue-900 dark:hover:text-blue-500 cursor-pointer"
+            className="col-span-3 sm:col-span-2 px-6 text-blue-600 dark:text-gray-300 hover:text-blue-900 dark:hover:text-blue-500 cursor-pointer"
             onClick={toggleUpdate}
           >
-            Edit
+            {t("listScreens.common.edit")}
           </span>
         </div>
       </div>
@@ -161,6 +166,7 @@ const ListItem = ({ indexer }: ListItemProps) => {
 };
 
 function IndexerSettings() {
+  const { t } = useTranslation("settings");
   const [addIndexerIsOpen, toggleAddIndexer] = useToggle(false);
 
   const indexersQuery = useSuspenseQuery(IndexersQueryOptions())
@@ -173,11 +179,16 @@ function IndexerSettings() {
 
   return (
     <Section
-      title="Indexers"
+      title={t("listScreens.indexers.title")}
       description={
         <>
-          Indexer settings for IRC, RSS, Newznab, and Torznab based indexers.<br />
-          Generic RSS/Newznab/Torznab feeds can be added here by selecting one of the <span className="font-bold">Generic</span> indexers.
+          {t("listScreens.indexers.description")}
+          <br />
+          <Trans
+            i18nKey="listScreens.indexers.descriptionGeneric"
+            ns="settings"
+            components={{ strong: <span className="font-bold" /> }}
+          />
         </>
       }
       rightSide={
@@ -187,7 +198,7 @@ function IndexerSettings() {
           className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
         >
           <PlusIcon className="h-5 w-5 mr-1" />
-          Add new
+          {t("listScreens.common.addNew")}
         </button>
       }
     >
@@ -201,19 +212,19 @@ function IndexerSettings() {
                 className="flex col-span-2 sm:col-span-1 pl-0 sm:pl-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-250 transition-colors uppercase tracking-wider cursor-pointer"
                 onClick={() => sortedIndexers.requestSort("enabled")}
               >
-                Enabled <span className="sort-indicator">{sortedIndexers.getSortIndicator("enabled")}</span>
+                {t("listScreens.common.enabled")} <span className="sort-indicator">{sortedIndexers.getSortIndicator("enabled")}</span>
               </div>
               <div
-                className="col-span-7 sm:col-span-8 pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-250 transition-colors uppercase tracking-wider cursor-pointer"
+                className="col-span-7 pl-6 sm:pl-12 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-250 transition-colors uppercase tracking-wider cursor-pointer"
                 onClick={() => sortedIndexers.requestSort("name")}
               >
-                Name <span className="sort-indicator">{sortedIndexers.getSortIndicator("name")}</span>
+                {t("listScreens.common.name")} <span className="sort-indicator">{sortedIndexers.getSortIndicator("name")}</span>
               </div>
               <div
                 className="hidden md:flex col-span-1 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-250 transition-colors uppercase tracking-wider cursor-pointer"
                 onClick={() => sortedIndexers.requestSort("implementation")}
               >
-                Implementation <span className="sort-indicator">{sortedIndexers.getSortIndicator("implementation")}</span>
+                {t("listScreens.indexers.implementation")} <span className="sort-indicator">{sortedIndexers.getSortIndicator("implementation")}</span>
               </div>
             </li>
             {sortedIndexers.items.map((indexer) => (
@@ -222,9 +233,9 @@ function IndexerSettings() {
           </ul>
         ) : (
           <EmptySimple
-            title="No indexers"
+            title={t("listScreens.indexers.noItems")}
             subtitle=""
-            buttonText="Add new indexer"
+            buttonText={t("listScreens.indexers.addNewItem")}
             buttonAction={toggleAddIndexer}
           />
         )}
@@ -233,4 +244,200 @@ function IndexerSettings() {
   );
 }
 
-export default IndexerSettings;
+function DeprecatedIndexers() {
+  const { t } = useTranslation("settings");
+  const queryClient = useQueryClient();
+
+  const cancelModalButtonRef = useRef(null);
+  const [pendingAction, setPendingAction] = useState<
+    | { type: "prune"; identifiers: string[]; name?: string }
+    | { type: "purge"; id: number; name: string }
+    | null
+  >(null);
+
+  const optionsQuery = useSuspenseQuery(IndexersOptionsQueryOptions());
+  const deprecationsQuery = useSuspenseQuery(IndexerDeprecationsQueryOptions());
+
+  const archived = useMemo(
+    () => (optionsQuery.data || []).filter((indexer) => indexer.archived),
+    [optionsQuery.data]
+  );
+
+  const metaByIdentifier = useMemo(
+    () => new Map((deprecationsQuery.data || []).map((d) => [d.identifier, d])),
+    [deprecationsQuery.data]
+  );
+
+  const totalFilterUsage = useMemo(
+    () => archived.reduce((sum, indexer) => sum + (metaByIdentifier.get(indexer.identifier)?.filter_count ?? 0), 0),
+    [archived, metaByIdentifier]
+  );
+
+  const pruneMutation = useMutation({
+    mutationFn: (identifiers: string[]) => APIClient.filters.pruneDeprecatedIndexers(identifiers),
+    onSuccess: (res) => {
+      toast.custom((tt) => (
+        <Toast
+          type="success"
+          body={t("listScreens.indexers.deprecated.pruneSuccess", { count: res?.removed ?? 0 })}
+          t={tt}
+        />
+      ));
+      queryClient.invalidateQueries({ queryKey: FilterKeys.all });
+      queryClient.invalidateQueries({ queryKey: IndexerKeys.deprecations() });
+    },
+    onError: () => {
+      toast.custom((tt) => (
+        <Toast type="error" body={t("listScreens.indexers.deprecated.pruneError")} t={tt} />
+      ));
+    }
+  });
+
+  const purgeMutation = useMutation({
+    mutationFn: (id: number) => APIClient.indexers.deleteArchived(id),
+    onSuccess: () => {
+      toast.custom((tt) => (
+        <Toast type="success" body={t("listScreens.indexers.deprecated.purgeSuccess")} t={tt} />
+      ));
+      queryClient.invalidateQueries({ queryKey: IndexerKeys.options() });
+      queryClient.invalidateQueries({ queryKey: IndexerKeys.deprecations() });
+    },
+    onError: () => {
+      toast.custom((tt) => (
+        <Toast type="error" body={t("listScreens.indexers.deprecated.purgeError")} t={tt} />
+      ));
+    }
+  });
+
+  const closeModal = () => setPendingAction(null);
+  const modalIsLoading = pruneMutation.isPending || purgeMutation.isPending;
+  const modalTitle = pendingAction?.type === "purge"
+    ? t("listScreens.indexers.deprecated.purgeTitle", { name: pendingAction.name })
+    : pendingAction?.name
+      ? t("listScreens.indexers.deprecated.pruneOneTitle", { name: pendingAction.name })
+      : t("listScreens.indexers.deprecated.pruneTitle");
+  const modalText = pendingAction?.type === "purge"
+    ? t("listScreens.indexers.deprecated.purgeText")
+    : pendingAction?.name
+      ? t("listScreens.indexers.deprecated.pruneOneText", { name: pendingAction.name })
+      : t("listScreens.indexers.deprecated.pruneText");
+
+  if (!archived.length) {
+    return null;
+  }
+
+  return (
+    <div className="pt-6">
+      <Section
+        title={t("listScreens.indexers.deprecated.title")}
+        description={t("listScreens.indexers.deprecated.description")}
+        rightSide={
+          totalFilterUsage > 0 ? (
+            <button
+              type="button"
+              onClick={() => setPendingAction({ type: "prune", identifiers: [] })}
+              disabled={pruneMutation.isPending}
+              className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-red-600 dark:bg-red-600 hover:bg-red-700 dark:hover:bg-red-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+            >
+              <ArchiveBoxXMarkIcon className="h-5 w-5 mr-1" />
+              {t("listScreens.indexers.deprecated.pruneAll")}
+            </button>
+          ) : undefined
+        }
+      >
+        <DeleteModal
+          isOpen={pendingAction !== null}
+          isLoading={modalIsLoading}
+          toggle={closeModal}
+          buttonRef={cancelModalButtonRef}
+          deleteAction={() => {
+            if (pendingAction?.type === "prune") {
+              pruneMutation.mutate(pendingAction.identifiers);
+            } else if (pendingAction?.type === "purge") {
+              purgeMutation.mutate(pendingAction.id);
+            }
+          }}
+          title={modalTitle}
+          text={modalText}
+        />
+
+        <div className="flex flex-col">
+          <ul className="min-w-full relative">
+            {archived.map((indexer) => {
+              const meta = metaByIdentifier.get(indexer.identifier);
+              const usage = meta?.filter_count ?? 0;
+              return (
+                <li
+                  key={indexer.id}
+                  className="grid grid-cols-12 gap-2 items-center border-b border-gray-200 dark:border-gray-700 py-3"
+                >
+                  <div className="col-span-12 sm:col-span-3 pl-0 sm:pl-3 flex items-center gap-x-2">
+                    <ArchiveBoxXMarkIcon className="h-4 w-4 shrink-0 text-amber-500 dark:text-amber-400" aria-hidden="true" />
+                    <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                      {meta?.name || indexer.name}
+                    </span>
+                  </div>
+                  <div className="col-span-8 sm:col-span-4 text-sm text-gray-500 dark:text-gray-400">
+                    {meta?.reason || t("listScreens.indexers.deprecated.removed")}
+                    {meta?.issue_url ? (
+                      <>
+                        {" "}
+                        <ExternalLink href={meta.issue_url} className="text-blue-600 dark:text-blue-400 hover:underline">
+                          {t("listScreens.indexers.deprecated.moreInfo")}
+                        </ExternalLink>
+                      </>
+                    ) : null}
+                  </div>
+                  <div className="col-span-4 sm:col-span-2 text-right text-xs text-gray-500 dark:text-gray-400">
+                    {t("listScreens.indexers.deprecated.usedByFilters", { count: usage })}
+                  </div>
+                  <div className="col-span-12 sm:col-span-3 pr-0 sm:pr-3 flex justify-end">
+                    {usage > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => setPendingAction({
+                          type: "prune",
+                          identifiers: [indexer.identifier],
+                          name: meta?.name || indexer.name
+                        })}
+                        disabled={pruneMutation.isPending}
+                        className="text-sm font-medium text-amber-700 hover:text-amber-900 dark:text-amber-400 dark:hover:text-amber-300 disabled:opacity-50"
+                      >
+                        {t("listScreens.indexers.deprecated.pruneOne")}
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setPendingAction({
+                          type: "purge",
+                          id: indexer.id,
+                          name: meta?.name || indexer.name
+                        })}
+                        disabled={purgeMutation.isPending}
+                        className="inline-flex items-center text-sm font-medium text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 disabled:opacity-50"
+                      >
+                        <TrashIcon className="h-4 w-4 mr-1" aria-hidden="true" />
+                        {t("listScreens.indexers.deprecated.purge")}
+                      </button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </Section>
+    </div>
+  );
+}
+
+function IndexerSettingsPage() {
+  return (
+    <div className="lg:col-span-9">
+      <IndexerSettings />
+      <DeprecatedIndexers />
+    </div>
+  );
+}
+
+export default IndexerSettingsPage;

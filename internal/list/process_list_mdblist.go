@@ -5,86 +5,67 @@ package list
 
 import (
 	"context"
-	"encoding/json"
-	"net/http"
-	"strings"
+	"fmt"
 
 	"github.com/autobrr/autobrr/internal/domain"
-
-	"github.com/pkg/errors"
+	"github.com/autobrr/autobrr/internal/list/provider/mdblist"
+	"github.com/rs/zerolog"
 )
 
-func (s *service) mdblist(ctx context.Context, list *domain.List) error {
-	l := s.log.With().Str("type", "mdblist").Str("list", list.Name).Logger()
+type MDBListProcessor struct {
+	processorBase
+	client *mdblist.Client
+}
 
-	if list.URL == "" {
-		return errors.New("no URL provided for Mdblist")
+func NewMDBListProcessor(log zerolog.Logger, list *domain.List) *MDBListProcessor {
+	return &MDBListProcessor{
+		log:    log,
+		list:   list,
+		client: mdblist.NewClient(log, list.Name, list.URL, list.Headers...),
 	}
+}
 
-	//var titles []string
-
-	//green := color.New(color.FgGreen).SprintFunc()
-	l.Debug().Msgf("fetching titles from %s", list.URL)
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, list.URL, nil)
+func (p *MDBListProcessor) Process(ctx context.Context) (*domain.FilterUpdate, error) {
+	data, err := p.client.GetList(ctx, p.list.URL)
 	if err != nil {
-		return errors.Wrapf(err, "could not make new request for URL: %s", list.URL)
+		return nil, err
 	}
 
-	list.SetRequestHeaders(req)
-
-	//setUserAgent(req)
-
-	resp, err := s.httpClient.Do(req)
+	filter, err := p.process(data)
 	if err != nil {
-		return errors.Wrapf(err, "failed to fetch titles from URL: %s", list.URL)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return errors.Errorf("failed to fetch titles from URL: %s", list.URL)
+		return nil, err
 	}
 
-	var data []struct {
-		Title string `json:"title"`
-	}
+	return filter, nil
+}
 
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return errors.Wrapf(err, "failed to decode JSON data from URL: %s", list.URL)
-	}
+func (p *MDBListProcessor) process(data []mdblist.Item) (*domain.FilterUpdate, error) {
+	ts := NewTitleSet()
+	ts.matchReleases = p.list.MatchRelease
 
-	filterTitles := []string{}
 	for _, item := range data {
-		filterTitles = append(filterTitles, processTitle(item.Title, list.MatchRelease)...)
-	}
-
-	if len(filterTitles) == 0 {
-		l.Debug().Msgf("no titles found to update for list: %v", list.Name)
-		return nil
-	}
-
-	joinedTitles := strings.Join(filterTitles, ",")
-
-	l.Trace().Str("titles", joinedTitles).Msgf("found %d titles", len(joinedTitles))
-
-	filterUpdate := domain.FilterUpdate{Shows: &joinedTitles}
-
-	if list.MatchRelease {
-		filterUpdate.Shows = &nullString
-		filterUpdate.MatchReleases = &joinedTitles
-	}
-
-	for _, filter := range list.Filters {
-		l.Debug().Msgf("updating filter: %v", filter.ID)
-
-		filterUpdate.ID = filter.ID
-
-		if err := s.filterSvc.UpdatePartial(ctx, filterUpdate); err != nil {
-			return errors.Wrapf(err, "error updating filter: %v", filter.ID)
+		title := item.Title
+		if p.list.IncludeYear && p.list.MatchRelease && item.ReleaseYear > 0 && item.MediaType == "movie" {
+			title = fmt.Sprintf("%s*%d", title, item.ReleaseYear)
 		}
-
-		l.Debug().Msgf("successfully updated filter: %v", filter.ID)
+		ts.AddTitle(title)
 	}
 
-	return nil
+	if ts.Len() == 0 {
+		p.log.Debug().Msg("no titles found to update list")
+		return nil, nil
+	}
+
+	joinedTitles := ts.FilterString()
+
+	p.log.Trace().Str("titles", joinedTitles).Int("count", ts.Len()).Msg("found titles")
+
+	filter := domain.FilterUpdate{Shows: &joinedTitles}
+
+	if p.list.MatchRelease {
+		filter.Shows = new("")
+		filter.MatchReleases = &joinedTitles
+	}
+
+	return &filter, nil
 }

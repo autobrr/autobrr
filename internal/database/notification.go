@@ -6,9 +6,9 @@ package database
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -21,16 +21,16 @@ type NotificationRepo struct {
 	db  *DB
 }
 
-func NewNotificationRepo(log logger.Logger, db *DB) domain.NotificationRepo {
+func NewNotificationRepo(log zerolog.Logger, db *DB) *NotificationRepo {
 	return &NotificationRepo{
 		log: log.With().Str("repo", "notification").Logger(),
 		db:  db,
 	}
 }
 
-func (r *NotificationRepo) Find(ctx context.Context, params domain.NotificationQueryParams) ([]domain.Notification, int, error) {
+func (r *NotificationRepo) Find(ctx context.Context, _ domain.NotificationQueryParams) ([]domain.Notification, int, error) {
 	queryBuilder := r.db.squirrel.
-		Select("id", "name", "type", "enabled", "events", "webhook", "token", "api_key", "channel", "priority", "topic", "host", "username", "password", "created_at", "updated_at", "COUNT(*) OVER() AS total_count").
+		Select("id", "name", "type", "enabled", "events", "webhook", "token", "api_key", "channel", "priority", "topic", "sound", "event_sounds", "host", "username", "password", "method", "headers", "created_at", "updated_at", "COUNT(*) OVER() AS total_count").
 		From("notification").
 		OrderBy("name")
 
@@ -49,11 +49,11 @@ func (r *NotificationRepo) Find(ctx context.Context, params domain.NotificationQ
 	notifications := make([]domain.Notification, 0)
 	totalCount := 0
 	for rows.Next() {
-		var n domain.Notification
+		n := domain.NewNotification()
 
-		var webhook, token, apiKey, channel, host, topic, username, password sql.Null[string]
+		var webhook, token, apiKey, channel, host, topic, sound, eventSounds, username, password, method, headers sql.Null[string]
 
-		if err := rows.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &webhook, &token, &apiKey, &channel, &n.Priority, &topic, &host, &username, &password, &n.CreatedAt, &n.UpdatedAt, &totalCount); err != nil {
+		if err := rows.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &webhook, &token, &apiKey, &channel, &n.Priority, &topic, &sound, &eventSounds, &host, &username, &password, &method, &headers, &n.CreatedAt, &n.UpdatedAt, &totalCount); err != nil {
 			return nil, 0, errors.Wrap(err, "error scanning row")
 		}
 
@@ -62,11 +62,20 @@ func (r *NotificationRepo) Find(ctx context.Context, params domain.NotificationQ
 		n.Token = token.V
 		n.Channel = channel.V
 		n.Topic = topic.V
+		n.Sound = sound.V
 		n.Host = host.V
 		n.Username = username.V
 		n.Password = password.V
+		n.Method = method.V
+		n.Headers = headers.V
 
-		notifications = append(notifications, n)
+		if eventSounds.Valid && eventSounds.V != "" {
+			if err := json.Unmarshal([]byte(eventSounds.V), &n.EventSounds); err != nil {
+				r.log.Warn().Err(err).Msg("error unmarshaling event_sounds")
+			}
+		}
+
+		notifications = append(notifications, *n)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, 0, errors.Wrap(err, "error rows find")
@@ -76,7 +85,7 @@ func (r *NotificationRepo) Find(ctx context.Context, params domain.NotificationQ
 }
 
 func (r *NotificationRepo) List(ctx context.Context) ([]domain.Notification, error) {
-	rows, err := r.db.Handler.QueryContext(ctx, "SELECT id, name, type, enabled, events, token, api_key,  webhook, title, icon, host, username, password, channel, targets, devices, priority, topic, created_at, updated_at FROM notification ORDER BY name ASC")
+	rows, err := r.db.Handler.QueryContext(ctx, "SELECT id, name, type, enabled, events, token, api_key,  webhook, title, icon, host, username, password, channel, targets, devices, priority, topic, sound, event_sounds, method, headers, created_at, updated_at FROM notification ORDER BY name ASC")
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
@@ -85,11 +94,11 @@ func (r *NotificationRepo) List(ctx context.Context) ([]domain.Notification, err
 
 	var notifications []domain.Notification
 	for rows.Next() {
-		var n domain.Notification
+		n := domain.NewNotification()
 		//var eventsSlice []string
 
-		var token, apiKey, webhook, title, icon, host, username, password, channel, targets, devices, topic sql.Null[string]
-		if err := rows.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &token, &apiKey, &webhook, &title, &icon, &host, &username, &password, &channel, &targets, &devices, &n.Priority, &topic, &n.CreatedAt, &n.UpdatedAt); err != nil {
+		var token, apiKey, webhook, title, icon, host, username, password, channel, targets, devices, topic, sound, eventSounds, method, headers sql.Null[string]
+		if err := rows.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &token, &apiKey, &webhook, &title, &icon, &host, &username, &password, &channel, &targets, &devices, &n.Priority, &topic, &sound, &eventSounds, &method, &headers, &n.CreatedAt, &n.UpdatedAt); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -106,8 +115,17 @@ func (r *NotificationRepo) List(ctx context.Context) ([]domain.Notification, err
 		n.Targets = targets.V
 		n.Devices = devices.V
 		n.Topic = topic.V
+		n.Method = method.V
+		n.Headers = headers.V
+		n.Sound = sound.V
 
-		notifications = append(notifications, n)
+		if eventSounds.Valid && eventSounds.V != "" {
+			if err := json.Unmarshal([]byte(eventSounds.V), &n.EventSounds); err != nil {
+				r.log.Warn().Err(err).Msg("error unmarshaling event_sounds")
+			}
+		}
+
+		notifications = append(notifications, *n)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, errors.Wrap(err, "error rows list")
@@ -137,6 +155,10 @@ func (r *NotificationRepo) FindByID(ctx context.Context, id int) (*domain.Notifi
 			"devices",
 			"priority",
 			"topic",
+			"sound",
+			"event_sounds",
+			"method",
+			"headers",
 			"created_at",
 			"updated_at",
 		).
@@ -153,10 +175,10 @@ func (r *NotificationRepo) FindByID(ctx context.Context, id int) (*domain.Notifi
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
-	var n domain.Notification
+	n := domain.NewNotification()
 
-	var token, apiKey, webhook, title, icon, host, username, password, channel, targets, devices, topic sql.Null[string]
-	if err := row.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &token, &apiKey, &webhook, &title, &icon, &host, &username, &password, &channel, &targets, &devices, &n.Priority, &topic, &n.CreatedAt, &n.UpdatedAt); err != nil {
+	var token, apiKey, webhook, title, icon, host, username, password, channel, targets, devices, topic, sound, eventSounds, method, headers sql.Null[string]
+	if err := row.Scan(&n.ID, &n.Name, &n.Type, &n.Enabled, pq.Array(&n.Events), &token, &apiKey, &webhook, &title, &icon, &host, &username, &password, &channel, &targets, &devices, &n.Priority, &topic, &sound, &eventSounds, &method, &headers, &n.CreatedAt, &n.UpdatedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRecordNotFound
 		}
@@ -176,11 +198,25 @@ func (r *NotificationRepo) FindByID(ctx context.Context, id int) (*domain.Notifi
 	n.Targets = targets.V
 	n.Devices = devices.V
 	n.Topic = topic.V
+	n.Sound = sound.V
+	n.Method = method.V
+	n.Headers = headers.V
 
-	return &n, nil
+	if eventSounds.Valid && eventSounds.V != "" {
+		if err := json.Unmarshal([]byte(eventSounds.V), &n.EventSounds); err != nil {
+			r.log.Warn().Err(err).Msg("error unmarshaling event_sounds")
+		}
+	}
+
+	return n, nil
 }
 
 func (r *NotificationRepo) Store(ctx context.Context, notification *domain.Notification) error {
+	eventSoundsJSON, err := json.Marshal(notification.EventSounds)
+	if err != nil {
+		return errors.Wrap(err, "error marshaling event_sounds")
+	}
+
 	queryBuilder := r.db.squirrel.
 		Insert("notification").
 		Columns(
@@ -194,9 +230,13 @@ func (r *NotificationRepo) Store(ctx context.Context, notification *domain.Notif
 			"channel",
 			"priority",
 			"topic",
+			"sound",
+			"event_sounds",
 			"host",
 			"username",
 			"password",
+			"method",
+			"headers",
 		).
 		Values(
 			notification.Name,
@@ -209,9 +249,13 @@ func (r *NotificationRepo) Store(ctx context.Context, notification *domain.Notif
 			toNullString(notification.Channel),
 			notification.Priority,
 			toNullString(notification.Topic),
+			toNullString(notification.Sound),
+			string(eventSoundsJSON),
 			toNullString(notification.Host),
 			toNullString(notification.Username),
 			toNullString(notification.Password),
+			toNullString(notification.Method),
+			toNullString(notification.Headers),
 		).
 		Suffix("RETURNING id").RunWith(r.db.Handler)
 
@@ -219,12 +263,17 @@ func (r *NotificationRepo) Store(ctx context.Context, notification *domain.Notif
 		return errors.Wrap(err, "error executing query")
 	}
 
-	r.log.Debug().Msgf("notification.store: added new %v", notification.ID)
+	r.log.Debug().Int("notification_id", notification.ID).Msg("notification created")
 
 	return nil
 }
 
 func (r *NotificationRepo) Update(ctx context.Context, notification *domain.Notification) error {
+	eventSoundsJSON, err := json.Marshal(notification.EventSounds)
+	if err != nil {
+		return errors.Wrap(err, "error marshaling event_sounds")
+	}
+
 	queryBuilder := r.db.squirrel.
 		Update("notification").
 		Set("name", notification.Name).
@@ -237,9 +286,13 @@ func (r *NotificationRepo) Update(ctx context.Context, notification *domain.Noti
 		Set("channel", toNullString(notification.Channel)).
 		Set("priority", notification.Priority).
 		Set("topic", toNullString(notification.Topic)).
+		Set("sound", toNullString(notification.Sound)).
+		Set("event_sounds", string(eventSoundsJSON)).
 		Set("host", toNullString(notification.Host)).
 		Set("username", toNullString(notification.Username)).
 		Set("password", toNullString(notification.Password)).
+		Set("method", toNullString(notification.Method)).
+		Set("headers", toNullString(notification.Headers)).
 		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
 		Where(sq.Eq{"id": notification.ID})
 
@@ -252,12 +305,30 @@ func (r *NotificationRepo) Update(ctx context.Context, notification *domain.Noti
 		return errors.Wrap(err, "error executing query")
 	}
 
-	r.log.Debug().Msgf("notification.update: %v", notification.Name)
+	r.log.Debug().Str("notification", notification.Name).Msg("notification updated")
 
 	return nil
 }
 
 func (r *NotificationRepo) Delete(ctx context.Context, notificationID int) error {
+	tx, err := r.db.Handler.BeginTx(ctx, nil)
+	if err != nil {
+		return errors.Wrap(err, "error beginning transaction")
+	}
+	defer tx.Rollback()
+
+	filterQuery, filterArgs, err := r.db.squirrel.
+		Delete("filter_notification").
+		Where(sq.Eq{"notification_id": notificationID}).
+		ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building filter notification delete query")
+	}
+
+	if _, err := tx.ExecContext(ctx, filterQuery, filterArgs...); err != nil {
+		return errors.Wrap(err, "error deleting filter notifications")
+	}
+
 	queryBuilder := r.db.squirrel.
 		Delete("notification").
 		Where(sq.Eq{"id": notificationID})
@@ -267,11 +338,259 @@ func (r *NotificationRepo) Delete(ctx context.Context, notificationID int) error
 		return errors.Wrap(err, "error building query")
 	}
 
-	if _, err = r.db.Handler.ExecContext(ctx, query, args...); err != nil {
+	if _, err = tx.ExecContext(ctx, query, args...); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	r.log.Debug().Msgf("notification.delete: successfully deleted: %v", notificationID)
+	if err := tx.Commit(); err != nil {
+		return errors.Wrap(err, "error committing notification delete")
+	}
+
+	r.log.Debug().Int("notification_id", notificationID).Msg("notification deleted")
+
+	return nil
+}
+
+// GetNotificationFilters returns all filter notifications for a given notification
+func (r *NotificationRepo) GetNotificationFilters(ctx context.Context, notificationID int) ([]domain.FilterNotification, error) {
+	queryBuilder := r.db.squirrel.
+		Select(
+			"f.name",
+			"fn.filter_id",
+			"fn.notification_id",
+			"fn.events",
+		).
+		From("filter_notification fn").
+		Join("filter f ON f.id = fn.filter_id").
+		Where(sq.Eq{"fn.notification_id": notificationID})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "error building query")
+	}
+
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, errors.Wrap(err, "error executing query")
+	}
+	defer rows.Close()
+
+	var notifications []domain.FilterNotification
+	for rows.Next() {
+		var fn domain.FilterNotification
+		var events pq.StringArray
+
+		if err := rows.Scan(&fn.FilterName, &fn.FilterID, &fn.NotificationID, &events); err != nil {
+			return nil, errors.Wrap(err, "error scanning filter notification")
+		}
+
+		fn.Events = events
+		notifications = append(notifications, fn)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "error iterating over filter notifications")
+	}
+
+	return notifications, nil
+}
+
+// GetFilterNotifications returns all filter notifications for a given filter
+func (r *NotificationRepo) GetFilterNotifications(ctx context.Context, filterID int) ([]domain.FilterNotification, error) {
+	queryBuilder := r.db.squirrel.
+		Select(
+			"fn.filter_id",
+			"fn.notification_id",
+			"fn.events",
+		).
+		From("filter_notification fn").
+		Where(sq.Eq{"fn.filter_id": filterID})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "error building query")
+	}
+
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, errors.Wrap(err, "error executing query")
+	}
+	defer rows.Close()
+
+	var notifications []domain.FilterNotification
+	for rows.Next() {
+		var fn domain.FilterNotification
+		var events pq.StringArray
+
+		if err := rows.Scan(&fn.FilterID, &fn.NotificationID, &events); err != nil {
+			return nil, errors.Wrap(err, "error scanning filter notification")
+		}
+
+		fn.Events = events
+		notifications = append(notifications, fn)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "error iterating over filter notifications")
+	}
+
+	return notifications, nil
+}
+
+// ListFilterNotifications returns every persisted filter notification route.
+func (r *NotificationRepo) ListFilterNotifications(ctx context.Context) ([]domain.FilterNotification, error) {
+	query, args, err := r.db.squirrel.
+		Select("filter_id", "notification_id", "events").
+		From("filter_notification").
+		ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "error building query")
+	}
+
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, errors.Wrap(err, "error executing query")
+	}
+	defer rows.Close()
+
+	notifications := make([]domain.FilterNotification, 0)
+	for rows.Next() {
+		var notification domain.FilterNotification
+		var events pq.StringArray
+
+		if err := rows.Scan(&notification.FilterID, &notification.NotificationID, &events); err != nil {
+			return nil, errors.Wrap(err, "error scanning filter notification")
+		}
+
+		notification.Events = events
+		notifications = append(notifications, notification)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "error iterating over filter notifications")
+	}
+
+	return notifications, nil
+}
+
+// DeleteOrphanFilterNotifications removes routes whose filter or notification no longer exists.
+func (r *NotificationRepo) DeleteOrphanFilterNotifications(ctx context.Context) error {
+	query := `
+		DELETE FROM filter_notification
+		WHERE NOT EXISTS (
+			SELECT 1 FROM notification WHERE notification.id = filter_notification.notification_id
+		)
+		OR NOT EXISTS (
+			SELECT 1 FROM filter WHERE filter.id = filter_notification.filter_id
+		)`
+
+	result, err := r.db.Handler.ExecContext(ctx, query)
+	if err != nil {
+		return errors.Wrap(err, "error deleting orphaned filter notifications")
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "error getting affected orphaned filter notifications")
+	}
+
+	if rowsAffected > 0 {
+		r.log.Warn().Int64("rows_affected", rowsAffected).Msg("deleted orphaned filter notifications")
+	}
+
+	return nil
+}
+
+func (r *NotificationRepo) StoreFilterNotifications(ctx context.Context, filterID int, notifications []domain.FilterNotification) error {
+	tx, err := r.db.Handler.BeginTx(ctx, nil)
+	if err != nil {
+		return errors.Wrap(err, "failed to begin transaction")
+	}
+	defer tx.Rollback()
+
+	if err := r.deleteFilterNotifications(ctx, tx, filterID); err != nil {
+		return errors.Wrap(err, "failed to delete existing filter notifications")
+	}
+
+	if len(notifications) == 0 {
+		if err := tx.Commit(); err != nil {
+			return errors.Wrap(err, "failed to commit transaction after deleting filter notifications for filter %d", filterID)
+		}
+		r.log.Debug().Int("filter_id", filterID).Msg("filter store filter notifications: deleted all notifications")
+		return nil
+	}
+
+	if err := r.insertFilterNotifications(ctx, tx, filterID, notifications); err != nil {
+		return errors.Wrap(err, "failed to insert filter notifications")
+	}
+
+	if err := tx.Commit(); err != nil {
+		return errors.Wrap(err, "failed to commit transaction for storing filter notifications for filter %d", filterID)
+	}
+
+	r.log.Debug().Int("count", len(notifications)).Int("filter_id", filterID).Msg("filter notifications stored")
+	return nil
+}
+
+// deleteFilterNotifications handles the deletion of existing filter notifications within a transaction
+func (r *NotificationRepo) deleteFilterNotifications(ctx context.Context, tx *sql.Tx, filterID int) error {
+	deleteQuery, deleteArgs, err := r.db.squirrel.Delete("filter_notification").Where(sq.Eq{"filter_id": filterID}).ToSql()
+	if err != nil {
+		return errors.Wrap(err, "failed to build delete query")
+	}
+
+	if _, err := tx.ExecContext(ctx, deleteQuery, deleteArgs...); err != nil {
+		return errors.Wrap(err, "failed to execute delete query")
+	}
+
+	return nil
+}
+
+// insertFilterNotifications handles the insertion of new filter notifications within a transaction
+func (r *NotificationRepo) insertFilterNotifications(ctx context.Context, tx *sql.Tx, filterID int, notifications []domain.FilterNotification) error {
+	insertBuilder := r.db.squirrel.Insert("filter_notification").Columns("filter_id", "notification_id", "events")
+
+	for _, notification := range notifications {
+		insertBuilder = insertBuilder.Values(
+			filterID,
+			notification.NotificationID,
+			pq.Array(notification.Events),
+		)
+	}
+
+	query, args, err := insertBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "failed to build insert query")
+	}
+
+	if _, err := tx.ExecContext(ctx, query, args...); err != nil {
+		return errors.Wrap(err, "failed to execute insert query")
+	}
+
+	return nil
+}
+
+func (r *NotificationRepo) DeleteFilterNotifications(ctx context.Context, filterID int) error {
+	queryBuilder := r.db.squirrel.
+		Delete("filter_notification").
+		Where(sq.Eq{"filter_id": filterID})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	}
+
+	r.log.Debug().Int64("rows_affected", rowsAffected).Int("filter_id", filterID).Msg("filter notifications deleted")
 
 	return nil
 }

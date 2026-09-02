@@ -6,16 +6,15 @@ package lidarr
 import (
 	"context"
 	"encoding/json"
-	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
+
+	"github.com/rs/zerolog"
 )
 
 type Config struct {
@@ -27,7 +26,9 @@ type Config struct {
 	Username  string
 	Password  string
 
-	Log *log.Logger
+	TLSSkipVerify bool
+
+	Log zerolog.Logger
 }
 
 type ClientInterface interface {
@@ -39,27 +40,35 @@ type Client struct {
 	config Config
 	http   *http.Client
 
-	Log *log.Logger
+	log zerolog.Logger
 }
 
 // New create new lidarr Client
 func New(config Config) *Client {
+	transport := sharedhttp.Transport
+	if config.TLSSkipVerify {
+		transport = sharedhttp.TransportTLSInsecure
+	}
+
 	httpClient := &http.Client{
 		Timeout:   time.Second * 120,
-		Transport: sharedhttp.Transport,
+		Transport: transport,
 	}
 
-	c := &Client{
+	return &Client{
 		config: config,
 		http:   httpClient,
-		Log:    log.New(io.Discard, "", log.LstdFlags),
+		log:    config.Log,
 	}
+}
 
-	if config.Log != nil {
-		c.Log = config.Log
+// logger prefers the request-scoped logger from ctx, which carries trace_id
+// and other correlation fields, over the static client logger.
+func (c *Client) logger(ctx context.Context) *zerolog.Logger {
+	if l := zerolog.Ctx(ctx); l.GetLevel() != zerolog.Disabled {
+		return l
 	}
-
-	return c
+	return &c.log
 }
 
 func (c *Client) Test(ctx context.Context) (*SystemStatusResponse, error) {
@@ -72,7 +81,7 @@ func (c *Client) Test(ctx context.Context) (*SystemStatusResponse, error) {
 		return nil, errors.New("unauthorized: bad credentials")
 	}
 
-	c.Log.Printf("lidarr system/status response status: %v body: %v", status, string(res))
+	c.logger(ctx).Trace().Int("status", status).Str("response", string(res)).Msg("lidarr system/status response")
 
 	response := SystemStatusResponse{}
 	err = json.Unmarshal(res, &response)
@@ -89,7 +98,7 @@ func (c *Client) Push(ctx context.Context, release Release) ([]string, error) {
 		return nil, errors.Wrap(err, "lidarr Client post error")
 	}
 
-	c.Log.Printf("lidarr release/push response status: %v body: %v", status, string(res))
+	c.logger(ctx).Trace().Int("status", status).Str("response", string(res)).Msg("lidarr release/push response")
 
 	if status == http.StatusBadRequest {
 		badRequestResponses := make([]*BadRequestResponse, 0)
@@ -110,11 +119,10 @@ func (c *Client) Push(ctx context.Context, release Release) ([]string, error) {
 		return nil, errors.Wrap(err, "lidarr Client error json unmarshal")
 	}
 
-	// log and return if rejected
-	if pushResponse.Rejected {
-		rejections := strings.Join(pushResponse.Rejections, ", ")
-
-		c.Log.Printf("lidarr release/push rejected %v reasons: %q\n", release.Title, rejections)
+	// rejected is false when every rejection is temporary, and a temporarily rejected release
+	// waits in the pending queue instead of being grabbed, so both flags have to be reported
+	if pushResponse.Rejected || pushResponse.TempRejected {
+		c.logger(ctx).Debug().Bool("temporary", pushResponse.TempRejected).Strs("rejections", pushResponse.Rejections).Msg("lidarr release/push rejected")
 		return pushResponse.Rejections, nil
 	}
 

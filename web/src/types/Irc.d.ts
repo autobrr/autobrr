@@ -10,6 +10,7 @@ interface IrcNetwork {
   server: string;
   port: number;
   tls: boolean;
+  tls_skip_verify: boolean;
   nick: string;
   pass: string;
   auth: IrcAuth; // optional
@@ -22,6 +23,7 @@ interface IrcNetwork {
   connected_since: string;
   use_proxy: boolean;
   proxy_id: number;
+  connection_errors: string[];
 }
 
 interface IrcNetworkCreate {
@@ -30,6 +32,7 @@ interface IrcNetworkCreate {
   server: string;
   port: number;
   tls: boolean;
+  tls_skip_verify: boolean;
   pass: string;
   nick: string;
   auth: IrcAuth; // optional
@@ -50,9 +53,13 @@ interface IrcChannel {
   monitoring: boolean;
 }
 
+type IrcChannelState = "Idle" | "AwaitingInvite" | "AwaitingInviteBot" | "InviteFailed" | "InviteFailedNoSuchNick" | "Joining" | "Monitoring" | "Kicked" | "Parted" | "Disabled" | "Error" | "Unknown";
+
 interface IrcChannelWithHealth extends IrcChannel {
+  state: IrcChannelState;
   monitoring_since: string;
   last_announce: string;
+  connection_errors: string[];
 }
 
 interface IrcNetworkWithHealth extends IrcNetwork {

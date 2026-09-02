@@ -4,63 +4,66 @@
  */
 
 import { CollapsibleSection, FilterHalfRow, FilterLayout, FilterSection } from "../_components";
-import { DownloadClientSelect, NumberField, TextAreaAutoResize, TextField } from "@components/inputs";
+import { DownloaderSelect, NumberField, TextAreaAutoResize, TextField } from "@components/inputs";
+import { useTranslation } from "react-i18next";
 
-export const Porla = ({ idx, action, clients }: ClientActionProps) => (
+export const Porla = ({ idx, action, clients }: ClientActionProps) => {
+  const { t } = useTranslation("filters");
+
+  return (
   <>
     <FilterSection
-      title="Instance"
-      subtitle={
-        <>Select the <span className="font-bold">specific instance</span> which you want to handle this release filter.</>
-      }
+      title={t("actionComponents.instance.title")}
+      subtitle={t("actionComponents.instance.subtitle")}
     >
       <FilterLayout>
         <FilterHalfRow>
-          <DownloadClientSelect
-            name={`actions.${idx}.client_id`}
+          <DownloaderSelect
+            name={`actions[${idx}].client_id`}
             action={action}
             clients={clients}
           />
         </FilterHalfRow>
         <FilterHalfRow>
           <TextField
-            name={`actions.${idx}.label`}
-            label="Preset"
-            placeholder="eg. default"
+            name={`actions[${idx}].label`}
+            label={t("actionComponents.porla.preset")}
+            placeholder={t("actionComponents.porla.presetPlaceholder")}
             tooltip={
-              <div>A case-sensitive preset name as configured in Porla.</div>
+              <div>{t("actionComponents.porla.presetTooltip")}</div>
             }
           />
         </FilterHalfRow>
       </FilterLayout>
 
       <TextAreaAutoResize
-        name={`actions.${idx}.save_path`}
-        label="Save path"
-        placeholder="eg. /full/path/to/torrent/data"
+        name={`actions[${idx}].save_path`}
+        label={t("actionComponents.common.savePath")}
+        placeholder={t("actionComponents.porla.savePathPlaceholder")}
         className="pb-6"
       />
 
       <CollapsibleSection
         noBottomBorder
-        title="Limits"
-        subtitle="Configure your speed/ratio/seed time limits"
+        title={t("actionComponents.common.limitsTitle")}
+        subtitle={t("actionComponents.common.limitsSubtitle")}
       >
         <FilterHalfRow>
           <NumberField
-            name={`actions.${idx}.limit_download_speed`}
-            label="Limit download speed (KiB/s)"
-            placeholder="Takes any number (0 is no limit)"
+            name={`actions[${idx}].limit_download_speed`}
+            label={t("actionComponents.common.limitDownloadKib")}
+            placeholder={t("actionComponents.common.numberNoLimit")}
           />
         </FilterHalfRow>
         <FilterHalfRow>
           <NumberField
-            name={`actions.${idx}.limit_upload_speed`}
-            label="Limit upload speed (KiB/s)"
-            placeholder="Takes any number (0 is no limit)"
+            name={`actions[${idx}].limit_upload_speed`}
+            label={t("actionComponents.common.limitUploadKib")}
+            placeholder={t("actionComponents.common.numberNoLimit")}
           />
         </FilterHalfRow>
       </CollapsibleSection>
     </FilterSection>
   </>
-);
+  );
+};

@@ -271,7 +271,29 @@ func TestMacros_Parse(t *testing.T) {
 				Indexer: IndexerMinimal{0, "Mock Indexer", "mock1", "Mock Indexer"},
 			},
 			args:    args{text: "indexer={{.IndexerName}}"},
-			want:    fmt.Sprintf("indexer=Mock Indexer"),
+			want:    "indexer=Mock Indexer",
+			wantErr: false,
+		},
+		{
+			name: "test_release_tags",
+			release: Release{
+				ReleaseTags: "WEB-DL",
+			},
+			args:    args{text: "tags: {{.ReleaseTags}}"},
+			want:    "tags: WEB-DL",
+			wantErr: false,
+		},
+		{
+			name: "test_raw_vars",
+			release: Release{
+				ReleaseTags: "WEB-DL",
+				RawVars: map[string]string{
+					"releaseName": "Servant S01 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-FLUX",
+					"custom":      "test",
+				},
+			},
+			args:    args{text: `release: "{{.RawVars.releaseName}}" custom: {{.RawVars.custom}}`},
+			want:    `release: "Servant S01 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-FLUX" custom: test`,
 			wantErr: false,
 		},
 	}

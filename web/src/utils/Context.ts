@@ -5,21 +5,45 @@
 
 import type { StateWithValue } from "react-ridge-state";
 import { newRidgeState } from "react-ridge-state";
+import { getInitialLanguage } from "@app/i18n";
+
+export type Theme = "light" | "dark" | "system";
+export type Language = "en" | "fr" | "de" | "cs" | "no" | "ru" | "es" | "zh-CN";
 
 interface SettingsType {
   debug: boolean;
-  darkTheme: boolean;
+  theme: Theme;
+  language: Language;
   scrollOnNewLog: boolean;
   indentLogLines: boolean;
   hideWrappedText: boolean;
   incognitoMode: boolean;
 }
 
+export const isDarkTheme = (theme: Theme): boolean => {
+  if (theme === "system") {
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  }
+  return theme === "dark";
+};
+
 export type FilterListState = {
   indexerFilter: string[];
   sortOrder: string;
   status: string;
 };
+
+export interface DashboardWidgetConfig {
+  id: string;
+  hidden: boolean;
+}
+
+// An empty widgets list means "registry defaults"; the dashboard grid
+// reconciles stored entries against the widget registry on render.
+export interface DashboardConfigType {
+  version: number;
+  widgets: DashboardWidgetConfig[];
+}
 
 export interface AuthInfo {
   username: string;
@@ -40,7 +64,8 @@ const AuthContextDefaults: AuthInfo = {
 
 const SettingsContextDefaults: SettingsType = {
   debug: false,
-  darkTheme: window.matchMedia('(prefers-color-scheme: dark)').matches,
+  theme: "system",
+  language: getInitialLanguage(),
   scrollOnNewLog: false,
   indentLogLines: false,
   hideWrappedText: false,
@@ -51,6 +76,11 @@ const FilterListContextDefaults: FilterListState = {
   indexerFilter: [],
   sortOrder: "",
   status: ""
+};
+
+const DashboardConfigDefaults: DashboardConfigType = {
+  version: 1,
+  widgets: []
 };
 
 // eslint-disable-next-line
@@ -81,8 +111,24 @@ function ContextMerger<T extends {}>(
 const AuthKey = "autobrr_user_auth";
 const SettingsKey = "autobrr_settings";
 const FilterListKey = "autobrr_filter_list";
+const DashboardKey = "autobrr_dashboard";
 
 export const InitializeGlobalContext = () => {
+  // Migrate old darkTheme boolean to new theme setting
+  const storage = localStorage.getItem(SettingsKey);
+  if (storage) {
+    try {
+      const json = JSON.parse(storage);
+      if (json && "darkTheme" in json && !("theme" in json)) {
+        json.theme = json.darkTheme ? "dark" : "light";
+        delete json.darkTheme;
+        localStorage.setItem(SettingsKey, JSON.stringify(json));
+      }
+    } catch {
+      // ignore migration errors
+    }
+  }
+
   ContextMerger<AuthInfo>(AuthKey, AuthContextDefaults, AuthContext);
   ContextMerger<SettingsType>(
     SettingsKey,
@@ -93,6 +139,11 @@ export const InitializeGlobalContext = () => {
     FilterListKey,
     FilterListContextDefaults,
     FilterListContext
+  );
+  ContextMerger<DashboardConfigType>(
+    DashboardKey,
+    DashboardConfigDefaults,
+    DashboardConfigContext
   );
 };
 
@@ -115,13 +166,21 @@ export const AuthContext = newRidgeState<AuthInfo>(
   }
 );
 
+export const DashboardConfigContext = newRidgeState<DashboardConfigType>(
+  DashboardConfigDefaults,
+  {
+    onSet: (newState, prevState) => DefaultSetter(DashboardKey, newState, prevState)
+  }
+);
+
 export const SettingsContext = newRidgeState<SettingsType>(
   SettingsContextDefaults,
   {
     onSet: (newState, prevState) => {
-      document.documentElement.classList.toggle("dark", newState.darkTheme);
+      const dark = isDarkTheme(newState.theme);
+      document.documentElement.classList.toggle("dark", dark);
       DefaultSetter(SettingsKey, newState, prevState);
-      updateMetaThemeColor(newState.darkTheme);
+      updateMetaThemeColor(dark);
     }
   }
 );

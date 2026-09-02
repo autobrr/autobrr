@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"strconv"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -21,6 +20,7 @@ type proxyService interface {
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context) ([]domain.Proxy, error)
 	FindByID(ctx context.Context, id int64) (*domain.Proxy, error)
+	Usage(ctx context.Context, id int64) (*domain.ProxyUsage, error)
 	Test(ctx context.Context, p *domain.Proxy) error
 }
 
@@ -45,6 +45,8 @@ func (h proxyHandler) Routes(r chi.Router) {
 		r.Get("/", h.findByID)
 		r.Put("/", h.update)
 		r.Delete("/", h.delete)
+
+		r.Get("/usage", h.usage)
 	})
 }
 
@@ -94,9 +96,9 @@ func (h proxyHandler) list(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h proxyHandler) findByID(w http.ResponseWriter, r *http.Request) {
-	proxyID, err := strconv.Atoi(chi.URLParam(r, "proxyID"))
+	proxyID, err := parseURLParamInt(r, "proxyID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -114,10 +116,26 @@ func (h proxyHandler) findByID(w http.ResponseWriter, r *http.Request) {
 	h.encoder.StatusResponse(w, http.StatusOK, proxies)
 }
 
-func (h proxyHandler) delete(w http.ResponseWriter, r *http.Request) {
-	proxyID, err := strconv.Atoi(chi.URLParam(r, "proxyID"))
+func (h proxyHandler) usage(w http.ResponseWriter, r *http.Request) {
+	proxyID, err := parseURLParamInt(r, "proxyID")
+	if err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
+
+	usage, err := h.service.Usage(r.Context(), int64(proxyID))
 	if err != nil {
 		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusOK, usage)
+}
+
+func (h proxyHandler) delete(w http.ResponseWriter, r *http.Request) {
+	proxyID, err := parseURLParamInt(r, "proxyID")
+	if err != nil {
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -143,6 +161,11 @@ func (h proxyHandler) test(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.service.Test(r.Context(), &data); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("could not find proxy"))
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}

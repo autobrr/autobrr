@@ -15,7 +15,7 @@ import {
 import { z } from "zod";
 import { QueryClient } from "@tanstack/react-query";
 
-import { Actions, Advanced, External, General, MoviesTv, Music } from "@screens/filters/sections";
+import { Actions, Advanced, Books, External, General, MoviesTv, Music, Notifications } from "@screens/filters/sections";
 import { APIClient } from "@api/APIClient";
 import { Login, Onboarding } from "@screens/auth";
 import ReleaseSettings from "@screens/settings/Releases";
@@ -25,7 +25,7 @@ import { Settings } from "@screens/Settings";
 import {
   ApikeysQueryOptions,
   ConfigQueryOptions,
-  DownloadClientsQueryOptions,
+  DownloadersQueryOptions,
   FeedsQueryOptions,
   FilterByIdQueryOptions,
   IndexersQueryOptions,
@@ -43,7 +43,7 @@ import { RingResizeSpinner } from "@components/Icons";
 import APISettings from "@screens/settings/Api";
 import { Releases } from "@screens/Releases";
 import IndexerSettings from "@screens/settings/Indexer";
-import DownloadClientSettings from "@screens/settings/DownloadClient";
+import DownloaderSettings from "@screens/settings/Downloaders.tsx";
 import FeedSettings from "@screens/settings/Feed";
 import { Dashboard } from "@screens/Dashboard";
 import AccountSettings from "@screens/settings/Account";
@@ -120,6 +120,12 @@ export const FilterMusicRoute = createRoute({
   component: Music
 });
 
+export const FilterBooksRoute = createRoute({
+  getParentRoute: () => FilterGetByIdRoute,
+  path: 'books',
+  component: Books
+});
+
 export const FilterAdvancedRoute = createRoute({
   getParentRoute: () => FilterGetByIdRoute,
   path: 'advanced',
@@ -138,18 +144,22 @@ export const FilterActionsRoute = createRoute({
   component: Actions
 });
 
+export const FilterNotificationsRoute = createRoute({
+  getParentRoute: () => FilterGetByIdRoute,
+  path: 'notifications',
+  component: Notifications
+});
+
 export const ReleasesRoute = createRoute({
   getParentRoute: () => AuthIndexRoute,
   path: 'releases',
   component: Releases,
   validateSearch: (search) => z.object({
-    offset: z.number().optional(),
-    limit: z.number().optional(),
-    filter: z.string().optional(),
+    page: z.number().optional(),
+    pageSize: z.number().optional(),
     q: z.string().optional(),
-    action_status: z.enum(['PUSH_APPROVED', 'PUSH_REJECTED', 'PUSH_ERROR', '']).optional(),
-    // filters: z.array().catch(''),
-    // sort: z.enum(['newest', 'oldest', 'price']).catch('newest'),
+    action_status: z.enum(['PUSH_APPROVED', 'PUSH_REJECTED', 'PENDING', 'PUSH_ERROR', '']).optional(),
+    indexer: z.string().optional(),
   }).parse(search),
 });
 
@@ -204,8 +214,8 @@ export const SettingsFeedsRoute = createRoute({
 export const SettingsClientsRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'clients',
-  loader: (opts) => opts.context.queryClient.ensureQueryData(DownloadClientsQueryOptions()),
-  component: DownloadClientSettings
+  loader: (opts) => opts.context.queryClient.ensureQueryData(DownloadersQueryOptions()),
+  component: DownloaderSettings
 });
 
 export const SettingsNotificationsRoute = createRoute({
@@ -336,12 +346,7 @@ export const AuthRoute = createRoute({
 function AuthenticatedLayout() {
   const isLoggedIn = AuthContext.useSelector((s) => s.isLoggedIn);
   if (!isLoggedIn) {
-    const redirect = (
-      location.pathname.length > 1
-        ? { redirect: location.pathname }
-        : undefined
-    );
-    return <Navigate to="/login" search={redirect} />;
+    return <Navigate to="/login" search={{ redirect: location.pathname + location.search }} />;
   }
 
   return (
@@ -365,8 +370,8 @@ export const RootComponent = () => {
       <Outlet />
       {settings.debug ? (
         <>
-          {process.env.NODE_ENV === 'development' && <TanStackRouterDevtools />}
-          {process.env.NODE_ENV === 'development' && <ReactQueryDevtools initialIsOpen={false} />}
+          {import.meta.env.DEV && <TanStackRouterDevtools />}
+          {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
         </>
       ) : null}
     </div>
@@ -380,7 +385,7 @@ export const RootRoute = createRootRouteWithContext<{
   notFoundComponent: NotFound,
 });
 
-const filterRouteTree = FiltersRoute.addChildren([FilterIndexRoute, FilterGetByIdRoute.addChildren([FilterGeneralRoute, FilterMoviesTvRoute, FilterMusicRoute, FilterAdvancedRoute, FilterExternalRoute, FilterActionsRoute])])
+const filterRouteTree = FiltersRoute.addChildren([FilterIndexRoute, FilterGetByIdRoute.addChildren([FilterGeneralRoute, FilterMoviesTvRoute, FilterMusicRoute, FilterBooksRoute, FilterAdvancedRoute, FilterExternalRoute, FilterActionsRoute, FilterNotificationsRoute])])
 const settingsRouteTree = SettingsRoute.addChildren([SettingsIndexRoute, SettingsLogRoute, SettingsIndexersRoute, SettingsIrcRoute, SettingsListsRoute, SettingsFeedsRoute, SettingsClientsRoute, SettingsNotificationsRoute, SettingsApiRoute, SettingsProxiesRoute, SettingsReleasesRoute, SettingsAccountRoute])
 const authenticatedTree = AuthRoute.addChildren([AuthIndexRoute.addChildren([DashboardRoute, filterRouteTree, ReleasesRoute, settingsRouteTree, LogsRoute])])
 const routeTree = RootRoute.addChildren([

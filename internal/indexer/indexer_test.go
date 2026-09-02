@@ -4,12 +4,10 @@
 package indexer
 
 import (
-	"io"
 	"testing"
 
 	"github.com/autobrr/autobrr/internal/domain"
 
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -367,52 +365,52 @@ func TestIndexersParseAndFilter(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			//l := zerolog.New(io.Discard)
-			//l := logger.Mock()
+			var def *domain.IndexerDefinition
+			defErr := OpenAndDecodeDefinition("./definitions/"+tt.fields.identifier+".yaml", &def)
+			assert.NoError(t, defErr)
 
-			i, err := OpenAndProcessDefinition("./definitions/" + tt.fields.identifier + ".yaml")
-			assert.NoError(t, err)
+			def.Prepare()
 
-			i.IdentifierExternal = tt.fields.identifierExternal
-			i.SettingsMap = tt.fields.settings
-
-			ll := zerolog.New(io.Discard)
+			def.IdentifierExternal = tt.fields.identifierExternal
+			def.SettingsMap = tt.fields.settings
 
 			// indexer subtests
 			for _, subT := range tt.subTests {
 				t.Run(subT.name, func(t *testing.T) {
 
+					rls := domain.NewRelease(domain.IndexerMinimal{ID: def.ID, Name: def.Name, Identifier: def.Identifier, IdentifierExternal: def.IdentifierExternal})
+					rls.Protocol = domain.ReleaseProtocol(def.Protocol)
+
 					// from announce/announce.go
 					tmpVars := map[string]string{}
 					parseFailed := false
 
-					for idx, parseLine := range i.IRC.Parse.Lines {
-						match, err := ParseLine(&ll, parseLine.Pattern, parseLine.Vars, tmpVars, subT.args.announceLines[idx], parseLine.Ignore)
-						if err != nil {
-							parseFailed = true
-							break
+					for _, channel := range def.IRC.ChannelsMap {
+						for idx, parseLine := range channel.Parse.Lines {
+							match, err := parseLine.ParseLine(tmpVars, subT.args.announceLines[idx], parseLine.Ignore)
+							if err != nil {
+								parseFailed = true
+								break
+							}
+
+							if !match {
+								parseFailed = true
+								break
+							}
 						}
 
-						if !match {
-							parseFailed = true
-							break
+						if parseFailed {
+							return
 						}
+
+						// on lines matched
+						parseErr := channel.Parse.Parse(def, channel.Name, tmpVars, rls)
+						assert.NoError(t, parseErr)
 					}
-
-					if parseFailed {
-						return
-					}
-
-					rls := domain.NewRelease(domain.IndexerMinimal{ID: i.ID, Name: i.Name, Identifier: i.Identifier, IdentifierExternal: i.IdentifierExternal})
-					rls.Protocol = domain.ReleaseProtocol(i.Protocol)
-
-					// on lines matched
-					err = i.IRC.Parse.Parse(i, tmpVars, rls)
-					assert.NoError(t, err)
 
 					// release/service.go
 
-					//ctx := context.Background()
+					//ctx := t.Context()
 					//filterSvc := filter.NewService(l, nil, nil, nil, nil, nil)
 
 					for _, filterT := range subT.args.filters {

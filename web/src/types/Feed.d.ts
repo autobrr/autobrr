@@ -13,8 +13,12 @@ interface Feed {
   interval: number;
   timeout: number;
   max_age: number;
+  categories: number[];
+  capabilities: FeedCaps | null;
   api_key: string;
   cookie: string;
+  user_agent: string;
+  tls_skip_verify: boolean;
   last_run: string;
   last_run_data: string;
   next_run: string;
@@ -25,10 +29,10 @@ interface Feed {
 
 interface FeedSettings {
   download_type: FeedDownloadType;
-  // download_type: string;
+  cache_ttl_days: number;
 }
 
-type FeedDownloadType = "MAGNET" | "TORRENT";
+type FeedDownloadType = "MAGNET" | "TORRENT" | "NZB";
 
 type FeedType = "TORZNAB" | "NEWZNAB" | "RSS";
 
@@ -40,6 +44,32 @@ interface FeedCreate {
   interval: number;
   timeout: number;
   api_key?: string;
+  tls_skip_verify?: boolean;
   indexer_id: number;
+  categories?: number[];
+  capabilities?: FeedCaps | null;
   settings: FeedSettings;
+}
+
+interface FeedCapsLimits {
+  max: string;
+  default: string;
+}
+
+interface FeedCapsCategory {
+  id: number;
+  name: string;
+  subcategories: FeedCapsCategory[] | null;
+}
+
+interface FeedCaps {
+  limits: FeedCapsLimits;
+  categories: FeedCapsCategory[];
+}
+
+interface FeedCapsRequest {
+  type: FeedType;
+  url: string;
+  api_key?: string;
+  timeout?: number;
 }

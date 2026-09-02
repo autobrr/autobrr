@@ -4,74 +4,77 @@
  */
 
 import { CollapsibleSection, FilterHalfRow, FilterLayout, FilterSection } from "../_components";
-import { DownloadClientSelect, NumberField, SwitchGroup, TextAreaAutoResize, TextField } from "@components/inputs";
+import { DownloaderSelect, NumberField, SwitchGroup, TextAreaAutoResize, TextField } from "@components/inputs";
+import { useTranslation } from "react-i18next";
 
-export const Deluge = ({ idx, action, clients }: ClientActionProps) => (
+export const Deluge = ({ idx, action, clients }: ClientActionProps) => {
+  const { t } = useTranslation("filters");
+
+  return (
   <>
     <FilterSection
-      title="Instance"
-      subtitle={
-        <>Select the <span className="font-bold">specific instance</span> which you want to handle this release filter.</>
-      }
+      title={t("actionComponents.instance.title")}
+      subtitle={t("actionComponents.instance.subtitle")}
     >
       <FilterLayout>
         <FilterHalfRow>
-          <DownloadClientSelect
-            name={`actions.${idx}.client_id`}
+          <DownloaderSelect
+            name={`actions[${idx}].client_id`}
             action={action}
             clients={clients}
           />
         </FilterHalfRow>
         <FilterHalfRow>
           <TextField
-            name={`actions.${idx}.label`}
-            label="Label"
+            name={`actions[${idx}].label`}
+            label={t("actionComponents.deluge.label")}
             columns={6}
-            placeholder="eg. label1 (must exist in Deluge to work)"
+            placeholder={t("actionComponents.deluge.labelPlaceholder")}
           />
         </FilterHalfRow>
 
         <TextAreaAutoResize
-          name={`actions.${idx}.save_path`}
-          label="Save path"
-          placeholder="eg. /full/path/to/download_folder"
+          name={`actions[${idx}].save_path`}
+          label={t("actionComponents.common.savePath")}
+          placeholder={t("actionComponents.common.savePathPlaceholder")}
         />
       </FilterLayout>
 
       <FilterLayout className="pb-6">
         <FilterHalfRow>
           <SwitchGroup
-            name={`actions.${idx}.paused`}
-            label="Add paused"
-            description="Add torrent as paused"
+            name={`actions[${idx}].paused`}
+            label={t("actionComponents.common.addPaused")}
+            description={t("actionComponents.common.addPausedDescription")}
           />
         </FilterHalfRow>
         <FilterHalfRow>
         <SwitchGroup
-            name={`actions.${idx}.skip_hash_check`}
-            label="Skip hash check"
-            description="Add torrent and skip hash check"
-            tooltip={<div>This will only work on Deluge v2.</div>}
+            name={`actions[${idx}].skip_hash_check`}
+            label={t("actionComponents.common.skipHashCheck")}
+            description={t("actionComponents.common.skipHashCheckDescription")}
+            tooltip={<div>{t("actionComponents.deluge.skipHashCheckTooltip")}</div>}
           />
         </FilterHalfRow>
       </FilterLayout>
 
       <CollapsibleSection
         noBottomBorder
-        title="Limits"
-        subtitle="Configure your speed/ratio/seed time limits"
+        title={t("actionComponents.common.limitsTitle")}
+        subtitle={t("actionComponents.common.limitsSubtitle")}
       >
         <NumberField
-          name={`actions.${idx}.limit_download_speed`}
-          label="Limit download speed (KB/s)"
-          placeholder="Takes any number (0 is no limit)"
+          name={`actions[${idx}].limit_download_speed`}
+          label={t("actionComponents.common.limitDownloadKb")}
+          placeholder={t("actionComponents.common.numberNoLimit")}
         />
         <NumberField
-          name={`actions.${idx}.limit_upload_speed`}
-          label="Limit upload speed (KB/s)"
-          placeholder="Takes any number (0 is no limit)"
+          name={`actions[${idx}].limit_upload_speed`}
+          label={t("actionComponents.common.limitUploadKb")}
+          placeholder={t("actionComponents.common.numberNoLimit")}
         />
       </CollapsibleSection>
     </FilterSection>
   </>
-);
+  );
+};

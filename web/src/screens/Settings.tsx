@@ -17,29 +17,30 @@ import {
   UserCircleIcon
 } from "@heroicons/react/24/outline";
 import { Link, Outlet } from "@tanstack/react-router";
+import { useTranslation } from "react-i18next";
 
 import { classNames } from "@utils";
 
 interface NavTabType {
-  name: string;
+  labelKey: string;
   href: string;
   icon: typeof CogIcon;
   exact?: boolean;
 }
 
 const subNavigation: NavTabType[] = [
-  { name: "Application", href: "/settings", icon: CogIcon, exact: true },
-  { name: "Logs", href: "/settings/logs", icon: Square3Stack3DIcon },
-  { name: "Indexers", href: "/settings/indexers", icon: KeyIcon },
-  { name: "IRC", href: "/settings/irc", icon: ChatBubbleLeftRightIcon },
-  { name: "Feeds", href: "/settings/feeds", icon: RssIcon },
-  { name: "Lists", href: "/settings/lists", icon: BarsArrowDownIcon },
-  { name: "Clients", href: "/settings/clients", icon: FolderArrowDownIcon },
-  { name: "Notifications", href: "/settings/notifications", icon: BellIcon },
-  { name: "API keys", href: "/settings/api", icon: KeyIcon },
-  { name: "Proxies", href: "/settings/proxies", icon: GlobeAltIcon },
-  { name: "Releases", href: "/settings/releases", icon: RectangleStackIcon },
-  { name: "Account", href: "/settings/account", icon: UserCircleIcon }
+  { labelKey: "nav.application", href: "/settings", icon: CogIcon, exact: true },
+  { labelKey: "nav.logs", href: "/settings/logs", icon: Square3Stack3DIcon },
+  { labelKey: "nav.indexers", href: "/settings/indexers", icon: KeyIcon },
+  { labelKey: "nav.irc", href: "/settings/irc", icon: ChatBubbleLeftRightIcon },
+  { labelKey: "nav.feeds", href: "/settings/feeds", icon: RssIcon },
+  { labelKey: "nav.lists", href: "/settings/lists", icon: BarsArrowDownIcon },
+  { labelKey: "nav.clients", href: "/settings/clients", icon: FolderArrowDownIcon },
+  { labelKey: "nav.notifications", href: "/settings/notifications", icon: BellIcon },
+  { labelKey: "nav.apiKeys", href: "/settings/api", icon: KeyIcon },
+  { labelKey: "nav.proxies", href: "/settings/proxies", icon: GlobeAltIcon },
+  { labelKey: "nav.releases", href: "/settings/releases", icon: RectangleStackIcon },
+  { labelKey: "nav.account", href: "/settings/account", icon: UserCircleIcon }
   // {name: 'Regex Playground', href: 'regex-playground', icon: CogIcon, current: false}
   // {name: 'Rules', href: 'rules', icon: ClipboardCheckIcon, current: false},
 ];
@@ -49,6 +50,7 @@ interface NavLinkProps {
 }
 
 function SubNavLink({ item }: NavLinkProps) {
+  const { t } = useTranslation("settings");
   // const { pathname } = useLocation();
   // const splitLocation = pathname.split("/");
 
@@ -76,7 +78,7 @@ function SubNavLink({ item }: NavLinkProps) {
               className="text-gray-500 dark:text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 shrink-0 -ml-1 mr-3 h-6 w-6"
               aria-hidden="true"
             />
-            <span className="truncate">{item.name}</span>
+            <span className="truncate">{t(item.labelKey)}</span>
           </span>
         )
       }}
@@ -101,10 +103,12 @@ function SidebarNav({ subNavigation }: SidebarNavProps) {
 }
 
 export function Settings() {
+  const { t } = useTranslation("settings");
+
   return (
     <main>
       <div className="my-6 max-w-(--breakpoint-xl) mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-bold text-black dark:text-white">Settings</h1>
+        <h1 className="text-3xl font-bold text-black dark:text-white">{t("title")}</h1>
       </div>
 
       <div className="max-w-(--breakpoint-xl) mx-auto pb-6 px-2 sm:px-6 lg:pb-16 lg:px-8">

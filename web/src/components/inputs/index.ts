@@ -9,4 +9,5 @@ export * from "./input_wide";
 export * from "./radio";
 export * from "./select";
 export * from "./switch";
+export { SMColSpanClasses } from "./constants";
 

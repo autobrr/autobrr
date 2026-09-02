@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/autobrr/autobrr/pkg/regexcache"
+	"github.com/autobrr/go-cache/regexcache"
 
 	"github.com/rs/zerolog/log"
 )
@@ -94,7 +94,7 @@ func MatchSlice(pattern []string, name string) (matched bool) {
 }
 
 func matchSlice(pattern []string, name string, simple bool) (matched bool) {
-	for i := 0; i < len(pattern); i++ {
+	for i := range pattern {
 		if match(pattern[i], name, simple) {
 			return true
 		}
@@ -171,7 +171,7 @@ func deepMatchRune(str, pattern string, simple bool, original string, bulk bool)
 			var err error
 			user, err = regexcache.Compile(pattern)
 			if err != nil {
-				log.Error().Err(err).Msgf("deepMatchRune: unable to parse %q", pattern)
+				log.Error().Err(err).Str("pattern", pattern).Msg("unable to parse regex")
 				return false
 			}
 		}

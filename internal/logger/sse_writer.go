@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -18,9 +18,16 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// StreamLogs is the sse stream the log writer publishes to.
+const StreamLogs = "logs"
+
+type sseServer interface {
+	TryPublish(id string, event *sse.Event) bool
+}
+
 type SSEWriter struct {
 	// SSE
-	SSE *sse.Server
+	SSE sseServer
 
 	// TimeFormat specifies the format for timestamp in output.
 	TimeFormat string
@@ -29,7 +36,7 @@ type SSEWriter struct {
 	PartsOrder []string
 }
 
-func NewSSEWriter(sse *sse.Server, options ...func(w *SSEWriter)) SSEWriter {
+func NewSSEWriter(sse sseServer, options ...func(w *SSEWriter)) SSEWriter {
 	w := SSEWriter{
 		SSE:        sse,
 		TimeFormat: defaultTimeFormat,
@@ -59,10 +66,10 @@ func (m LogMessage) Bytes() ([]byte, error) {
 
 func (w SSEWriter) Write(p []byte) (n int, err error) {
 	if w.SSE == nil {
-		return 0, nil
+		return len(p), nil
 	}
 
-	var evt map[string]interface{}
+	var evt map[string]any
 	p = decodeIfBinaryToBytes(p)
 	d := json.NewDecoder(bytes.NewReader(p))
 	d.UseNumber()
@@ -87,9 +94,15 @@ func (w SSEWriter) Write(p []byte) (n int, err error) {
 		return n, err
 	}
 
+	// an event without a timestamp would panic a type assertion here, and a
+	// panic in the log writer takes down whichever goroutine happened to log
+	ts, ok := evt[zerolog.TimestampFieldName].(string)
+	if !ok {
+		ts = time.Now().Format(zerolog.TimeFieldFormat)
+	}
+
 	m := LogMessage{
-		//Time:    w.formatTime(evt),
-		Time:    evt["time"].(string),
+		Time:    ts,
 		Level:   w.formatLevel(evt),
 		Message: buf.String(),
 	}
@@ -99,16 +112,20 @@ func (w SSEWriter) Write(p []byte) (n int, err error) {
 		return n, err
 	}
 
-	// publish too logs topic
-	w.SSE.Publish("logs", &sse.Event{
+	// Publish blocks until the stream buffer drains, and a subscriber that
+	// stopped reading without disconnecting stalls that indefinitely, which
+	// would block every goroutine in the process that logs. Dropping the line
+	// is the only safe option, and it cannot be reported from here because
+	// logging inside the log writer recurses.
+	w.SSE.TryPublish(StreamLogs, &sse.Event{
 		Data: data,
 	})
 
-	return len(p), err
+	return len(p), nil
 }
 
 // writeFields appends formatted key-value pairs to buf.
-func (w SSEWriter) writeFields(buf *bytes.Buffer, evt map[string]interface{}) {
+func (w SSEWriter) writeFields(buf *bytes.Buffer, evt map[string]any) {
 	var fields = make([]string, 0, len(evt))
 	for field := range evt {
 
@@ -118,7 +135,7 @@ func (w SSEWriter) writeFields(buf *bytes.Buffer, evt map[string]interface{}) {
 		}
 		fields = append(fields, field)
 	}
-	sort.Strings(fields)
+	slices.Sort(fields)
 
 	// Write space only if something has already been written to the buffer, and if there are fields.
 	if buf.Len() > 0 && len(fields) > 0 {
@@ -126,8 +143,7 @@ func (w SSEWriter) writeFields(buf *bytes.Buffer, evt map[string]interface{}) {
 	}
 
 	// Move the "error" field to the front
-	ei := sort.Search(len(fields), func(i int) bool { return fields[i] >= zerolog.ErrorFieldName })
-	if ei < len(fields) && fields[ei] == zerolog.ErrorFieldName {
+	if ei, found := slices.BinarySearch(fields, zerolog.ErrorFieldName); found {
 		fields[ei] = ""
 		fields = append([]string{zerolog.ErrorFieldName}, fields...)
 		var xfields = make([]string, 0, len(fields))
@@ -181,7 +197,7 @@ func (w SSEWriter) writeFields(buf *bytes.Buffer, evt map[string]interface{}) {
 }
 
 // writePart appends a formatted part to buf.
-func (w SSEWriter) writePart(buf *bytes.Buffer, evt map[string]interface{}, p string) {
+func (w SSEWriter) writePart(buf *bytes.Buffer, evt map[string]any, p string) {
 	var f Formatter
 
 	switch p {
@@ -212,7 +228,7 @@ func (w SSEWriter) writePart(buf *bytes.Buffer, evt map[string]interface{}, p st
 }
 
 // formatLevel format level to string
-func (w SSEWriter) formatLevel(evt map[string]interface{}) string {
+func (w SSEWriter) formatLevel(evt map[string]any) string {
 	var f Formatter
 
 	f = defaultFormatLevel()
@@ -226,27 +242,12 @@ func (w SSEWriter) formatLevel(evt map[string]interface{}) string {
 	return ""
 }
 
-// formatTime format time to string
-func (w SSEWriter) formatTime(evt map[string]interface{}) string {
-	var f Formatter
-
-	f = defaultFormatTimestamp(w.TimeFormat)
-
-	var s = f(evt["time"])
-
-	if len(s) > 0 {
-		return s
-	}
-
-	return ""
-}
-
 const (
 	defaultTimeFormat = time.Kitchen
 )
 
 // Formatter transforms the input into a formatted string.
-type Formatter func(interface{}) string
+type Formatter func(any) string
 
 func decodeIfBinaryToBytes(in []byte) []byte {
 	return in
@@ -277,7 +278,7 @@ func defaultFormatTimestamp(timeFormat string) Formatter {
 	if timeFormat == "" {
 		timeFormat = defaultTimeFormat
 	}
-	return func(i interface{}) string {
+	return func(i any) string {
 		t := "<nil>"
 		switch tt := i.(type) {
 		case string:
@@ -314,7 +315,7 @@ func defaultFormatTimestamp(timeFormat string) Formatter {
 }
 
 func defaultFormatLevel() Formatter {
-	return func(i interface{}) string {
+	return func(i any) string {
 		var l string
 		if ll, ok := i.(string); ok {
 			switch ll {
@@ -347,7 +348,7 @@ func defaultFormatLevel() Formatter {
 }
 
 func defaultFormatCaller() Formatter {
-	return func(i interface{}) string {
+	return func(i any) string {
 		var c string
 		if cc, ok := i.(string); ok {
 			c = cc
@@ -364,7 +365,7 @@ func defaultFormatCaller() Formatter {
 	}
 }
 
-func defaultFormatMessage(i interface{}) string {
+func defaultFormatMessage(i any) string {
 	if i == nil {
 		return ""
 	}
@@ -372,23 +373,23 @@ func defaultFormatMessage(i interface{}) string {
 }
 
 func defaultFormatFieldName() Formatter {
-	return func(i interface{}) string {
+	return func(i any) string {
 		return fmt.Sprintf("%s=", i)
 	}
 }
 
-func defaultFormatFieldValue(i interface{}) string {
+func defaultFormatFieldValue(i any) string {
 	return fmt.Sprintf("%s", i)
 }
 
 func defaultFormatErrFieldName() Formatter {
-	return func(i interface{}) string {
+	return func(i any) string {
 		return fmt.Sprintf("%s=", i)
 	}
 }
 
 func defaultFormatErrFieldValue() Formatter {
-	return func(i interface{}) string {
+	return func(i any) string {
 		return fmt.Sprintf("%s=", i)
 	}
 }

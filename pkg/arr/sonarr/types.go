@@ -5,12 +5,13 @@ package sonarr
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/arr"
 )
 
-type Release struct {
+type ReleasePushRequest struct {
 	Title            string `json:"title"`
 	InfoUrl          string `json:"infoUrl,omitempty"`
 	DownloadUrl      string `json:"downloadUrl,omitempty"`
@@ -22,9 +23,11 @@ type Release struct {
 	PublishDate      string `json:"publishDate"`
 	DownloadClientId int    `json:"downloadClientId,omitempty"`
 	DownloadClient   string `json:"downloadClient,omitempty"`
+	IndexerFlags     int    `json:"indexerFlags,omitempty"`
+	ImdbID           string `json:"imdbId,omitempty"`
 }
 
-type PushResponse struct {
+type ReleasePushResponse struct {
 	Approved     bool     `json:"approved"`
 	Rejected     bool     `json:"rejected"`
 	TempRejected bool     `json:"temporarilyRejected"`
@@ -75,7 +78,7 @@ type Series struct {
 	SortTitle         string            `json:"sortTitle,omitempty"`
 	Status            string            `json:"status,omitempty"`
 	Overview          string            `json:"overview,omitempty"`
-	PreviousAiring    time.Time         `json:"previousAiring,omitempty"`
+	PreviousAiring    time.Time         `json:"previousAiring"`
 	Network           string            `json:"network,omitempty"`
 	Images            []*arr.Image      `json:"images,omitempty"`
 	Seasons           []*Season         `json:"seasons,omitempty"`
@@ -87,7 +90,7 @@ type Series struct {
 	TvdbID            int64             `json:"tvdbId,omitempty"`
 	TvRageID          int64             `json:"tvRageId,omitempty"`
 	TvMazeID          int64             `json:"tvMazeId,omitempty"`
-	FirstAired        time.Time         `json:"firstAired,omitempty"`
+	FirstAired        time.Time         `json:"firstAired"`
 	SeriesType        string            `json:"seriesType,omitempty"`
 	CleanTitle        string            `json:"cleanTitle,omitempty"`
 	ImdbID            string            `json:"imdbId,omitempty"`
@@ -96,13 +99,65 @@ type Series struct {
 	Certification     string            `json:"certification,omitempty"`
 	Genres            []string          `json:"genres,omitempty"`
 	Tags              []int             `json:"tags,omitempty"`
-	Added             time.Time         `json:"added,omitempty"`
+	Added             time.Time         `json:"added"`
 	Ratings           *arr.Ratings      `json:"ratings,omitempty"`
 	Statistics        *Statistics       `json:"statistics,omitempty"`
-	NextAiring        time.Time         `json:"nextAiring,omitempty"`
+	NextAiring        time.Time         `json:"nextAiring"`
 	AirTime           string            `json:"airTime,omitempty"`
 	Ended             bool              `json:"ended,omitempty"`
 	SeasonFolder      bool              `json:"seasonFolder,omitempty"`
 	Monitored         bool              `json:"monitored"`
 	UseSceneNumbering bool              `json:"useSceneNumbering,omitempty"`
+}
+
+type IndexerFlags int
+
+const (
+	IndexerFlagFreeleech    IndexerFlags = 1
+	IndexerFlagHalfleech    IndexerFlags = 2
+	IndexerFlagDoubleUpload IndexerFlags = 4
+	IndexerFlagInternal     IndexerFlags = 8
+	IndexerFlagScene        IndexerFlags = 16
+	IndexerFlagFreeleech75  IndexerFlags = 32
+	IndexerFlagFreeleech25  IndexerFlags = 64
+	IndexerFlagNuked        IndexerFlags = 128
+	IndexerFlagSubtitles    IndexerFlags = 256
+)
+
+type ReleaseMeta struct {
+	FreeleechPercent int
+	Origin           string // "scene" or "internal"
+	Nuked            bool
+	HasSubtitles     bool
+	DoubleUpload     bool
+}
+
+func BuildIndexerFlags(m ReleaseMeta) IndexerFlags {
+	var flags IndexerFlags
+	switch m.FreeleechPercent {
+	case 100:
+		flags |= IndexerFlagFreeleech
+	case 75:
+		flags |= IndexerFlagFreeleech75
+	case 50:
+		flags |= IndexerFlagHalfleech
+	case 25:
+		flags |= IndexerFlagFreeleech25
+	}
+	switch strings.ToLower(strings.TrimSpace(m.Origin)) {
+	case "internal":
+		flags |= IndexerFlagInternal
+	case "scene":
+		flags |= IndexerFlagScene
+	}
+	if m.Nuked {
+		flags |= IndexerFlagNuked
+	}
+	if m.HasSubtitles {
+		flags |= IndexerFlagSubtitles
+	}
+	if m.DoubleUpload {
+		flags |= IndexerFlagDoubleUpload
+	}
+	return flags
 }

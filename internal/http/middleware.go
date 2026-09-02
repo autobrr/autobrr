@@ -12,10 +12,11 @@ import (
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/hlog"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (s Server) IsAuthenticated(next http.Handler) http.Handler {
+func (s *Server) IsAuthenticated(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if token := r.Header.Get("X-API-Token"); token != "" {
 			// check header
@@ -44,10 +45,10 @@ func (s Server) IsAuthenticated(next http.Handler) http.Handler {
 
 			deadline := s.sessionManager.Deadline(r.Context())
 			if time.Until(deadline) <= 7*24*time.Hour {
-				s.log.Trace().Msgf("session is expiring in less than 7 days on %s - extending session", deadline.Format("2006-01-02 15:04:05"))
+				s.log.Trace().Time("deadline", deadline).Msg("session expiring in less than 7 days, extending")
 
 				if err := s.sessionManager.RenewToken(r.Context()); err != nil {
-					s.log.Error().Err(err).Msgf("Auth: Failed to renew session token for username: [%s] ip: %s", s.sessionManager.GetString(r.Context(), "username"), r.RemoteAddr)
+					s.log.Error().Err(err).Str("username", s.sessionManager.GetString(r.Context(), "username")).Str("remote_addr", r.RemoteAddr).Msg("failed to renew session token")
 					http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 					return
 				}
@@ -61,7 +62,12 @@ func (s Server) IsAuthenticated(next http.Handler) http.Handler {
 func LoggerMiddleware(logger *zerolog.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
-			log := logger.With().Logger()
+			// the hlog ctx logger carries the request_id field; fall back if
+			// this middleware is mounted without hlog.NewHandler
+			log := *hlog.FromRequest(r)
+			if log.GetLevel() == zerolog.Disabled {
+				log = logger.With().Logger()
+			}
 
 			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 
@@ -85,7 +91,7 @@ func LoggerMiddleware(logger *zerolog.Logger) func(next http.Handler) http.Handl
 					log.Trace().
 						Str("type", "access").
 						Timestamp().
-						Fields(map[string]interface{}{
+						Fields(map[string]any{
 							"remote_ip":  r.RemoteAddr,
 							"url":        r.URL.Path,
 							"proto":      r.Proto,
@@ -110,8 +116,7 @@ func LoggerMiddleware(logger *zerolog.Logger) func(next http.Handler) http.Handl
 func BasicAuth(realm string, users string) func(next http.Handler) http.Handler {
 	creds := map[string]string{}
 
-	userCreds := strings.Split(users, ",")
-	for _, cred := range userCreds {
+	for cred := range strings.SplitSeq(users, ",") {
 		credParts := strings.Split(cred, ":")
 		if len(credParts) != 2 {
 			//s.log.Warn().Msgf("Invalid metrics basic auth credentials: %s", cred)

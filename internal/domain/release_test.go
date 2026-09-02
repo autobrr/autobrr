@@ -464,8 +464,9 @@ func TestRelease_Parse(t *testing.T) {
 
 func TestRelease_MapVars(t *testing.T) {
 	type args struct {
-		varMap     map[string]string
-		definition IndexerDefinition
+		varMap map[string]string
+		//definition IndexerDefinition
+		forceSizeUnit string
 	}
 	tests := []struct {
 		name   string
@@ -639,7 +640,7 @@ func TestRelease_MapVars(t *testing.T) {
 					"torrentSize":      "10000",
 					"tags":             "hip.hop,rhythm.and.blues, 2000s",
 				},
-				definition: IndexerDefinition{IRC: &IndexerIRC{Parse: &IndexerIRCParse{ForceSizeUnit: "MB"}}},
+				forceSizeUnit: "MB",
 			},
 		},
 		{
@@ -706,12 +707,95 @@ func TestRelease_MapVars(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:   "downloadVolumeFactor maps charged fraction to freeleech percent",
+			fields: &Release{},
+			want: &Release{
+				TorrentName:      "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				Freeleech:        true,
+				FreeleechPercent: 75,
+			},
+			args: args{
+				varMap: map[string]string{
+					"torrentName":          "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+					"downloadVolumeFactor": "0.25",
+				},
+			},
+		},
+		{
+			name:   "downloadVolumeFactor below range is ignored",
+			fields: &Release{},
+			want: &Release{
+				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+			},
+			args: args{
+				varMap: map[string]string{
+					"torrentName":          "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+					"downloadVolumeFactor": "-0.1",
+				},
+			},
+		},
+		{
+			name:   "downloadVolumeFactor above range is ignored",
+			fields: &Release{},
+			want: &Release{
+				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+			},
+			args: args{
+				varMap: map[string]string{
+					"torrentName":          "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+					"downloadVolumeFactor": "1.1",
+				},
+			},
+		},
+		{
+			name:   "imdb id is prefixed with tt",
+			fields: &Release{},
+			want: &Release{
+				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				MetaIMDB:    "tt0133093",
+			},
+			args: args{
+				varMap: map[string]string{
+					"torrentName": "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+					"imdb":        "0133093",
+				},
+			},
+		},
+		{
+			name:   "imdb id already prefixed is kept as is",
+			fields: &Release{},
+			want: &Release{
+				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				MetaIMDB:    "tt0133093",
+			},
+			args: args{
+				varMap: map[string]string{
+					"torrentName": "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+					"imdb":        "tt0133093",
+				},
+			},
+		},
+		{
+			name:   "empty imdb id from unmatched optional group is ignored",
+			fields: &Release{},
+			want: &Release{
+				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+			},
+			args: args{
+				varMap: map[string]string{
+					"torrentName": "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+					"imdb":        "",
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := tt.fields
-			_ = r.MapVars(&tt.args.definition, tt.args.varMap)
+			_ = r.MapVars(tt.args.varMap, tt.args.forceSizeUnit)
 
+			r.RawVars = nil // Vars pass-through is tested separately
 			assert.Equal(t, tt.want, r)
 		})
 	}

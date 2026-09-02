@@ -25,6 +25,8 @@ import (
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/user"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
+
 	_ "github.com/lib/pq"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/term"
@@ -92,7 +94,7 @@ func main() {
 			}
 			os.Exit(1)
 		}
-		defer resp.Body.Close()
+		defer sharedhttp.DrainAndClose(resp)
 
 		// brr-api returns 500 instead of 404 here
 		if resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusInternalServerError {
@@ -124,13 +126,14 @@ func main() {
 		cfg := config.New(configPath, version)
 
 		// init new logger
-		l := logger.New(cfg.Config)
+		l := logger.New(cfg.Config, nil)
 
 		// open database connection
 		db, _ := database.NewDB(cfg.Config, l)
 		if err := db.Open(); err != nil {
 			log.Fatal("could not open db connection")
 		}
+		defer db.Close()
 
 		userRepo := database.NewUserRepo(l, db)
 
@@ -173,13 +176,14 @@ func main() {
 		cfg := config.New(configPath, version)
 
 		// init new logger
-		l := logger.New(cfg.Config)
+		l := logger.New(cfg.Config, nil)
 
 		// open database connection
 		db, _ := database.NewDB(cfg.Config, l)
 		if err := db.Open(); err != nil {
 			log.Fatal("could not open db connection")
 		}
+		defer db.Close()
 
 		userRepo := database.NewUserRepo(l, db)
 
@@ -222,10 +226,19 @@ func main() {
 		log.Printf("successfully updated password for user %q", username)
 
 	case "db:convert":
-		var sqliteDBPath, postgresDBURL string
+		ctx := context.Background()
+
+		var (
+			sqliteDBPath, postgresDBURL string
+			excludeTables               string
+			dryRun                      bool
+		)
+
 		migrateFlagSet := flag.NewFlagSet("db:convert", flag.ExitOnError)
 		migrateFlagSet.StringVar(&sqliteDBPath, "sqlite-db", "", "path to SQLite database file")
-		migrateFlagSet.StringVar(&postgresDBURL, "postgres-url", "", "URL for PostgreSQL database")
+		migrateFlagSet.StringVar(&postgresDBURL, "postgres-url", "", "DSN for PostgreSQL database: postgres://user:pass@host:port/db?sslmode=disable")
+		migrateFlagSet.StringVar(&excludeTables, "exclude-tables", "", "comma separated list of tables to exclude from conversion")
+		migrateFlagSet.BoolVar(&dryRun, "dry-run", false, "dry run")
 
 		if err := migrateFlagSet.Parse(flag.Args()[1:]); err != nil {
 			fmt.Printf("Error parsing flags for db:convert: %v\n", err)
@@ -239,10 +252,19 @@ func main() {
 			os.Exit(1)
 		}
 
-		c := tools.NewConverter(sqliteDBPath, postgresDBURL)
-		if err := c.Convert(); err != nil {
+		opts := tools.Opts{
+			DryRun:        dryRun,
+			ExcludeTables: strings.Split(excludeTables, ","),
+		}
+
+		l := logger.New(&domain.Config{LogLevel: "TRACE", Version: "dev"}, nil)
+
+		c := tools.NewConverter(l, sqliteDBPath, postgresDBURL)
+		if err := c.Convert(ctx, opts); err != nil {
 			log.Fatalf("database conversion failed: %v", err)
 		}
+
+		os.Exit(0)
 
 	case "db:seed", "db:reset":
 		var dbPath, seedDBPath string
@@ -305,7 +327,7 @@ func main() {
 		cfg := config.New(configPath, version)
 
 		// init new logger
-		l := logger.New(cfg.Config)
+		l := logger.New(cfg.Config, nil)
 
 		// open database connection
 		db, _ := database.NewDB(cfg.Config, l)
@@ -418,14 +440,16 @@ func CreateHtpasswdHash(password string) (string, error) {
 // FilterExport contains all the fields of domain.Filter useful for export
 type FilterExport struct {
 	// Basic fields
-	Name             string `json:"name,omitempty"`
-	Enabled          bool   `json:"enabled,omitempty"`
-	MinSize          string `json:"min_size,omitempty"`
-	MaxSize          string `json:"max_size,omitempty"`
-	Delay            int    `json:"delay,omitempty"`
-	Priority         int32  `json:"priority,omitempty"`
-	MaxDownloads     int    `json:"max_downloads,omitempty"`
-	MaxDownloadsUnit string `json:"max_downloads_unit,omitempty"`
+	Name                   string `json:"name,omitempty"`
+	Enabled                bool   `json:"enabled,omitempty"`
+	MinSize                string `json:"min_size,omitempty"`
+	MaxSize                string `json:"max_size,omitempty"`
+	Delay                  int    `json:"delay,omitempty"`
+	Priority               int32  `json:"priority,omitempty"`
+	MaxDownloads           int    `json:"max_downloads,omitempty"`
+	MaxDownloadsUnit       string `json:"max_downloads_unit,omitempty"`
+	MaxDownloadsPeriod     int    `json:"max_downloads_period,omitempty"`
+	MaxDownloadsWindowType string `json:"max_downloads_window_type,omitempty"`
 
 	// Release matching fields
 	MatchReleases       string   `json:"match_releases,omitempty"`
@@ -519,73 +543,75 @@ func prepareFilterForExport(filter domain.Filter, externalFilters []domain.Filte
 	filterExport := FilterExport{
 		// Copy all relevant fields from filter to filterExport
 		//Name:                 filter.Name,
-		Enabled:              filter.Enabled,
-		MinSize:              filter.MinSize,
-		MaxSize:              filter.MaxSize,
-		Delay:                filter.Delay,
-		Priority:             filter.Priority,
-		MaxDownloads:         filter.MaxDownloads,
-		MaxDownloadsUnit:     string(filter.MaxDownloadsUnit),
-		MatchReleases:        filter.MatchReleases,
-		ExceptReleases:       filter.ExceptReleases,
-		UseRegex:             filter.UseRegex,
-		MatchReleaseGroups:   filter.MatchReleaseGroups,
-		ExceptReleaseGroups:  filter.ExceptReleaseGroups,
-		MatchReleaseTags:     filter.MatchReleaseTags,
-		ExceptReleaseTags:    filter.ExceptReleaseTags,
-		UseRegexReleaseTags:  filter.UseRegexReleaseTags,
-		MatchDescription:     filter.MatchDescription,
-		ExceptDescription:    filter.ExceptDescription,
-		UseRegexDescription:  filter.UseRegexDescription,
-		Scene:                filter.Scene,
-		Origins:              filter.Origins,
-		ExceptOrigins:        filter.ExceptOrigins,
-		AnnounceTypes:        filter.AnnounceTypes,
-		Freeleech:            filter.Freeleech,
-		FreeleechPercent:     filter.FreeleechPercent,
-		Shows:                filter.Shows,
-		Seasons:              filter.Seasons,
-		Episodes:             filter.Episodes,
-		Resolutions:          filter.Resolutions,
-		Codecs:               filter.Codecs,
-		Sources:              filter.Sources,
-		Containers:           filter.Containers,
-		MatchHDR:             filter.MatchHDR,
-		ExceptHDR:            filter.ExceptHDR,
-		MatchOther:           filter.MatchOther,
-		ExceptOther:          filter.ExceptOther,
-		Years:                filter.Years,
-		Months:               filter.Months,
-		Days:                 filter.Days,
-		Artists:              filter.Artists,
-		Albums:               filter.Albums,
-		MatchReleaseTypes:    filter.MatchReleaseTypes,
-		ExceptReleaseTypes:   filter.ExceptReleaseTypes,
-		Formats:              filter.Formats,
-		Quality:              filter.Quality,
-		Media:                filter.Media,
-		PerfectFlac:          filter.PerfectFlac,
-		Cue:                  filter.Cue,
-		Log:                  filter.Log,
-		LogScore:             filter.LogScore,
-		MatchCategories:      filter.MatchCategories,
-		ExceptCategories:     filter.ExceptCategories,
-		MatchUploaders:       filter.MatchUploaders,
-		ExceptUploaders:      filter.ExceptUploaders,
-		MatchRecordLabels:    filter.MatchRecordLabels,
-		ExceptRecordLabels:   filter.ExceptRecordLabels,
-		MatchLanguage:        filter.MatchLanguage,
-		ExceptLanguage:       filter.ExceptLanguage,
-		Tags:                 filter.Tags,
-		ExceptTags:           filter.ExceptTags,
-		TagsAny:              filter.TagsAny,
-		ExceptTagsAny:        filter.ExceptTagsAny,
-		TagsMatchLogic:       filter.TagsMatchLogic,
-		ExceptTagsMatchLogic: filter.ExceptTagsMatchLogic,
-		MinSeeders:           filter.MinSeeders,
-		MaxSeeders:           filter.MaxSeeders,
-		MinLeechers:          filter.MinLeechers,
-		MaxLeechers:          filter.MaxLeechers,
+		Enabled:                filter.Enabled,
+		MinSize:                filter.MinSize,
+		MaxSize:                filter.MaxSize,
+		Delay:                  filter.Delay,
+		Priority:               filter.Priority,
+		MaxDownloads:           filter.MaxDownloads,
+		MaxDownloadsUnit:       string(filter.MaxDownloadsUnit),
+		MaxDownloadsPeriod:     filter.MaxDownloadsPeriod,
+		MaxDownloadsWindowType: string(filter.MaxDownloadsWindowType),
+		MatchReleases:          filter.MatchReleases,
+		ExceptReleases:         filter.ExceptReleases,
+		UseRegex:               filter.UseRegex,
+		MatchReleaseGroups:     filter.MatchReleaseGroups,
+		ExceptReleaseGroups:    filter.ExceptReleaseGroups,
+		MatchReleaseTags:       filter.MatchReleaseTags,
+		ExceptReleaseTags:      filter.ExceptReleaseTags,
+		UseRegexReleaseTags:    filter.UseRegexReleaseTags,
+		MatchDescription:       filter.MatchDescription,
+		ExceptDescription:      filter.ExceptDescription,
+		UseRegexDescription:    filter.UseRegexDescription,
+		Scene:                  filter.Scene,
+		Origins:                filter.Origins,
+		ExceptOrigins:          filter.ExceptOrigins,
+		AnnounceTypes:          filter.AnnounceTypes,
+		Freeleech:              filter.Freeleech,
+		FreeleechPercent:       filter.FreeleechPercent,
+		Shows:                  filter.Shows,
+		Seasons:                filter.Seasons,
+		Episodes:               filter.Episodes,
+		Resolutions:            filter.Resolutions,
+		Codecs:                 filter.Codecs,
+		Sources:                filter.Sources,
+		Containers:             filter.Containers,
+		MatchHDR:               filter.MatchHDR,
+		ExceptHDR:              filter.ExceptHDR,
+		MatchOther:             filter.MatchOther,
+		ExceptOther:            filter.ExceptOther,
+		Years:                  filter.Years,
+		Months:                 filter.Months,
+		Days:                   filter.Days,
+		Artists:                filter.Artists,
+		Albums:                 filter.Albums,
+		MatchReleaseTypes:      filter.MatchReleaseTypes,
+		ExceptReleaseTypes:     filter.ExceptReleaseTypes,
+		Formats:                filter.Formats,
+		Quality:                filter.Quality,
+		Media:                  filter.Media,
+		PerfectFlac:            filter.PerfectFlac,
+		Cue:                    filter.Cue,
+		Log:                    filter.Log,
+		LogScore:               filter.LogScore,
+		MatchCategories:        filter.MatchCategories,
+		ExceptCategories:       filter.ExceptCategories,
+		MatchUploaders:         filter.MatchUploaders,
+		ExceptUploaders:        filter.ExceptUploaders,
+		MatchRecordLabels:      filter.MatchRecordLabels,
+		ExceptRecordLabels:     filter.ExceptRecordLabels,
+		MatchLanguage:          filter.MatchLanguage,
+		ExceptLanguage:         filter.ExceptLanguage,
+		Tags:                   filter.Tags,
+		ExceptTags:             filter.ExceptTags,
+		TagsAny:                filter.TagsAny,
+		ExceptTagsAny:          filter.ExceptTagsAny,
+		TagsMatchLogic:         filter.TagsMatchLogic,
+		ExceptTagsMatchLogic:   filter.ExceptTagsMatchLogic,
+		MinSeeders:             filter.MinSeeders,
+		MaxSeeders:             filter.MaxSeeders,
+		MinLeechers:            filter.MinLeechers,
+		MaxLeechers:            filter.MaxLeechers,
 	}
 
 	// Add external filters if they exist

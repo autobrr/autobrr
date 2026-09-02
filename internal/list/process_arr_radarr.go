@@ -5,145 +5,99 @@ package list
 
 import (
 	"context"
-	"sort"
-	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/stringutils"
 	"github.com/autobrr/autobrr/pkg/arr"
 	"github.com/autobrr/autobrr/pkg/arr/radarr"
-	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/rs/zerolog"
 )
 
-func (s *service) radarr(ctx context.Context, list *domain.List) error {
-	l := s.log.With().Str("list", list.Name).Str("type", "radarr").Int("client", list.ClientID).Logger()
-
-	l.Debug().Msgf("gathering titles...")
-
-	titles, err := s.processRadarr(ctx, list, &l)
-	if err != nil {
-		return err
-	}
-
-	l.Debug().Msgf("got %d filter titles", len(titles))
-
-	if len(titles) == 0 {
-		l.Debug().Msgf("no titles found to update for list: %v", list.Name)
-		return nil
-	}
-
-	joinedTitles := strings.Join(titles, ",")
-
-	l.Trace().Str("titles", joinedTitles).Msgf("found %d titles", len(joinedTitles))
-
-	filterUpdate := domain.FilterUpdate{Shows: &joinedTitles}
-
-	if list.MatchRelease {
-		filterUpdate.Shows = &nullString
-		filterUpdate.MatchReleases = &joinedTitles
-	}
-
-	for _, filter := range list.Filters {
-		l.Debug().Msgf("updating filter: %v", filter.ID)
-
-		filterUpdate.ID = filter.ID
-
-		if err := s.filterSvc.UpdatePartial(ctx, filterUpdate); err != nil {
-			return errors.Wrap(err, "error updating filter: %v", filter.ID)
-		}
-
-		l.Debug().Msgf("successfully updated filter: %v", filter.ID)
-	}
-
-	return nil
+type RadarrProcessor struct {
+	processorBase
+	client *radarr.Client
 }
 
-func (s *service) processRadarr(ctx context.Context, list *domain.List, logger *zerolog.Logger) ([]string, error) {
-	downloadClient, err := s.downloadClientSvc.GetClient(ctx, int32(list.ClientID))
-	if err != nil {
-		return nil, errors.Wrap(err, "could not get client with id %d", list.ClientID)
+func NewRadarrProcessor(log zerolog.Logger, list *domain.List, client *radarr.Client) *RadarrProcessor {
+	return &RadarrProcessor{
+		log:    log,
+		list:   list,
+		client: client,
 	}
+}
 
-	if !downloadClient.Enabled {
-		return nil, errors.New("client %s %s not enabled", downloadClient.Type, downloadClient.Name)
-	}
-
-	client := downloadClient.Client.(*radarr.Client)
-
-	var tags []*arr.Tag
-	if len(list.TagsExclude) > 0 || len(list.TagsInclude) > 0 {
-		t, err := client.GetTags(ctx)
-		if err != nil {
-			logger.Debug().Msg("could not get tags")
-		}
-		tags = t
-	}
-
-	movies, err := client.GetMovies(ctx, 0)
+func (p *RadarrProcessor) Process(ctx context.Context) (*domain.FilterUpdate, error) {
+	movies, err := p.client.GetMovies(ctx, 0)
 	if err != nil {
 		return nil, err
 	}
 
-	logger.Debug().Msgf("found %d movies to process", len(movies))
+	var tags []arr.Tag
+	if len(p.list.TagsExclude) > 0 || len(p.list.TagsInclude) > 0 {
+		t, err := p.client.GetTags(ctx)
+		if err != nil {
+			p.log.Debug().Msg("could not get tags")
+		}
+		tags = t
+	}
 
-	titleSet := make(map[string]struct{})
+	filter, err := p.process(movies, tags)
+	if err != nil {
+		return nil, err
+	}
+
+	return filter, nil
+}
+
+func (p *RadarrProcessor) process(movies []radarr.Movie, tags []arr.Tag) (*domain.FilterUpdate, error) {
+	p.log.Debug().Int("count", len(movies)).Msg("found movies to process")
+
+	ts := NewTitleSet()
+	ts.matchReleases = p.list.MatchRelease
+
 	var processedTitles int
 
 	for _, movie := range movies {
-		if !list.ShouldProcessItem(movie.Monitored) {
+		if !p.list.ShouldProcessItem(movie.Monitored) {
 			continue
 		}
 
-		//if !s.shouldProcessItem(movie.Monitored, list) {
-		//	continue
-		//}
-
-		if len(list.TagsInclude) > 0 {
-			if len(movie.Tags) == 0 {
-				continue
-			}
-			if !containsTag(tags, movie.Tags, list.TagsInclude) {
-				continue
-			}
-		}
-
-		if len(list.TagsExclude) > 0 {
-			if containsTag(tags, movie.Tags, list.TagsExclude) {
-				continue
-			}
+		if excludedByTags(p.list, tags, movie.Tags) {
+			continue
 		}
 
 		processedTitles++
 
 		// Taking the international title and the original title and appending them to the titles array.
 		for _, title := range []string{movie.Title, movie.OriginalTitle} {
-			if title != "" {
-				for _, t := range processTitle(title, list.MatchRelease) {
-					titleSet[t] = struct{}{}
-				}
-			}
+			ts.AddTitle(title)
 		}
 
-		if list.IncludeAlternateTitles {
+		if p.list.IncludeAlternateTitles {
 			for _, title := range movie.AlternateTitles {
-				altTitles := processTitle(title.Title, list.MatchRelease)
-				for _, altTitle := range altTitles {
-					titleSet[altTitle] = struct{}{}
-				}
+				ts.AddTitle(title.Title)
 			}
 		}
 	}
 
-	uniqueTitles := make([]string, 0, len(titleSet))
-	for title := range titleSet {
-		uniqueTitles = append(uniqueTitles, title)
+	p.log.Debug().Int("total", len(movies)).Int("processed", processedTitles).Int("created", ts.Len()).Msg("processed items")
+
+	if ts.Len() == 0 {
+		p.log.Debug().Str("list", p.list.Name).Msg("no titles found to update")
+		return nil, nil
 	}
 
-	sort.Strings(uniqueTitles)
-	logger.Debug().Msgf("from a total of %d movies we found %d titles and created %d release titles", len(movies), processedTitles, len(uniqueTitles))
+	joinedTitles := ts.FilterString()
 
-	return uniqueTitles, nil
+	p.log.Trace().Str("titles", stringutils.TruncateStr(joinedTitles, 1024)).Int("count", ts.Len()).Msg("found titles")
+
+	filter := domain.FilterUpdate{Shows: &joinedTitles}
+
+	if p.list.MatchRelease {
+		filter.Shows = new("")
+		filter.MatchReleases = &joinedTitles
+	}
+
+	return &filter, nil
 }
-
-var nullString = ""

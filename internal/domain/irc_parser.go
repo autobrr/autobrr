@@ -2,6 +2,7 @@ package domain
 
 import (
 	"fmt"
+	"maps"
 	"regexp"
 	"strings"
 )
@@ -9,6 +10,8 @@ import (
 type IRCParser interface {
 	Parse(rls *Release, vars map[string]string) error
 }
+
+var DefaultIRCParser IRCParser = IRCParserDefault{}
 
 type IRCParserDefault struct{}
 
@@ -22,12 +25,16 @@ func (p IRCParserDefault) Parse(rls *Release, _ map[string]string) error {
 
 type IRCParserGazelleGames struct{}
 
-var ggnIOSRegex = regexp.MustCompile(`(?P<releaseName>.+) (v?(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)(?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?) in (?P<title>.+)`)
+var ggnIOSRegex = regexp.MustCompile(`^(?P<releaseName>.+?)\s*-\s*Version\s+(?P<version>[a-z0-9.-]+)(?:\s+in\s+(?P<title>.+))?$`)
 var ggnSwitchWindowsRegex = regexp.MustCompile(`^(?P<releaseName>.+?)(?:\s*-\s*(?P<update>Update))?(?:\s*-\s*(?P<version>Version\s.+))?\s+in\s+(?P<title>.+)$`)
 var ggnWindowsFallback = regexp.MustCompile(`^(?P<releaseName>.+?)(?:\s*-\s*(?P<version>Version\s.+))?$`)
 
 func (p IRCParserGazelleGames) Parse(rls *Release, vars map[string]string) error {
-	torrentName := vars["torrentName"]
+	torrentName, ok := vars["releaseName"]
+	if !ok {
+		return fmt.Errorf("ggn irc parser: releaseName is missing from vars")
+	}
+
 	category := vars["category"]
 
 	releaseName := ""
@@ -92,7 +99,7 @@ var lastDecimalTag = regexp.MustCompile(`^\d{1,2}$|^100$`)
 func (p IRCParserOrpheus) Parse(rls *Release, vars map[string]string) error {
 	// OPS uses en-dashes as separators, which causes moistari/rls to not parse the torrentName properly,
 	// we replace the en-dashes with hyphens here
-	torrentName := p.replaceSeparator(vars["torrentName"])
+	//torrentName := p.replaceSeparator(vars["releaseName"])
 	title := p.replaceSeparator(vars["title"])
 
 	year := vars["year"]
@@ -137,12 +144,12 @@ func (p IRCParserOrpheus) Parse(rls *Release, vars map[string]string) error {
 	rls.HasCue = tags.HasCue
 
 	// Construct new release name so we have full control. We remove category such as EP/Single/Album because EP is being mis-parsed.
-	torrentName = fmt.Sprintf("%s [%s] (%s)", title, year, strings.Join(audio, " "))
+	releaseName := fmt.Sprintf("%s [%s] (%s)", title, year, strings.Join(audio, " "))
 
-	rls.ParseString(torrentName)
+	rls.ParseString(releaseName)
 
 	// use parsed values from raw rls.Release struct
-	raw := rls.Raw(torrentName)
+	raw := rls.Raw(releaseName)
 	rls.Artists = raw.Artist
 	rls.Title = raw.Title
 
@@ -198,9 +205,7 @@ func mergeVars(data ...map[string]string) map[string]string {
 
 	for _, vars := range data {
 		// copy vars to new tmp map
-		for k, v := range vars {
-			tmpVars[k] = v
-		}
+		maps.Copy(tmpVars, vars)
 	}
 	return tmpVars
 }

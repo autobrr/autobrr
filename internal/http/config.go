@@ -33,18 +33,24 @@ type configJson struct {
 	Date            string `json:"date"`
 }
 
+type buildInfo struct {
+	version string
+	commit  string
+	date    string
+}
+
 type configHandler struct {
 	encoder encoder
 
-	cfg    *config.AppConfig
-	server Server
+	cfg         *config.AppConfig
+	versionInfo buildInfo
 }
 
-func newConfigHandler(encoder encoder, server Server, cfg *config.AppConfig) *configHandler {
+func newConfigHandler(encoder encoder, versionInfo buildInfo, cfg *config.AppConfig) *configHandler {
 	return &configHandler{
-		encoder: encoder,
-		cfg:     cfg,
-		server:  server,
+		encoder:     encoder,
+		cfg:         cfg,
+		versionInfo: versionInfo,
 	}
 }
 
@@ -65,9 +71,9 @@ func (h configHandler) getConfig(w http.ResponseWriter, r *http.Request) {
 		BaseURL:         h.cfg.Config.BaseURL,
 		Database:        h.cfg.Config.DatabaseType,
 		CheckForUpdates: h.cfg.Config.CheckForUpdates,
-		Version:         h.server.version,
-		Commit:          h.server.commit,
-		Date:            h.server.date,
+		Version:         h.versionInfo.version,
+		Commit:          h.versionInfo.commit,
+		Date:            h.versionInfo.date,
 	}
 
 	ex, err := os.Executable()

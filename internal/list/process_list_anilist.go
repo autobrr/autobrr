@@ -5,102 +5,67 @@ package list
 
 import (
 	"context"
-	"encoding/json"
-	"net/http"
-	"sort"
-	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
-
+	"github.com/autobrr/autobrr/internal/list/provider/anilist"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 )
 
-func (s *service) anilist(ctx context.Context, list *domain.List) error {
-	l := s.log.With().Str("type", "anilist").Str("list", list.Name).Logger()
+type AnilistProcessor struct {
+	processorBase
+	client *anilist.Client
+}
 
-	if list.URL == "" {
-		return errors.New("no URL provided for AniList")
+func NewAnilistProcessor(log zerolog.Logger, list *domain.List) *AnilistProcessor {
+	return &AnilistProcessor{
+		log:    log,
+		list:   list,
+		client: anilist.NewClient(log, list.Name, list.URL, list.Headers...),
 	}
+}
 
-	l.Debug().Msgf("fetching titles from %s", list.URL)
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, list.URL, nil)
+func (p *AnilistProcessor) Process(ctx context.Context) (*domain.FilterUpdate, error) {
+	data, err := p.client.GetList(ctx, p.list.URL)
 	if err != nil {
-		return errors.Wrapf(err, "could not make new request for URL: %s", list.URL)
+		return nil, errors.Wrap(err, "could not get anilist list")
 	}
-
-	list.SetRequestHeaders(req)
-
-	resp, err := s.httpClient.Do(req)
+	filter, err := p.process(data)
 	if err != nil {
-		return errors.Wrapf(err, "failed to fetch titles from URL: %s", list.URL)
+		return nil, errors.Wrap(err, "could not process anilist list")
 	}
-	defer resp.Body.Close()
+	return filter, nil
+}
 
-	if resp.StatusCode != http.StatusOK {
-		return errors.Errorf("failed to fetch titles from URL: %s", list.URL)
-	}
+func (p *AnilistProcessor) process(data []anilist.Item) (*domain.FilterUpdate, error) {
+	ts := NewTitleSet()
+	ts.matchReleases = p.list.MatchRelease
 
-	var data []struct {
-		Romaji   string   `json:"romaji"`
-		English  string   `json:"english"`
-		Synonyms []string `json:"synonyms"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return errors.Wrapf(err, "failed to decode JSON data from URL: %s", list.URL)
-	}
-
-	// remove duplicates
-	titleSet := make(map[string]struct{})
 	for _, item := range data {
-		titlesToProcess := make(map[string]struct{})
-		titlesToProcess[item.Romaji] = struct{}{}
-		titlesToProcess[item.English] = struct{}{}
+		for _, title := range []string{item.English, item.Romaji} {
+			ts.AddTitle(title)
+		}
+
 		for _, synonym := range item.Synonyms {
-			titlesToProcess[synonym] = struct{}{}
-		}
-
-		for title := range titlesToProcess {
-			for _, processedTitle := range processTitle(title, list.MatchRelease) {
-				titleSet[processedTitle] = struct{}{}
-			}
+			ts.AddTitle(synonym)
 		}
 	}
 
-	filterTitles := make([]string, 0, len(titleSet))
-	for title := range titleSet {
-		filterTitles = append(filterTitles, title)
+	if ts.Len() == 0 {
+		p.log.Debug().Msg("no titles found to update list")
+		return nil, nil
 	}
 
-	if len(filterTitles) == 0 {
-		l.Debug().Msgf("no titles found to update for list: %v", list.Name)
-		return nil
+	joinedTitles := ts.FilterString()
+
+	p.log.Trace().Str("titles", joinedTitles).Int("count", ts.Len()).Msg("found titles")
+
+	filter := domain.FilterUpdate{Shows: &joinedTitles}
+
+	if p.list.MatchRelease {
+		filter.Shows = new("")
+		filter.MatchReleases = &joinedTitles
 	}
 
-	sort.Strings(filterTitles)
-	joinedTitles := strings.Join(filterTitles, ",")
-
-	l.Trace().Str("titles", joinedTitles).Msgf("found %d titles", len(joinedTitles))
-
-	filterUpdate := domain.FilterUpdate{Shows: &joinedTitles}
-
-	if list.MatchRelease {
-		filterUpdate.Shows = &nullString
-		filterUpdate.MatchReleases = &joinedTitles
-	}
-
-	for _, filter := range list.Filters {
-		l.Debug().Msgf("updating filter: %v", filter.ID)
-
-		filterUpdate.ID = filter.ID
-
-		if err := s.filterSvc.UpdatePartial(ctx, filterUpdate); err != nil {
-			return errors.Wrapf(err, "error updating filter: %v", filter.ID)
-		}
-
-		l.Debug().Msgf("successfully updated filter: %v", filter.ID)
-	}
-
-	return nil
+	return &filter, nil
 }

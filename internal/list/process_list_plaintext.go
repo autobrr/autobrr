@@ -11,25 +11,43 @@ import (
 	"os"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/sharedhttp"
+	"github.com/rs/zerolog"
 
 	"github.com/pkg/errors"
 )
 
-func (s *service) plaintext(ctx context.Context, list *domain.List) error {
-	l := s.log.With().Str("type", "plaintext").Str("list", list.Name).Logger()
+type PlaintextProcessor struct {
+	processorBase
+	httpClient *http.Client
+}
 
-	if list.URL == "" {
-		return errors.New("no URL provided for plaintext")
+func NewPlaintextProcessor(log zerolog.Logger, list *domain.List) *PlaintextProcessor {
+	return &PlaintextProcessor{
+		log:  log.With().Str("type", "plaintext").Str("list", list.Name).Logger(),
+		list: list,
+		httpClient: &http.Client{
+			Timeout:   time.Second * 15,
+			Transport: sharedhttp.Transport,
+		},
+	}
+}
+
+func (p *PlaintextProcessor) Process(ctx context.Context) (*domain.FilterUpdate, error) {
+
+	if p.list.URL == "" {
+		return nil, errors.New("no URL provided for plaintext")
 	}
 
-	l.Debug().Msgf("fetching titles from %s", list.URL)
+	p.log.Debug().Str("url", p.list.URL).Msg("fetching titles")
 
 	// Parse the URL to determine if it's a file or HTTP scheme
-	parsedURL, err := url.Parse(list.URL)
+	parsedURL, err := url.Parse(p.list.URL)
 	if err != nil {
-		return errors.Wrapf(err, "failed to parse URL: %s", list.URL)
+		return nil, errors.Wrapf(err, "failed to parse URL: %s", p.list.URL)
 	}
 
 	var body []byte
@@ -49,89 +67,97 @@ func (s *service) plaintext(ctx context.Context, list *domain.List) error {
 			}
 		}
 
-		l.Debug().Msgf("reading from file: %s", filePath)
+		p.log.Debug().Str("path", filePath).Msg("reading from file")
 
 		body, err = os.ReadFile(filePath)
 		if err != nil {
-			return errors.Wrapf(err, "failed to read file: %s", filePath)
+			return nil, errors.Wrapf(err, "failed to read file: %s", filePath)
 		}
 
 	case "http", "https":
 		// Use HTTP client for http:// or https:// URLs
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, list.URL, nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, p.list.URL, nil)
 		if err != nil {
-			return errors.Wrapf(err, "could not make new request for URL: %s", list.URL)
+			return nil, errors.Wrapf(err, "could not make new request for URL: %s", p.list.URL)
 		}
 
-		list.SetRequestHeaders(req)
+		for _, header := range p.list.Headers {
+			parts := strings.Split(header, "=")
+			if len(parts) != 2 {
+				continue
+			}
+			req.Header.Set(parts[0], parts[1])
+		}
 
 		//setUserAgent(req)
 
-		resp, err := s.httpClient.Do(req)
+		resp, err := p.httpClient.Do(req)
 		if err != nil {
-			return errors.Wrapf(err, "failed to fetch titles from URL: %s", list.URL)
+			return nil, errors.Wrapf(err, "failed to fetch titles from URL: %s", p.list.URL)
 		}
-		defer resp.Body.Close()
+		defer sharedhttp.DrainAndClose(resp)
 
-		if resp.StatusCode != http.StatusOK {
-			return errors.Wrapf(err, "failed to fetch titles from URL: %s with status code: %d", list.URL, resp.StatusCode)
+		switch resp.StatusCode {
+		case http.StatusOK:
+			break
+		default:
+			return nil, errors.Errorf("failed to fetch list from URL: %s", p.list.URL)
 		}
 
 		contentType := resp.Header.Get("Content-Type")
 		if !strings.HasPrefix(contentType, "text/plain") {
-			return errors.Errorf("unexpected content type for URL: %s expected text/plain got %s", list.URL, contentType)
+			return nil, errors.Errorf("unexpected content type for URL: %s expected text/plain got %s", p.list.URL, contentType)
 		}
 
 		body, err = io.ReadAll(resp.Body)
 		if err != nil {
-			return errors.Wrapf(err, "failed to read response body from URL: %s", list.URL)
+			return nil, errors.Wrapf(err, "failed to read response body from URL: %s", p.list.URL)
 		}
 
 	default:
-		return errors.Errorf("unsupported URL scheme: %s", parsedURL.Scheme)
+		return nil, errors.Errorf("unsupported URL scheme: %s", parsedURL.Scheme)
 	}
 
+	filter, err := p.process(body)
+	if err != nil {
+		return nil, err
+	}
+
+	return filter, nil
+}
+
+func (p *PlaintextProcessor) process(body []byte) (*domain.FilterUpdate, error) {
+	//ts := NewTitleSet()
+	//ts.matchReleases = p.list.MatchRelease
+
 	var titles []string
-	titleLines := strings.Split(string(body), "\n")
-	for _, titleLine := range titleLines {
+	for titleLine := range strings.SplitSeq(string(body), "\n") {
 		title := strings.TrimSpace(titleLine)
 		if title == "" {
 			continue
 		}
-		if list.SkipCleanSanitize {
+		if p.list.SkipCleanSanitize {
 			titles = append(titles, title) // Add title as-is
 		} else {
-			titles = append(titles, processTitle(title, list.MatchRelease)...) // Existing logic
+			titles = append(titles, processTitle(title, p.list.MatchRelease)...) // Existing logic
 		}
 	}
 
 	if len(titles) == 0 {
-		l.Debug().Msgf("no titles found to update for list: %v", list.Name)
-		return nil
+		p.log.Debug().Msg("no titles found to update list")
+		return nil, nil
 	}
 
 	joinedTitles := strings.Join(titles, ",")
 
-	l.Trace().Str("titles", joinedTitles).Msgf("found %d titles", len(titles))
+	p.log.Trace().Str("titles", joinedTitles).Int("count", len(titles)).Msg("found titles")
 
-	filterUpdate := domain.FilterUpdate{Shows: &joinedTitles}
+	filter := domain.FilterUpdate{Shows: &joinedTitles}
 
-	if list.MatchRelease {
-		filterUpdate.Shows = &nullString
-		filterUpdate.MatchReleases = &joinedTitles
+	if p.list.MatchRelease {
+		filter.Shows = new("")
+		filter.MatchReleases = &joinedTitles
 	}
 
-	for _, filter := range list.Filters {
-		l.Debug().Msgf("updating filter: %v", filter.ID)
-
-		filterUpdate.ID = filter.ID
-
-		if err := s.filterSvc.UpdatePartial(ctx, filterUpdate); err != nil {
-			return errors.Wrapf(err, "error updating filter: %v", filter.ID)
-		}
-
-		l.Debug().Msgf("successfully updated filter: %v", filter.ID)
-	}
-
-	return nil
+	return &filter, nil
 }

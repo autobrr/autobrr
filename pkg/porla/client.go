@@ -4,14 +4,14 @@
 package porla
 
 import (
-	"io"
-	"log"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/jsonrpc"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
+
+	"github.com/rs/zerolog"
 )
 
 var (
@@ -26,7 +26,7 @@ type Client struct {
 	http      *http.Client
 	timeout   time.Duration
 
-	log *log.Logger
+	log zerolog.Logger
 }
 
 type Config struct {
@@ -43,19 +43,14 @@ type Config struct {
 	BasicPass string
 
 	Timeout int
-	Log     *log.Logger
+	Log     zerolog.Logger
 }
 
 func NewClient(cfg Config) *Client {
 	c := &Client{
 		cfg:     cfg,
-		log:     log.New(io.Discard, "", log.LstdFlags),
+		log:     cfg.Log,
 		timeout: DefaultTimeout,
-	}
-
-	// override logger if we pass one
-	if cfg.Log != nil {
-		c.log = cfg.Log
 	}
 
 	if cfg.Timeout > 0 {

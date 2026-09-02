@@ -4,13 +4,15 @@
  */
 
 import { Fragment } from "react";
-import { Field, FieldProps } from "formik";
 import { Listbox, ListboxButton, Label, ListboxOption, ListboxOptions, Transition } from "@headlessui/react";
 import { CheckIcon, ChevronUpDownIcon } from "@heroicons/react/24/solid";
 import { MultiSelect as RMSC } from "react-multi-select-component";
 
 import { classNames, COL_WIDTHS } from "@utils";
+import { useFormContext } from "@hooks/form";
 import { DocsTooltip } from "@components/tooltips/DocsTooltip";
+import { ErrorField } from "./common";
+import { SMColSpanClasses } from "./constants";
 
 export interface MultiSelectOption {
   value: string | number;
@@ -38,17 +40,21 @@ export const MultiSelect = ({
   tooltip,
   disabled
 }: MultiSelectProps) => {
+  const form = useFormContext();
+
   const handleNewField = (value: string) => ({
     value: value.toUpperCase(),
     label: value.toUpperCase(),
     key: value
   });
 
+  const smColClass = columns ? SMColSpanClasses[columns] : "";
+
   return (
     <div
       className={classNames(
         "col-span-12",
-        columns ? `sm:col-span-${columns}` : ""
+        smColClass
       )}
     >
       <label
@@ -60,30 +66,26 @@ export const MultiSelect = ({
         </div>
       </label>
 
-      <Field name={name} type="select" multiple={true}>
-        {({
-          field,
-          form: { setFieldValue }
-        }: FieldProps) => (
+      <form.Field name={name}>
+        {(field) => (
           <RMSC
-            {...field}
             options={options}
             disabled={disabled}
             labelledBy={name}
             isCreatable={creatable}
             onCreateOption={handleNewField}
-            value={field.value && field.value.map((item: MultiSelectOption) => ({
+            value={field.state.value && field.state.value.map((item: MultiSelectOption) => ({
               value: item.value ? item.value : item,
               label: item.label ? item.label : item
             }))}
             onChange={(values: Array<MultiSelectOption>) => {
               const am = values && values.map((i) => i.value);
 
-              setFieldValue(field.name, am);
+              field.handleChange(am);
             }}
           />
         )}
-      </Field>
+      </form.Field>
     </div>
   );
 };
@@ -99,70 +101,66 @@ export const IndexerMultiSelect = ({
   label,
   options,
   columns
-}: MultiSelectProps) => (
-  <div
-    className={classNames(
-      "col-span-12",
-      columns ? `sm:col-span-${columns}` : ""
-    )}
-  >
-    <label
-      className="block ml-px mb-1 text-xs font-bold tracking-wide text-gray-700 uppercase dark:text-gray-200"
-      htmlFor={label}
-    >
-      {label}
-    </label>
+}: MultiSelectProps) => {
+  const form = useFormContext();
+  const smColClass = columns ? SMColSpanClasses[columns] : "";
 
-    <Field name={name} type="select" multiple={true}>
-      {({
-        field,
-        meta,
-        form: { setFieldValue }
-      }: FieldProps) => (
-        <>
-          <RMSC
-            {...field}
-            options={options}
-            labelledBy={name}
-            value={field.value && field.value.map((item: IndexerMultiSelectOption) => ({
-              value: item.id, label: item.name
-            }))}
-            onChange={(values: MultiSelectOption[]) => {
-              const item = values && values.map((i) => ({ id: i.value, name: i.label }));
-              setFieldValue(field.name, item);
-            }}
-          />
-          {meta.touched && meta.error && (
-            <p className="error text-sm text-red-600 mt-1">* {meta.error}</p>
-          )}
-        </>
+  return (
+    <div
+      className={classNames(
+        "col-span-12",
+        smColClass
       )}
-    </Field>
-  </div>
-);
+    >
+      <label
+        className="block ml-px mb-1 text-xs font-bold tracking-wide text-gray-700 uppercase dark:text-gray-200"
+        htmlFor={label}
+      >
+        {label}
+      </label>
 
-interface DownloadClientSelectProps {
-  name: string;
-  action: Action;
-  clients: DownloadClient[];
+      <form.Field name={name}>
+        {(field) => (
+          <>
+            <RMSC
+              options={options}
+              labelledBy={name}
+              value={field.state.value && field.state.value.map((item: IndexerMultiSelectOption) => ({
+                value: item.id, label: item.name
+              }))}
+              onChange={(values: MultiSelectOption[]) => {
+                const item = values && values.map((i) => ({ id: i.value, name: i.label }));
+                field.handleChange(item);
+              }}
+            />
+            <ErrorField meta={field.state.meta} classNames="error text-sm text-red-600 mt-1" />
+          </>
+        )}
+      </form.Field>
+    </div>
+  );
 }
 
-export function DownloadClientSelect({
+interface DownloaderSelectProps {
+  name: string;
+  action: Action;
+  clients: Downloader[];
+}
+
+export function DownloaderSelect({
   name,
   action,
   clients
-}: DownloadClientSelectProps) {
+}: DownloaderSelectProps) {
+  const form = useFormContext();
+
   return (
     <div className="col-span-12 sm:col-span-6">
-      <Field name={name} type="select">
-        {({
-          field,
-          meta,
-          form: { setFieldValue }
-        }: FieldProps) => (
+      <form.Field name={name}>
+        {(field) => (
           <Listbox
-            value={field.value}
-            onChange={(value) => setFieldValue(field?.name, value)}
+            value={field.state.value}
+            onChange={(value) => field.handleChange(value)}
           >
             {({ open }) => (
               <>
@@ -172,8 +170,8 @@ export function DownloadClientSelect({
                 <div className="mt-1 relative">
                   <ListboxButton className="block w-full shadow-xs sm:text-sm rounded-md border py-2 pl-3 pr-10 text-left focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100">
                     <span className="block truncate">
-                      {field.value
-                        ? clients.find((c) => c.id === field.value)?.name
+                      {field.state.value
+                        ? clients.find((c) => c.id === field.state.value)?.name
                         : "Choose a client"}
                     </span>
                     <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
@@ -236,15 +234,13 @@ export function DownloadClientSelect({
                         ))}
                     </ListboxOptions>
                   </Transition>
-                  {meta.touched && meta.error && (
-                    <p className="error text-sm text-red-600 mt-1">* {meta.error}</p>
-                  )}
+                  <ErrorField meta={field.state.meta} classNames="error text-sm text-red-600 mt-1" />
                 </div>
               </>
             )}
           </Listbox>
         )}
-      </Field>
+      </form.Field>
     </div>
   );
 }
@@ -273,24 +269,24 @@ export const Select = ({
   columns = 6,
   className
 }: SelectFieldProps) => {
+  const form = useFormContext();
+  const smColClass = SMColSpanClasses[columns] || "sm:col-span-6";
+
   return (
     <div
       className={classNames(
         className ?? "col-span-12",
-        columns ? `sm:col-span-${columns}` : ""
+        smColClass,
       )}
     >
-      <Field name={name} type="select">
-        {({
-          field,
-          form: { setFieldValue }
-        }: FieldProps) => (
+      <form.Field name={name}>
+        {(field) => (
           <Listbox
             // ?? null is required here otherwise React throws:
             // "console.js:213 A component is changing from uncontrolled to controlled.
             // This may be caused by the value changing from undefined to a defined value, which should not happen."
-            value={field.value ?? null}
-            onChange={(value) => setFieldValue(field.name, value)}
+            value={field.state.value ?? null}
+            onChange={(value) => field.handleChange(value)}
           >
             {({ open }) => (
               <div>
@@ -302,8 +298,8 @@ export const Select = ({
                 <div className="mt-1 relative">
                   <ListboxButton className="block w-full relative shadow-xs sm:text-sm text-left rounded-md border pl-3 pr-10 py-2.5 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-815 dark:text-gray-100">
                     <span className="block truncate">
-                      {field.value
-                        ? options.find((c) => c.value === field.value)?.label
+                      {field.state.value
+                        ? options.find((c) => c.value === field.state.value)?.label
                         : optionDefaultText
                       }
                     </span>
@@ -368,7 +364,7 @@ export const Select = ({
             )}
           </Listbox>
         )}
-      </Field>
+      </form.Field>
     </div>
   );
 };
@@ -379,18 +375,17 @@ export const SelectWide = ({
   optionDefaultText,
   options
 }: SelectFieldProps) => {
+  const form = useFormContext();
+
   return (
     <div className="py-6 px-6 space-y-6 sm:py-0 sm:space-y-0 sm:divide-y sm:divide-gray-200">
 
       <div className="space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
-        <Field name={name} type="select">
-          {({
-            field,
-            form: { setFieldValue }
-          }: FieldProps) => (
+        <form.Field name={name}>
+          {(field) => (
             <Listbox
-              value={field.value}
-              onChange={(value) => setFieldValue(field?.name, value)}
+              value={field.state.value}
+              onChange={(value) => field.handleChange(value)}
             >
               {({ open }) => (
                 <div className="py-4 flex items-center justify-between">
@@ -401,8 +396,8 @@ export const SelectWide = ({
                   <div className="w-full">
                     <ListboxButton className="bg-white dark:bg-gray-800 relative w-full border border-gray-300 dark:border-gray-700 rounded-md shadow-xs pl-3 pr-10 py-2 text-left cursor-default focus:outline-hidden focus:ring-1 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500 dark:text-gray-200 sm:text-sm">
                       <span className="block truncate">
-                        {field.value
-                          ? options.find((c) => c.value === field.value)?.label
+                        {field.state.value
+                          ? options.find((c) => c.value === field.state.value)?.label
                           : optionDefaultText
                         }
                       </span>
@@ -473,7 +468,7 @@ export const SelectWide = ({
               )}
             </Listbox>
           )}
-        </Field>
+        </form.Field>
       </div>
     </div>
   );
@@ -502,8 +497,10 @@ export const AgeSelect = ({
     { value: '0', label: 'Delete everything' }
   ];
 
+  const smColClass = SMColSpanClasses[columns] || 'sm:col-span-6';
+
   return (
-    <div className={`col-span-12 ${columns ? `sm:col-span-${columns}` : ""}`}>
+    <div className={`col-span-12 ${smColClass}`}>
       <Listbox value={duration} onChange={(value) => {
         const parsedValue = parseInt(value, 10);
         setParsedDuration(parsedValue);
@@ -558,5 +555,3 @@ export const AgeSelect = ({
     </div>
   );
 };
-
-

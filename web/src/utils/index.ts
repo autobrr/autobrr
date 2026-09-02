@@ -5,6 +5,8 @@
 
 import { formatDistanceToNowStrict, formatISO9075 } from "date-fns";
 
+export { CopyTextToClipboard } from "./clipboard";
+
 // sleep for x ms
 export function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -39,7 +41,7 @@ export function routerBasePath() {
 
 // get sseBaseUrl for SSE
 export function sseBaseUrl() {
-  if (process.env.NODE_ENV === "development")
+  if (import.meta.env.DEV)
     return "http://localhost:7474/";
 
   return `${window.location.origin}${baseUrl()}`;
@@ -126,6 +128,37 @@ export function humanFileSize(sizeBytes: number | bigint): string {
   }).format(size)
 }
 
+/**
+ * Format hours as human-readable duration.
+ * Converts hours to the largest unit that divides evenly (years, months, weeks, days, hours).
+ *
+ * @param hours Number of hours.
+ *
+ * @return Formatted string (e.g., "1 day", "2 weeks", "1 year").
+ */
+export function formatHoursAsDuration(hours: number): string {
+  if (hours === 0) return "0 hours";
+
+  // Try to find the largest unit that divides evenly
+  if (hours % 8760 === 0) {
+    const years = hours / 8760;
+    return `${years} ${years === 1 ? "year" : "years"}`;
+  }
+  if (hours % 720 === 0) {
+    const months = hours / 720;
+    return `${months} ${months === 1 ? "month" : "months"}`;
+  }
+  if (hours % 168 === 0) {
+    const weeks = hours / 168;
+    return `${weeks} ${weeks === 1 ? "week" : "weeks"}`;
+  }
+  if (hours % 24 === 0) {
+    const days = hours / 24;
+    return `${days} ${days === 1 ? "day" : "days"}`;
+  }
+  return `${hours} ${hours === 1 ? "hour" : "hours"}`;
+}
+
 export const RandomLinuxIsos = (count: number) => {
   const linuxIsos = [
     "debian-live-12.10.0-amd64-kde.iso",
@@ -185,37 +218,6 @@ export const RandomIsoTracker = (count: number) => {
   return selectedSites;
 };
 
-export async function CopyTextToClipboard(text: string) {
-  if ("clipboard" in navigator) {
-     // Safari requires clipboard operations to be directly triggered by a user interaction.
-     // Using setTimeout with a delay of 0 ensures the clipboard operation is deferred until
-     // after the current call stack has cleared, effectively placing it outside of the
-     // immediate execution context of the user interaction event. This workaround allows
-     // the clipboard operation to bypass Safari's security restrictions.
-     setTimeout(async () => {
-       try {
-         await navigator.clipboard.writeText(text);
-         console.log("Text copied to clipboard successfully.");
-       } catch (err) {
-         console.error("Copy to clipboard unsuccessful: ", err);
-       }
-     }, 0);
-  } else {
-     // fallback for browsers that do not support the Clipboard API
-     copyTextToClipboardFallback(text);
-  }
- }
- 
- function copyTextToClipboardFallback(text: string) {
-  const textarea = document.createElement("textarea");
-  textarea.value = text;
-  document.body.appendChild(textarea);
-  textarea.select();
-  try {
-     document.execCommand('copy');
-     console.log("Text copied to clipboard successfully.");
-  } catch (err) {
-     console.error('Failed to copy text using fallback method: ', err);
-  }
-  document.body.removeChild(textarea);
- }
+export const IsErrorWithMessage = (error: unknown): error is { message: string } => {
+  return typeof error === 'object' && error !== null && 'message' in error;
+};

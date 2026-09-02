@@ -1,0 +1,11 @@
+ALTER TABLE filter
+    ADD COLUMN min_seeders INTEGER DEFAULT 0;
+
+ALTER TABLE filter
+    ADD COLUMN max_seeders INTEGER DEFAULT 0;
+
+ALTER TABLE filter
+    ADD COLUMN min_leechers INTEGER DEFAULT 0;
+
+ALTER TABLE filter
+    ADD COLUMN max_leechers INTEGER DEFAULT 0;

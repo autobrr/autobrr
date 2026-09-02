@@ -1,4 +1,5 @@
 ---
+version: 2
 #id: t66y
 name: T66y
 identifier: t66y
@@ -17,10 +18,6 @@ irc:
   server: irc.rizon.net
   port: 6697
   tls: true
-  channels:
-    - '#t66y'
-  announcers:
-    - 'ty'
   settings:
     - name: nick
       type: text
@@ -40,37 +37,35 @@ irc:
       label: NickServ Password
       help: NickServ password
 
-  parse:
-    type: single
-    lines:
-      - tests:
-          - line: '6769288 28 f3df71e5bdf2ca66168be7c1390e5685742bf6a8 [MP4/3.81G]JUR-274【破壊版】会社の地味な人妻経理を≪濃厚マゾ潮≫吹き散らかす、俺専用の愛人に仕立て上げた―。 椎名ゆな'
-            expect:
-              postId: 6769288
-              category: 28
-              torrentHash: f3df71e5bdf2ca66168be7c1390e5685742bf6a8
-              torrentName: '[MP4/3.81G]JUR-274【破壊版】会社の地味な人妻経理を≪濃厚マゾ潮≫吹き散らかす、俺専用の愛人に仕立て上げた―。 椎名ゆな'
+  channels:
+    - name: '#t66y'
+      announcers:
+        - 'ty'
+      parse:
+        type: single
+        lines:
+          - pattern: '(?P<postId>\d+)\ (?P<category>\d+)\ (?P<torrentHash>[a-z0-9]{40})\ (?P<releaseName>.*)'
+            tests:
+              - line: '6769288 28 f3df71e5bdf2ca66168be7c1390e5685742bf6a8 [MP4/3.81G]JUR-274【破壊版】会社の地味な人妻経理を≪濃厚マゾ潮≫吹き散らかす、俺専用の愛人に仕立て上げた―。 椎名ゆな'
+                expect:
+                  postId: 6769288
+                  category: 28
+                  torrentHash: f3df71e5bdf2ca66168be7c1390e5685742bf6a8
+                  releaseName: '[MP4/3.81G]JUR-274【破壊版】会社の地味な人妻経理を≪濃厚マゾ潮≫吹き散らかす、俺専用の愛人に仕立て上げた―。 椎名ゆな'
 
-          - line: '6768519 4 39d9edb94572e82dd534547b785c98fe2df7ea51 [MP4/FHD]RARBG1023625-第一视角催情SPA性交'
-            expect:
-              postId: 6768519
-              category: 4
-              torrentHash: 39d9edb94572e82dd534547b785c98fe2df7ea51
-              torrentName: '[MP4/FHD]RARBG1023625-第一视角催情SPA性交'
+              - line: '6768519 4 39d9edb94572e82dd534547b785c98fe2df7ea51 [MP4/FHD]RARBG1023625-第一视角催情SPA性交'
+                expect:
+                  postId: 6768519
+                  category: 4
+                  torrentHash: 39d9edb94572e82dd534547b785c98fe2df7ea51
+                  releaseName: '[MP4/FHD]RARBG1023625-第一视角催情SPA性交'
 
-          - line: '6768127 2 81c758d0eca5372d59e43879ecf2e2bce33a06c4 [MP4/3.83G]fc2-ppv-3270070 幼さが残る18才の黒髪清楚の女の子。 夢の為にAV撮影、はじめての中出しまで'
-            expect:
-              postId: 6768127
-              category: 2
-              torrentHash: 81c758d0eca5372d59e43879ecf2e2bce33a06c4
-              torrentName: '[MP4/3.83G]fc2-ppv-3270070 幼さが残る18才の黒髪清楚の女の子。 夢の為にAV撮影、はじめての中出しまで'
+              - line: '6768127 2 81c758d0eca5372d59e43879ecf2e2bce33a06c4 [MP4/3.83G]fc2-ppv-3270070 幼さが残る18才の黒髪清楚の女の子。 夢の為にAV撮影、はじめての中出しまで'
+                expect:
+                  postId: 6768127
+                  category: 2
+                  torrentHash: 81c758d0eca5372d59e43879ecf2e2bce33a06c4
+                  releaseName: '[MP4/3.83G]fc2-ppv-3270070 幼さが残る18才の黒髪清楚の女の子。 夢の為にAV撮影、はじめての中出しまで'
 
-        pattern: '(\d+)\ (\d+)\ ([a-z0-9]{40})\ (.*)'
-        vars:
-          - postId
-          - category
-          - torrentHash
-          - torrentName
-
-    match:
-      magneturi: 'magnet:?xt=urn:btih:{{ .torrentHash }}&dn={{ urlquery .torrentName }}'
+        match:
+          magneturi: 'magnet:?xt=urn:btih:{{ .torrentHash }}&dn={{ urlquery .releaseName }}'

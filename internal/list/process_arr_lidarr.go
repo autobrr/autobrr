@@ -9,125 +9,45 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/arr/lidarr"
-	"github.com/autobrr/autobrr/pkg/errors"
-
 	"github.com/rs/zerolog"
 )
 
-func (s *service) lidarr(ctx context.Context, list *domain.List) error {
-	l := s.log.With().Str("list", list.Name).Str("type", "lidarr").Int("client", list.ClientID).Logger()
-
-	l.Debug().Msgf("gathering titles...")
-
-	titles, artists, err := s.processLidarr(ctx, list, &l)
-	if err != nil {
-		return err
-	}
-
-	l.Debug().Msgf("got %d filter titles", len(titles))
-
-	// Process titles
-	var processedTitles []string
-	for _, title := range titles {
-		processedTitles = append(processedTitles, processTitle(title, list.MatchRelease)...)
-	}
-
-	if len(processedTitles) == 0 {
-		l.Debug().Msgf("no titles found to update for list: %v", list.Name)
-		return nil
-	}
-
-	// Update filter based on MatchRelease
-	var f domain.FilterUpdate
-
-	if list.MatchRelease {
-		joinedTitles := strings.Join(processedTitles, ",")
-		if len(joinedTitles) == 0 {
-			return nil
-		}
-
-		l.Trace().Str("titles", joinedTitles).Msgf("found %d titles", len(joinedTitles))
-
-		f.MatchReleases = &joinedTitles
-	} else {
-		// Process artists only if MatchRelease is false
-		var processedArtists []string
-		for _, artist := range artists {
-			processedArtists = append(processedArtists, processTitle(artist, list.MatchRelease)...)
-		}
-
-		joinedTitles := strings.Join(processedTitles, ",")
-
-		l.Trace().Str("albums", joinedTitles).Msgf("found %d titles", len(joinedTitles))
-
-		joinedArtists := strings.Join(processedArtists, ",")
-		if len(joinedTitles) == 0 && len(joinedArtists) == 0 {
-			return nil
-		}
-
-		l.Trace().Str("artists", joinedArtists).Msgf("found %d titles", len(joinedArtists))
-
-		f.Albums = &joinedTitles
-		f.Artists = &joinedArtists
-	}
-
-	//joinedTitles := strings.Join(titles, ",")
-	//
-	//l.Trace().Msgf("%v", joinedTitles)
-	//
-	//if len(joinedTitles) == 0 {
-	//	return nil
-	//}
-
-	for _, filter := range list.Filters {
-		l.Debug().Msgf("updating filter: %v", filter.ID)
-
-		f.ID = filter.ID
-
-		if err := s.filterSvc.UpdatePartial(ctx, f); err != nil {
-			return errors.Wrap(err, "error updating filter: %v", filter.ID)
-		}
-
-		l.Debug().Msgf("successfully updated filter: %v", filter.ID)
-	}
-
-	return nil
+type LidarrProcessor struct {
+	processorBase
+	client *lidarr.Client
 }
 
-func (s *service) processLidarr(ctx context.Context, list *domain.List, logger *zerolog.Logger) ([]string, []string, error) {
-	downloadClient, err := s.downloadClientSvc.GetClient(ctx, int32(list.ClientID))
+func NewLidarrProcessor(log zerolog.Logger, list *domain.List, client *lidarr.Client) *LidarrProcessor {
+	return &LidarrProcessor{
+		log:    log,
+		list:   list,
+		client: client,
+	}
+}
+
+func (p *LidarrProcessor) Process(ctx context.Context) (*domain.FilterUpdate, error) {
+	data, err := p.client.GetAlbums(ctx, 0)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "could not get client with id %d", list.ClientID)
+		return nil, err
 	}
 
-	if !downloadClient.Enabled {
-		return nil, nil, errors.New("client %s %s not enabled", downloadClient.Type, downloadClient.Name)
-	}
-
-	client := downloadClient.Client.(*lidarr.Client)
-
-	//var tags []*arr.Tag
-	//if len(list.TagsExclude) > 0 || len(list.TagsInclude) > 0 {
-	//	t, err := client.GetTags(ctx)
-	//	if err != nil {
-	//		logger.Debug().Msg("could not get tags")
-	//	}
-	//	tags = t
-	//}
-
-	albums, err := client.GetAlbums(ctx, 0)
+	filter, err := p.process(ctx, data)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	logger.Debug().Msgf("found %d albums to process", len(albums))
+	return filter, nil
+}
+
+func (p *LidarrProcessor) process(ctx context.Context, albums []lidarr.Album) (*domain.FilterUpdate, error) {
+	p.log.Debug().Int("count", len(albums)).Msg("found albums to process")
 
 	var titles []string
 	var artists []string
 	seenArtists := make(map[string]struct{})
 
 	for _, album := range albums {
-		if !list.ShouldProcessItem(album.Monitored) {
+		if !p.list.ShouldProcessItem(album.Monitored) {
 			continue
 		}
 
@@ -147,29 +67,76 @@ func (s *service) processLidarr(ctx context.Context, list *domain.List, logger *
 		//}
 
 		// Fetch the artist details
-		artist, err := client.GetArtistByID(ctx, album.ArtistID)
+		artist, err := p.client.GetArtistByID(ctx, album.ArtistID)
 		if err != nil {
-			logger.Error().Err(err).Msgf("Error fetching artist details for album: %v", album.Title)
+			p.log.Error().Err(err).Str("title", album.Title).Msg("error fetching artist details for album")
 			continue // Skip this album if there's an error fetching the artist
 		}
 
 		if artist.Monitored {
-			processedTitles := processTitle(album.Title, list.MatchRelease)
+			processedTitles := processTitle(album.Title, p.list.MatchRelease)
 			titles = append(titles, processedTitles...)
 
 			// Debug logging
-			logger.Debug().Msgf("Processing artist: %s", artist.ArtistName)
+			p.log.Debug().Str("artist", artist.ArtistName).Msg("processing artist")
 
 			if _, exists := seenArtists[artist.ArtistName]; !exists {
 				artists = append(artists, artist.ArtistName)
 				seenArtists[artist.ArtistName] = struct{}{}
-				logger.Debug().Msgf("Added artist: %s", artist.ArtistName) // Log when an artist is added
+				p.log.Debug().Str("artist", artist.ArtistName).Msg("added artist") // Log when an artist is added
 			}
 		}
 	}
 
 	//sort.Strings(titles)
-	logger.Debug().Msgf("Processed %d monitored albums with monitored artists, created %d titles, found %d unique artists", len(titles), len(titles), len(artists))
+	p.log.Debug().Int("total", len(titles)).Int("processed", len(titles)).Int("created", len(artists)).Msg("processed items")
 
-	return titles, artists, nil
+	p.log.Debug().Int("count", len(titles)).Msg("got filter titles")
+
+	// Process titles
+	var processedTitles []string
+	for _, title := range titles {
+		processedTitles = append(processedTitles, processTitle(title, p.list.MatchRelease)...)
+	}
+
+	if len(processedTitles) == 0 {
+		p.log.Debug().Str("list", p.list.Name).Msg("no titles found to update")
+		return nil, nil
+	}
+
+	// Update filter based on MatchRelease
+	var filter domain.FilterUpdate
+
+	if p.list.MatchRelease {
+		joinedTitles := strings.Join(processedTitles, ",")
+		if len(joinedTitles) == 0 {
+			return nil, nil
+		}
+
+		p.log.Trace().Str("titles", joinedTitles).Int("count", len(processedTitles)).Msg("found titles")
+
+		filter.MatchReleases = &joinedTitles
+	} else {
+		// Process artists only if MatchRelease is false
+		var processedArtists []string
+		for _, artist := range artists {
+			processedArtists = append(processedArtists, processTitle(artist, p.list.MatchRelease)...)
+		}
+
+		joinedTitles := strings.Join(processedTitles, ",")
+
+		p.log.Trace().Str("albums", joinedTitles).Int("count", len(processedTitles)).Msg("found titles")
+
+		joinedArtists := strings.Join(processedArtists, ",")
+		if len(joinedTitles) == 0 && len(joinedArtists) == 0 {
+			return nil, nil
+		}
+
+		p.log.Trace().Str("artists", joinedArtists).Int("count", len(processedArtists)).Msg("found titles")
+
+		filter.Albums = &joinedTitles
+		filter.Artists = &joinedArtists
+	}
+
+	return &filter, nil
 }

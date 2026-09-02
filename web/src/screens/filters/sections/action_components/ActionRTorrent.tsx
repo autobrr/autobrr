@@ -5,21 +5,23 @@
 
 import { ActionRtorrentRenameOptions } from "@domain/constants";
 import { FilterHalfRow, FilterLayout, FilterSection } from "@screens/filters/sections/_components.tsx";
-import { DownloadClientSelect, Select, SwitchGroup, TextAreaAutoResize, TextField } from "@components/inputs";
+import { DownloaderSelect, Select, SwitchGroup, TextAreaAutoResize, TextField } from "@components/inputs";
+import { useTranslation } from "react-i18next";
 
 
-export const RTorrent = ({ idx, action, clients }: ClientActionProps) => (
+export const RTorrent = ({ idx, action, clients }: ClientActionProps) => {
+  const { t } = useTranslation("filters");
+
+  return (
   <>
     <FilterSection
-      title="Instance"
-      subtitle={
-        <>Select the <span className="font-bold">specific instance</span> which you want to handle this release filter.</>
-      }
+      title={t("actionComponents.instance.title")}
+      subtitle={t("actionComponents.instance.subtitle")}
     >
       <FilterLayout>
         <FilterHalfRow>
-          <DownloadClientSelect
-            name={`actions.${idx}.client_id`}
+          <DownloaderSelect
+            name={`actions[${idx}].client_id`}
             action={action}
             clients={clients}
           />
@@ -27,36 +29,37 @@ export const RTorrent = ({ idx, action, clients }: ClientActionProps) => (
 
         <FilterHalfRow>
           <TextField
-            name={`actions.${idx}.label`}
-            label="Label"
+            name={`actions[${idx}].label`}
+            label={t("actionComponents.rtorrent.label")}
             columns={6}
-            placeholder="eg. label1,label2"
+            placeholder={t("actionComponents.rtorrent.labelPlaceholder")}
           />
         </FilterHalfRow>
       </FilterLayout>
 
       <TextAreaAutoResize
-        name={`actions.${idx}.save_path`}
-        label="Save path"
-        placeholder="eg. /full/path/to/download_folder"
+        name={`actions[${idx}].save_path`}
+        label={t("actionComponents.common.savePath")}
+        placeholder={t("actionComponents.common.savePathPlaceholder")}
       />
 
       <FilterLayout>
         <FilterHalfRow>
           <SwitchGroup
-            name={`actions.${idx}.paused`}
-            label="Add paused"
-            description="Add torrent as paused"
+            name={`actions[${idx}].paused`}
+            label={t("actionComponents.common.addPaused")}
+            description={t("actionComponents.common.addPausedDescription")}
             className="pt-2 pb-4"
           />
           <Select
-            name={`actions.${idx}.content_layout`}
-            label="Do not add torrent name to path"
-            optionDefaultText="No"
+            name={`actions[${idx}].content_layout`}
+            label={t("actionComponents.rtorrent.renameToPath")}
+            optionDefaultText={t("actionComponents.rtorrent.renameDefault")}
             options={ActionRtorrentRenameOptions}
           />
         </FilterHalfRow>
       </FilterLayout>
     </FilterSection>
   </>
-);
+  );
+};

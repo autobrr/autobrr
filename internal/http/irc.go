@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -29,6 +28,7 @@ type ircService interface {
 	RestartNetwork(ctx context.Context, id int64) error
 	SendCmd(ctx context.Context, req *domain.SendIrcCmdRequest) error
 	ManualProcessAnnounce(ctx context.Context, req *domain.IRCManualProcessRequest) error
+	GetMessageHistory(ctx context.Context, networkID int64, channel string) ([]domain.IrcMessage, error)
 }
 
 type ircHandler struct {
@@ -59,6 +59,8 @@ func (h ircHandler) Routes(r chi.Router) {
 		r.Post("/channel", h.storeChannel)
 		r.Get("/restart", h.restartNetwork)
 
+		r.Get("/channel/{channel}/history", h.getMessageHistory)
+
 		r.Post("/channel/{channel}/announce/process", h.announceProcess)
 	})
 
@@ -87,9 +89,9 @@ func (h ircHandler) listNetworks(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ircHandler) getNetworkByID(w http.ResponseWriter, r *http.Request) {
-	networkID, err := strconv.Atoi(chi.URLParam(r, "networkID"))
+	networkID, err := parseURLParamInt(r, "networkID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -108,9 +110,9 @@ func (h ircHandler) getNetworkByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ircHandler) restartNetwork(w http.ResponseWriter, r *http.Request) {
-	networkID, err := strconv.Atoi(chi.URLParam(r, "networkID"))
+	networkID, err := parseURLParamInt(r, "networkID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -134,6 +136,11 @@ func (h ircHandler) storeNetwork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := data.Auth.Validate(); err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
+
 	if err := h.service.StoreNetwork(r.Context(), &data); err != nil {
 		h.encoder.Error(w, err)
 		return
@@ -149,7 +156,17 @@ func (h ircHandler) updateNetwork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := data.Auth.Validate(); err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
+
 	if err := h.service.UpdateNetwork(r.Context(), &data); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("network with id %d not found", data.ID))
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}
@@ -158,9 +175,9 @@ func (h ircHandler) updateNetwork(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ircHandler) sendCmd(w http.ResponseWriter, r *http.Request) {
-	networkID, err := strconv.Atoi(chi.URLParam(r, "networkID"))
+	networkID, err := parseURLParamInt(r, "networkID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -173,6 +190,11 @@ func (h ircHandler) sendCmd(w http.ResponseWriter, r *http.Request) {
 	data.NetworkId = int64(networkID)
 
 	if err := h.service.SendCmd(r.Context(), &data); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("network with id %d not found", networkID))
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}
@@ -182,9 +204,9 @@ func (h ircHandler) sendCmd(w http.ResponseWriter, r *http.Request) {
 
 // announceProcess manually trigger announce process
 func (h ircHandler) announceProcess(w http.ResponseWriter, r *http.Request) {
-	networkID, err := strconv.Atoi(chi.URLParam(r, "networkID"))
+	networkID, err := parseURLParamInt(r, "networkID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -216,9 +238,9 @@ func (h ircHandler) announceProcess(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ircHandler) storeChannel(w http.ResponseWriter, r *http.Request) {
-	networkID, err := strconv.Atoi(chi.URLParam(r, "networkID"))
+	networkID, err := parseURLParamInt(r, "networkID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -229,6 +251,11 @@ func (h ircHandler) storeChannel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.service.StoreChannel(r.Context(), int64(networkID), &data); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("network with id %d not found", networkID))
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}
@@ -237,9 +264,9 @@ func (h ircHandler) storeChannel(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ircHandler) deleteNetwork(w http.ResponseWriter, r *http.Request) {
-	networkID, err := strconv.Atoi(chi.URLParam(r, "networkID"))
+	networkID, err := parseURLParamInt(r, "networkID")
 	if err != nil {
-		h.encoder.Error(w, err)
+		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
@@ -254,4 +281,37 @@ func (h ircHandler) deleteNetwork(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.encoder.NoContent(w)
+}
+
+func (h ircHandler) getMessageHistory(w http.ResponseWriter, r *http.Request) {
+	networkID, err := parseURLParamInt(r, "networkID")
+	if err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
+
+	channel := chi.URLParam(r, "channel")
+
+	// we cant pass # as an url parameter so the frontend has to strip it
+	if !strings.HasPrefix(channel, "#") {
+		channel = fmt.Sprintf("#%s", channel)
+	}
+
+	data, err := h.service.GetMessageHistory(r.Context(), int64(networkID), channel)
+	if err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("network with id %d not found", networkID))
+			return
+		}
+
+		if errors.Is(err, domain.ErrIRCNetworkHandlerNotFound) {
+			h.encoder.StatusResponse(w, http.StatusOK, make([]domain.IrcMessage, 0))
+			return
+		}
+
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusOK, data)
 }

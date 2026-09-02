@@ -17,6 +17,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
+	"github.com/rs/zerolog"
 	"golang.org/x/time/rate"
 )
 
@@ -33,9 +34,11 @@ type ApiClient interface {
 
 type Client struct {
 	url         string
-	client      *http.Client
+	httpClient  *http.Client
 	rateLimiter *rate.Limiter
 	APIKey      string
+
+	log zerolog.Logger
 }
 
 type OptFunc func(*Client)
@@ -46,10 +49,33 @@ func WithUrl(url string) OptFunc {
 	}
 }
 
-func NewClient(apiKey string, opts ...OptFunc) ApiClient {
+func WithHTTPClient(httpClient *http.Client) OptFunc {
+	return func(c *Client) {
+		if httpClient != nil {
+			c.httpClient = httpClient
+		}
+	}
+}
+
+func WithLog(log zerolog.Logger) OptFunc {
+	return func(c *Client) {
+		c.log = log
+	}
+}
+
+// logger prefers the request-scoped logger from ctx, which carries trace_id
+// and other correlation fields, over the static client logger.
+func (c *Client) logger(ctx context.Context) *zerolog.Logger {
+	if l := zerolog.Ctx(ctx); l.GetLevel() != zerolog.Disabled {
+		return l
+	}
+	return &c.log
+}
+
+func NewClient(apiKey string, opts ...OptFunc) *Client {
 	c := &Client{
 		url: DefaultURL,
-		client: &http.Client{
+		httpClient: &http.Client{
 			Timeout:   time.Second * 30,
 			Transport: sharedhttp.Transport,
 		},
@@ -159,7 +185,7 @@ type TorrentResponse struct {
 
 type Response struct {
 	Status   string          `json:"status"`
-	Response TorrentResponse `json:"response,omitempty"`
+	Response TorrentResponse `json:"response"`
 	Error    string          `json:"error,omitempty"`
 }
 
@@ -171,15 +197,24 @@ type GetIndexResponse struct {
 }
 
 func (c *Client) Do(req *http.Request) (*http.Response, error) {
-	ctx := context.Background()
-	err := c.rateLimiter.Wait(ctx) // This is a blocking call. Honors the rate limit
-	if err != nil {
+	ctx := req.Context()
+
+	start := time.Now()
+	if err := c.rateLimiter.Wait(ctx); err != nil {
 		return nil, errors.Wrap(err, "error waiting for ratelimiter")
 	}
-	resp, err := c.client.Do(req)
+
+	// the api allows one request every 5 seconds, so a queued request is worth
+	// surfacing when tracking down slow torrent lookups
+	if waited := time.Since(start); waited > time.Second {
+		c.logger(ctx).Debug().Dur("waited", waited).Msg("rate limiter delayed request")
+	}
+
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return resp, errors.Wrap(err, "error making request")
 	}
+
 	return resp, nil
 }
 
@@ -224,7 +259,9 @@ func (c *Client) getJSON(ctx context.Context, params url.Values, data any) error
 		return errors.Wrap(err, "ggn client request error : %s", reqUrl)
 	}
 
-	defer res.Body.Close()
+	defer sharedhttp.DrainAndClose(res)
+
+	c.logger(ctx).Trace().Str("url", reqUrl).Int("status", res.StatusCode).Msg("ggn api response")
 
 	if res.StatusCode == http.StatusUnauthorized {
 		return ErrUnauthorized
@@ -274,6 +311,8 @@ func (c *Client) GetTorrentByID(ctx context.Context, torrentID string) (*domain.
 
 // TestAPI try api access against index
 func (c *Client) TestAPI(ctx context.Context) (bool, error) {
+	start := time.Now()
+
 	resp, err := c.GetIndex(ctx)
 	if err != nil {
 		return false, errors.Wrap(err, "test api error")
@@ -282,6 +321,8 @@ func (c *Client) TestAPI(ctx context.Context) (bool, error) {
 	if resp == nil {
 		return false, nil
 	}
+
+	c.logger(ctx).Debug().Dur("duration", time.Since(start)).Msg("ggn api test completed")
 
 	return true, nil
 }

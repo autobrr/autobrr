@@ -5,6 +5,7 @@ package list
 
 import (
 	"fmt"
+	"maps"
 	"regexp"
 	"slices"
 	"strings"
@@ -81,8 +82,8 @@ func processTitle(title string, matchRelease bool) []string {
 			generateVariations(title, true, true),
 		)
 
-		for _, title := range titles {
-			t.Add(title, matchRelease)
+		for _, titleVar := range titles {
+			t.Add(titleVar, matchRelease)
 		}
 	}
 
@@ -91,13 +92,18 @@ func processTitle(title string, matchRelease bool) []string {
 
 type Titles struct {
 	tm map[string]struct{}
+
+	matchReleases bool
 }
 
 func NewTitleSet() *Titles {
-	ts := Titles{
+	return &Titles{
 		tm: map[string]struct{}{},
 	}
-	return &ts
+}
+
+func (ts *Titles) Len() int {
+	return len(ts.tm)
 }
 
 func (ts *Titles) Add(title string, matchRelease bool) {
@@ -116,10 +122,78 @@ func (ts *Titles) Add(title string, matchRelease bool) {
 	}
 }
 
-func (ts *Titles) Titles() []string {
-	titles := []string{}
-	for key := range ts.tm {
-		titles = append(titles, key)
+func (ts *Titles) add(title string) {
+	if title == "" || title == "*" {
+		return
 	}
-	return titles
+
+	if ts.matchReleases {
+		title = strings.Trim(title, "?* ")
+		//title = fmt.Sprintf("*%v*", title)
+	}
+
+	_, ok := ts.tm[title]
+	if !ok {
+		ts.tm[title] = struct{}{}
+	}
 }
+
+// AddTitle yearRegexp = regexp.MustCompile(`\(\d{4}\)$`)
+func (ts *Titles) AddTitle(title string) bool {
+	// Checking if the title is empty.
+	if strings.TrimSpace(title) == "" {
+		return false
+	}
+
+	// cleans year like (2020) from arr title
+	// var re = regexp.MustCompile(`(?m)\s(\(\d+\))`)
+	// title = re.ReplaceAllString(title, "")
+
+	//t := NewTitleSet()
+
+	if replaceRegexp.ReplaceAllString(title, "") == "" {
+		ts.add(title)
+	} else {
+		titles := slices.Concat(
+			// don't remove apostrophes and info in parentheses
+			generateVariations(title, false, false),
+			// remove apostrophes but don't remove info in parentheses
+			generateVariations(title, true, false),
+			// don't remove apostrophes but remove info in parentheses
+			generateVariations(title, false, true),
+			// remove apostrophes and info in parentheses
+			generateVariations(title, true, true),
+		)
+
+		for _, titleVar := range titles {
+			ts.add(titleVar)
+		}
+	}
+
+	return true
+}
+
+func (ts *Titles) FilterString() string {
+	keys := slices.Sorted(maps.Keys(ts.tm))
+	if len(keys) == 0 {
+		return ""
+	}
+
+	if ts.matchReleases {
+		for i, key := range keys {
+			keys[i] = "*" + key + "*"
+		}
+
+		return strings.Join(keys, ",")
+	}
+
+	return strings.Join(keys, ",")
+}
+
+func (ts *Titles) Titles() []string {
+	return slices.Collect(maps.Keys(ts.tm))
+}
+
+//func concat(strs ...string) string {
+//	return strings.Join(strs, " ")
+//}

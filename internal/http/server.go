@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/config"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/web"
 
 	"github.com/alexedwards/scs/v2"
@@ -19,6 +19,7 @@ import (
 	"github.com/r3labs/sse/v2"
 	"github.com/rs/cors"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/hlog"
 )
 
 type Server struct {
@@ -26,30 +27,29 @@ type Server struct {
 	sse *sse.Server
 	db  DatabaseHealth
 
+	buildInfo      buildInfo
 	config         *config.AppConfig
+	allowedOrigins []string
 	sessionManager *scs.SessionManager
 
-	version string
-	commit  string
-	date    string
-
-	actionService         actionService
-	apiService            apikeyService
-	authService           authService
-	downloadClientService downloadClientService
-	filterService         filterService
-	feedService           feedService
-	indexerService        indexerService
-	ircService            ircService
-	listService           listService
-	notificationService   notificationService
-	proxyService          proxyService
-	releaseService        releaseService
-	updateService         updateService
+	actionService       actionService
+	apiService          apikeyService
+	authService         authService
+	downloaderService   downloaderService
+	filterService       filterService
+	feedService         feedService
+	indexerService      indexerService
+	ircService          ircService
+	listService         listService
+	notificationService notificationService
+	oidcService         oidcService
+	proxyService        proxyService
+	releaseService      releaseService
+	updateService       updateService
 }
 
 type Deps struct {
-	Log logger.Logger
+	Log zerolog.Logger
 	SSE *sse.Server
 	DB  DatabaseHealth
 
@@ -60,61 +60,72 @@ type Deps struct {
 	Commit  string
 	Date    string
 
-	ActionService         actionService
-	ApiService            apikeyService
-	AuthService           authService
-	DownloadClientService downloadClientService
-	FilterService         filterService
-	FeedService           feedService
-	IndexerService        indexerService
-	IrcService            ircService
-	ListService           listService
-	NotificationService   notificationService
-	ProxyService          proxyService
-	ReleaseService        releaseService
-	UpdateService         updateService
+	ActionService       actionService
+	ApiService          apikeyService
+	AuthService         authService
+	DownloaderService   downloaderService
+	FilterService       filterService
+	FeedService         feedService
+	IndexerService      indexerService
+	IrcService          ircService
+	ListService         listService
+	NotificationService notificationService
+	OIDCService         oidcService
+	ProxyService        proxyService
+	ReleaseService      releaseService
+	UpdateService       updateService
 }
 
-func NewServer(deps Deps) Server {
-	//sessionManager := scs.New()
+func NewServer(deps Deps) *Server {
 	sessionManager := deps.SessionManager
 	sessionManager.Lifetime = 24 * time.Hour * 30
-	//sessionManager.Lifetime = 1 * time.Minute
-
-	//sessionManager.IdleTimeout = 20 * time.Minute
 	sessionManager.Cookie.Name = "autobrr_user_session"
 	sessionManager.Cookie.Persist = false
 
-	srv := Server{
-		log:     deps.Log.With().Str("module", "http").Logger(),
-		config:  deps.Config,
-		sse:     deps.SSE,
-		db:      deps.DB,
-		version: deps.Version,
-		commit:  deps.Commit,
-		date:    deps.Date,
+	srv := &Server{
+		log:    deps.Log.With().Str("module", "http").Logger(),
+		config: deps.Config,
+		allowedOrigins: []string{
+			"*",
+			//"http://localhost:3000",
+			//"http://localhost:7474",
+			//"http://127.0.0.1:3000",
+			//"http://127.0.0.1:7474",
+		},
+		sse: deps.SSE,
+		db:  deps.DB,
+		buildInfo: buildInfo{
+			version: deps.Version,
+			commit:  deps.Commit,
+			date:    deps.Date,
+		},
 
 		sessionManager: sessionManager,
 
-		actionService:         deps.ActionService,
-		apiService:            deps.ApiService,
-		authService:           deps.AuthService,
-		downloadClientService: deps.DownloadClientService,
-		filterService:         deps.FilterService,
-		feedService:           deps.FeedService,
-		indexerService:        deps.IndexerService,
-		ircService:            deps.IrcService,
-		listService:           deps.ListService,
-		notificationService:   deps.NotificationService,
-		proxyService:          deps.ProxyService,
-		releaseService:        deps.ReleaseService,
-		updateService:         deps.UpdateService,
+		actionService:       deps.ActionService,
+		apiService:          deps.ApiService,
+		authService:         deps.AuthService,
+		downloaderService:   deps.DownloaderService,
+		filterService:       deps.FilterService,
+		feedService:         deps.FeedService,
+		indexerService:      deps.IndexerService,
+		ircService:          deps.IrcService,
+		listService:         deps.ListService,
+		notificationService: deps.NotificationService,
+		oidcService:         deps.OIDCService,
+		proxyService:        deps.ProxyService,
+		releaseService:      deps.ReleaseService,
+		updateService:       deps.UpdateService,
+	}
+
+	if deps.Config.Config.CorsAllowedOrigins != "*" {
+		srv.allowedOrigins = strings.Split(deps.Config.Config.CorsAllowedOrigins, ",")
 	}
 
 	return srv
 }
 
-func (s Server) Open() error {
+func (s *Server) Open() error {
 	addr := fmt.Sprintf("%v:%v", s.config.Config.Host, s.config.Config.Port)
 
 	var err error
@@ -123,19 +134,19 @@ func (s Server) Open() error {
 			break
 		}
 
-		s.log.Error().Err(err).Msgf("Failed to start %s server. Attempted to listen on %s", proto, addr)
+		s.log.Error().Err(err).Str("protocol", proto).Str("addr", addr).Msg("failed to start server")
 	}
 
 	return err
 }
 
-func (s Server) tryToServe(addr, protocol string) error {
+func (s *Server) tryToServe(addr, protocol string) error {
 	listener, err := net.Listen(protocol, addr)
 	if err != nil {
 		return err
 	}
 
-	s.log.Info().Msgf("Starting API %s server. Listening on %s", protocol, listener.Addr().String())
+	s.log.Info().Str("protocol", protocol).Str("addr", listener.Addr().String()).Msg("starting api server")
 
 	server := http.Server{
 		Handler:           s.Handler(),
@@ -145,18 +156,20 @@ func (s Server) tryToServe(addr, protocol string) error {
 	return server.Serve(listener)
 }
 
-func (s Server) Handler() http.Handler {
+func (s *Server) Handler() http.Handler {
 	r := chi.NewRouter()
 
-	r.Use(middleware.RequestID)
+	r.Use(hlog.NewHandler(s.log))
+	r.Use(hlog.RequestIDHandler("request_id", "X-Request-Id"))
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
 	r.Use(LoggerMiddleware(&s.log))
 
 	c := cors.New(cors.Options{
 		AllowCredentials:   true,
-		AllowedMethods:     []string{"HEAD", "OPTIONS", "GET", "POST", "PUT", "PATCH", "DELETE"},
-		AllowOriginFunc:    func(origin string) bool { return true },
+		AllowedMethods:     []string{http.MethodHead, http.MethodOptions, http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete},
+		AllowedHeaders:     []string{"Authorization"},
+		AllowedOrigins:     s.allowedOrigins,
 		OptionsPassthrough: true,
 		// Enable Debugging for testing, consider disabling in production
 		Debug: false,
@@ -169,15 +182,15 @@ func (s Server) Handler() http.Handler {
 
 	// Create a separate router for API
 	apiRouter := chi.NewRouter()
-	apiRouter.Route("/auth", newAuthHandler(encoder, s.log, s, s.config.Config, s.sessionManager, s.authService).Routes)
+	apiRouter.Route("/auth", newAuthHandler(encoder, s.log, s, s.config.Config, s.sessionManager, s.authService, s.oidcService).Routes)
 	apiRouter.Route("/healthz", newHealthHandler(encoder, s.db).Routes)
 	apiRouter.Group(func(r chi.Router) {
 		r.Group(func(r chi.Router) {
 			r.Use(s.IsAuthenticated)
 
 			r.Route("/actions", newActionHandler(encoder, s.actionService).Routes)
-			r.Route("/config", newConfigHandler(encoder, s, s.config).Routes)
-			r.Route("/download_clients", newDownloadClientHandler(encoder, s.downloadClientService).Routes)
+			r.Route("/config", newConfigHandler(encoder, s.buildInfo, s.config).Routes)
+			r.Route("/downloaders", newDownloaderHandler(encoder, s.downloaderService).Routes)
 			r.Route("/filters", newFilterHandler(encoder, s.filterService).Routes)
 			r.Route("/feeds", newFeedHandler(encoder, s.feedService).Routes)
 			r.Route("/irc", newIrcHandler(encoder, s.sse, s.ircService).Routes)
@@ -215,13 +228,13 @@ func (s Server) Handler() http.Handler {
 		// this is required to keep assets "url rewritable" via a reverse-proxy
 		routeAssetBaseURL := "./"
 		// serve the web
-		webHandlers := newWebLegacyHandler(s.log, web.DistDirFS, s.version, s.config.Config.BaseURL, routeAssetBaseURL)
+		webHandlers := newWebLegacyHandler(s.log, web.DistDirFS, s.buildInfo.version, s.config.Config.BaseURL, routeAssetBaseURL)
 		webHandlers.RegisterRoutes(webRouter)
 	} else {
 		routeBaseURL = s.config.Config.BaseURL
 
 		// serve the web
-		webHandlers := newWebHandler(s.log, web.DistDirFS, s.version, routeBaseURL, routeBaseURL)
+		webHandlers := newWebHandler(s.log, web.DistDirFS, s.buildInfo.version, routeBaseURL, routeBaseURL)
 		webHandlers.RegisterRoutes(webRouter)
 
 		// add fallback routes when base url is set to inform user to redirect and use /baseurl/

@@ -7,6 +7,7 @@ import { baseUrl, sseBaseUrl } from "@utils";
 import { GithubRelease } from "@app/types/Update";
 import { AuthContext, AuthInfo } from "@utils/Context";
 import { ColumnFilter } from "@tanstack/react-table";
+import { IrcEvent } from "@hooks/useIrcEvents";
 
 type RequestBody = BodyInit | object | Record<string, unknown> | null;
 type Primitive = string | number | boolean | symbol | undefined;
@@ -294,17 +295,17 @@ export const APIClient = {
       body: config
     })
   },
-  download_clients: {
-    getAll: () => appClient.Get<DownloadClient[]>("api/download_clients"),
-    getArrTags: (clientID: number) => appClient.Get<ArrTag[]>(`api/download_clients/${clientID}/arr/tags`),
-    create: (dc: DownloadClient) => appClient.Post("api/download_clients", {
+  downloaders: {
+    getAll: () => appClient.Get<Downloader[]>("api/downloaders"),
+    getArrTags: (clientID: number) => appClient.Get<ArrTag[]>(`api/downloaders/${clientID}/arr/tags`),
+    create: (dc: Downloader) => appClient.Post("api/downloaders", {
       body: dc
     }),
-    update: (dc: DownloadClient) => appClient.Put("api/download_clients", {
+    update: (dc: Downloader) => appClient.Put("api/downloaders", {
       body: dc
     }),
-    delete: (id: number) => appClient.Delete(`api/download_clients/${id}`),
-    test: (dc: DownloadClient) => appClient.Post("api/download_clients/test", {
+    delete: (id: number) => appClient.Delete(`api/downloaders/${id}`),
+    test: (dc: Downloader) => appClient.Post("api/downloaders/test", {
       body: dc
     })
   },
@@ -327,13 +328,32 @@ export const APIClient = {
     toggleEnable: (id: number, enabled: boolean) => appClient.Put(`api/filters/${id}/enabled`, {
       body: { enabled }
     }),
-    delete: (id: number) => appClient.Delete(`api/filters/${id}`)
+    pruneDeprecatedIndexers: (identifiers: string[] = []) => appClient.Post<{ removed: number }>("api/filters/indexers/prune-deprecated", {
+      body: { identifiers }
+    }),
+    delete: (id: number) => appClient.Delete(`api/filters/${id}`),
+    external: {
+      test: (external: ExternalFilter) => appClient.Post<ExternalFilterTestResult>("api/filters/external/test", {
+        body: external
+      })
+    },
+    notifications: {
+      get: (filterId: number) => appClient.Get<FilterNotification[]>(`api/filters/${filterId}/notifications`),
+      update: (filterId: number, notifications: FilterNotification[]) => 
+        appClient.Put(`api/filters/${filterId}/notifications`, {
+          body: notifications
+        })
+    }
   },
   feeds: {
     find: () => appClient.Get<Feed[]>("api/feeds"),
     create: (feed: FeedCreate) => appClient.Post("api/feeds", {
       body: feed
     }),
+    fetchCapsDraft: (feed: FeedCapsRequest) => appClient.Post<unknown>("api/feeds/caps", {
+      body: feed
+    }),
+    fetchCaps: (id: number) => appClient.Get<FeedCaps>(`api/feeds/${id}/caps`),
     toggleEnable: (id: number, enabled: boolean) => appClient.Patch(`api/feeds/${id}/enabled`, {
       body: { enabled }
     }),
@@ -348,10 +368,13 @@ export const APIClient = {
     })
   },
   indexers: {
-    // returns indexer options for all currently present/enabled indexers
+    // returns all configured indexer rows (including archived/deprecated ones, flagged)
     getOptions: () => appClient.Get<Indexer[]>("api/indexer/options"),
     // returns indexer definitions for all currently present/enabled indexers
     getAll: () => appClient.Get<IndexerDefinition[]>("api/indexer"),
+    // returns metadata for removed/deprecated indexers
+    getDeprecations: () => appClient.Get<IndexerDeprecation[]>("api/indexer/deprecations"),
+    deleteArchived: (id: number) => appClient.Delete(`api/indexer/deprecations/${id}`),
     // returns all possible indexer definitions
     getSchema: () => appClient.Get<IndexerDefinition[]>("api/indexer/schema"),
     create: (indexer: Indexer) => appClient.Post<Indexer>("api/indexer", {
@@ -384,6 +407,14 @@ export const APIClient = {
     reprocessAnnounce: (networkId: number, channel: string, msg: string) => appClient.Post(`api/irc/network/${networkId}/channel/${channel}/announce/process`, {
       body: { msg: msg }
     }),
+    getChannelHistory: (networkId: number, channel: string, limit?: number) =>
+      appClient.Get<IrcEvent[]>(`api/irc/network/${networkId}/channel/${channel}/history`, {
+        queryString: { limit }
+      }),
+    allEvents: () => new EventSource(
+      `${sseBaseUrl()}api/irc/events?stream=irc`,
+      { withCredentials: true }
+    ),
     events: (network: string) => new EventSource(
       `${sseBaseUrl()}api/irc/events?stream=${encodeRFC3986URIComponent(network)}`,
       { withCredentials: true }
@@ -408,7 +439,14 @@ export const APIClient = {
     delete: (id: number) => appClient.Delete(`api/notification/${id}`),
     test: (notification: ServiceNotification) => appClient.Post("api/notification/test", {
       body: notification
-    })
+    }),
+    getPushoverSounds: (apiToken: string) => {
+      // Don't make request if token is redacted or empty
+      if (!apiToken || apiToken === "<redacted>" || apiToken === "") {
+        return Promise.reject(new Error("API token is required"));
+      }
+      return appClient.Get<Record<string, string>>(`api/notification/pushover/sounds?token=${encodeURIComponent(apiToken)}`);
+    }
   },
   lists: {
     list: () => appClient.Get<List[]>("api/lists"),
@@ -436,6 +474,7 @@ export const APIClient = {
       body: proxy
     }),
     delete: (id: number) => appClient.Delete(`api/proxy/${id}`),
+    usage: (id: number) => appClient.Get<ProxyUsage>(`api/proxy/${id}/usage`),
     test: (proxy: Proxy) => appClient.Post("api/proxy/test", {
       body: proxy
     })
@@ -454,13 +493,13 @@ export const APIClient = {
         if (!filter.value)
           return;
 
-        if (filter.id == "indexer.identifier") {
+        if (filter.id == "indexer.identifier" || filter.id == "indexer_identifier") {
           if (typeof filter.value === "string") {
             params["indexer"].push(filter.value);
-          }
-        } else if (filter.id == "indexer_identifier") {
-          if (typeof filter.value === "string") {
-            params["indexer"].push(filter.value);
+          } else if (Array.isArray(filter.value)) {
+            for (const v of filter.value) {
+              if (typeof v === "string") params["indexer"].push(v);
+            }
           }
         } else if (filter.id === "action_status") {
           if (typeof filter.value === "string") {
@@ -487,6 +526,21 @@ export const APIClient = {
     },
     indexerOptions: () => appClient.Get<string[]>("api/release/indexers"),
     stats: () => appClient.Get<ReleaseStats>("api/release/stats"),
+    statsActivity: (days: number) => appClient.Get<ReleaseActivityStats>("api/release/stats/activity", {
+      queryString: { days }
+    }),
+    statsVolume: (days: number) => appClient.Get<ReleaseVolumeStats>("api/release/stats/volume", {
+      queryString: { days }
+    }),
+    statsHeatmap: (days: number) => appClient.Get<ReleaseHeatmapStats>("api/release/stats/heatmap", {
+      queryString: { days }
+    }),
+    statsTopIndexers: (days: number) => appClient.Get<ReleaseTopIndexersStats>("api/release/stats/indexers", {
+      queryString: { days }
+    }),
+    statsTopFilters: (days: number) => appClient.Get<ReleaseTopFiltersStats>("api/release/stats/filters", {
+      queryString: { days }
+    }),
     delete: (params: DeleteParams) => {
       return appClient.Delete("api/release", {
         queryString: {
@@ -499,6 +553,22 @@ export const APIClient = {
     replayAction: (releaseId: number, actionId: number) => appClient.Post(
       `api/release/${releaseId}/actions/${actionId}/retry`
     ),
+    cleanupJobs: {
+      list: () => appClient.Get<ReleaseCleanupJob[]>("api/release/cleanup-jobs"),
+      getByID: (id: number) => appClient.Get<ReleaseCleanupJob>(`api/release/cleanup-jobs/${id}`),
+      store: (job: ReleaseCleanupJob) => appClient.Post("api/release/cleanup-jobs", {
+        body: job
+      }),
+      update: (job: ReleaseCleanupJob) => appClient.Put(`api/release/cleanup-jobs/${job.id}`, {
+        body: job
+      }),
+      delete: (id: number) => appClient.Delete(`api/release/cleanup-jobs/${id}`),
+      toggleEnabled: (id: number, enabled: boolean) => appClient.Patch(
+        `api/release/cleanup-jobs/${id}/enabled`,
+        { body: { enabled } }
+      ),
+      forceRun: (id: number) => appClient.Post(`api/release/cleanup-jobs/${id}/run`)
+    },
     profiles: {
       duplicates: {
         list: () => appClient.Get<ReleaseProfileDuplicate[]>(`api/release/profiles/duplicate`),

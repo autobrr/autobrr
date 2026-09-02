@@ -4,6 +4,7 @@
 package feed
 
 import (
+	"cmp"
 	"context"
 	"net/http"
 	"net/http/cookiejar"
@@ -16,16 +17,21 @@ import (
 )
 
 type RSSParser struct {
-	parser *gofeed.Parser
-	http   *http.Client
-	cookie string
+	parser    *gofeed.Parser
+	http      *http.Client
+	cookie    string
+	userAgent string
 }
 
 // NewFeedParser wraps the gofeed.Parser using our own http client for full control
-func NewFeedParser(timeout time.Duration, cookie string) *RSSParser {
+func NewFeedParser(timeout time.Duration, cookie string, userAgent string, tlsSkipVerify bool) *RSSParser {
+	transport := sharedhttp.Transport
+	if tlsSkipVerify {
+		transport = sharedhttp.TransportTLSInsecure
+	}
 	httpClient := &http.Client{
 		Timeout:   time.Second * 60,
-		Transport: sharedhttp.TransportTLSInsecure,
+		Transport: transport,
 	}
 
 	if cookie != "" {
@@ -36,9 +42,10 @@ func NewFeedParser(timeout time.Duration, cookie string) *RSSParser {
 	}
 
 	c := &RSSParser{
-		parser: gofeed.NewParser(),
-		http:   httpClient,
-		cookie: cookie,
+		parser:    gofeed.NewParser(),
+		http:      httpClient,
+		cookie:    cookie,
+		userAgent: userAgent,
 	}
 
 	c.http.Timeout = timeout
@@ -65,7 +72,7 @@ func (c *RSSParser) ParseURLWithContext(ctx context.Context, feedURL string) (fe
 		return nil, err
 	}
 
-	req.Header.Set("User-Agent", "Gofeed/1.0")
+	req.Header.Set("User-Agent", cmp.Or(c.userAgent, "Gofeed/1.0"))
 
 	if c.cookie != "" {
 		// set raw cookie as header

@@ -5,6 +5,7 @@ package radarr
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/arr"
@@ -24,9 +25,9 @@ type Movie struct {
 	SizeOnDisk            int64               `json:"sizeOnDisk,omitempty"`
 	Status                string              `json:"status,omitempty"`
 	Overview              string              `json:"overview,omitempty"`
-	InCinemas             time.Time           `json:"inCinemas,omitempty"`
-	PhysicalRelease       time.Time           `json:"physicalRelease,omitempty"`
-	DigitalRelease        time.Time           `json:"digitalRelease,omitempty"`
+	InCinemas             time.Time           `json:"inCinemas"`
+	PhysicalRelease       time.Time           `json:"physicalRelease"`
+	DigitalRelease        time.Time           `json:"digitalRelease"`
 	Images                []*arr.Image        `json:"images,omitempty"`
 	Website               string              `json:"website,omitempty"`
 	Year                  int                 `json:"year,omitempty"`
@@ -40,7 +41,7 @@ type Movie struct {
 	Certification         string              `json:"certification,omitempty"`
 	Genres                []string            `json:"genres,omitempty"`
 	Tags                  []int               `json:"tags,omitempty"`
-	Added                 time.Time           `json:"added,omitempty"`
+	Added                 time.Time           `json:"added"`
 	Ratings               *arr.Ratings        `json:"ratings,omitempty"`
 	MovieFile             *MovieFile          `json:"movieFile,omitempty"`
 	Collection            *Collection         `json:"collection,omitempty"`
@@ -100,7 +101,7 @@ type Collection struct {
 	Images []*arr.Image `json:"images"`
 }
 
-type Release struct {
+type ReleasePushRequest struct {
 	Title            string `json:"title"`
 	InfoUrl          string `json:"infoUrl,omitempty"`
 	DownloadUrl      string `json:"downloadUrl,omitempty"`
@@ -112,9 +113,12 @@ type Release struct {
 	PublishDate      string `json:"publishDate"`
 	DownloadClientId int    `json:"downloadClientId,omitempty"`
 	DownloadClient   string `json:"downloadClient,omitempty"`
+	IndexerFlags     int    `json:"indexerFlags,omitempty"`
+	TmdbID           int    `json:"tmdbId,omitempty"`
+	ImdbID           int    `json:"imdbId,omitempty"`
 }
 
-type PushResponse struct {
+type ReleasePushResponse struct {
 	Approved     bool     `json:"approved"`
 	Rejected     bool     `json:"rejected"`
 	TempRejected bool     `json:"temporarilyRejected"`
@@ -135,4 +139,48 @@ type BadRequestResponse struct {
 
 func (r *BadRequestResponse) String() string {
 	return fmt.Sprintf("[%s: %s] %s: %s - got value: %s", r.Severity, r.ErrorCode, r.PropertyName, r.ErrorMessage, r.AttemptedValue)
+}
+
+type IndexerFlags int
+
+const (
+	GFreeleech    IndexerFlags = 1 // G_Freeleech
+	GHalfleech    IndexerFlags = 2 // G_Halfleech
+	GDoubleUpload IndexerFlags = 4 // G_DoubleUpload
+	PTPGolden     IndexerFlags = 8
+	PTPApproved   IndexerFlags = 16
+	GInternal     IndexerFlags = 32  // G_Internal
+	GScene        IndexerFlags = 128 // G_Scene
+	GFreeleech75  IndexerFlags = 256 // G_Freeleech75 (75%)
+	GFreeleech25  IndexerFlags = 512 // G_Freeleech25 (25%)
+	Nuked         IndexerFlags = 2048
+)
+
+type ReleaseMeta struct {
+	FreeleechPercent int    // e.g. 100, 50
+	Origin           string // e.g. "scene", "internal"
+}
+
+// BuildIndexerFlags maps fields into a Radarr-compatible bitmask.
+func BuildIndexerFlags(m ReleaseMeta) IndexerFlags {
+	var flags IndexerFlags
+	// Freeleech mapping
+	switch m.FreeleechPercent {
+	case 100:
+		flags |= GFreeleech
+	case 75:
+		flags |= GFreeleech75
+	case 50:
+		flags |= GHalfleech
+	case 25:
+		flags |= GFreeleech25
+	}
+	// Origin mapping
+	switch strings.ToLower(strings.TrimSpace(m.Origin)) {
+	case "internal":
+		flags |= GInternal
+	case "scene":
+		flags |= GScene
+	}
+	return flags
 }

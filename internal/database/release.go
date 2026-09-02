@@ -4,15 +4,16 @@
 package database
 
 import (
+	"cmp"
 	"context"
 	"database/sql"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	sq "github.com/Masterminds/squirrel"
@@ -25,7 +26,7 @@ type ReleaseRepo struct {
 	db  *DB
 }
 
-func NewReleaseRepo(log logger.Logger, db *DB) domain.ReleaseRepo {
+func NewReleaseRepo(log zerolog.Logger, db *DB) *ReleaseRepo {
 	return &ReleaseRepo{
 		log: log.With().Str("repo", "release").Logger(),
 		db:  db,
@@ -53,13 +54,13 @@ func (repo *ReleaseRepo) Store(ctx context.Context, r *domain.Release) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	repo.log.Debug().Msgf("release.store: %s %v", q, args)
+	repo.log.Debug().Str("query", q).Interface("args", args).Msg("store release")
 
 	if err := queryBuilder.QueryRowContext(ctx).Scan(&r.ID); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	repo.log.Debug().Msgf("release.store: %+v", r)
+	repo.log.Debug().Interface("release", r).Msg("release created")
 
 	return nil
 }
@@ -79,7 +80,7 @@ func (repo *ReleaseRepo) Update(ctx context.Context, r *domain.Release) error {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	repo.log.Debug().Msgf("release.update: %d %s", r.ID, r.TorrentName)
+	repo.log.Debug().Int64("release_id", r.ID).Str("release", r.TorrentName).Msg("release updated")
 
 	return nil
 }
@@ -115,7 +116,7 @@ func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, status *d
 		}
 	}
 
-	repo.log.Trace().Msgf("release.store_release_action_status: %+v", status)
+	repo.log.Trace().Interface("status", status).Msg("release action status created")
 
 	return nil
 }
@@ -124,8 +125,8 @@ func (repo *ReleaseRepo) StoreDuplicateProfile(ctx context.Context, profile *dom
 	if profile.ID == 0 {
 		queryBuilder := repo.db.squirrel.
 			Insert("release_profile_duplicate").
-			Columns("name", "protocol", "release_name", "hash", "title", "sub_title", "season", "episode", "year", "month", "day", "resolution", "source", "codec", "container", "dynamic_range", "audio", "release_group", "website", "proper", "repack").
-			Values(profile.Name, profile.Protocol, profile.ReleaseName, profile.Hash, profile.Title, profile.SubTitle, profile.Season, profile.Episode, profile.Year, profile.Month, profile.Day, profile.Resolution, profile.Source, profile.Codec, profile.Container, profile.DynamicRange, profile.Audio, profile.Group, profile.Website, profile.Proper, profile.Repack).
+			Columns("name", "protocol", "release_name", "hash", "title", "sub_title", "season", "episode", "year", "month", "day", "resolution", "source", "codec", "container", "dynamic_range", "audio", "release_group", "website", "proper", "repack", "hybrid").
+			Values(profile.Name, profile.Protocol, profile.ReleaseName, profile.Hash, profile.Title, profile.SubTitle, profile.Season, profile.Episode, profile.Year, profile.Month, profile.Day, profile.Resolution, profile.Source, profile.Codec, profile.Container, profile.DynamicRange, profile.Audio, profile.Group, profile.Website, profile.Proper, profile.Repack, profile.Hybrid).
 			Suffix("RETURNING id").
 			RunWith(repo.db.Handler)
 
@@ -162,6 +163,7 @@ func (repo *ReleaseRepo) StoreDuplicateProfile(ctx context.Context, profile *dom
 			Set("website", profile.Website).
 			Set("proper", profile.Proper).
 			Set("repack", profile.Repack).
+			Set("hybrid", profile.Hybrid).
 			Where(sq.Eq{"id": profile.ID}).
 			RunWith(repo.db.Handler)
 
@@ -171,7 +173,7 @@ func (repo *ReleaseRepo) StoreDuplicateProfile(ctx context.Context, profile *dom
 		}
 	}
 
-	repo.log.Debug().Msgf("release.StoreDuplicateProfile: %+v", profile)
+	repo.log.Debug().Interface("profile", profile).Msg("duplicate profile created")
 
 	return nil
 }
@@ -202,6 +204,7 @@ var reservedSearch = map[string]*regexp.Regexp{
 	"r.source":        regexp.MustCompile(`(?i)(?:` + `source` + `:)(?P<value>'.*?'|".*?"|\S+)`),
 	"r.codec":         regexp.MustCompile(`(?i)(?:` + `codec` + `:)(?P<value>'.*?'|".*?"|\S+)`),
 	"r.hdr":           regexp.MustCompile(`(?i)(?:` + `hdr` + `:)(?P<value>'.*?'|".*?"|\S+)`),
+	"r.type":          regexp.MustCompile(`(?i)(?:` + `type` + `:)(?P<value>'.*?'|".*?"|\S+)`),
 	"r.filter":        regexp.MustCompile(`(?i)(?:` + `filter` + `:)(?P<value>'.*?'|".*?"|\S+)`),
 }
 
@@ -239,7 +242,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 	}
 
 	if params.Filters.Indexers != nil {
-		filter := sq.And{}
+		filter := sq.Or{}
 		for _, v := range params.Filters.Indexers {
 			filter = append(filter, sq.Eq{"r.indexer": v})
 		}
@@ -295,7 +298,7 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 			"r.rejections",
 			"r.indexer",
 			"i.id",
-			"i.name",
+			"COALESCE(i.name, d.name, r.indexer) AS indexer_name",
 			"i.identifier_external",
 			"r.filter",
 			"r.protocol",
@@ -337,14 +340,15 @@ func (repo *ReleaseRepo) findReleases(ctx context.Context, tx *Tx, params domain
 		OrderBy("r.id DESC").
 		Where("r.id IN ("+subQuery+")", subArgs...).
 		LeftJoin("release_action_status ras ON r.id = ras.release_id").
-		LeftJoin("indexer i ON r.indexer = i.identifier")
+		LeftJoin("indexer i ON r.indexer = i.identifier").
+		LeftJoin("indexer_deprecation d ON r.indexer = d.identifier")
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	repo.log.Trace().Str("database", "release.find").Msgf("query: '%v', args: '%v'", query, args)
+	repo.log.Trace().Str("database", "release.find").Str("query", query).Interface("args", args).Msg("find releases")
 
 	resp := &domain.FindReleasesResponse{
 		Data:       make([]*domain.Release, 0),
@@ -526,6 +530,7 @@ func (repo *ReleaseRepo) FindDuplicateReleaseProfiles(ctx context.Context) ([]*d
 			"website",
 			"proper",
 			"repack",
+			"hybrid",
 		).
 		From("release_profile_duplicate")
 
@@ -550,7 +555,7 @@ func (repo *ReleaseRepo) FindDuplicateReleaseProfiles(ctx context.Context) ([]*d
 	for rows.Next() {
 		var p domain.DuplicateReleaseProfile
 
-		err := rows.Scan(&p.ID, &p.Name, &p.Protocol, &p.ReleaseName, &p.Hash, &p.Title, &p.SubTitle, &p.Year, &p.Month, &p.Day, &p.Source, &p.Resolution, &p.Codec, &p.Container, &p.DynamicRange, &p.Audio, &p.Group, &p.Season, &p.Episode, &p.Website, &p.Proper, &p.Repack)
+		err := rows.Scan(&p.ID, &p.Name, &p.Protocol, &p.ReleaseName, &p.Hash, &p.Title, &p.SubTitle, &p.Year, &p.Month, &p.Day, &p.Source, &p.Resolution, &p.Codec, &p.Container, &p.DynamicRange, &p.Audio, &p.Group, &p.Season, &p.Episode, &p.Website, &p.Proper, &p.Repack, &p.Hybrid)
 		if err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
@@ -563,8 +568,6 @@ func (repo *ReleaseRepo) FindDuplicateReleaseProfiles(ctx context.Context) ([]*d
 
 func (repo *ReleaseRepo) GetIndexerOptions(ctx context.Context) ([]string, error) {
 	query := `SELECT DISTINCT indexer FROM "release" UNION SELECT DISTINCT identifier indexer FROM indexer;`
-
-	repo.log.Trace().Str("database", "release.get_indexers").Msgf("query: '%v'", query)
 
 	res := make([]string, 0)
 
@@ -639,7 +642,56 @@ func (repo *ReleaseRepo) GetActionStatusByReleaseID(ctx context.Context, release
 
 func (repo *ReleaseRepo) Get(ctx context.Context, req *domain.GetReleaseRequest) (*domain.Release, error) {
 	queryBuilder := repo.db.squirrel.
-		Select("r.id", "r.filter_status", "r.rejections", "r.indexer", "r.filter", "r.filter_id", "r.protocol", "r.implementation", "r.announce_type", "r.info_url", "r.download_url", "r.title", "r.sub_title", "r.torrent_name", "r.category", "r.size", "r.group_id", "r.torrent_id", "r.uploader", "r.timestamp").
+		Select(
+			"r.id",
+			"r.filter_status",
+			"r.rejections",
+			"r.indexer",
+			"r.filter",
+			"r.filter_id",
+			"r.protocol",
+			"r.implementation",
+			"r.announce_type",
+			"r.info_url",
+			"r.download_url",
+			"r.title",
+			"r.sub_title",
+			"r.torrent_name",
+			"r.normalized_hash",
+			"r.category",
+			"r.size",
+			"r.group_id",
+			"r.torrent_id",
+			"r.season",
+			"r.episode",
+			"r.year",
+			"r.month",
+			"r.day",
+			"r.resolution",
+			"r.source",
+			"r.codec",
+			"r.container",
+			"r.hdr",
+			"r.audio",
+			"r.audio_channels",
+			"r.release_group",
+			"r.proper",
+			"r.repack",
+			"r.region",
+			"r.language",
+			"r.cut",
+			"r.edition",
+			"r.hybrid",
+			"r.media_processing",
+			"r.website",
+			"r.type",
+			"r.origin",
+			"r.tags",
+			"r.uploader",
+			"r.pre_time",
+			"r.other",
+			"r.timestamp",
+		).
 		From("release r").
 		OrderBy("r.id DESC").
 		Where(sq.Eq{"r.id": req.Id})
@@ -649,7 +701,7 @@ func (repo *ReleaseRepo) Get(ctx context.Context, req *domain.GetReleaseRequest)
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	repo.log.Trace().Str("database", "release.find").Msgf("query: '%s', args: '%v'", query, args)
+	repo.log.Trace().Str("database", "release.find").Str("query", query).Interface("args", args).Msg("get release")
 
 	row := repo.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
@@ -658,10 +710,61 @@ func (repo *ReleaseRepo) Get(ctx context.Context, req *domain.GetReleaseRequest)
 
 	var rls domain.Release
 
-	var indexerName, filterName, announceType, infoUrl, downloadUrl, subTitle, groupId, torrentId, category, uploader sql.NullString
+	var indexerName, filterName, announceType, infoUrl, downloadUrl, subTitle, normalizedHash, groupId, torrentId, category, resolution, source, codec, container, hdr, audio, audioChannels, releaseGroup, region, language, cut, edition, mediaProcessing, website, releaseType, origin, uploader, preTime sql.NullString
 	var filterId sql.NullInt64
+	var season, episode, year, month, day sql.NullInt64
+	var proper, repack, hybrid sql.NullBool
 
-	if err := row.Scan(&rls.ID, &rls.FilterStatus, pq.Array(&rls.Rejections), &indexerName, &filterName, &filterId, &rls.Protocol, &rls.Implementation, &announceType, &infoUrl, &downloadUrl, &rls.Title, &subTitle, &rls.TorrentName, &category, &rls.Size, &groupId, &torrentId, &uploader, &rls.Timestamp); err != nil {
+	if err := row.Scan(
+		&rls.ID,
+		&rls.FilterStatus,
+		pq.Array(&rls.Rejections),
+		&indexerName,
+		&filterName,
+		&filterId,
+		&rls.Protocol,
+		&rls.Implementation,
+		&announceType,
+		&infoUrl,
+		&downloadUrl,
+		&rls.Title,
+		&subTitle,
+		&rls.TorrentName,
+		&normalizedHash,
+		&category,
+		&rls.Size,
+		&groupId,
+		&torrentId,
+		&season,
+		&episode,
+		&year,
+		&month,
+		&day,
+		&resolution,
+		&source,
+		&codec,
+		&container,
+		&hdr,
+		&audio,
+		&audioChannels,
+		&releaseGroup,
+		&proper,
+		&repack,
+		&region,
+		&language,
+		&cut,
+		&edition,
+		&hybrid,
+		&mediaProcessing,
+		&website,
+		&releaseType,
+		&origin,
+		pq.Array(&rls.Tags),
+		&uploader,
+		&preTime,
+		pq.Array(&rls.Other),
+		&rls.Timestamp,
+	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRecordNotFound
 		}
@@ -677,10 +780,50 @@ func (repo *ReleaseRepo) Get(ctx context.Context, req *domain.GetReleaseRequest)
 	rls.InfoURL = infoUrl.String
 	rls.DownloadURL = downloadUrl.String
 	rls.SubTitle = subTitle.String
+	rls.NormalizedHash = normalizedHash.String
 	rls.Category = category.String
 	rls.GroupID = groupId.String
 	rls.TorrentID = torrentId.String
+	rls.Season = int(season.Int64)
+	rls.Episode = int(episode.Int64)
+	rls.Year = int(year.Int64)
+	rls.Month = int(month.Int64)
+	rls.Day = int(day.Int64)
+	rls.Resolution = resolution.String
+	rls.Source = source.String
+	if codec.String != "" {
+		rls.Codec = strings.Split(codec.String, ",")
+	}
+	rls.Container = container.String
+	if hdr.String != "" {
+		rls.HDR = strings.Split(hdr.String, ",")
+	}
+	if audio.String != "" {
+		rls.Audio = strings.Split(audio.String, ",")
+	}
+	rls.AudioChannels = audioChannels.String
+	rls.Group = releaseGroup.String
+	rls.Proper = proper.Bool
+	rls.Repack = repack.Bool
+	rls.Region = region.String
+	if language.String != "" {
+		rls.Language = strings.Split(language.String, ",")
+	}
+	if cut.String != "" {
+		rls.Cut = strings.Split(cut.String, ",")
+	}
+	if edition.String != "" {
+		rls.Edition = strings.Split(edition.String, ",")
+	}
+	rls.Hybrid = hybrid.Bool
+	rls.MediaProcessing = mediaProcessing.String
+	rls.Website = website.String
+	if releaseType.Valid {
+		rls.ParseType(releaseType.String)
+	}
+	rls.Origin = origin.String
 	rls.Uploader = uploader.String
+	rls.PreTime = preTime.String
 
 	return &rls, nil
 }
@@ -768,34 +911,437 @@ func (repo *ReleaseRepo) attachActionStatus(ctx context.Context, tx *Tx, release
 }
 
 func (repo *ReleaseRepo) Stats(ctx context.Context) (*domain.ReleaseStats, error) {
-	query := `SELECT *
-FROM (
-	SELECT
-	COUNT(*) AS total,
-	COUNT(CASE WHEN filter_status = 'FILTER_APPROVED' THEN 0 END) AS filtered_count,
-	COUNT(CASE WHEN filter_status = 'FILTER_REJECTED' THEN 0 END) AS filter_rejected_count
-	FROM release
-) AS zoo
-CROSS JOIN (
-	SELECT
-	COUNT(CASE WHEN status = 'PUSH_APPROVED' THEN 0 END) AS push_approved_count,
-	COUNT(CASE WHEN status = 'PUSH_REJECTED' THEN 0 END) AS push_rejected_count,
-	COUNT(CASE WHEN status = 'PUSH_ERROR' THEN 0 END) AS push_error_count
-	FROM release_action_status
-) AS foo`
+	var rls domain.ReleaseStats
 
-	row := repo.db.Handler.QueryRowContext(ctx, query)
-	if err := row.Err(); err != nil {
+	filterRows, err := repo.db.Handler.QueryContext(ctx, `SELECT filter_status, COUNT(*) FROM release GROUP BY filter_status`)
+	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
-	var rls domain.ReleaseStats
+	defer filterRows.Close()
 
-	if err := row.Scan(&rls.TotalCount, &rls.FilteredCount, &rls.FilterRejectedCount, &rls.PushApprovedCount, &rls.PushRejectedCount, &rls.PushErrorCount); err != nil {
-		return nil, errors.Wrap(err, "error scanning row")
+	for filterRows.Next() {
+		var status sql.NullString
+		var count int64
+
+		if err := filterRows.Scan(&status, &count); err != nil {
+			return nil, errors.Wrap(err, "error scanning row")
+		}
+
+		rls.TotalCount += count
+
+		switch domain.ReleaseFilterStatus(status.String) {
+		case domain.ReleaseStatusFilterApproved:
+			rls.FilteredCount = count
+		case domain.ReleaseStatusFilterRejected:
+			rls.FilterRejectedCount = count
+		}
+	}
+
+	if err := filterRows.Err(); err != nil {
+		return nil, errors.Wrap(err, "error rows")
+	}
+
+	pushRows, err := repo.db.Handler.QueryContext(ctx, `SELECT status, COUNT(*) FROM release_action_status GROUP BY status`)
+	if err != nil {
+		return nil, errors.Wrap(err, "error executing query")
+	}
+
+	defer pushRows.Close()
+
+	for pushRows.Next() {
+		var status sql.NullString
+		var count int64
+
+		if err := pushRows.Scan(&status, &count); err != nil {
+			return nil, errors.Wrap(err, "error scanning row")
+		}
+
+		switch domain.ReleasePushStatus(status.String) {
+		case domain.ReleasePushStatusApproved:
+			rls.PushApprovedCount = count
+		case domain.ReleasePushStatusRejected:
+			rls.PushRejectedCount = count
+		case domain.ReleasePushStatusErr:
+			rls.PushErrorCount = count
+		}
+	}
+
+	if err := pushRows.Err(); err != nil {
+		return nil, errors.Wrap(err, "error rows")
 	}
 
 	return &rls, nil
+}
+
+// statsWindow bounds the dashboard widget queries to the last N days,
+// or nothing for all-time (days <= 0).
+type statsWindow struct {
+	days   int
+	now    time.Time
+	cutoff time.Time
+	arg    any
+}
+
+func (repo *ReleaseRepo) statsWindow(days int) statsWindow {
+	w := statsWindow{days: days, now: time.Now().UTC()}
+	if days > 0 {
+		w.cutoff = w.now.AddDate(0, 0, -(days - 1)).Truncate(24 * time.Hour)
+		w.arg = w.cutoff
+		if repo.db.Driver == "sqlite" {
+			// raw string compare keeps the timestamp index usable and is exact at
+			// midnight boundaries for both timestamp formats found in old databases
+			w.arg = w.cutoff.Format("2006-01-02 15:04:05")
+		}
+	}
+	return w
+}
+
+func (w statsWindow) apply(qb sq.SelectBuilder, column string) sq.SelectBuilder {
+	if w.days > 0 {
+		return qb.Where(sq.GtOrEq{column: w.arg})
+	}
+	return qb
+}
+
+// dates returns the continuous run of day keys to emit: the fixed window,
+// or earliest-seen through today for all-time.
+func (w statsWindow) dates(minKey string) []string {
+	start := w.cutoff
+	if w.days <= 0 {
+		if minKey == "" {
+			return nil
+		}
+		parsed, err := time.Parse("2006-01-02", minKey)
+		if err != nil {
+			return nil
+		}
+		start = parsed
+	}
+
+	var out []string
+	for d := start; !d.After(w.now); d = d.AddDate(0, 0, 1) {
+		out = append(out, d.Format("2006-01-02"))
+	}
+	return out
+}
+
+func minDateKey[T any](m map[string]*T) string {
+	minKey := ""
+	for key := range m {
+		if minKey == "" || key < minKey {
+			minKey = key
+		}
+	}
+	return minKey
+}
+
+func (repo *ReleaseRepo) statsDayExpr() string {
+	if repo.db.Driver == "sqlite" {
+		// substr instead of strftime: both timestamp formats found in old
+		// databases share the YYYY-MM-DD HH prefix, and skipping per-row date
+		// parsing roughly halves the scan cost on large tables
+		return "substr(timestamp, 1, 10)"
+	}
+	return "to_char(timestamp, 'YYYY-MM-DD')"
+}
+
+func (repo *ReleaseRepo) statsHourExpr() string {
+	if repo.db.Driver == "sqlite" {
+		return "CAST(substr(timestamp, 12, 2) AS INTEGER)"
+	}
+	return "EXTRACT(HOUR FROM timestamp)::int"
+}
+
+func (repo *ReleaseRepo) statsQueryRows(ctx context.Context, qb sq.SelectBuilder, scan func(rows *sql.Rows) error) error {
+	query, args, err := qb.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	rows, err := repo.db.Handler.QueryContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		if err := scan(rows); err != nil {
+			return errors.Wrap(err, "error scanning row")
+		}
+	}
+
+	return errors.Wrap(rows.Err(), "error rows")
+}
+
+func (repo *ReleaseRepo) StatsActivity(ctx context.Context, days int) (*domain.ReleaseActivityStats, error) {
+	window := repo.statsWindow(days)
+
+	daily := map[string]*domain.ReleaseActivityDaily{}
+	bucket := func(day string) *domain.ReleaseActivityDaily {
+		if b, ok := daily[day]; ok {
+			return b
+		}
+		b := &domain.ReleaseActivityDaily{Date: day}
+		daily[day] = b
+		return b
+	}
+
+	err := repo.statsQueryRows(ctx,
+		window.apply(repo.db.squirrel.Select(repo.statsDayExpr()+" AS day", "COUNT(*)").From("release").GroupBy("1"), "timestamp"),
+		func(rows *sql.Rows) error {
+			var day sql.NullString
+			var count int64
+			if err := rows.Scan(&day, &count); err != nil {
+				return err
+			}
+			if day.Valid {
+				bucket(day.String).MatchedCount = count
+			}
+			return nil
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	err = repo.statsQueryRows(ctx,
+		window.apply(repo.db.squirrel.Select(repo.statsDayExpr()+" AS day", "status", "COUNT(*)").From("release_action_status").GroupBy("1", "2"), "timestamp"),
+		func(rows *sql.Rows) error {
+			var day, status sql.NullString
+			var count int64
+			if err := rows.Scan(&day, &status, &count); err != nil {
+				return err
+			}
+			if !day.Valid {
+				return nil
+			}
+			switch domain.ReleasePushStatus(status.String) {
+			case domain.ReleasePushStatusApproved:
+				bucket(day.String).PushApprovedCount = count
+			case domain.ReleasePushStatusRejected:
+				bucket(day.String).PushRejectedCount = count
+			case domain.ReleasePushStatusErr:
+				bucket(day.String).PushErrorCount = count
+			}
+			return nil
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	stats := &domain.ReleaseActivityStats{Days: days, Daily: []domain.ReleaseActivityDaily{}}
+	for _, day := range window.dates(minDateKey(daily)) {
+		if b, ok := daily[day]; ok {
+			stats.Daily = append(stats.Daily, *b)
+		} else {
+			stats.Daily = append(stats.Daily, domain.ReleaseActivityDaily{Date: day})
+		}
+	}
+
+	return stats, nil
+}
+
+func (repo *ReleaseRepo) StatsVolume(ctx context.Context, days int) (*domain.ReleaseVolumeStats, error) {
+	window := repo.statsWindow(days)
+
+	daily := map[string]*domain.ReleaseVolumeDaily{}
+
+	err := repo.statsQueryRows(ctx,
+		window.apply(repo.db.squirrel.Select(repo.statsDayExpr()+" AS day", "SUM(size)").From("release").
+			Where(sq.Expr("id IN (SELECT DISTINCT release_id FROM release_action_status WHERE status = ?)", string(domain.ReleasePushStatusApproved))).
+			GroupBy("1"), "timestamp"),
+		func(rows *sql.Rows) error {
+			var day sql.NullString
+			var size sql.NullInt64
+			if err := rows.Scan(&day, &size); err != nil {
+				return err
+			}
+			if day.Valid {
+				daily[day.String] = &domain.ReleaseVolumeDaily{Date: day.String, DownloadedBytes: size.Int64}
+			}
+			return nil
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	stats := &domain.ReleaseVolumeStats{Days: days, Daily: []domain.ReleaseVolumeDaily{}}
+	for _, day := range window.dates(minDateKey(daily)) {
+		if b, ok := daily[day]; ok {
+			stats.Daily = append(stats.Daily, *b)
+		} else {
+			stats.Daily = append(stats.Daily, domain.ReleaseVolumeDaily{Date: day})
+		}
+	}
+
+	return stats, nil
+}
+
+func (repo *ReleaseRepo) StatsHeatmap(ctx context.Context, days int) (*domain.ReleaseHeatmapStats, error) {
+	window := repo.statsWindow(days)
+
+	stats := &domain.ReleaseHeatmapStats{Days: days, Heatmap: make([]int64, 7*24)}
+
+	err := repo.statsQueryRows(ctx,
+		window.apply(repo.db.squirrel.Select(repo.statsDayExpr()+" AS day", repo.statsHourExpr()+" AS hour", "COUNT(*)").From("release").GroupBy("1", "2"), "timestamp"),
+		func(rows *sql.Rows) error {
+			var day sql.NullString
+			var hour sql.NullInt64
+			var count int64
+			if err := rows.Scan(&day, &hour, &count); err != nil {
+				return err
+			}
+			if !day.Valid || !hour.Valid || hour.Int64 < 0 || hour.Int64 > 23 {
+				return nil
+			}
+			date, err := time.Parse("2006-01-02", day.String)
+			if err != nil {
+				return nil
+			}
+			stats.Heatmap[int64(date.Weekday())*24+hour.Int64] += count
+			return nil
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+func (repo *ReleaseRepo) StatsTopIndexers(ctx context.Context, days int) (*domain.ReleaseTopIndexersStats, error) {
+	window := repo.statsWindow(days)
+
+	indexers := map[string]*domain.ReleaseIndexerStats{}
+	bucket := func(name string) *domain.ReleaseIndexerStats {
+		if b, ok := indexers[name]; ok {
+			return b
+		}
+		b := &domain.ReleaseIndexerStats{Indexer: name}
+		indexers[name] = b
+		return b
+	}
+
+	err := repo.statsQueryRows(ctx,
+		window.apply(repo.db.squirrel.Select("indexer", "COUNT(*)").From("release").
+			Where("indexer IS NOT NULL AND indexer != ''").GroupBy("1"), "timestamp"),
+		func(rows *sql.Rows) error {
+			var name string
+			var count int64
+			if err := rows.Scan(&name, &count); err != nil {
+				return err
+			}
+			bucket(name).MatchedCount = count
+			return nil
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	err = repo.statsQueryRows(ctx,
+		window.apply(repo.db.squirrel.Select("r.indexer", "COUNT(*)").From("release_action_status ras").
+			InnerJoin("release r ON r.id = ras.release_id").
+			Where(sq.Eq{"ras.status": string(domain.ReleasePushStatusApproved)}).
+			Where("r.indexer IS NOT NULL AND r.indexer != ''").
+			GroupBy("1"), "ras.timestamp"),
+		func(rows *sql.Rows) error {
+			var name string
+			var count int64
+			if err := rows.Scan(&name, &count); err != nil {
+				return err
+			}
+			bucket(name).PushApprovedCount = count
+			return nil
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	stats := &domain.ReleaseTopIndexersStats{Days: days, Top: []domain.ReleaseIndexerStats{}}
+	for _, b := range indexers {
+		stats.Top = append(stats.Top, *b)
+	}
+	slices.SortFunc(stats.Top, func(a, b domain.ReleaseIndexerStats) int {
+		if c := cmp.Compare(b.PushApprovedCount, a.PushApprovedCount); c != 0 {
+			return c
+		}
+		if c := cmp.Compare(b.MatchedCount, a.MatchedCount); c != 0 {
+			return c
+		}
+		return strings.Compare(a.Indexer, b.Indexer)
+	})
+	if len(stats.Top) > 10 {
+		stats.Top = stats.Top[:10]
+	}
+
+	return stats, nil
+}
+
+func (repo *ReleaseRepo) StatsTopFilters(ctx context.Context, days int) (*domain.ReleaseTopFiltersStats, error) {
+	window := repo.statsWindow(days)
+
+	filters := map[string]*domain.ReleaseFilterStats{}
+	bucket := func(name string) *domain.ReleaseFilterStats {
+		if b, ok := filters[name]; ok {
+			return b
+		}
+		b := &domain.ReleaseFilterStats{Filter: name}
+		filters[name] = b
+		return b
+	}
+
+	err := repo.statsQueryRows(ctx,
+		window.apply(repo.db.squirrel.Select("filter", "COUNT(*)").From("release").
+			Where("filter IS NOT NULL AND filter != ''").GroupBy("1"), "timestamp"),
+		func(rows *sql.Rows) error {
+			var name string
+			var count int64
+			if err := rows.Scan(&name, &count); err != nil {
+				return err
+			}
+			bucket(name).MatchedCount = count
+			return nil
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	err = repo.statsQueryRows(ctx,
+		window.apply(repo.db.squirrel.Select("filter", "COUNT(*)").From("release_action_status").
+			Where(sq.Eq{"status": string(domain.ReleasePushStatusApproved)}).
+			Where("filter IS NOT NULL AND filter != ''").
+			GroupBy("1"), "timestamp"),
+		func(rows *sql.Rows) error {
+			var name string
+			var count int64
+			if err := rows.Scan(&name, &count); err != nil {
+				return err
+			}
+			bucket(name).PushApprovedCount = count
+			return nil
+		})
+	if err != nil {
+		return nil, err
+	}
+
+	stats := &domain.ReleaseTopFiltersStats{Days: days, Top: []domain.ReleaseFilterStats{}}
+	for _, b := range filters {
+		stats.Top = append(stats.Top, *b)
+	}
+	slices.SortFunc(stats.Top, func(a, b domain.ReleaseFilterStats) int {
+		if c := cmp.Compare(b.MatchedCount, a.MatchedCount); c != 0 {
+			return c
+		}
+		if c := cmp.Compare(b.PushApprovedCount, a.PushApprovedCount); c != 0 {
+			return c
+		}
+		return strings.Compare(a.Filter, b.Filter)
+	})
+	if len(stats.Top) > 10 {
+		stats.Top = stats.Top[:10]
+	}
+
+	return stats, nil
 }
 
 func (repo *ReleaseRepo) Delete(ctx context.Context, req *domain.DeleteReleaseRequest) error {
@@ -811,7 +1357,7 @@ func (repo *ReleaseRepo) Delete(ctx context.Context, req *domain.DeleteReleaseRe
 			if txErr != nil {
 				repo.log.Error().Err(txErr).Msg("error rolling back transaction")
 			}
-			repo.log.Error().Msgf("something went terribly wrong panic: %v", p)
+			repo.log.Error().Interface("panic", p).Msg("something went terribly wrong")
 		} else if err != nil {
 			txErr = tx.Rollback()
 			if txErr != nil {
@@ -830,7 +1376,7 @@ func (repo *ReleaseRepo) Delete(ctx context.Context, req *domain.DeleteReleaseRe
 
 	if req.OlderThan > 0 {
 		if repo.db.Driver == "sqlite" {
-			qb = qb.Where(fmt.Sprintf("timestamp < strftime('%%Y-%%m-%%dT%%H:00:00', datetime('now','-%d hours'))", req.OlderThan))
+			qb = qb.Where(fmt.Sprintf("datetime(timestamp) < datetime('now','-%d hours')", req.OlderThan))
 		} else {
 			// postgres compatible
 			thresholdTime := time.Now().Add(time.Duration(-req.OlderThan) * time.Hour)
@@ -852,6 +1398,18 @@ func (repo *ReleaseRepo) Delete(ctx context.Context, req *domain.DeleteReleaseRe
 			return errors.Wrap(err, "error building subquery")
 		}
 		qb = qb.Where("id IN ("+subQueryText+")", subQueryArgs...)
+
+		// If PUSH_APPROVED is not in the delete list, exclude releases that have
+		// any approved action - a release pushed to at least one client must be kept.
+		approvedInList := slices.Contains(req.ReleaseStatuses, string(domain.ReleasePushStatusApproved))
+		if !approvedInList {
+			excludeSubQuery := sq.Select("release_id").From("release_action_status").Where(sq.Eq{"status": string(domain.ReleasePushStatusApproved)})
+			excludeText, excludeArgs, err := excludeSubQuery.ToSql()
+			if err != nil {
+				return errors.Wrap(err, "error building approved-exclusion subquery")
+			}
+			qb = qb.Where("id NOT IN ("+excludeText+")", excludeArgs...)
+		}
 	}
 
 	query, args, err := qb.ToSql()
@@ -872,7 +1430,7 @@ func (repo *ReleaseRepo) Delete(ctx context.Context, req *domain.DeleteReleaseRe
 		return errors.Wrap(err, "error fetching rows affected")
 	}
 
-	repo.log.Debug().Msgf("deleted %d rows from release table", deletedRows)
+	repo.log.Debug().Int64("rows_affected", deletedRows).Msg("deleted rows from release table")
 
 	// clean up orphaned rows
 	orphanedResult, err := tx.ExecContext(ctx, `DELETE FROM release_action_status WHERE release_id NOT IN (SELECT id FROM "release")`)
@@ -885,7 +1443,7 @@ func (repo *ReleaseRepo) Delete(ctx context.Context, req *domain.DeleteReleaseRe
 		return errors.Wrap(err, "error fetching rows affected")
 	}
 
-	repo.log.Debug().Msgf("deleted %d orphaned rows from release table", deletedRowsOrphaned)
+	repo.log.Debug().Int64("rows_affected", deletedRowsOrphaned).Msg("deleted orphaned rows from release table")
 
 	return nil
 }
@@ -910,7 +1468,7 @@ func (repo *ReleaseRepo) DeleteReleaseProfileDuplicate(ctx context.Context, id i
 	//
 	//repo.log.Debug().Msgf("deleted %d rows from release table", deletedRows)
 
-	repo.log.Debug().Msgf("deleted duplicate release profile: %d", id)
+	repo.log.Debug().Int64("id", id).Msg("deleted duplicate release profile")
 
 	return nil
 }
@@ -969,7 +1527,7 @@ func (repo *ReleaseRepo) CheckSmartEpisodeCanDownload(ctx context.Context, p *do
 		return false, errors.Wrap(err, "error building query")
 	}
 
-	repo.log.Trace().Str("method", "CheckSmartEpisodeCanDownload").Str("query", query).Interface("args", args).Msgf("executing query")
+	repo.log.Trace().Str("method", "CheckSmartEpisodeCanDownload").Str("query", query).Interface("args", args).Msg("executing query")
 
 	row := repo.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
@@ -1002,7 +1560,7 @@ func (repo *ReleaseRepo) UpdateBaseURL(ctx context.Context, indexer string, oldB
 			if txErr != nil {
 				repo.log.Error().Err(txErr).Msg("error rolling back transaction")
 			}
-			repo.log.Error().Msgf("something went terribly wrong panic: %v", p)
+			repo.log.Error().Interface("panic", p).Msg("something went terribly wrong")
 		} else if err != nil {
 			txErr = tx.Rollback()
 			if txErr != nil {
@@ -1034,7 +1592,7 @@ func (repo *ReleaseRepo) UpdateBaseURL(ctx context.Context, indexer string, oldB
 		return errors.Wrap(err, "error getting rows affected")
 	}
 
-	repo.log.Trace().Msgf("release updated (%d) base urls from %q to %q", rowsAffected, oldBaseURL, newBaseURL)
+	repo.log.Trace().Int64("rows_affected", rowsAffected).Str("old_url", oldBaseURL).Str("new_url", newBaseURL).Msg("release updated base urls")
 
 	return nil
 }
@@ -1108,9 +1666,13 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 			}
 		}
 
+		// video features (hybrid)
+		if profile.Hybrid && release.IsTypeVideo() {
+			queryBuilder = queryBuilder.Where(sq.Eq{"r.hybrid": release.Hybrid})
+		}
+
 		// video features (hybrid, remux)
 		if release.IsTypeVideo() {
-			queryBuilder = queryBuilder.Where(sq.Eq{"r.hybrid": release.Hybrid})
 			queryBuilder = queryBuilder.Where(sq.Eq{"r.media_processing": release.MediaProcessing})
 		}
 
@@ -1197,12 +1759,13 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 		return false, errors.Wrap(err, "error building query")
 	}
 
-	repo.log.Trace().Str("database", "release.FindDuplicateReleases").Msgf("query: %q, args: %q", query, args)
+	repo.log.Trace().Str("database", "release.FindDuplicateReleases").Str("query", query).Interface("args", args).Msg("check duplicate release")
 
 	rows, err := repo.db.Handler.QueryContext(ctx, query, args...)
 	if err != nil {
 		return false, err
 	}
+	defer rows.Close()
 
 	if err := rows.Err(); err != nil {
 		return false, errors.Wrap(err, "error rows CheckIsDuplicateRelease")
@@ -1227,11 +1790,311 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 		res = append(res, r)
 	}
 
-	repo.log.Trace().Str("database", "release.FindDuplicateReleases").Msgf("found duplicate releases: %+v", res)
+	repo.log.Trace().Str("database", "release.FindDuplicateReleases").Interface("releases", res).Msg("found duplicate releases")
 
 	if len(res) == 0 {
 		return false, nil
 	}
 
 	return true, nil
+}
+
+func (r *ReleaseRepo) ListCleanupJobs(ctx context.Context) ([]*domain.ReleaseCleanupJob, error) {
+	queryBuilder := r.db.squirrel.
+		Select(
+			"id",
+			"name",
+			"enabled",
+			"schedule",
+			"older_than",
+			"indexers",
+			"statuses",
+			"last_run",
+			"last_run_status",
+			"last_run_data",
+			"created_at",
+			"updated_at",
+		).
+		From("release_cleanup_job").
+		OrderBy("name ASC")
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "error building query")
+	}
+
+	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, errors.Wrap(err, "error executing query")
+	}
+
+	defer rows.Close()
+
+	jobs := make([]*domain.ReleaseCleanupJob, 0)
+	for rows.Next() {
+		var job domain.ReleaseCleanupJob
+
+		var indexers, statuses, lastRunStatus, lastRunData sql.NullString
+		var lastRun sql.NullTime
+
+		if err := rows.Scan(
+			&job.ID,
+			&job.Name,
+			&job.Enabled,
+			&job.Schedule,
+			&job.OlderThan,
+			&indexers,
+			&statuses,
+			&lastRun,
+			&lastRunStatus,
+			&lastRunData,
+			&job.CreatedAt,
+			&job.UpdatedAt,
+		); err != nil {
+			return nil, errors.Wrap(err, "error scanning row")
+		}
+
+		job.Indexers = indexers.String
+		job.Statuses = statuses.String
+		job.LastRun = lastRun.Time
+		job.LastRunStatus = domain.ReleaseCleanupStatus(lastRunStatus.String)
+		job.LastRunData = lastRunData.String
+
+		jobs = append(jobs, &job)
+	}
+
+	return jobs, nil
+}
+
+func (r *ReleaseRepo) FindCleanupJobByID(ctx context.Context, id int) (*domain.ReleaseCleanupJob, error) {
+	queryBuilder := r.db.squirrel.
+		Select(
+			"id",
+			"name",
+			"enabled",
+			"schedule",
+			"older_than",
+			"indexers",
+			"statuses",
+			"last_run",
+			"last_run_status",
+			"last_run_data",
+			"created_at",
+			"updated_at",
+		).
+		From("release_cleanup_job").
+		Where(sq.Eq{"id": id})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return nil, errors.Wrap(err, "error building query")
+	}
+
+	row := r.db.Handler.QueryRowContext(ctx, query, args...)
+	if err := row.Err(); err != nil {
+		return nil, errors.Wrap(err, "error executing query")
+	}
+
+	var job domain.ReleaseCleanupJob
+
+	var indexers, statuses, lastRunStatus, lastRunData sql.NullString
+	var lastRun sql.NullTime
+
+	if err := row.Scan(
+		&job.ID,
+		&job.Name,
+		&job.Enabled,
+		&job.Schedule,
+		&job.OlderThan,
+		&indexers,
+		&statuses,
+		&lastRun,
+		&lastRunStatus,
+		&lastRunData,
+		&job.CreatedAt,
+		&job.UpdatedAt,
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domain.ErrRecordNotFound
+		}
+
+		return nil, errors.Wrap(err, "error scanning row")
+	}
+
+	job.Indexers = indexers.String
+	job.Statuses = statuses.String
+	job.LastRun = lastRun.Time
+	job.LastRunStatus = domain.ReleaseCleanupStatus(lastRunStatus.String)
+	job.LastRunData = lastRunData.String
+
+	return &job, nil
+}
+
+func (r *ReleaseRepo) StoreCleanupJob(ctx context.Context, job *domain.ReleaseCleanupJob) error {
+	var indexers, statuses sql.NullString
+
+	if job.Indexers != "" {
+		indexers = sql.NullString{String: job.Indexers, Valid: true}
+	}
+	if job.Statuses != "" {
+		statuses = sql.NullString{String: job.Statuses, Valid: true}
+	}
+
+	queryBuilder := r.db.squirrel.
+		Insert("release_cleanup_job").
+		Columns(
+			"name",
+			"enabled",
+			"schedule",
+			"older_than",
+			"indexers",
+			"statuses",
+		).
+		Values(
+			job.Name,
+			job.Enabled,
+			job.Schedule,
+			job.OlderThan,
+			indexers,
+			statuses,
+		).
+		Suffix("RETURNING id").RunWith(r.db.Handler)
+
+	var retID int
+
+	if err := queryBuilder.QueryRowContext(ctx).Scan(&retID); err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	job.ID = retID
+
+	return nil
+}
+
+func (r *ReleaseRepo) UpdateCleanupJob(ctx context.Context, job *domain.ReleaseCleanupJob) error {
+	var indexers, statuses sql.NullString
+
+	if job.Indexers != "" {
+		indexers = sql.NullString{String: job.Indexers, Valid: true}
+	}
+	if job.Statuses != "" {
+		statuses = sql.NullString{String: job.Statuses, Valid: true}
+	}
+
+	queryBuilder := r.db.squirrel.
+		Update("release_cleanup_job").
+		Set("name", job.Name).
+		Set("enabled", job.Enabled).
+		Set("schedule", job.Schedule).
+		Set("older_than", job.OlderThan).
+		Set("indexers", indexers).
+		Set("statuses", statuses).
+		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
+		Where(sq.Eq{"id": job.ID})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	if rowsAffected, err := result.RowsAffected(); err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	} else if rowsAffected == 0 {
+		return domain.ErrRecordNotFound
+	}
+
+	return nil
+}
+
+func (r *ReleaseRepo) UpdateCleanupJobLastRun(ctx context.Context, job *domain.ReleaseCleanupJob) error {
+	var lastRunStatus, lastRunData sql.NullString
+
+	if job.LastRunStatus != "" {
+		lastRunStatus = sql.NullString{String: string(job.LastRunStatus), Valid: true}
+	}
+	if job.LastRunData != "" {
+		lastRunData = sql.NullString{String: job.LastRunData, Valid: true}
+	}
+
+	queryBuilder := r.db.squirrel.
+		Update("release_cleanup_job").
+		Set("last_run", job.LastRun).
+		Set("last_run_status", lastRunStatus).
+		Set("last_run_data", lastRunData).
+		Where(sq.Eq{"id": job.ID})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	if rowsAffected, err := result.RowsAffected(); err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	} else if rowsAffected == 0 {
+		return domain.ErrRecordNotFound
+	}
+
+	return nil
+}
+
+func (r *ReleaseRepo) CleanupJobToggleEnabled(ctx context.Context, id int, enabled bool) error {
+	queryBuilder := r.db.squirrel.
+		Update("release_cleanup_job").
+		Set("enabled", enabled).
+		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
+		Where(sq.Eq{"id": id})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	if rowsAffected, err := result.RowsAffected(); err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	} else if rowsAffected == 0 {
+		return domain.ErrRecordNotFound
+	}
+
+	return nil
+}
+
+func (r *ReleaseRepo) DeleteCleanupJob(ctx context.Context, id int) error {
+	queryBuilder := r.db.squirrel.
+		Delete("release_cleanup_job").
+		Where(sq.Eq{"id": id})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	result, err := r.db.Handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	if rowsAffected, err := result.RowsAffected(); err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	} else if rowsAffected == 0 {
+		return domain.ErrRecordNotFound
+	}
+
+	r.log.Debug().Int("id", id).Msg("successfully deleted release cleanup job")
+
+	return nil
 }
