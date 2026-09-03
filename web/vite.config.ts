@@ -141,7 +141,6 @@ export default ({ mode }: ConfigEnv) => {
     },
     build: {
       sourcemap: true,
-      chunkSizeWarningLimit: 1800,
       rollupOptions: {
         output: {
           assetFileNames: (chunkInfo: PreRenderedAsset) => {
