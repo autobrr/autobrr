@@ -463,7 +463,7 @@ export interface componentMapType {
   [key: string]: ReactElement;
 }
 
-export const componentMap: componentMapType = {
+const componentMap: componentMapType = {
   DELUGE_V1: <FormFieldsDeluge />,
   DELUGE_V2: <FormFieldsDeluge />,
   QBITTORRENT: <FormFieldsQbit />,
@@ -643,7 +643,7 @@ function FormFieldsRulesTransmission() {
   );
 }
 
-export const rulesComponentMap: componentMapType = {
+const rulesComponentMap: componentMapType = {
   DELUGE_V1: <FormFieldsRulesBasic />,
   DELUGE_V2: <FormFieldsRulesBasic />,
   QBITTORRENT: <FormFieldsRulesQbit />,
@@ -692,7 +692,7 @@ function DownloaderFormButtons({
         {type === "UPDATE" && (
           <button
             type="button"
-            className="inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-red-700 dark:text-white bg-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
+            className="inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md text-red-700 dark:text-white bg-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm cursor-pointer"
             onClick={toggleDeleteModal}
           >
             {t("forms.downloadClient.remove")}
@@ -746,14 +746,14 @@ function DownloaderFormButtons({
 
           <button
             type="button"
-            className="mr-4 bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+            className="mr-4 bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 cursor-pointer"
             onClick={cancelFn}
           >
             {t("forms.downloadClient.cancel")}
           </button>
           <button
             type="submit"
-            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 cursor-pointer"
           >
             {type === "CREATE" ? t("forms.downloadClient.create") : t("forms.downloadClient.save")}
           </button>
@@ -873,7 +873,7 @@ function DownloaderAddFormPanel({ toggle }: DownloaderAddFormPanelProps) {
               <div className="h-7 flex items-center">
                 <button
                   type="button"
-                  className="bg-white dark:bg-gray-800 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                  className="bg-white dark:bg-gray-800 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500 cursor-pointer"
                   onClick={toggle}
                 >
                   <span className="sr-only">{t("settings:forms.downloadClient.closePanel")}</span>
@@ -1055,7 +1055,7 @@ function DownloaderUpdateFormPanel({ toggle, data: client }: DownloaderUpdateFor
                 <div className="h-7 flex items-center">
                   <button
                     type="button"
-                    className="bg-white dark:bg-gray-800 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                    className="bg-white dark:bg-gray-800 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500 cursor-pointer"
                     onClick={toggle}
                   >
                     <span className="sr-only">{t("settings:forms.downloadClient.closePanel")}</span>

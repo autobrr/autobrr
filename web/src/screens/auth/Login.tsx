@@ -107,7 +107,7 @@ export const Login = () => {
                 ));
             });
         }
-    }, [queryErrorResetBoundary, oidcConfig, setAuth, router]);
+    }, [queryErrorResetBoundary, oidcConfig, setAuth, router, t]);
 
     const loginMutation = useMutation({
         mutationFn: (data: LoginFormFields) => APIClient.auth.login(data.username, data.password, data.remember_me),
@@ -139,7 +139,7 @@ export const Login = () => {
         } else if (auth.isLoggedIn) {
             router.history.push("/")
         }
-    }, [auth.isLoggedIn, search.redirect, router.history]) // eslint-disable-line
+    }, [auth.isLoggedIn, search.redirect, router.history])
 
     return (
         <div className="flex min-h-full flex-1 flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -266,7 +266,7 @@ export const Login = () => {
 
                                     <button
                                         type="submit"
-                                        className="w-full flex items-center justify-center py-2 px-4 border border-transparent rounded-md shadow-xs text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                        className="w-full flex items-center justify-center py-2 px-4 border border-transparent rounded-md shadow-xs text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer"
                                     >
                                         <RocketLaunchIcon className="w-4 h-4 mr-1.5"/>
                                         {t("signIn")}
@@ -292,7 +292,7 @@ export const Login = () => {
                                 <button
                                     type="button"
                                     onClick={handleOIDCLogin}
-                                    className="w-full flex items-center justify-center gap-3 py-2 px-4 border border-gray-300 dark:border-gray-700 rounded-md shadow-xs text-sm font-medium text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+                                    className="w-full flex items-center justify-center gap-3 py-2 px-4 border border-gray-300 dark:border-gray-700 rounded-md shadow-xs text-sm font-medium text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
                                 >
                                     <FontAwesomeIcon icon={faOpenid} className="h-5 w-5"/>
                                     <span>{t("openidConnect")}</span>
@@ -333,7 +333,7 @@ function PasswordInputField({name, value, onChange, onBlur, isValid}: PasswordFi
                             : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500"
                     )}
                 />
-                <div className="absolute inset-y-0 right-0 px-3 flex items-center" onClick={toggleVisibility}>
+                <div className="absolute inset-y-0 right-0 px-3 flex items-center cursor-pointer" onClick={toggleVisibility}>
                     {!isVisible ? <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true"/> : <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true"/>}
                 </div>
             </div>

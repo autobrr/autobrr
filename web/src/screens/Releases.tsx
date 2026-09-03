@@ -31,7 +31,7 @@ export const Releases = () => {
               e.preventDefault();
               setIsHintOpen((state) => !state);
             }}
-            className="inline-flex whitespace-nowrap items-center shadow-md border rounded-md mx-1 px-1 text-black bg-lime-100 hover:bg-lime-200 border-lime-500 dark:text-white dark:bg-lime-950 dark:hover:bg-lime-900 dark:border-lime-800"
+            className="inline-flex whitespace-nowrap items-center shadow-md border rounded-md mx-1 px-1 text-black bg-lime-100 hover:bg-lime-200 border-lime-500 dark:text-white dark:bg-lime-950 dark:hover:bg-lime-900 dark:border-lime-800 cursor-pointer"
 
           >
             {t("releaseSearch.clickHere")}

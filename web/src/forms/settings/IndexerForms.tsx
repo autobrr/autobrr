@@ -334,7 +334,7 @@ function FeedCategoriesDraftSection({ feedType }: { feedType: FeedType }) {
                       checked={categoriesValue.includes(category.id)}
                       onChange={() => toggleParentCategory(category.id, childIds)}
                       onClick={(event) => event.stopPropagation()}
-                      className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800"
+                      className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 cursor-pointer"
                     />
                     <span className="font-medium truncate">{category.name}</span>
                   </span>
@@ -700,7 +700,7 @@ function IndexerAddFormPanel({ toggle }: IndexerAddFormPanelProps) {
               <div className="h-7 flex items-center">
                 <button
                   type="button"
-                  className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 cursor-pointer"
                   onClick={toggle}
                 >
                   <span className="sr-only">{t("forms.indexer.closePanel")}</span>
@@ -757,14 +757,14 @@ function IndexerAddFormPanel({ toggle }: IndexerAddFormPanelProps) {
           <div className="space-x-3 flex justify-end">
             <button
               type="button"
-              className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+              className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 cursor-pointer"
               onClick={toggle}
             >
               {t("forms.indexer.cancel")}
             </button>
             <button
               type="submit"
-              className="inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+              className="inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 cursor-pointer"
             >
               {t("forms.indexer.save")}
             </button>

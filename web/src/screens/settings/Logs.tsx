@@ -13,7 +13,8 @@ import { ConfigQueryOptions } from "@api/queries";
 import { SettingsKeys } from "@api/query_keys";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
-import { LogLevelOptions, SelectOption } from "@domain/constants";
+import { LogLevelOptions } from "@domain/constants";
+import { MultiSelectOption } from "@components/inputs/select";
 
 import { Section, RowItem } from "./_components";
 import * as common from "@components/inputs/common";
@@ -21,9 +22,9 @@ import { LogFiles } from "@screens/Logs";
 
 type SelectWrapperProps = {
   id: string;
-  value: unknown;
-  onChange: any;
-  options: unknown[];
+  value?: string;
+  onChange: (value: string) => void;
+  options: MultiSelectOption[];
 };
 
 const SelectWrapper = ({ id, value, onChange, options }: SelectWrapperProps) => {
@@ -55,8 +56,12 @@ const SelectWrapper = ({ id, value, onChange, options }: SelectWrapperProps) => 
           baseUnit: 2
         }
       })}
-      value={value && options.find((o: any) => o.value == value)}
-      onChange={onChange}
+      value={options.find((o) => o.value == value)}
+      onChange={(newValue: unknown) => {
+        if (newValue) {
+          onChange(String((newValue as MultiSelectOption).value));
+        }
+      }}
       options={options}
     />
   );
@@ -99,7 +104,7 @@ function LogSettings() {
                     id="log_level"
                     value={config?.log_level}
                     options={LogLevelOptions}
-                    onChange={(value: SelectOption) => setLogLevelUpdateMutation.mutate(value.value)}
+                    onChange={(value) => setLogLevelUpdateMutation.mutate(value)}
                   />
                 }
               />

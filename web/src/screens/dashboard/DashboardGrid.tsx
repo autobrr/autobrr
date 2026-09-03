@@ -124,7 +124,7 @@ const SortableWidget = ({ def, hidden, editing, committing, onToggle }: Sortable
           <button
             type="button"
             onClick={onToggle}
-            className="inline-flex size-9 items-center justify-center rounded-lg text-gray-500 transition-colors duration-200 ease-in-out hover:bg-white hover:text-gray-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+            className="inline-flex size-9 items-center justify-center rounded-lg text-gray-500 transition-colors duration-200 ease-in-out hover:bg-white hover:text-gray-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:hover:bg-gray-800 dark:hover:text-gray-200 cursor-pointer"
             title={hidden ? t("dashboardCustomize.show") : t("dashboardCustomize.hide")}
             aria-label={hidden ? t("dashboardCustomize.show") : t("dashboardCustomize.hide")}
           >
@@ -315,7 +315,7 @@ export const DashboardGrid = () => {
           <button
             type="button"
             onClick={() => setSettings((current) => ({ ...current, incognitoMode: !current.incognitoMode }))}
-            className="inline-flex size-9 items-center justify-center rounded-md text-gray-500 transition-colors duration-200 ease-in-out hover:bg-gray-100 hover:text-gray-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+            className="inline-flex size-9 items-center justify-center rounded-md text-gray-500 transition-colors duration-200 ease-in-out hover:bg-gray-100 hover:text-gray-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:hover:bg-gray-800 dark:hover:text-gray-200 cursor-pointer"
             aria-label={t("releaseTable.goIncognito")}
             title={t("releaseTable.goIncognito")}
           >
@@ -330,14 +330,14 @@ export const DashboardGrid = () => {
               <button
                 type="button"
                 onClick={() => DashboardConfigContext.set({ version: 1, widgets: [] })}
-                className="min-h-9 rounded-md px-2.5 py-1.5 text-sm text-gray-500 transition-colors duration-200 ease-in-out hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                className="min-h-9 rounded-md px-2.5 py-1.5 text-sm text-gray-500 transition-colors duration-200 ease-in-out hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:hover:bg-gray-800 dark:hover:text-gray-300 cursor-pointer"
               >
                 {t("dashboardCustomize.reset")}
               </button>
               <button
                 type="button"
                 onClick={() => setEditing(false)}
-                className="min-h-9 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors duration-200 ease-in-out hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+                className="min-h-9 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors duration-200 ease-in-out hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 cursor-pointer"
               >
                 {t("dashboardCustomize.done")}
               </button>
@@ -346,7 +346,7 @@ export const DashboardGrid = () => {
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="flex min-h-9 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-gray-500 transition-colors duration-200 ease-in-out hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+              className="flex min-h-9 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-gray-500 transition-colors duration-200 ease-in-out hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:hover:bg-gray-800 dark:hover:text-gray-300 cursor-pointer"
             >
               <Squares2X2Icon className="h-4 w-4" aria-hidden="true" />
               {t("dashboardCustomize.customize")}

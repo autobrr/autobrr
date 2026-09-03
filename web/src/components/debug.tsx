@@ -24,7 +24,7 @@ export const DEBUG: FC<DebugProps> = ({ values }) => {
   );
 };
 
-export function LogDebug(...data: any[]): void {
+export function LogDebug(...data: unknown[]): void {
   if (!import.meta.env.DEV) {
     return;
   }

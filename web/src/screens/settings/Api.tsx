@@ -36,7 +36,7 @@ function APISettings() {
       rightSide={
         <button
           type="button"
-          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer"
           onClick={toggleAddForm}
         >
           <PlusIcon className="h-5 w-5 mr-1" />
@@ -120,6 +120,7 @@ function APIListItem({ apikey }: ApiKeyItemProps) {
             <div>
               <button
                 className={classNames(
+                  "cursor-pointer",
                   "text-gray-900 dark:text-gray-300",
                   "sm:hidden font-medium group rounded-md items-center px-2 py-2 text-sm"
                 )}
@@ -141,6 +142,7 @@ function APIListItem({ apikey }: ApiKeyItemProps) {
         <div className="col-span-1 hidden sm:flex items-center text-sm font-medium text-gray-900 dark:text-white">
           <button
             className={classNames(
+              "cursor-pointer",
               "text-gray-900 dark:text-gray-300",
               "font-medium group flex rounded-md items-center px-2 py-2 text-sm"
             )}

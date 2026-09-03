@@ -62,7 +62,7 @@ export const Header = () => {
                 <RightNav logoutMutation={logoutMutation.mutate} />
                 <div className="-mr-2 flex sm:hidden">
                   {/* Mobile menu button */}
-                  <DisclosureButton className="bg-gray-200 dark:bg-gray-800 inline-flex items-center justify-center p-2 rounded-md text-gray-600 dark:text-gray-400 hover:text-white hover:bg-gray-700">
+                  <DisclosureButton className="bg-gray-200 dark:bg-gray-800 inline-flex items-center justify-center p-2 rounded-md text-gray-600 dark:text-gray-400 hover:text-white hover:bg-gray-700 cursor-pointer">
                     <span className="sr-only">{t("header.openMainMenu")}</span>
                     {open ? (
                       <XMarkIcon

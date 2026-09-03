@@ -68,6 +68,7 @@ export const RightNav = (props: RightNavProps) => {
             <>
               <MenuButton
                 className={classNames(
+                  "cursor-pointer",
                   open ? "bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white" : "hover:text-gray-900 dark:hover:text-white",
                   "text-gray-600 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-800 px-3 py-2 rounded-2xl text-sm font-medium",
                   "max-w-xs rounded-full flex items-center text-sm px-3 py-2",
@@ -164,6 +165,7 @@ export const RightNav = (props: RightNavProps) => {
                           props.logoutMutation();
                         }}
                         className={classNames(
+                          "cursor-pointer",
                           active
                             ? "bg-gray-100 dark:bg-gray-600"
                             : "",

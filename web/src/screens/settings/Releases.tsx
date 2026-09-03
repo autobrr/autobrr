@@ -365,7 +365,7 @@ function CleanupItemDropdown({ job, toggleUpdate, forceRun}: CleanupItemDropdown
         text={t("releases.removeCleanupJobText")}
       />
 
-      <MenuButton className="px-4 py-2">
+      <MenuButton className="px-4 py-2 cursor-pointer">
         <EllipsisHorizontalIcon
           className="cursor-pointer w-5 h-5 text-gray-700 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-400"
           aria-hidden="true"

@@ -109,7 +109,7 @@ export const Tooltip = ({
     <>
       <div
         ref={setTriggerRef}
-        className="truncate"
+        className="truncate cursor-pointer"
         onClick={handleClick}
         onTouchStart={handleTouch}
       >

@@ -143,7 +143,7 @@ const ToggleAllFiltersCheckbox = ({ filters }: { filters: Filter[] }) => {
       <input
         type="checkbox"
         ref={checkboxRef}
-        className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800"
+        className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 cursor-pointer disabled:cursor-not-allowed"
         onChange={handleToggleAll}
         disabled={mutation.isPending || filters.length === 0}
         title={t("list.toggleAllTitle")}
@@ -178,7 +178,7 @@ export function Filters() {
           {({ open }) => (
             <>
               <button
-                className="relative inline-flex items-center px-4 py-2 shadow-xs text-sm font-medium rounded-l-md transition text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                className="relative inline-flex items-center px-4 py-2 shadow-xs text-sm font-medium rounded-l-md transition text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 cursor-pointer"
                 onClick={(e: { stopPropagation: () => void; }) => {
                   if (!open) {
                     e.stopPropagation();
@@ -189,7 +189,7 @@ export function Filters() {
                 <PlusIcon className="h-5 w-5 mr-1" />
                 {t("list.create")}
               </button>
-              <MenuButton className="relative inline-flex items-center px-2 py-2 border-l border-spacing-1 dark:border-black shadow-xs text-sm font-medium rounded-r-md transition text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500">
+              <MenuButton className="relative inline-flex items-center px-2 py-2 border-l border-spacing-1 dark:border-black shadow-xs text-sm font-medium rounded-r-md transition text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 cursor-pointer">
                 <ChevronDownIcon className="h-5 w-5" />
               </MenuButton>
               <Transition
@@ -208,6 +208,7 @@ export function Filters() {
                       <button
                         type="button"
                         className={classNames(
+                          "cursor-pointer",
                           active ? "bg-gray-50 dark:bg-gray-600" : "",
                           "flex items-center w-full text-left py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-200 rounded-md focus:outline-hidden"
                         )}
@@ -252,7 +253,7 @@ function filteredData(data: Filter[], status: string) {
   };
 }
 
-function FilterList({ toggleCreateFilter }: any) {
+function FilterList({ toggleCreateFilter }: { toggleCreateFilter: () => void }) {
   const { t } = useTranslation("filters");
   const filterListState = FilterListContext.useValue();
 
@@ -331,6 +332,7 @@ const StatusButton = ({ data, label, value, currentValue, dispatch }: StatusButt
   return (
     <button
       className={classNames(
+        "cursor-pointer",
         "py-4 pb-4 text-left text-xs tracking-wider transition border-b-2",
         currentValue === value
           ? "font-bold  border-blue-500 dark:text-gray-100 text-gray-950"
@@ -455,7 +457,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
         title={t("list.removeTitle", { name: filter.name })}
         text={t("list.removeText")}
       />
-      <MenuButton className="px-4 py-2">
+      <MenuButton className="px-4 py-2 cursor-pointer">
         <EllipsisHorizontalIcon
           className="w-5 h-5 text-gray-700 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-400"
           aria-hidden="true"
@@ -503,6 +505,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
               {({ active }) => (
                 <button
                   className={classNames(
+                    "cursor-pointer",
                     active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
                     "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
                   )}
@@ -522,6 +525,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
               {({ active }) => (
                 <button
                   className={classNames(
+                    "cursor-pointer",
                     active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
                     "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
                   )}
@@ -542,6 +546,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
               {({ active }) => (
                 <button
                   className={classNames(
+                    "cursor-pointer",
                     active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
                     "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
                   )}
@@ -562,6 +567,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
               {({ active }) => (
                 <button
                   className={classNames(
+                    "cursor-pointer",
                     active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
                     "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
                   )}
@@ -584,6 +590,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
               {({ active }) => (
                 <button
                   className={classNames(
+                    "cursor-pointer",
                     active ? "bg-red-600 text-white" : "text-gray-900 dark:text-gray-300",
                     "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
                   )}
@@ -872,7 +879,7 @@ const ListboxFilter = ({
 );
 
 // a unique option from a list
-const IndexerSelectFilter = ({ dispatch }: any) => {
+const IndexerSelectFilter = ({ dispatch }: { dispatch: Dispatch<Actions> }) => {
   const { t } = useTranslation("filters");
   const filterListState = FilterListContext.useValue();
 
@@ -936,7 +943,7 @@ const FilterOption = ({ label, value }: FilterOptionProps) => (
   </ListboxOption>
 );
 
-export const SortSelectFilter = ({ dispatch }: any) => {
+export const SortSelectFilter = ({ dispatch }: { dispatch: Dispatch<Actions> }) => {
   const { t } = useTranslation("filters");
   const filterListState = FilterListContext.useValue();
 

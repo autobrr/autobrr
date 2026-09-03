@@ -81,7 +81,7 @@ const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => {
 
               <button
                 type="button"
-                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500 cursor-pointer"
                 onClick={() => form.removeFieldValue("channels", index)}
               >
                 <span className="sr-only">{t("forms.irc.remove")}</span>
@@ -96,7 +96,7 @@ const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => {
         )}
         <button
           type="button"
-          className="border dark:border-gray-600 dark:bg-gray-700 my-4 px-4 py-2 text-sm text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 rounded-sm self-center text-center"
+          className="border dark:border-gray-600 dark:bg-gray-700 my-4 px-4 py-2 text-sm text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 rounded-sm self-center text-center cursor-pointer"
           onClick={() => form.pushFieldValue("channels", { name: "", password: "", enabled: true })}
         >
           {t("forms.irc.addChannel")}

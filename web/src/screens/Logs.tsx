@@ -94,8 +94,7 @@ export const Logs = () => {
       const newLogs = logs.filter(log => pattern.test(log.message));
       setFilteredLogs(newLogs);
       setIsInvalidRegex(false);
-    } catch (error) {
-      // Handle regex errors by showing nothing when the regex pattern is invalid
+    } catch {
       setFilteredLogs([]);
       setIsInvalidRegex(true);
     }
@@ -136,7 +135,7 @@ export const Logs = () => {
             <button
               type="button"
               onClick={handleClearLogs}
-              className="px-4 py-2"
+              className="px-4 py-2 cursor-pointer"
               title={t("logs.clearTitle")}
             >
               <TrashIcon className="w-5 h-5 text-gray-700 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-400" aria-hidden="true" />
@@ -281,6 +280,7 @@ const LogFilesItem = ({ file }: LogFilesItemProps) => {
           <div className="logFilesItem">
             <button
               className={classNames(
+                "cursor-pointer",
                 "text-gray-900 dark:text-gray-300",
                 "font-medium group flex rounded-md items-center px-2 py-2 text-sm"
               )}
@@ -322,7 +322,7 @@ const LogsDropdown = () => {
 
   return (
     <Menu as="div">
-      <MenuButton className="px-4 py-2">
+      <MenuButton className="px-4 py-2 cursor-pointer">
         <Cog6ToothIcon
           className="w-5 h-5 text-gray-700 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-400"
           aria-hidden="true"

@@ -81,7 +81,7 @@ export function Notifications() {
           {availableToAdd.length > 0 && (
             <button
               type="button"
-              className="relative inline-flex items-center px-4 py-2 border border-transparent transition shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+              className="relative inline-flex items-center px-4 py-2 border border-transparent transition shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 cursor-pointer"
               onClick={() => push(createNewNotification())}
             >
               <BellIcon className="w-5 h-5 mr-1" aria-hidden="true" />
@@ -168,7 +168,7 @@ function NotificationItem({ notification, availableNotifications, idx, initialEd
           "flex items-center transition px-2 sm:px-6 rounded-md my-1 border border-gray-150 dark:border-gray-750 hover:bg-gray-200 dark:hover:bg-gray-850"
         )}
       >
-        <button className="px-4 py-4 w-full flex items-center" type="button" onClick={toggleEdit}>
+        <button className="px-4 py-4 w-full flex items-center cursor-pointer" type="button" onClick={toggleEdit}>
           <div className="min-w-0 flex-1 sm:flex sm:items-center sm:justify-between">
             <div className="flex text-sm truncate">
               <p className="font-medium text-dark-600 dark:text-gray-100 truncate">
@@ -278,7 +278,7 @@ function NotificationItem({ notification, availableNotifications, idx, initialEd
             <div className="pt-6 pb-4 flex space-x-2 justify-between">
               <button
                 type="button"
-                className="inline-flex items-center justify-center px-4 py-2 rounded-md sm:text-sm bg-red-700 dark:bg-red-900 dark:hover:bg-red-700 hover:bg-red-800 text-white focus:outline-hidden"
+                className="inline-flex items-center justify-center px-4 py-2 rounded-md sm:text-sm bg-red-700 dark:bg-red-900 dark:hover:bg-red-700 hover:bg-red-800 text-white focus:outline-hidden cursor-pointer"
                 onClick={toggleDeleteModal}
               >
                 {t("notificationsSection.removeNotification")}
@@ -286,7 +286,7 @@ function NotificationItem({ notification, availableNotifications, idx, initialEd
 
               <button
                 type="button"
-                className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden"
+                className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden cursor-pointer"
                 onClick={toggleEdit}
               >
                 {t("notificationsSection.close")}

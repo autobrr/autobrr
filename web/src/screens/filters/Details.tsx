@@ -121,7 +121,7 @@ const FormButtonsGroup = ({ deleteAction, reset, isLoading }: FormButtonsGroupPr
       <div className="px-0.5 mt-8 flex flex-col-reverse sm:flex-row flex-wrap-reverse justify-between">
         <button
           type="button"
-          className="flex items-center justify-center px-4 py-2 rounded-md sm:text-sm transition bg-red-700 dark:bg-red-900 dark:hover:bg-red-700 hover:bg-red-800 text-white focus:outline-hidden"
+          className="flex items-center justify-center px-4 py-2 rounded-md sm:text-sm transition bg-red-700 dark:bg-red-900 dark:hover:bg-red-700 hover:bg-red-800 text-white focus:outline-hidden cursor-pointer"
           onClick={toggleDeleteModal}
         >
           {t("details.delete")}
@@ -130,7 +130,7 @@ const FormButtonsGroup = ({ deleteAction, reset, isLoading }: FormButtonsGroupPr
         <div className="flex justify-between mb-4 sm:mb-0">
           <button
             type="button"
-            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 transition rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+            className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 transition rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 cursor-pointer"
             onClick={(e) => {
               e.preventDefault();
               reset();
@@ -142,7 +142,7 @@ const FormButtonsGroup = ({ deleteAction, reset, isLoading }: FormButtonsGroupPr
           </button>
           <button
             type="submit"
-            className="ml-1 sm:ml-4 flex items-center px-4 py-2 border border-transparent transition shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="ml-1 sm:ml-4 flex items-center px-4 py-2 border border-transparent transition shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer"
           >
             {t("details.save")}
           </button>

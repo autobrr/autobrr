@@ -128,6 +128,7 @@ export const CollapsibleSection = ({
           <button
             type="button"
             className={classNames(
+              "cursor-pointer",
               isOpen ? "rotate-0" : "-rotate-90",
               "text-sm font-medium text-white transition-transform"
             )}
