@@ -64,7 +64,9 @@ export const Login = () => {
         queryErrorResetBoundary.reset()
         // remove user session when visiting login page
         AuthContext.reset();
+    }, [queryErrorResetBoundary]);
 
+    useEffect(() => {
         // Check if this is an OIDC callback
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get('code');
@@ -77,7 +79,7 @@ export const Login = () => {
                 setAuth({
                     isLoggedIn: true,
                     username: response.username || 'unknown',
-                    authMethod: response.auth_method || (oidcConfig?.enabled ? 'oidc' : 'password'),
+                    authMethod: response.auth_method || 'oidc',
                     profilePicture: response.profile_picture,
                 });
                 router.invalidate();
@@ -88,7 +90,7 @@ export const Login = () => {
                 ));
             });
         }
-    }, [queryErrorResetBoundary, oidcConfig, setAuth, router, t]);
+    }, [setAuth, router, t]);
 
     const loginMutation = useMutation({
         mutationFn: (data: LoginFormFields) => APIClient.auth.login(data.username, data.password, data.remember_me),

@@ -299,7 +299,7 @@ const CellLine = ({ title, children }: { title: string; children?: string; }) =>
 
 export const ReleaseStatusCell = ({ row }: CellContext<DataTableFeatures, Release, unknown>) => {
   const { t } = useTranslation("common");
-  const statusCellMap = getStatusCellMap(t);
+  const statusCellMap = React.useMemo(() => getStatusCellMap(t), [t]);
 
   return (
     <div className="flex text-sm font-medium text-gray-900 dark:text-gray-300">

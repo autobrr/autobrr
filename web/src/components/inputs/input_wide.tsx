@@ -270,13 +270,15 @@ interface SwitchGroupWideProps {
   defaultValue?: boolean;
   className?: string;
   tooltip?: JSX.Element;
+  onChange?: (value: boolean) => void;
 }
 
 export const SwitchGroupWide = ({
   name,
   label,
   description,
-  tooltip
+  tooltip,
+  onChange
 }: SwitchGroupWideProps) => {
   const form = useFormContext();
 
@@ -303,7 +305,10 @@ export const SwitchGroupWide = ({
             <Checkbox
               name={name}
               value={!!field.state.value}
-              setValue={(value) => field.handleChange(value)}
+              setValue={(value) => {
+                field.handleChange(value);
+                onChange?.(value);
+              }}
             />
           )}
         </form.Field>

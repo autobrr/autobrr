@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Fragment, JSX, useEffect, useRef, useState } from "react";
+import { Fragment, JSX, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSelector } from "@tanstack/react-form";
 import Select from "react-select";
@@ -219,7 +219,12 @@ function ListAddFormPanel({ toggle }: ListAddFormPanelProps) {
                       value={ListTypeOptions.find((o) => o.value === field.state.value) ?? null}
                       onChange={(newValue: unknown) => {
                         const option = newValue as { value: string };
-                        field.handleChange(option?.value ?? "");
+                        const nextType = option?.value ?? "";
+                        if (nextType !== field.state.value) {
+                          form.setFieldValue("client_id", 0, { dontUpdateMeta: true });
+                          form.setFieldValue("url", "", { dontUpdateMeta: true });
+                        }
+                        field.handleChange(nextType);
                       }}
                       onBlur={field.handleBlur}
                       options={ListTypeOptions}
@@ -524,18 +529,7 @@ interface ListTypeFormProps {
 }
 
 const ListTypeForm = (props: ListTypeFormProps) => {
-  const form = useFormContext();
-  const [prevActionType, setPrevActionType] = useState<string | null>(null);
   const { listType } = props;
-
-  useEffect(() => {
-    if (prevActionType !== null && prevActionType !== listType && ListTypeOptions.map(l => l.value).includes(listType)) {
-      form.setFieldValue("client_id", 0, { dontUpdateMeta: true });
-      form.setFieldValue("url", "", { dontUpdateMeta: true });
-    }
-
-    setPrevActionType(listType);
-  }, [listType, prevActionType, form]);
 
   switch (listType) {
     case "RADARR":
@@ -819,14 +813,6 @@ function ListTypeMetacritic() {
 function ListTypeMDBList() {
     const { t } = useTranslation("settings");
     const form = useFormContext();
-    const values = useFormValues<List>();
-
-    useEffect(() => {
-        if (!values.match_release && values.include_year) {
-            form.setFieldValue("match_release", true);
-        }
-
-    }, [form, values.include_year, values.match_release])
 
     return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
@@ -850,7 +836,16 @@ function ListTypeMDBList() {
         <fieldset>
           <legend className="sr-only">{t("forms.list.settingsLegend")}</legend>
           <SwitchGroupWide name="match_release" label={t("forms.list.matchRelease")} description={t("forms.list.matchReleaseDesc")} />
-          <SwitchGroupWide name="include_year" label={t("forms.list.includeYear")} description={t("forms.list.includeYearDesc")} />
+          <SwitchGroupWide
+            name="include_year"
+            label={t("forms.list.includeYear")}
+            description={t("forms.list.includeYearDesc")}
+            onChange={(includeYear) => {
+              if (includeYear) {
+                form.setFieldValue("match_release", true);
+              }
+            }}
+          />
         </fieldset>
       </div>
     </div>

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Dispatch, FC, Fragment, MouseEventHandler, useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { Dispatch, FC, Fragment, MouseEventHandler, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from "react-i18next";
 import {
@@ -255,18 +255,12 @@ function filteredData(data: Filter[], status: string) {
 
 function FilterList({ toggleCreateFilter }: { toggleCreateFilter: () => void }) {
   const { t } = useTranslation("filters");
-  const filterListState = FilterListContext.useValue();
-
-  const [{ indexerFilter, sortOrder, status }, dispatchFilter] = useReducer(
-    FilterListReducer,
-    filterListState
-  );
+  const { indexerFilter, sortOrder, status } = FilterListContext.useValue();
+  const dispatchFilter: Dispatch<Actions> = (action) => {
+    FilterListContext.set(FilterListReducer(FilterListContext.get(), action));
+  };
 
   const { isLoading: isLoadingFilters, data: filtersData, error: filtersError } = useQuery(FiltersQueryOptions(indexerFilter, sortOrder));
-
-  useEffect(() => {
-    FilterListContext.set({ indexerFilter, sortOrder, status });
-  }, [indexerFilter, sortOrder, status]);
 
   if (filtersError) {
     // TODO: Better error handling

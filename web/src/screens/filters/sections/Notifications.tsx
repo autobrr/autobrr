@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { ChevronRightIcon, InformationCircleIcon } from "@heroicons/react/24/solid";
 import { BellIcon } from "@heroicons/react/24/outline";
@@ -139,16 +139,6 @@ function NotificationItem({ notification, availableNotifications, idx, initialEd
     form.setFieldValue(`notifications[${idx}].events`, newEvents);
   };
 
-  const currentNotificationId = values.notifications?.[idx]?.notification_id;
-  useEffect(() => {
-    if (currentNotificationId) {
-      const notif = availableNotifications.find(n => n.id === currentNotificationId);
-      if (notif) {
-        form.setFieldValue(`notifications[${idx}].notification`, notif, { dontUpdateMeta: true });
-      }
-    }
-  }, [currentNotificationId, availableNotifications, idx, form]);
-
   const selectedNotification = availableNotifications.find(
     n => n.id === notification.notification_id
   );
@@ -216,6 +206,12 @@ function NotificationItem({ notification, availableNotifications, idx, initialEd
                     optionDefaultText={t("notificationsSection.selectNotificationService")}
                     options={availableOptions}
                     tooltip={<div><p>{t("notificationsSection.notificationServiceTooltip")}</p></div>}
+                    onChange={(notificationId) => {
+                      const notif = availableNotifications.find((n) => n.id === notificationId);
+                      if (notif) {
+                        form.setFieldValue(`notifications[${idx}].notification`, notif, { dontUpdateMeta: true });
+                      }
+                    }}
                   />
                 </div>
 

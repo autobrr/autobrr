@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Fragment, useRef, useState } from "react";
+import { Fragment, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { MultiSelect as RMSC } from "react-multi-select-component";
 import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/react";
@@ -485,7 +485,7 @@ interface ReleaseStatus {
 function DeleteReleases() {
   const { t } = useTranslation(["settings", "options"]);
   const queryClient = useQueryClient();
-  const pushStatusOptions = getPushStatusOptions(t);
+  const pushStatusOptions = useMemo(() => getPushStatusOptions(t), [t]);
   const [duration, setDuration] = useState<string>("");
   const [parsedDuration, setParsedDuration] = useState<number>();
   const [indexers, setIndexers] = useState<Indexer[]>([]);
