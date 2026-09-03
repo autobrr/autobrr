@@ -580,6 +580,7 @@ const NotificationTypeSelector = () => {
   const { t } = useTranslation(["options", "settings"]);
   const notificationTypeOptions = getNotificationTypeOptions(t);
   const form = useFormContext();
+  const { name, enabled, events } = useFormValues<ServiceNotification>();
 
   return (
     <form.Field name="type">
@@ -614,7 +615,11 @@ const NotificationTypeSelector = () => {
           })}
           value={field.state.value && notificationTypeOptions.find(o => o.value == field.state.value)}
           onChange={(option: unknown) => {
+            // Reset clears the provider-specific fields; the shared ones carry over to the new type.
             form.reset();
+            form.setFieldValue("name", name, { dontUpdateMeta: true });
+            form.setFieldValue("enabled", enabled, { dontUpdateMeta: true });
+            form.setFieldValue("events", events, { dontUpdateMeta: true });
             const opt = option as SelectOption | null;
             field.handleChange(opt?.value ?? "");
           }}
