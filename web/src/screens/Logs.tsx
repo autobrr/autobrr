@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/react";
 import { DebounceInput } from "react-debounce-input";
@@ -51,8 +51,30 @@ export const Logs = () => {
 
   const [logs, setLogs] = useState<LogEvent[]>([]);
   const [searchFilter, setSearchFilter] = useState("");
-  const [filteredLogs, setFilteredLogs] = useState<LogEvent[]>([]);
-  const [isInvalidRegex, setIsInvalidRegex] = useState(false);
+
+  const pattern = useMemo(() => {
+    if (!searchFilter.length) {
+      return null;
+    }
+
+    try {
+      return new RegExp(searchFilter, "i");
+    } catch {
+      return undefined;
+    }
+  }, [searchFilter]);
+  const isInvalidRegex = pattern === undefined;
+
+  const filteredLogs = useMemo(() => {
+    if (pattern === null) {
+      return logs;
+    }
+    if (pattern === undefined) {
+      return [];
+    }
+
+    return logs.filter((log) => pattern.test(log.message));
+  }, [logs, pattern]);
 
   useEffect(() => {
     const scrollToBottom = () => {
@@ -74,24 +96,6 @@ export const Logs = () => {
 
     return () => es.close();
   }, []);
-
-  useEffect(() => {
-    if (!searchFilter.length) {
-      setFilteredLogs(logs);
-      setIsInvalidRegex(false);
-      return;
-    }
-
-    try {
-      const pattern = new RegExp(searchFilter, "i");
-      const newLogs = logs.filter(log => pattern.test(log.message));
-      setFilteredLogs(newLogs);
-      setIsInvalidRegex(false);
-    } catch {
-      setFilteredLogs([]);
-      setIsInvalidRegex(true);
-    }
-  }, [logs, searchFilter]);
 
   const handleClearLogs = () => {
     setLogs([]);
