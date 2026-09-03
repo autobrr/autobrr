@@ -3,22 +3,13 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useSyncExternalStore } from "react";
 import { SettingsContext } from "@utils/Context";
-
-const subscribeToColorScheme = (onChange: () => void) => {
-  const mq = window.matchMedia("(prefers-color-scheme: dark)");
-  mq.addEventListener("change", onChange);
-  return () => mq.removeEventListener("change", onChange);
-};
+import { useMedia } from "@hooks/hooks";
 
 export const useIsDark = (): boolean => {
-  const settings = SettingsContext.useValue();
-  const prefersDark = useSyncExternalStore(
-    subscribeToColorScheme,
-    () => window.matchMedia("(prefers-color-scheme: dark)").matches
-  );
-  return settings.theme === "dark" || (settings.theme === "system" && prefersDark);
+  const theme = SettingsContext.useSelector((s) => s.theme);
+  const prefersDark = useMedia("(prefers-color-scheme: dark)");
+  return theme === "dark" || (theme === "system" && prefersDark);
 };
 
 // Tailwind hues the app already uses (green-600, blue-500, zinc, red),

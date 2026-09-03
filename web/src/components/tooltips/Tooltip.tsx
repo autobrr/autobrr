@@ -68,7 +68,13 @@ export const Tooltip = ({
     triggerNode.current = node;
   };
 
+  // Only an open tooltip needs to hear about outside clicks, so a table full of
+  // closed ones registers nothing on the document
   useEffect(() => {
+    if (!isTooltipVisible) {
+      return;
+    }
+
     const handleClickOutside = (event: Event) => {
       const target = event.target as Node;
       if (tooltipNode.current && !tooltipNode.current.contains(target) && triggerNode.current && !triggerNode.current.contains(target)) {
@@ -82,7 +88,7 @@ export const Tooltip = ({
       document.removeEventListener('touchstart', handleClickOutside, true);
       document.removeEventListener('mousedown', handleClickOutside, true);
     };
-  }, []);
+  }, [isTooltipVisible]);
 
   return (
     <>

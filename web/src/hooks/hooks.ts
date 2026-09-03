@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useEffect, useState } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
 
 export function useToggle(initialValue = false): [boolean, () => void] {
   const [value, setValue] = useState(initialValue);
@@ -12,49 +12,25 @@ export function useToggle(initialValue = false): [boolean, () => void] {
   return [value, toggle];
 }
 
-const isBrowser = typeof(window) !== "undefined";
+// One MediaQueryList per query, shared by every subscriber, instead of one per hook instance.
+const mediaQueries = new Map<string, MediaQueryList>();
 
-const getInitialState = (query: string, defaultState?: boolean) => {
-  // Prevent a React hydration mismatch when a default value is provided by not defaulting to window.matchMedia(query).matches.
-  if (defaultState !== undefined) {
-    return defaultState;
+const getMediaQuery = (query: string) => {
+  let mql = mediaQueries.get(query);
+  if (!mql) {
+    mql = window.matchMedia(query);
+    mediaQueries.set(query, mql);
   }
 
-  if (isBrowser) {
-    return window.matchMedia(query).matches;
-  }
-
-  // A default value has not been provided, and you are rendering on the server, warn of a possible hydration mismatch when defaulting to false.
-  if (import.meta.env.DEV) {
-    console.warn(
-      "`useMedia` When server side rendering, defaultState should be defined to prevent a hydration mismatches."
-    );
-  }
-
-  return false;
+  return mql;
 };
 
-export const useMedia = (query: string, defaultState?: boolean) => {
-  const [state, setState] = useState(() => getInitialState(query, defaultState));
-
-  useEffect(() => {
-    let mounted = true;
-    const mql = window.matchMedia(query);
-    const onChange = () => {
-      if (!mounted) {
-        return;
-      }
-      setState(!!mql.matches);
-    };
-
-    mql.addListener(onChange);
-    setState(mql.matches);
-
-    return () => {
-      mounted = false;
-      mql.removeListener(onChange);
-    };
+export const useMedia = (query: string, defaultState = false) => {
+  const subscribe = useCallback((onChange: () => void) => {
+    const mql = getMediaQuery(query);
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
   }, [query]);
 
-  return state;
+  return useSyncExternalStore(subscribe, () => getMediaQuery(query).matches, () => defaultState);
 };
