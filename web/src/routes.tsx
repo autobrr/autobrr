@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+import { z } from "zod/mini";
 import {
   createRootRouteWithContext,
   createRoute,
@@ -11,7 +12,6 @@ import {
   notFound,
   redirect,
 } from "@tanstack/react-router";
-import { z } from "zod";
 import { QueryClient } from "@tanstack/react-query";
 
 import { APIClient } from "@api/APIClient";
@@ -67,7 +67,7 @@ export const FilterGetByIdRoute = createRoute({
   getParentRoute: () => FiltersRoute,
   path: '$filterId',
   parseParams: (params) => ({
-    filterId: z.number().int().parse(Number(params.filterId)),
+    filterId: z.int().parse(Number(params.filterId)),
   }),
   stringifyParams: ({ filterId }) => ({ filterId: `${filterId}` }),
   loader: async ({ context, params }) => {
@@ -137,11 +137,11 @@ export const ReleasesRoute = createRoute({
   path: 'releases',
   component: lazyRouteComponent(() => import("@screens/Releases"), "Releases"),
   validateSearch: (search) => z.object({
-    page: z.number().optional(),
-    pageSize: z.number().optional(),
-    q: z.string().optional(),
-    action_status: z.enum(['PUSH_APPROVED', 'PUSH_REJECTED', 'PENDING', 'PUSH_ERROR', '']).optional(),
-    indexer: z.string().optional(),
+    page: z.optional(z.number()),
+    pageSize: z.optional(z.number()),
+    q: z.optional(z.string()),
+    action_status: z.optional(z.enum(['PUSH_APPROVED', 'PUSH_REJECTED', 'PENDING', 'PUSH_ERROR', ''])),
+    indexer: z.optional(z.string()),
   }).parse(search),
 });
 
@@ -259,7 +259,7 @@ export const LoginRoute = createRoute({
   getParentRoute: () => RootRoute,
   path: 'login',
   validateSearch: z.object({
-    redirect: z.string().optional(),
+    redirect: z.optional(z.string()),
   }),
   beforeLoad: async ({ context, navigate }) => {
     // First check if OIDC is enabled
