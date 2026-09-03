@@ -10,7 +10,7 @@ import { useTranslation } from "react-i18next";
 
 import { classNames } from "@utils";
 import { useToggle } from "@hooks/hooks";
-import { useFormContext, useFormValues } from "@hooks/form";
+import { useFormContext, useFormValue } from "@hooks/form";
 import { APIClient } from "@api/APIClient";
 import { DOWNLOAD_CLIENTS, getActionTypeNameMap, getActionTypeOptions } from "@domain/constants";
 
@@ -40,7 +40,7 @@ import {
 export function Actions() {
   const { t } = useTranslation(["options", "filters"]);
   const form = useFormContext();
-  const values = useFormValues<Filter>();
+  const values = useFormValue((v: Filter) => ({ actions: v.actions, id: v.id }));
   const actionTypeOptions = getActionTypeOptions(t);
 
   const { data } = useQuery(DownloadersQueryOptions());

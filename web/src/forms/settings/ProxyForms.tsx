@@ -5,12 +5,11 @@
 
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSelector } from "@tanstack/react-form";
 import { useTranslation } from "react-i18next";
 
 import { AddFormProps } from "@forms/_shared";
 import { useAppForm } from "@hooks/form";
-import { DEBUG } from "@components/debug.tsx";
+import { FormDebug } from "@components/debug";
 import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import { SelectFieldBasic } from "@components/inputs/select_wide";
 import { ProxyTypeOptions } from "@domain/constants";
@@ -77,8 +76,6 @@ function ProxyAddFormPanel({ toggle }: ProxyAddFormPanelProps) {
     onSubmit: ({ value }) => onSubmit(value)
   });
 
-  const values = useSelector(form.store, (state) => state.values);
-
   return (
     <form.AppForm>
       <form
@@ -131,7 +128,7 @@ function ProxyAddFormPanel({ toggle }: ProxyAddFormPanelProps) {
             <PasswordFieldWide name="pass" label={t("forms.proxy.pass")} help={t("forms.proxy.passHelp")} autoComplete="off"/>
           </div>
 
-          <DEBUG values={values}/>
+          <FormDebug />
         </div>
 
         <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-5 sm:px-6">
@@ -139,7 +136,7 @@ function ProxyAddFormPanel({ toggle }: ProxyAddFormPanelProps) {
             <button
               type="button"
               className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 cursor-pointer"
-              onClick={() => testProxy(values)}
+              onClick={() => testProxy(form.state.values)}
             >
               {t("forms.proxy.test")}
             </button>

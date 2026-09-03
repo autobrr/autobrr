@@ -18,7 +18,7 @@ import { sleep } from "@utils";
 import { ImplementationBadge } from "@screens/settings/Indexer";
 import { FeedDownloadTypeOptions } from "@domain/constants";
 import { UpdateFormProps } from "@forms/_shared";
-import { useFormContext, useFormValues } from "@hooks/form";
+import { useFormContext, useFormValue } from "@hooks/form";
 import { extractCategoryTreeFromCaps, flattenCategoryIds, parseCapabilitiesPayload } from "@utils/caps";
 
 interface InitialValues {
@@ -191,7 +191,7 @@ function WarningLabel() {
 
 function FormFieldsTorznab({ feedID }: { feedID: number }) {
   const { t } = useTranslation("settings");
-  const { interval } = useFormValues<InitialValues>();
+  const interval = useFormValue((v: InitialValues) => v.interval);
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5">
@@ -231,7 +231,7 @@ function FormFieldsTorznab({ feedID }: { feedID: number }) {
 
 function FormFieldsNewznab({ feedID }: { feedID: number }) {
   const { t } = useTranslation("settings");
-  const { interval } = useFormValues<InitialValues>();
+  const interval = useFormValue((v: InitialValues) => v.interval);
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5">
@@ -269,7 +269,7 @@ function FormFieldsNewznab({ feedID }: { feedID: number }) {
 
 function FormFieldsRSS() {
   const { t } = useTranslation("settings");
-  const { interval } = useFormValues<InitialValues>();
+  const interval = useFormValue((v: InitialValues) => v.interval);
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5">
@@ -299,7 +299,7 @@ function FormFieldsRSS() {
 function FeedCategoriesSection({ feedID }: { feedID: number }) {
   const { t } = useTranslation("settings");
   const form = useFormContext();
-  const values = useFormValues<InitialValues>();
+  const values = useFormValue((v: InitialValues) => ({ capabilities: v.capabilities, categories: v.categories }));
   const capsPayload = useMemo(() => parseCapabilitiesPayload(values.capabilities), [values.capabilities]);
   const categoriesTree = useMemo(() => extractCategoryTreeFromCaps(capsPayload), [capsPayload]);
   const hasCaps = Boolean(values.capabilities);

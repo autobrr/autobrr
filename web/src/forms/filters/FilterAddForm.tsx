@@ -7,12 +7,11 @@ import { useRef, RefObject } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { XMarkIcon } from "@heroicons/react/24/solid";
-import { useSelector } from "@tanstack/react-form";
 import { useTranslation } from "react-i18next";
 
 import { APIClient } from "@api/APIClient";
 import { FilterKeys } from "@api/query_keys";
-import { DEBUG } from "@components/debug";
+import { FormDebug } from "@components/debug";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { AddFormProps } from "@forms/_shared";
@@ -91,8 +90,6 @@ function FilterAddFormPanel({ toggle, inputRef }: FilterAddFormPanelProps) {
     onSubmit: ({ value }) => handleSubmit(value)
   });
 
-  const values = useSelector(form.store, (state) => state.values);
-
   return (
     <form.AppForm>
       <form
@@ -162,7 +159,7 @@ function FilterAddFormPanel({ toggle, inputRef }: FilterAddFormPanelProps) {
             </div>
           </div>
 
-          <DEBUG values={values} />
+          <FormDebug />
         </div>
 
         <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-5 sm:px-6">

@@ -43,6 +43,15 @@ export const useFormValues = <T>() => {
   return useSelector(form.store, (state) => state.values as T);
 };
 
+// Subscribes to a slice of the values; the store compares results shallowly, so
+// returning a primitive or a small object of the fields read keeps unrelated
+// keystrokes from re-rendering the caller.
+export const useFormValue = <T, R>(selector: (values: T) => R) => {
+  const form = useFormContext();
+
+  return useSelector(form.store, (state) => selector(state.values as T));
+};
+
 export type FormFieldErrors = Record<string, string>;
 
 // Adapts a validate function returning { fieldName: message } to a form-level validator.

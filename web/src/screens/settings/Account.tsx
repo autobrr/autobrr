@@ -101,7 +101,7 @@ function Credentials() {
     }
   });
 
-  const values = useSelector(form.store, (state) => state.values);
+  const newPassword = useSelector(form.store, (state) => state.values.newPassword);
 
   const separatorClass = "mb-6";
 
@@ -149,7 +149,7 @@ function Credentials() {
                     </div>
                   } />
                 </div>
-                {values.newPassword && (
+                {newPassword && (
                   <div className={separatorClass}>
                     <PasswordField name="confirmPassword" label={t("account.confirmNewPassword")} autoComplete="new-password" />
                   </div>

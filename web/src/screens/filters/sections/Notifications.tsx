@@ -16,7 +16,7 @@ import { TitleSubtitle } from "@components/headings";
 import { EmptyListState } from "@components/emptystates";
 import { DeleteModal } from "@components/modals";
 import { Select } from "@components/inputs";
-import { useFormContext, useFormValues } from "@hooks/form";
+import { useFormContext, useFormValue } from "@hooks/form";
 import { useToggle } from "@hooks/hooks";
 import { classNames } from "@utils";
 import { FilterSection, FilterLayout, FilterPage } from "./_components";
@@ -42,7 +42,7 @@ const NOTIFICATION_TYPE_MAP: Record<string, string> = {
 export function Notifications() {
   const { t } = useTranslation("filters");
   const form = useFormContext();
-  const values = useFormValues<Filter>();
+  const values = useFormValue((v: Filter) => ({ notifications: v.notifications }));
 
   const { data: availableNotifications = [] } = useSuspenseQuery({
     queryKey: NotificationKeys.lists(),
@@ -122,7 +122,7 @@ interface NotificationItemProps {
 function NotificationItem({ notification, availableNotifications, idx, initialEdit, remove }: NotificationItemProps) {
   const { t } = useTranslation("filters");
   const form = useFormContext();
-  const values = useFormValues<Filter>();
+  const values = useFormValue((v: Filter) => ({ notifications: v.notifications }));
   const cancelButtonRef = useRef(null);
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
   const [edit, toggleEdit] = useToggle(initialEdit);

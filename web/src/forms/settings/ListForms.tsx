@@ -36,7 +36,7 @@ import {
   ListTypeOptions,
   OptionBasicTyped
 } from "@domain/constants";
-import { DEBUG } from "@components/debug";
+import { FormDebug } from "@components/debug";
 import {
   DownloadersArrTagsQueryOptions,
   DownloadersQueryOptions,
@@ -51,7 +51,7 @@ import {
 import { DocsTooltip } from "@components/tooltips/DocsTooltip";
 import { MultiSelect as RMSC } from "react-multi-select-component";
 import { useToggle } from "@hooks/hooks.ts";
-import { errorMessages, fieldErrors, fieldHasError, useAppForm, useFormContext, useFormValues } from "@hooks/form";
+import { errorMessages, fieldErrors, fieldHasError, useAppForm, useFormContext, useFormValue } from "@hooks/form";
 import type { FormFieldErrors } from "@hooks/form";
 import { DeleteModal } from "@components/modals";
 import { SlideOverShell, SlideOverTitle } from "@components/panels";
@@ -136,7 +136,7 @@ function ListAddFormPanel({ toggle }: ListAddFormPanelProps) {
     onSubmit: ({ value }) => onSubmit(value)
   });
 
-  const values = useSelector(form.store, (state) => state.values);
+  const type = useSelector(form.store, (state) => state.values.type);
 
   return (
     <form.AppForm>
@@ -237,7 +237,7 @@ function ListAddFormPanel({ toggle }: ListAddFormPanelProps) {
             <SwitchGroupWide name="enabled" label={t("forms.list.enabled")}/>
           </div>
 
-          <ListTypeForm listType={values.type as ListType} clients={clients ?? []}/>
+          <ListTypeForm listType={type as ListType} clients={clients ?? []}/>
 
           <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
             <div className="border-t border-gray-200 dark:border-gray-700 py-4">
@@ -259,7 +259,7 @@ function ListAddFormPanel({ toggle }: ListAddFormPanelProps) {
 
             </div>
           </div>
-          <DEBUG values={values}/>
+          <FormDebug />
         </div>
 
         <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4 sm:px-6">
@@ -357,7 +357,7 @@ function ListUpdateFormPanel({ toggle, data }: ListUpdateFormPanelProps) {
     onSubmit: ({ value }) => onSubmit(value)
   });
 
-  const values = useSelector(form.store, (state) => state.values);
+  const type = useSelector(form.store, (state) => state.values.type);
 
   return (
     <>
@@ -414,7 +414,7 @@ function ListUpdateFormPanel({ toggle, data }: ListUpdateFormPanelProps) {
               <SwitchGroupWide name="enabled" label={t("forms.list.enabled")}/>
 
               <div className="space-y-2 divide-y divide-gray-200 dark:divide-gray-700">
-                <ListTypeForm listType={values.type} clients={clientsQuery.data ?? []}/>
+                <ListTypeForm listType={type} clients={clientsQuery.data ?? []}/>
               </div>
 
               <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
@@ -439,7 +439,7 @@ function ListUpdateFormPanel({ toggle, data }: ListUpdateFormPanelProps) {
               </div>
 
             </div>
-            <DEBUG values={values}/>
+            <FormDebug />
           </div>
 
           <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4">
@@ -605,7 +605,7 @@ const FilterOptionCheckBoxes = (props: ListTypeFormProps) => {
 
 function ListTypeArr({ listType, clients }: ListTypeFormProps) {
   const { t } = useTranslation("settings");
-  const values = useFormValues<List>();
+  const values = useFormValue((v: List) => ({ client_id: v.client_id, type: v.type }));
 
   const arrTagsQuery = useQuery(DownloadersArrTagsQueryOptions(values.client_id));
 
@@ -649,7 +649,7 @@ function ListTypeArr({ listType, clients }: ListTypeFormProps) {
 
 function ListTypeTrakt() {
   const { t } = useTranslation("settings");
-  const values = useFormValues<List>();
+  const values = useFormValue((v: List) => ({ url: v.url }));
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">

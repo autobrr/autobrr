@@ -15,9 +15,9 @@ import { APIClient } from "@api/APIClient";
 import { NotificationKeys } from "@api/query_keys";
 import { PushoverSoundsQueryOptions } from "@api/queries";
 import { ExternalFilterWebhookMethodOptions, getEventOptions, getNotificationTypeOptions, PushoverSoundOptions, SelectOption } from "@domain/constants";
-import { useAppForm, useFormContext, useFormValues, fieldErrors } from "@hooks/form";
+import { useAppForm, useFormContext, useFormValue, fieldErrors } from "@hooks/form";
 import type { FormFieldErrors } from "@hooks/form";
-import { DEBUG } from "@components/debug";
+import { FormDebug } from "@components/debug";
 import { SlideOver, SlideOverShell, SlideOverTitle } from "@components/panels";
 import { ExternalLink } from "@components/ExternalLink";
 import { toast } from "@components/hot-toast";
@@ -468,7 +468,7 @@ function NotificationAddFormPanel({ toggle }: NotificationAddFormPanelProps) {
     onSubmit: ({ value }) => onSubmit(value)
   });
 
-  const values = useSelector(form.store, (state) => state.values);
+  const type = useSelector(form.store, (state) => state.values.type);
 
   return (
     <form.AppForm>
@@ -542,9 +542,9 @@ function NotificationAddFormPanel({ toggle }: NotificationAddFormPanelProps) {
               </div>
             </div>
           </div>
-          {componentMap[values.type]}
+          {componentMap[type]}
 
-          <DEBUG values={values} />
+          <FormDebug />
         </div>
 
         <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4 sm:px-6">
@@ -552,7 +552,7 @@ function NotificationAddFormPanel({ toggle }: NotificationAddFormPanelProps) {
             <button
               type="button"
               className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 cursor-pointer"
-              onClick={() => testNotification(values)}
+              onClick={() => testNotification(form.state.values)}
             >
               {t("settings:forms.notification.test")}
             </button>
@@ -580,7 +580,6 @@ const NotificationTypeSelector = () => {
   const { t } = useTranslation(["options", "settings"]);
   const notificationTypeOptions = getNotificationTypeOptions(t);
   const form = useFormContext();
-  const { name, enabled, events } = useFormValues<ServiceNotification>();
 
   return (
     <form.Field name="type">
@@ -616,6 +615,7 @@ const NotificationTypeSelector = () => {
           value={field.state.value && notificationTypeOptions.find(o => o.value == field.state.value)}
           onChange={(option: unknown) => {
             // Reset clears the provider-specific fields; the shared ones carry over to the new type.
+            const { name, enabled, events } = form.state.values as ServiceNotification;
             form.reset();
             form.setFieldValue("name", name, { dontUpdateMeta: true });
             form.setFieldValue("enabled", enabled, { dontUpdateMeta: true });
@@ -632,7 +632,7 @@ const NotificationTypeSelector = () => {
 
 const EventCheckBox = ({ event }: { event: NotificationEventOption; }) => {
   const form = useFormContext();
-  const { events } = useFormValues<ServiceNotification>();
+  const events = useFormValue((v: ServiceNotification) => v.events);
 
   return (
     <div className="space-y-2">
@@ -680,8 +680,7 @@ const EventSoundSelector = ({event, soundOptions}: {
 }) => {
   const { t } = useTranslation(["options", "settings"]);
   const form = useFormContext();
-  const values = useFormValues<ServiceNotification>();
-  const eventSounds = values.event_sounds || {};
+  const eventSounds = useFormValue((v: ServiceNotification) => v.event_sounds) || {};
   const currentSound = eventSounds[event.value] || "";
 
   return (
@@ -744,8 +743,7 @@ const EventSoundSelector = ({event, soundOptions}: {
 const EventSounds = () => {
   const { t } = useTranslation(["options", "settings"]);
   const eventOptions = getEventOptions(t);
-  const values = useFormValues<ServiceNotification>();
-  const apiKey = values.api_key || "";
+  const apiKey = useFormValue((v: ServiceNotification) => v.api_key) || "";
 
   const canFetchCustomSounds = Boolean(apiKey && apiKey !== "<redacted>");
 
