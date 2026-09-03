@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Field, FieldProps } from "formik";
+import type { AnyFieldMeta } from "@tanstack/react-form";
 import { components } from "react-select";
 import type {
   InputProps,
@@ -15,18 +15,17 @@ import type {
 } from "react-select";
 
 import { classNames } from "@utils";
+import { errorMessages, fieldHasError } from "@hooks/form";
 
 interface ErrorFieldProps {
-  name: string;
+  meta: AnyFieldMeta;
   classNames?: string;
 }
 
-export const ErrorField = ({ name, classNames }: ErrorFieldProps) => (
-  <Field name={name} subscribe={{ touched: true, error: true }}>
-    {({ meta: { touched, error } }: FieldProps) =>
-      touched && error ? <span className={classNames}>{error}</span> : null
-    }
-  </Field>
+export const ErrorField = ({ meta, classNames }: ErrorFieldProps) => (
+  fieldHasError(meta)
+    ? <span className={classNames}>{errorMessages(meta.errors).join(", ")}</span>
+    : null
 );
 
 interface RequiredFieldProps {

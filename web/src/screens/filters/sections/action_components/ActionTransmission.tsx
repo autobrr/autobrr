@@ -4,7 +4,7 @@
  */
 
 import { CollapsibleSection, FilterHalfRow, FilterLayout, FilterSection, FilterWideGridGapClass } from "../_components";
-import { DownloadClientSelect, NumberField, SwitchGroup, TextAreaAutoResize, TextField } from "@components/inputs";
+import { DownloaderSelect, NumberField, SwitchGroup, TextAreaAutoResize, TextField } from "@components/inputs";
 import { useTranslation } from "react-i18next";
 
 export const Transmission = ({ idx, action, clients }: ClientActionProps) => {
@@ -18,15 +18,15 @@ export const Transmission = ({ idx, action, clients }: ClientActionProps) => {
     >
       <FilterLayout>
         <FilterHalfRow>
-          <DownloadClientSelect
-            name={`actions.${idx}.client_id`}
+          <DownloaderSelect
+            name={`actions[${idx}].client_id`}
             action={action}
             clients={clients}
           />
         </FilterHalfRow>
         <FilterHalfRow>
           <TextField
-            name={`actions.${idx}.label`}
+            name={`actions[${idx}].label`}
             label={t("actionComponents.transmission.label")}
             columns={6}
             placeholder={t("actionComponents.transmission.labelPlaceholder")}
@@ -35,7 +35,7 @@ export const Transmission = ({ idx, action, clients }: ClientActionProps) => {
       </FilterLayout>
 
       <TextAreaAutoResize
-        name={`actions.${idx}.save_path`}
+        name={`actions[${idx}].save_path`}
         label={t("actionComponents.common.savePath")}
         columns={6}
         placeholder={t("actionComponents.common.savePathPlaceholder")}
@@ -44,7 +44,7 @@ export const Transmission = ({ idx, action, clients }: ClientActionProps) => {
       <FilterLayout className="pb-6">
         <FilterHalfRow>
           <SwitchGroup
-            name={`actions.${idx}.paused`}
+            name={`actions[${idx}].paused`}
             label={t("actionComponents.common.addPaused")}
             description={t("actionComponents.common.addPausedDescription")}
           />
@@ -57,12 +57,12 @@ export const Transmission = ({ idx, action, clients }: ClientActionProps) => {
       >
         <FilterLayout>
           <NumberField
-            name={`actions.${idx}.limit_download_speed`}
+            name={`actions[${idx}].limit_download_speed`}
             label={t("actionComponents.common.limitDownloadKib")}
             placeholder={t("actionComponents.common.numberNoLimit")}
           />
           <NumberField
-            name={`actions.${idx}.limit_upload_speed`}
+            name={`actions[${idx}].limit_upload_speed`}
             label={t("actionComponents.common.limitUploadKib")}
             placeholder={t("actionComponents.common.numberNoLimit")}
           />
@@ -70,14 +70,14 @@ export const Transmission = ({ idx, action, clients }: ClientActionProps) => {
 
         <FilterLayout>
           <NumberField
-            name={`actions.${idx}.limit_ratio`}
+            name={`actions[${idx}].limit_ratio`}
             label={t("actionComponents.common.ratioLimit")}
             placeholder={t("actionComponents.common.numberNoLimit")}
             step={0.25}
             isDecimal
           />
           <NumberField
-            name={`actions.${idx}.limit_seed_time`}
+            name={`actions[${idx}].limit_seed_time`}
             label={t("actionComponents.common.seedTimeMinutes")}
             placeholder={t("actionComponents.common.numberNoLimit")}
           />
@@ -92,26 +92,26 @@ export const Transmission = ({ idx, action, clients }: ClientActionProps) => {
       >
         <FilterHalfRow>
           <SwitchGroup
-            name={`actions.${idx}.reannounce_skip`}
+            name={`actions[${idx}].reannounce_skip`}
             label={t("actionComponents.common.disableReannounce")}
             description={t("actionComponents.common.disableReannounceDescription")}
             className="pt-2 pb-4"
           />
           <NumberField
-            name={`actions.${idx}.reannounce_interval`}
+            name={`actions[${idx}].reannounce_interval`}
             label={t("actionComponents.common.reannounceInterval")}
             placeholder={t("actionComponents.common.reannounceIntervalPlaceholder")}
           />
         </FilterHalfRow>
         <FilterHalfRow>
           <SwitchGroup
-            name={`actions.${idx}.reannounce_delete`}
+            name={`actions[${idx}].reannounce_delete`}
             label={t("actionComponents.common.deleteStalled")}
             description={t("actionComponents.common.deleteStalledDescription")}
             className="pt-2 pb-4"
           />
           <NumberField
-            name={`actions.${idx}.reannounce_max_attempts`}
+            name={`actions[${idx}].reannounce_max_attempts`}
             label={t("actionComponents.common.reannounceMaxAttempts")}
           />
         </FilterHalfRow>

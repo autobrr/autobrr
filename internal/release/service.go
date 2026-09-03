@@ -682,7 +682,7 @@ func (s *Service) runAction(ctx context.Context, action *domain.Action, release 
 		status.Rejections = []string{err.Error()}
 
 		s.eventBus.EmitReleasePush(ctx, events.ReleasePushEvent{
-			Event:        events.Event{Type: events.ReleasePushError},
+			Type:         events.ReleasePushError,
 			Action:       action,
 			ActionStatus: status,
 			Release:      release,
@@ -696,7 +696,7 @@ func (s *Service) runAction(ctx context.Context, action *domain.Action, release 
 		status.Rejections = rejections
 
 		s.eventBus.EmitReleasePush(ctx, events.ReleasePushEvent{
-			Event:        events.Event{Type: events.ReleasePushRejected},
+			Type:         events.ReleasePushRejected,
 			Action:       action,
 			ActionStatus: status,
 			Release:      release,
@@ -708,7 +708,7 @@ func (s *Service) runAction(ctx context.Context, action *domain.Action, release 
 	status.Status = domain.ReleasePushStatusApproved
 
 	s.eventBus.EmitReleasePush(ctx, events.ReleasePushEvent{
-		Event:        events.Event{Type: events.ReleasePushApproved},
+		Type:         events.ReleasePushApproved,
 		Action:       action,
 		ActionStatus: status,
 		Release:      release,
@@ -805,7 +805,7 @@ func (s *Service) Retry(ctx context.Context, req *domain.ReleaseActionRetryReq) 
 
 func (s *Service) publishEventReleaseNew(ctx context.Context, release *domain.Release) {
 	s.eventBus.EmitReleaseNew(ctx, events.ReleaseEvent{
-		Event:   events.Event{Type: events.ReleaseNew},
+		Type:    events.ReleaseNew,
 		Release: release,
 	})
 }

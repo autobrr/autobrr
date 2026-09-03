@@ -3,11 +3,10 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import type { FieldProps } from "formik";
-import { Field as FormikField } from "formik";
 import { Field, Label, Description } from "@headlessui/react";
 
 import { classNames } from "@utils";
+import { useFormContext } from "@hooks/form";
 import { DocsTooltip } from "@components/tooltips/DocsTooltip";
 import { Checkbox } from "@components/Checkbox";
 
@@ -29,55 +28,54 @@ const SwitchGroup = ({
   heading,
   disabled,
   className
-}: SwitchGroupProps) => (
-  <Field
-    as="div"
-    className={classNames(
-      className ?? "py-2",
-      "flex items-center justify-between"
-    )}
-  >
-    {label && <div className="flex flex-col">
-      <Label
-        passive
-        as={heading ? "h2" : "span"}
-        className={classNames(
-          "flex float-left ml-px cursor-default text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wide",
-          heading ? "text-lg" : "text-sm"
-        )}
-      >
-        <div className="flex">
-          {tooltip ? (
-            <DocsTooltip label={label}>{tooltip}</DocsTooltip>
-          ) : label}
-        </div>
-      </Label>
-      {description && (
-        <Description as="span" className="text-sm mt-1 pr-4 text-gray-500 dark:text-gray-400">
-          {description}
-        </Description>
-      )}
-    </div>
-    }
+}: SwitchGroupProps) => {
+  const form = useFormContext();
 
-    <FormikField name={name} type="checkbox">
-      {({
-        field,
-        form: { setFieldValue }
-      }: FieldProps) => (
-        <Checkbox
-          {...field}
-          className=""
-          value={!!field.checked}
-          setValue={(value) => {
-            setFieldValue(field?.name ?? "", value);
-          }}
-          disabled={disabled}
-        />
+  return (
+    <Field
+      as="div"
+      className={classNames(
+        className ?? "py-2",
+        "flex items-center justify-between"
       )}
-    </FormikField>
-  </Field>
-);
+    >
+      {label && <div className="flex flex-col">
+        <Label
+          passive
+          as={heading ? "h2" : "span"}
+          className={classNames(
+            "flex float-left ml-px cursor-default text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wide",
+            heading ? "text-lg" : "text-sm"
+          )}
+        >
+          <div className="flex">
+            {tooltip ? (
+              <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+            ) : label}
+          </div>
+        </Label>
+        {description && (
+          <Description as="span" className="text-sm mt-1 pr-4 text-gray-500 dark:text-gray-400">
+            {description}
+          </Description>
+        )}
+      </div>
+      }
+
+      <form.Field name={name}>
+        {(field) => (
+          <Checkbox
+            name={name}
+            className=""
+            value={!!field.state.value}
+            setValue={(value) => field.handleChange(value)}
+            disabled={disabled}
+          />
+        )}
+      </form.Field>
+    </Field>
+  );
+};
 
 interface SwitchButtonProps {
   name: string;
@@ -85,27 +83,22 @@ interface SwitchButtonProps {
   className?: string;
 }
 
-const SwitchButton = ({ name, defaultValue }: SwitchButtonProps) => (
+const SwitchButton = ({ name }: SwitchButtonProps) => {
+  const form = useFormContext();
+
+  return (
     <Field as="div" className="flex items-center justify-between">
-      <FormikField
-        name={name}
-        defaultValue={defaultValue as boolean}
-        type="checkbox"
-      >
-        {({
-            field,
-            form: { setFieldValue }
-          }: FieldProps) => (
+      <form.Field name={name}>
+        {(field) => (
           <Checkbox
-            {...field}
-            value={!!field.checked}
-            setValue={(value) => {
-              setFieldValue(field?.name ?? "", value);
-            }}
+            name={name}
+            value={!!field.state.value}
+            setValue={(value) => field.handleChange(value)}
           />
         )}
-      </FormikField>
+      </form.Field>
     </Field>
-);
+  );
+};
 
 export { SwitchGroup, SwitchButton };

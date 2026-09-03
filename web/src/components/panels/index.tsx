@@ -6,12 +6,13 @@
 import { useRef, ReactNode, ReactElement, RefObject } from "react";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { Drawer } from "@base-ui/react/drawer";
-import { Form, Formik } from "formik";
-import type { FormikValues, FormikProps } from "formik";
+import { useSelector } from "@tanstack/react-form";
 import { useTranslation } from "react-i18next";
 
 import { DEBUG } from "@components/debug";
 import { useToggle } from "@hooks/hooks";
+import { useAppForm, fieldErrors } from "@hooks/form";
+import type { FormFieldErrors } from "@hooks/form";
 import { DeleteModal } from "@components/modals";
 import { classNames } from "@utils";
 
@@ -86,12 +87,13 @@ export function SlideOverTitle({ children, className }: SlideOverTitleProps): Re
 interface SlideOverProps<DataType> {
   title: string;
   initialValues: DataType;
-  validate?: (values: DataType) => void;
-  onSubmit: (values?: DataType) => void;
+  validate?: (values: DataType) => FormFieldErrors;
+  onSubmit: (values: DataType) => void;
   isOpen: boolean;
   toggle: () => void;
   children?: (values: DataType) => ReactNode;
   deleteAction?: () => void;
+  deleteWarning?: ReactNode;
   type: "CREATE" | "UPDATE";
   testFn?: (data: unknown) => void;
   isTesting?: boolean;
@@ -100,13 +102,26 @@ interface SlideOverProps<DataType> {
   extraButtons?: (values: DataType) => ReactNode;
 }
 
-function SlideOver<DataType extends FormikValues>({
+function SlideOver<DataType>({
+  isOpen,
+  toggle,
+  ...props
+}: SlideOverProps<DataType>): ReactElement {
+  return (
+    <SlideOverShell isOpen={isOpen} toggle={toggle}>
+      <SlideOverForm toggle={toggle} {...props} />
+    </SlideOverShell>
+  );
+}
+
+// Lives inside the shell so the form state starts fresh every time the drawer opens
+function SlideOverForm<DataType>({
   title,
   initialValues,
   validate,
   onSubmit,
   deleteAction,
-  isOpen,
+  deleteWarning,
   toggle,
   type,
   children,
@@ -115,15 +130,24 @@ function SlideOver<DataType extends FormikValues>({
   isTestSuccessful,
   isTestError,
   extraButtons
-}: SlideOverProps<DataType>): ReactElement {
+}: Omit<SlideOverProps<DataType>, "isOpen">): ReactElement {
   const { t } = useTranslation("settings");
   const cancelModalButtonRef = useRef<HTMLInputElement | null>(null);
-  const formRef = useRef<FormikProps<DataType>>(null);
 
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
 
+  const form = useAppForm({
+    defaultValues: initialValues,
+    validators: {
+      onChange: ({ value }) => validate ? fieldErrors(validate(value)) : undefined
+    },
+    onSubmit: ({ value }) => onSubmit(value)
+  });
+
+  const values = useSelector(form.store, (state) => state.values);
+
   return (
-    <SlideOverShell isOpen={isOpen} toggle={toggle}>
+    <>
       {deleteAction && (
         <DeleteModal
           isOpen={deleteModalIsOpen}
@@ -133,150 +157,146 @@ function SlideOver<DataType extends FormikValues>({
           deleteAction={deleteAction}
           title={t("panel.removeTitle", { title })}
           text={t("panel.removeText", { title })}
-        />
+        >
+          {deleteWarning}
+        </DeleteModal>
       )}
 
-      <Formik
-        initialValues={initialValues}
-        onSubmit={onSubmit}
-        validate={validate}
-        innerRef={formRef}
-      >
-        {({ handleSubmit, values }) => (
-          <Form
-            className="h-full min-h-0 flex flex-col bg-white dark:bg-gray-800"
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSubmit(e);
-            }}
-          >
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
-                <div className="flex items-start justify-between space-x-3">
-                  <div className="space-y-1">
-                    <SlideOverTitle>
-                      {type === "CREATE"
-                        ? t("panel.createTitle", { title })
-                        : t("panel.updateTitle", { title })}
-                    </SlideOverTitle>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {type === "CREATE"
-                        ? t("panel.createDescription", { title })
-                        : t("panel.updateDescription", { title })}
-                    </p>
-                  </div>
-                  <div className="h-7 flex items-center">
-                    <button
-                      type="button"
-                      className="bg-white dark:bg-gray-900 rounded-md text-gray-400 hover:text-gray-500 cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                      onClick={toggle}
-                    >
-                      <span className="sr-only">{t("panel.closePanel")}</span>
-                      <XMarkIcon className="h-6 w-6" aria-hidden="true" />
-                    </button>
-                  </div>
+      <form.AppForm>
+        <form
+          className="h-full min-h-0 flex flex-col bg-white dark:bg-gray-800"
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            form.handleSubmit();
+          }}
+        >
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
+              <div className="flex items-start justify-between space-x-3">
+                <div className="space-y-1">
+                  <SlideOverTitle>
+                    {type === "CREATE"
+                      ? t("panel.createTitle", { title })
+                      : t("panel.updateTitle", { title })}
+                  </SlideOverTitle>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {type === "CREATE"
+                      ? t("panel.createDescription", { title })
+                      : t("panel.updateDescription", { title })}
+                  </p>
                 </div>
-              </div>
-
-              {!!values && children !== undefined ? (
-                children(values)
-              ) : null}
-
-              <DEBUG values={values} />
-            </div>
-
-            <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-5 sm:px-6">
-              <div className={classNames(type === "CREATE" ? "justify-end" : "justify-between", "space-x-3 flex")}>
-                {type === "UPDATE" && (
+                <div className="h-7 flex items-center">
                   <button
                     type="button"
-                    className="inline-flex items-center justify-center px-4 py-2 border border-transparent cursor-pointer font-medium rounded-md text-red-700 dark:text-white bg-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
-                    onClick={toggleDeleteModal}
+                    className="bg-white dark:bg-gray-900 rounded-md text-gray-400 hover:text-gray-500 cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                    onClick={toggle}
                   >
-                    {t("panel.remove")}
+                    <span className="sr-only">{t("panel.closePanel")}</span>
+                    <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {!!values && children !== undefined ? (
+              children(values)
+            ) : null}
+
+            <DEBUG values={values} />
+          </div>
+
+          <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-5 sm:px-6">
+            <div className={classNames(type === "CREATE" ? "justify-end" : "justify-between", "space-x-3 flex")}>
+              {type === "UPDATE" && (
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center px-4 py-2 border border-transparent cursor-pointer font-medium rounded-md text-red-700 dark:text-white bg-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
+                  onClick={toggleDeleteModal}
+                >
+                  {t("panel.remove")}
+                </button>
+              )}
+              <div className="flex">
+                {!!values && extraButtons !== undefined && (
+                  extraButtons(values)
+                )}
+
+                {testFn && (
+                  <button
+                    type="button"
+                    className={classNames(
+                      isTestSuccessful
+                        ? "text-green-500 border-green-500 bg-green-50"
+                        : isTestError
+                          ? "text-red-500 border-red-500 bg-red-50"
+                          : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:border-rose-700 active:bg-rose-700",
+                      isTesting ? "cursor-not-allowed" : "",
+                      "mr-2 inline-flex items-center px-4 py-2 border font-medium rounded-md shadow-xs text-sm transition ease-in-out duration-150 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                    )}
+                    disabled={isTesting}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      testFn(values);
+                    }}
+                  >
+                    {isTesting ? (
+                      <svg
+                        className="animate-spin h-5 w-5 text-green-500"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                    ) : isTestSuccessful ? (
+                      t("panel.ok")
+                    ) : isTestError ? (
+                      t("panel.error")
+                    ) : (
+                      t("panel.test")
+                    )}
                   </button>
                 )}
-                <div className="flex">
-                  {!!values && extraButtons !== undefined && (
-                    extraButtons(values)
-                  )}
 
-                  {testFn && (
-                    <button
-                      type="button"
-                      className={classNames(
-                        isTestSuccessful
-                          ? "text-green-500 border-green-500 bg-green-50"
-                          : isTestError
-                            ? "text-red-500 border-red-500 bg-red-50"
-                            : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:border-rose-700 active:bg-rose-700",
-                        isTesting ? "cursor-not-allowed" : "",
-                        "mr-2 inline-flex items-center px-4 py-2 border font-medium rounded-md shadow-xs text-sm transition ease-in-out duration-150 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                      )}
-                      disabled={isTesting}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        testFn(values);
-                      }}
-                    >
-                      {isTesting ? (
-                        <svg
-                          className="animate-spin h-5 w-5 text-green-500"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>
-                      ) : isTestSuccessful ? (
-                        t("panel.ok")
-                      ) : isTestError ? (
-                        t("panel.error")
-                      ) : (
-                        t("panel.test")
-                      )}
-                    </button>
-                  )}
-
-                  <button
-                    type="button"
-                    className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      toggle();
-                    }}
-                  >
-                    {t("panel.cancel")}
-                  </button>
-                  <button
-                    type="button"
-                    className="ml-4 inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      formRef.current?.submitForm();
-                    }}
-                  >
-                    {type === "CREATE" ? t("panel.create") : t("panel.save")}
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    toggle();
+                  }}
+                >
+                  {t("panel.cancel")}
+                </button>
+                <button
+                  type="button"
+                  className="ml-4 inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    form.handleSubmit();
+                  }}
+                >
+                  {type === "CREATE" ? t("panel.create") : t("panel.save")}
+                </button>
               </div>
             </div>
-          </Form>
-        )}
-      </Formik>
-    </SlideOverShell>
+          </div>
+        </form>
+      </form.AppForm>
+    </>
   );
 }
 

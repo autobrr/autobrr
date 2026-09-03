@@ -95,7 +95,7 @@ func (c *Client) getJSON(ctx context.Context, endpoint string, params url.Values
 	return nil
 }
 
-func (c *Client) post(ctx context.Context, endpoint string, data interface{}) (*http.Response, error) {
+func (c *Client) post(ctx context.Context, endpoint string, data any) (*http.Response, error) {
 	u, err := url.Parse(c.config.Hostname)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not parse url: %s", c.config.Hostname)
@@ -138,7 +138,7 @@ func (c *Client) post(ctx context.Context, endpoint string, data interface{}) (*
 	return res, nil
 }
 
-func (c *Client) postBody(ctx context.Context, endpoint string, data interface{}) (int, []byte, error) {
+func (c *Client) postBody(ctx context.Context, endpoint string, data any) (int, []byte, error) {
 	u, err := url.Parse(c.config.Hostname)
 	if err != nil {
 		return 0, nil, errors.Wrap(err, "could not parse url: %s", c.config.Hostname)

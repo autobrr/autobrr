@@ -149,8 +149,7 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 
 	connectCommands := make([]string, 0)
 	if network.InviteCommand != "" {
-		cmds := strings.Split(strings.ReplaceAll(network.InviteCommand, "/msg", ""), ",")
-		for _, cmd := range cmds {
+		for cmd := range strings.SplitSeq(strings.ReplaceAll(network.InviteCommand, "/msg", ""), ",") {
 			cmd = strings.TrimSpace(cmd)
 
 			connectCommands = append(connectCommands, cmd)
@@ -319,46 +318,52 @@ func (h *Handler) Run() (err error) {
 		Log:           subLogger,
 	}
 
-	if network.UseProxy && network.Proxy != nil {
-		if !network.Proxy.Enabled {
-			h.log.Debug().Msg("proxy disabled, skipping")
-		} else {
-			if network.Proxy.Addr == "" {
-				return errors.New("proxy addr missing")
-			}
-
-			proxyUrl, err := url.Parse(network.Proxy.Addr)
-			if err != nil {
-				return errors.Wrap(err, "could not parse proxy url: %s", network.Proxy.Addr)
-			}
-
-			// set user and pass if not empty
-			if network.Proxy.User != "" && network.Proxy.Pass != "" {
-				proxyUrl.User = url.UserPassword(network.Proxy.User, network.Proxy.Pass)
-			}
-
-			var proxyDialer proxy.Dialer
-
-			switch proxyUrl.Scheme {
-			case "http", "https":
-				h.log.Debug().Str("proxy", proxyUrl.Host).Str("server", network.Server).Int("port", network.Port).Msg("using HTTP CONNECT proxy for IRC server")
-				proxyDialer = newHTTPProxyDialer(proxyUrl, proxy.Direct, network.TLSSkipVerify)
-
-			default:
-				h.log.Debug().Str("proxy_scheme", proxyUrl.Scheme).Str("proxy", proxyUrl.Host).Msg("using proxy")
-				proxyDialer, err = proxy.FromURL(proxyUrl, proxy.Direct)
-				if err != nil {
-					return errors.Wrap(err, "could not create proxy dialer from url: %s", network.Proxy.Addr)
-				}
-			}
-
-			proxyContextDialer, ok := proxyDialer.(proxy.ContextDialer)
-			if !ok {
-				return errors.New("proxy dialer does not expose DialContext(): %v", proxyDialer)
-			}
-
-			client.DialContext = proxyContextDialer.DialContext
+	if network.UseProxy && network.ProxyId != 0 {
+		// the service attaches the proxy before handing the network over; a missing or disabled
+		// one must never quietly turn into a direct connection
+		if network.Proxy == nil {
+			return h.refuseConnect("configured proxy could not be loaded")
 		}
+
+		if !network.Proxy.Enabled {
+			return h.refuseConnect(fmt.Sprintf("proxy %s is disabled", network.Proxy.Name))
+		}
+
+		if network.Proxy.Addr == "" {
+			return errors.New("proxy addr missing")
+		}
+
+		proxyUrl, err := url.Parse(network.Proxy.Addr)
+		if err != nil {
+			return errors.Wrap(err, "could not parse proxy url: %s", network.Proxy.Addr)
+		}
+
+		// set user and pass if not empty
+		if network.Proxy.User != "" && network.Proxy.Pass != "" {
+			proxyUrl.User = url.UserPassword(network.Proxy.User, network.Proxy.Pass)
+		}
+
+		var proxyDialer proxy.Dialer
+
+		switch proxyUrl.Scheme {
+		case "http", "https":
+			h.log.Debug().Str("proxy", proxyUrl.Host).Str("server", network.Server).Int("port", network.Port).Msg("using HTTP CONNECT proxy for IRC server")
+			proxyDialer = newHTTPProxyDialer(proxyUrl, proxy.Direct, network.TLSSkipVerify)
+
+		default:
+			h.log.Debug().Str("proxy_scheme", proxyUrl.Scheme).Str("proxy", proxyUrl.Host).Msg("using proxy")
+			proxyDialer, err = proxy.FromURL(proxyUrl, proxy.Direct)
+			if err != nil {
+				return errors.Wrap(err, "could not create proxy dialer from url: %s", network.Proxy.Addr)
+			}
+		}
+
+		proxyContextDialer, ok := proxyDialer.(proxy.ContextDialer)
+		if !ok {
+			return errors.New("proxy dialer does not expose DialContext(): %v", proxyDialer)
+		}
+
+		client.DialContext = proxyContextDialer.DialContext
 	}
 
 	if network.Auth.Mechanism == domain.IRCAuthMechanismSASLPlain {
@@ -655,7 +660,7 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 		h.log.Info().Msg("network re-connected after unexpected disconnect")
 
 		h.eventBus.EmitIRC(context.Background(), events.IRCEvent{
-			Event:   events.Event{Type: events.IRCReconnected},
+			Type:    events.IRCReconnected,
 			Network: networkName,
 			State:   string(events.IRCReconnected),
 			Message: fmt.Sprintf("Network: %s", networkName),
@@ -737,7 +742,7 @@ func (h *Handler) onClientDisconnect(client *ircevent.Connection, _ ircmsg.Messa
 			Msg("connection flapping; stopping network")
 
 		h.eventBus.EmitIRC(context.Background(), events.IRCEvent{
-			Event:   events.Event{Type: events.IRCFlapping},
+			Type:    events.IRCFlapping,
 			Network: networkName,
 			State:   string(events.IRCFlapping),
 			Message: fmt.Sprintf("Network: %s stopped after repeated short-lived connections; restart it after resolving the connection issue", networkName),
@@ -754,7 +759,7 @@ func (h *Handler) onClientDisconnect(client *ircevent.Connection, _ ircmsg.Messa
 	if !manuallyDisconnected {
 		// only send notification if we did not initiate disconnect/restart/stop
 		h.eventBus.EmitIRC(context.Background(), events.IRCEvent{
-			Event:   events.Event{Type: events.IRCDisconnected},
+			Type:    events.IRCDisconnected,
 			Network: networkName,
 			State:   string(events.IRCDisconnected),
 			Message: fmt.Sprintf("Network: %s", networkName),
@@ -1565,9 +1570,9 @@ func parseInviteCommands(msg string) ([]string, error) {
 
 // sendConnectCommands sends invite commands
 func (h *Handler) sendConnectCommands(msg string) error {
-	connectCommands := strings.Split(strings.ReplaceAll(msg, "/msg", ""), ",")
+	connectCommands := strings.SplitSeq(strings.ReplaceAll(msg, "/msg", ""), ",")
 
-	for _, command := range connectCommands {
+	for command := range connectCommands {
 		cmd := strings.TrimSpace(command)
 
 		// if there's an extra , (comma) the command will be empty so lets skip that
@@ -1576,12 +1581,12 @@ func (h *Handler) sendConnectCommands(msg string) error {
 		}
 
 		if strings.HasPrefix(cmd, "/sleep") {
-			parts := strings.SplitN(cmd, " ", 2)
-			if len(parts) < 2 {
+			_, duration, ok := strings.Cut(cmd, " ")
+			if !ok {
 				h.log.Warn().Str("command", cmd).Msg("sleep command missing duration")
 				continue
 			}
-			secs, err := strconv.Atoi(strings.TrimSpace(parts[1]))
+			secs, err := strconv.Atoi(strings.TrimSpace(duration))
 			if err != nil {
 				h.log.Error().Err(err).Str("command", cmd).Msg("error parsing sleep command")
 				continue
@@ -2032,6 +2037,18 @@ func (h *Handler) SendMsg(channel, msg string) error {
 // cleanMessage irc line can contain lots of extra stuff like color so lets clean that
 func cleanMessage(message string) string {
 	return ircfmt.Strip(message)
+}
+
+// refuseConnect records why the network will not be connected and stops it, the same way the
+// fatal failures inside the connect loop do, so the reason reaches the UI.
+func (h *Handler) refuseConnect(reason string) error {
+	h.log.Error().Str("reason", reason).Msg("refusing to connect")
+
+	h.addConnectError(reason)
+	h.stateMachine.OnError(reason)
+	h.Stop()
+
+	return errors.New("%s", reason)
 }
 
 func (h *Handler) addConnectError(message string) {

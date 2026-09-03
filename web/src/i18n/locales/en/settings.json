@@ -391,6 +391,8 @@
       "refreshTimeoutHelp": "Seconds to wait before cancelling refresh.",
       "maxAge": "Max age",
       "maxAgeHelp": "Maximum age of feed content in seconds. Use 0 to disable the age filter and process all items.",
+      "cacheTTL": "Cache TTL",
+      "cacheTTLHelp": "Days to remember processed feed items. Items still present in the feed after expiry will be processed and downloaded again. Default is 31 days.",
       "cookie": "Cookie",
       "cookieHelp": "Not commonly used",
       "userAgent": "User-Agent",
@@ -494,7 +496,13 @@
       "passHelp": "auth: password",
       "test": "Test",
       "cancel": "Cancel",
-      "save": "Save"
+      "save": "Save",
+      "usageTitle": "This proxy is still in use",
+      "usageText": "Removing it will detach it from the following, which will then connect without a proxy:",
+      "usageIndexers": "Indexers",
+      "usageIrcNetworks": "IRC networks",
+      "usageFeeds": "Feeds",
+      "usageDisableText": "Disabling it will disable the following IRC networks, while indexers and feeds will connect without a proxy:"
     },
   "apiKey": {
     "createTitle": "Create API key",
@@ -905,7 +913,10 @@
       "toggleSuccess": "Proxy {{name}} was {{state}} successfully.",
       "toggleError": "Proxy state could not be updated",
       "enabledState": "enabled",
-      "disabledState": "disabled"
+      "disabledState": "disabled",
+      "disableTitle": "Disable {{name}}",
+      "disableText": "Are you sure you want to disable this proxy?",
+      "disable": "Disable"
     },
     "lists": {
       "title": "Lists",

@@ -390,6 +390,8 @@
       "refreshTimeoutHelp": "Segundos a esperar antes de cancelar la actualización.",
       "maxAge": "Antigüedad máxima",
       "maxAgeHelp": "Antigüedad máxima del contenido del feed en segundos. Usa 0 para deshabilitar el filtro de antigüedad y procesar todos los elementos.",
+      "cacheTTL": "TTL de caché",
+      "cacheTTLHelp": "Días que se recuerdan los elementos del feed procesados. Los elementos que sigan presentes en el feed tras la expiración se procesarán y descargarán de nuevo. El valor predeterminado es 31 días.",
       "cookie": "Cookie",
       "cookieHelp": "No se usa comúnmente",
       "userAgent": "User-Agent",
@@ -493,7 +495,13 @@
       "passHelp": "autenticación: contraseña",
       "test": "Probar",
       "cancel": "Cancelar",
-      "save": "Guardar"
+      "save": "Guardar",
+      "usageTitle": "Este proxy todavía está en uso",
+      "usageText": "Al eliminarlo se desvinculará de los siguientes elementos, que pasarán a conectarse sin proxy:",
+      "usageIndexers": "Indexadores",
+      "usageIrcNetworks": "Redes IRC",
+      "usageFeeds": "Feeds",
+      "usageDisableText": "Al deshabilitarlo se deshabilitarán las siguientes redes IRC, mientras que los indexadores y feeds se conectarán sin proxy:"
     },
     "apiKey": {
       "createTitle": "Crear clave API",
@@ -904,7 +912,10 @@
       "toggleSuccess": "Proxy {{name}} fue {{state}} exitosamente.",
       "toggleError": "No se pudo actualizar el estado del proxy",
       "enabledState": "habilitado",
-      "disabledState": "deshabilitado"
+      "disabledState": "deshabilitado",
+      "disableTitle": "Deshabilitar {{name}}",
+      "disableText": "¿Estás seguro de que quieres deshabilitar este proxy?",
+      "disable": "Deshabilitar"
     },
     "lists": {
       "title": "Listas",

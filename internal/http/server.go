@@ -32,20 +32,20 @@ type Server struct {
 	allowedOrigins []string
 	sessionManager *scs.SessionManager
 
-	actionService         actionService
-	apiService            apikeyService
-	authService           authService
-	downloadClientService downloadClientService
-	filterService         filterService
-	feedService           feedService
-	indexerService        indexerService
-	ircService            ircService
-	listService           listService
-	notificationService   notificationService
-	oidcService           oidcService
-	proxyService          proxyService
-	releaseService        releaseService
-	updateService         updateService
+	actionService       actionService
+	apiService          apikeyService
+	authService         authService
+	downloaderService   downloaderService
+	filterService       filterService
+	feedService         feedService
+	indexerService      indexerService
+	ircService          ircService
+	listService         listService
+	notificationService notificationService
+	oidcService         oidcService
+	proxyService        proxyService
+	releaseService      releaseService
+	updateService       updateService
 }
 
 type Deps struct {
@@ -60,20 +60,20 @@ type Deps struct {
 	Commit  string
 	Date    string
 
-	ActionService         actionService
-	ApiService            apikeyService
-	AuthService           authService
-	DownloadClientService downloadClientService
-	FilterService         filterService
-	FeedService           feedService
-	IndexerService        indexerService
-	IrcService            ircService
-	ListService           listService
-	NotificationService   notificationService
-	OIDCService           oidcService
-	ProxyService          proxyService
-	ReleaseService        releaseService
-	UpdateService         updateService
+	ActionService       actionService
+	ApiService          apikeyService
+	AuthService         authService
+	DownloaderService   downloaderService
+	FilterService       filterService
+	FeedService         feedService
+	IndexerService      indexerService
+	IrcService          ircService
+	ListService         listService
+	NotificationService notificationService
+	OIDCService         oidcService
+	ProxyService        proxyService
+	ReleaseService      releaseService
+	UpdateService       updateService
 }
 
 func NewServer(deps Deps) *Server {
@@ -102,20 +102,20 @@ func NewServer(deps Deps) *Server {
 
 		sessionManager: sessionManager,
 
-		actionService:         deps.ActionService,
-		apiService:            deps.ApiService,
-		authService:           deps.AuthService,
-		downloadClientService: deps.DownloadClientService,
-		filterService:         deps.FilterService,
-		feedService:           deps.FeedService,
-		indexerService:        deps.IndexerService,
-		ircService:            deps.IrcService,
-		listService:           deps.ListService,
-		notificationService:   deps.NotificationService,
-		oidcService:           deps.OIDCService,
-		proxyService:          deps.ProxyService,
-		releaseService:        deps.ReleaseService,
-		updateService:         deps.UpdateService,
+		actionService:       deps.ActionService,
+		apiService:          deps.ApiService,
+		authService:         deps.AuthService,
+		downloaderService:   deps.DownloaderService,
+		filterService:       deps.FilterService,
+		feedService:         deps.FeedService,
+		indexerService:      deps.IndexerService,
+		ircService:          deps.IrcService,
+		listService:         deps.ListService,
+		notificationService: deps.NotificationService,
+		oidcService:         deps.OIDCService,
+		proxyService:        deps.ProxyService,
+		releaseService:      deps.ReleaseService,
+		updateService:       deps.UpdateService,
 	}
 
 	if deps.Config.Config.CorsAllowedOrigins != "*" {
@@ -190,7 +190,7 @@ func (s *Server) Handler() http.Handler {
 
 			r.Route("/actions", newActionHandler(encoder, s.actionService).Routes)
 			r.Route("/config", newConfigHandler(encoder, s.buildInfo, s.config).Routes)
-			r.Route("/download_clients", newDownloadClientHandler(encoder, s.downloadClientService).Routes)
+			r.Route("/downloaders", newDownloaderHandler(encoder, s.downloaderService).Routes)
 			r.Route("/filters", newFilterHandler(encoder, s.filterService).Routes)
 			r.Route("/feeds", newFeedHandler(encoder, s.feedService).Routes)
 			r.Route("/irc", newIrcHandler(encoder, s.sse, s.ircService).Routes)

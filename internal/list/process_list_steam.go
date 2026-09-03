@@ -5,82 +5,61 @@ package list
 
 import (
 	"context"
-	"encoding/json"
-	"net/http"
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/pkg/sharedhttp"
-
-	"github.com/pkg/errors"
+	"github.com/autobrr/autobrr/internal/list/provider/steam"
+	"github.com/rs/zerolog"
 )
 
-func (s *Service) steam(ctx context.Context, list *domain.List) error {
-	l := s.log.With().Str("type", "steam").Str("list", list.Name).Logger()
+type SteamProcessor struct {
+	processorBase
+	client *steam.Client
+}
 
-	if list.URL == "" {
-		return errors.New("no URL provided for steam")
+func NewSteamProcessor(log zerolog.Logger, list *domain.List) *SteamProcessor {
+	return &SteamProcessor{
+		log:    log,
+		list:   list,
+		client: steam.NewClient(log, list.Name, list.URL, list.Headers...),
 	}
+}
 
-	l.Debug().Str("url", list.URL).Msg("fetching titles")
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, list.URL, nil)
+func (p *SteamProcessor) Process(ctx context.Context) (*domain.FilterUpdate, error) {
+	data, err := p.client.GetList(ctx, p.list.URL)
 	if err != nil {
-		return errors.Wrapf(err, "could not make new request for URL: %s", list.URL)
+		return nil, err
 	}
 
-	list.SetRequestHeaders(req)
-
-	//setUserAgent(req)
-
-	resp, err := s.httpClient.Do(req)
+	filter, err := p.process(data)
 	if err != nil {
-		return errors.Wrapf(err, "failed to fetch titles from URL: %s", list.URL)
-	}
-	defer sharedhttp.DrainAndClose(resp)
-
-	if resp.StatusCode != http.StatusOK {
-		return errors.Errorf("failed to fetch titles, non-OK status recieved: %d", resp.StatusCode)
+		return nil, err
 	}
 
-	var data map[string]struct {
-		Name string `json:"name"`
-	}
+	return filter, nil
+}
 
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return errors.Wrapf(err, "failed to decode JSON data from URL: %s", list.URL)
-	}
-
+func (p *SteamProcessor) process(data *steam.ListResponse) (*domain.FilterUpdate, error) {
 	var titles []string
-	for _, item := range data {
+	for _, item := range *data {
 		titles = append(titles, item.Name)
 	}
 
 	filterTitles := []string{}
 	for _, title := range titles {
-		filterTitles = append(filterTitles, processTitle(title, list.MatchRelease)...)
+		filterTitles = append(filterTitles, processTitle(title, p.list.MatchRelease)...)
 	}
 
 	if len(filterTitles) == 0 {
-		l.Debug().Msg("no titles found to update list")
-		return nil
+		p.log.Debug().Msg("no titles found to update list")
+		return nil, nil
 	}
 
 	joinedTitles := strings.Join(filterTitles, ",")
 
-	l.Trace().Str("titles", joinedTitles).Int("count", len(filterTitles)).Msg("found titles")
+	p.log.Trace().Str("titles", joinedTitles).Int("count", len(filterTitles)).Msg("found titles")
 
 	filterUpdate := domain.FilterUpdate{MatchReleases: &joinedTitles}
 
-	for _, filter := range list.Filters {
-		filterUpdate.ID = filter.ID
-
-		if err := s.filterSvc.UpdatePartial(ctx, filterUpdate); err != nil {
-			return errors.Wrapf(err, "error updating filter: %v", filter.ID)
-		}
-
-		l.Debug().Int("filter_id", filter.ID).Msg("successfully updated filter")
-	}
-
-	return nil
+	return &filterUpdate, nil
 }

@@ -74,6 +74,10 @@ type stubEventBus struct{}
 
 func (s *stubEventBus) EmitIndexer(_ context.Context, _ events.IndexerChangeEvent) {}
 
+func (s *stubEventBus) OnProxy(_ func(context.Context, events.ProxyChangeEvent) error) func() {
+	return func() {}
+}
+
 func TestServiceUpdate_SecretSettings(t *testing.T) {
 	t.Parallel()
 

@@ -22,6 +22,11 @@
     "exportJson": "Export JSON",
     "exportJsonDiscord": "Export JSON to Discord",
     "toggle": "Toggle",
+    "toggleAll": "Toggle all",
+    "toggleAllTitle": "Toggle all visible filters",
+    "toggleAllEnabled": "Visible filters enabled: {{count}}",
+    "toggleAllDisabled": "Visible filters disabled: {{count}}",
+    "toggleAllError": "An error occurred while toggling filters.",
     "duplicate": "Duplicate",
     "delete": "Delete",
     "toggleSuccess": "{{name}} was {{state}} successfully",
@@ -115,6 +120,11 @@
     "maxDownloadsPer": "Max downloads per",
     "selectUnit": "Select unit",
     "maxDownloadsPerTooltip": "The unit of time for counting the maximum downloads per filter.",
+    "maxDownloadsWindowType": "Window type",
+    "selectWindowType": "Select window type",
+    "maxDownloadsWindowTypeTooltip": "Fixed resets the count at calendar boundaries (top of the hour, midnight, start of week). Rolling counts a sliding window of the last N units.",
+    "maxDownloadsPeriod": "Every",
+    "maxDownloadsPeriodTooltip": "Size of the rolling window in units. E.g. Max downloads 150 with unit DAY and every 3 allows 150 downloads within the last 3 days.",
     "skipDuplicatesProfile": "Skip Duplicates profile",
     "selectProfile": "Select profile",
     "skipDuplicatesProfileTooltip": "Select the skip duplicate profile.",
@@ -144,7 +154,8 @@
     "addNotification": "Add notification",
     "empty": "No filter-specific notifications configured. Global notifications will be used.",
     "selectNotification": "Select notification",
-    "muted": "Muted",
+    "notificationDisabled": "Disabled for this filter",
+    "serviceDisabled": "Service disabled",
     "eventsCount_one": "{{count}} event",
     "eventsCount_other": "{{count}} events",
     "removeTitle": "Remove notification",
@@ -155,9 +166,9 @@
     "selectNotificationService": "Select a notification",
     "notificationServiceTooltip": "Select the notification service to use for this filter.",
     "notificationSettings": "Notification Settings",
-    "muteFilter": "Mute filter",
-    "muteFilterDesc": "Disable all notifications for this filter. When muted, no notifications will be sent for releases matched by this filter.",
-    "mutedInfo": "Filter muted - overrides all global notification settings",
+    "disableNotification": "Disable this notification",
+    "disableNotificationDesc": "Do not send events through this notification service for releases matched by this filter.",
+    "notificationDisabledInfo": "This notification service is disabled for the filter. The filter still overrides global settings.",
     "triggerEvents": "Trigger events",
     "pushApproved": "Push Approved",
     "pushRejected": "Push Rejected",
@@ -414,6 +425,19 @@
     "onErrorTooltip": "Select what to do on error for this external filter.",
     "remove": "Remove External",
     "close": "Close",
+    "test": "Test",
+    "testing": "Testing",
+    "testResult": {
+      "dismiss": "Dismiss",
+      "status": {
+        "EXEC": "Script exited with code {{status}} (expected {{expected}}) in {{duration}} ms",
+        "WEBHOOK": "Webhook responded with status {{status}} (expected {{expected}}) in {{duration}} ms"
+      },
+      "error": {
+        "EXEC": "Script failed: {{error}}",
+        "WEBHOOK": "Webhook request failed: {{error}}"
+      }
+    },
     "types": {
       "EXEC": "Exec",
       "WEBHOOK": "Webhook"

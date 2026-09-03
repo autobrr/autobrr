@@ -45,7 +45,7 @@ func (u *UI) AddNew() {
 
 	button := u.GetByRole("button", playwright.PageGetByRoleOptions{
 		Name:  "Add new",
-		Exact: playwright.Bool(true),
+		Exact: new(true),
 	})
 
 	if err := button.First().Click(); err != nil {
@@ -127,7 +127,7 @@ func (u *UI) SelectListbox(option string) {
 		u.t.Fatalf("could not open listbox to select %q: %v", option, err)
 	}
 
-	item := u.GetByRole("option", playwright.PageGetByRoleOptions{Name: option, Exact: playwright.Bool(true)})
+	item := u.GetByRole("option", playwright.PageGetByRoleOptions{Name: option, Exact: new(true)})
 
 	if err := item.First().Click(); err != nil {
 		u.t.Fatalf("could not select %q from the listbox: %v", option, err)
@@ -178,7 +178,7 @@ func (u *UI) Expand(title, field string) {
 		return
 	}
 
-	heading := u.GetByRole("heading", playwright.PageGetByRoleOptions{Name: title, Exact: playwright.Bool(true)})
+	heading := u.GetByRole("heading", playwright.PageGetByRoleOptions{Name: title, Exact: new(true)})
 
 	if err := heading.First().Click(); err != nil {
 		u.t.Fatalf("could not expand section %q: %v", title, err)
@@ -191,7 +191,7 @@ func (u *UI) Expand(title, field string) {
 func (u *UI) ClickLink(name string) {
 	u.t.Helper()
 
-	link := u.GetByRole("link", playwright.PageGetByRoleOptions{Name: name, Exact: playwright.Bool(true)})
+	link := u.GetByRole("link", playwright.PageGetByRoleOptions{Name: name, Exact: new(true)})
 
 	if err := link.First().Click(); err != nil {
 		u.t.Fatalf("could not click link %q: %v", name, err)
@@ -219,13 +219,15 @@ func (u *UI) ExpectText(text string) {
 	}
 }
 
-// escapeID escapes the dots Formik puts in nested field names ("feed.url"),
-// which CSS would otherwise read as a class selector.
+// escapeID escapes the characters TanStack Form puts in nested field names
+// ("feed.url", "actions[0].watch_folder"), which CSS would otherwise read as
+// class or attribute selectors.
 func escapeID(id string) string {
 	escaped := make([]rune, 0, len(id)+4)
 
 	for _, r := range id {
-		if r == '.' || r == ':' {
+		switch r {
+		case '.', ':', '[', ']':
 			escaped = append(escaped, '\\')
 		}
 

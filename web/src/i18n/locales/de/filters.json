@@ -22,6 +22,11 @@
     "exportJson": "JSON exportieren",
     "exportJsonDiscord": "JSON nach Discord exportieren",
     "toggle": "Umschalten",
+    "toggleAll": "Alle umschalten",
+    "toggleAllTitle": "Alle sichtbaren Filter umschalten",
+    "toggleAllEnabled": "Sichtbare Filter aktiviert: {{count}}",
+    "toggleAllDisabled": "Sichtbare Filter deaktiviert: {{count}}",
+    "toggleAllError": "Beim Umschalten der Filter ist ein Fehler aufgetreten.",
     "duplicate": "Duplizieren",
     "delete": "Löschen",
     "toggleSuccess": "{{name}} wurde erfolgreich {{state}}",
@@ -115,6 +120,11 @@
     "maxDownloadsPer": "Max. Downloads pro",
     "selectUnit": "Einheit wählen",
     "maxDownloadsPerTooltip": "Die Zeiteinheit für die Zählung der maximalen Downloads pro Filter.",
+    "maxDownloadsWindowType": "Fenstertyp",
+    "selectWindowType": "Fenstertyp wählen",
+    "maxDownloadsWindowTypeTooltip": "Fest setzt den Zähler an Kalendergrenzen zurück (volle Stunde, Mitternacht, Wochenbeginn). Gleitend zählt ein gleitendes Fenster der letzten N Einheiten.",
+    "maxDownloadsPeriod": "Alle",
+    "maxDownloadsPeriodTooltip": "Größe des gleitenden Fensters in Einheiten. Z. B. erlaubt Max. Downloads 150 mit Einheit DAY und alle 3 insgesamt 150 Downloads innerhalb der letzten 3 Tage.",
     "skipDuplicatesProfile": "Duplikatprofil überspringen",
     "selectProfile": "Profil wählen",
     "skipDuplicatesProfileTooltip": "Das Duplikatprofil zum Überspringen auswählen.",
@@ -144,7 +154,8 @@
     "addNotification": "Benachrichtigung hinzufügen",
     "empty": "Keine filterspezifischen Benachrichtigungen konfiguriert. Globale Benachrichtigungen werden verwendet.",
     "selectNotification": "Benachrichtigung wählen",
-    "muted": "Stummgeschaltet",
+    "notificationDisabled": "Für diesen Filter deaktiviert",
+    "serviceDisabled": "Dienst deaktiviert",
     "eventsCount_one": "{{count}} Ereignis",
     "eventsCount_other": "{{count}} Ereignisse",
     "removeTitle": "Benachrichtigung entfernen",
@@ -155,9 +166,9 @@
     "selectNotificationService": "Benachrichtigung wählen",
     "notificationServiceTooltip": "Den Benachrichtigungsdienst für diesen Filter auswählen.",
     "notificationSettings": "Benachrichtigungseinstellungen",
-    "muteFilter": "Filter stummschalten",
-    "muteFilterDesc": "Alle Benachrichtigungen für diesen Filter deaktivieren. Wenn stummgeschaltet, werden keine Benachrichtigungen für Releases gesendet, die diesem Filter entsprechen.",
-    "mutedInfo": "Filter stummgeschaltet – überschreibt alle globalen Benachrichtigungseinstellungen",
+    "disableNotification": "Diese Benachrichtigung deaktivieren",
+    "disableNotificationDesc": "Für Releases, die diesem Filter entsprechen, keine Ereignisse über diesen Benachrichtigungsdienst senden.",
+    "notificationDisabledInfo": "Dieser Benachrichtigungsdienst ist für den Filter deaktiviert. Der Filter überschreibt weiterhin die globalen Benachrichtigungseinstellungen.",
     "triggerEvents": "Auslöseereignisse",
     "pushApproved": "Push angenommen",
     "pushRejected": "Push abgelehnt",
@@ -414,6 +425,19 @@
     "onErrorTooltip": "Auswählen, was bei einem Fehler für diesen externen Filter getan werden soll.",
     "remove": "Extern entfernen",
     "close": "Schließen",
+    "test": "Testen",
+    "testing": "Wird getestet",
+    "testResult": {
+      "dismiss": "Ausblenden",
+      "status": {
+        "EXEC": "Skript wurde mit Code {{status}} beendet (erwartet {{expected}}) in {{duration}} ms",
+        "WEBHOOK": "Webhook antwortete mit Status {{status}} (erwartet {{expected}}) in {{duration}} ms"
+      },
+      "error": {
+        "EXEC": "Skript fehlgeschlagen: {{error}}",
+        "WEBHOOK": "Webhook-Anfrage fehlgeschlagen: {{error}}"
+      }
+    },
     "types": {
       "EXEC": "Exec",
       "WEBHOOK": "Webhook"

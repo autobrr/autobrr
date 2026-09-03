@@ -22,6 +22,11 @@
     "exportJson": "Eksporter JSON",
     "exportJsonDiscord": "Eksporter JSON til Discord",
     "toggle": "Veksle",
+    "toggleAll": "Slå alle av/på",
+    "toggleAllTitle": "Slå alle synlige filtre av/på",
+    "toggleAllEnabled": "Synlige filtre aktivert: {{count}}",
+    "toggleAllDisabled": "Synlige filtre deaktivert: {{count}}",
+    "toggleAllError": "Det oppstod en feil da filtrene skulle slås av/på.",
     "duplicate": "Dupliser",
     "delete": "Slett",
     "toggleSuccess": "{{name}} ble vellykket {{state}}",
@@ -115,6 +120,11 @@
     "maxDownloadsPer": "Maks nedlastinger per",
     "selectUnit": "Velg enhet",
     "maxDownloadsPerTooltip": "Tidsenheten for å telle maksimale nedlastinger per filter.",
+    "maxDownloadsWindowType": "Vindutype",
+    "selectWindowType": "Velg vindutype",
+    "maxDownloadsWindowTypeTooltip": "Fast nullstiller telleren ved kalendergrenser (hel time, midnatt, ukestart). Rullerende teller et glidende vindu over de siste N enhetene.",
+    "maxDownloadsPeriod": "Hver",
+    "maxDownloadsPeriodTooltip": "Størrelsen på det rullerende vinduet i enheter. F.eks. tillater maks 150 nedlastinger med enhet DAY og hver 3 totalt 150 nedlastinger de siste 3 dagene.",
     "skipDuplicatesProfile": "Profil for duplikathopping",
     "selectProfile": "Velg profil",
     "skipDuplicatesProfileTooltip": "Velg profil for å hoppe over duplikater.",
@@ -144,7 +154,8 @@
     "addNotification": "Legg til varsel",
     "empty": "Ingen filterspesifikke varsler er konfigurert. Globale varsler vil bli brukt.",
     "selectNotification": "Velg varsel",
-    "muted": "Dempet",
+    "notificationDisabled": "Deaktivert for dette filteret",
+    "serviceDisabled": "Tjenesten er deaktivert",
     "eventsCount_one": "{{count}} hendelse",
     "eventsCount_other": "{{count}} hendelser",
     "removeTitle": "Fjern varsel",
@@ -155,9 +166,9 @@
     "selectNotificationService": "Velg et varsel",
     "notificationServiceTooltip": "Velg varslingstjenesten som skal brukes for dette filteret.",
     "notificationSettings": "Varslingsinnstillinger",
-    "muteFilter": "Demp filter",
-    "muteFilterDesc": "Deaktiver alle varsler for dette filteret. Når dempet, vil ingen varsler bli sendt for utgivelser som samsvarer med dette filteret.",
-    "mutedInfo": "Filter dempet - overstyrer alle globale varslingsinnstillinger",
+    "disableNotification": "Deaktiver dette varselet",
+    "disableNotificationDesc": "Ikke send hendelser gjennom denne varslingstjenesten for utgivelser som samsvarer med dette filteret.",
+    "notificationDisabledInfo": "Denne varslingstjenesten er deaktivert for filteret. Filteret overstyrer fortsatt de globale varslingsinnstillingene.",
     "triggerEvents": "Utløs hendelser",
     "pushApproved": "Push godkjent",
     "pushRejected": "Push avvist",
@@ -414,6 +425,19 @@
     "onErrorTooltip": "Velg hva som skal gjøres ved feil for dette eksterne filteret.",
     "remove": "Fjern ekstern",
     "close": "Lukk",
+    "test": "Test",
+    "testing": "Tester",
+    "testResult": {
+      "dismiss": "Lukk",
+      "status": {
+        "EXEC": "Skriptet avsluttet med kode {{status}} (forventet {{expected}}) på {{duration}} ms",
+        "WEBHOOK": "Webhook svarte med status {{status}} (forventet {{expected}}) på {{duration}} ms"
+      },
+      "error": {
+        "EXEC": "Skriptet feilet: {{error}}",
+        "WEBHOOK": "Webhook-forespørselen feilet: {{error}}"
+      }
+    },
     "types": {
       "EXEC": "Exec",
       "WEBHOOK": "Webhook"

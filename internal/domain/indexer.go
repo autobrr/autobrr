@@ -5,6 +5,7 @@ package domain
 
 import (
 	"bytes"
+	"cmp"
 	"encoding/json"
 	"maps"
 	"net/url"
@@ -16,7 +17,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
-	"github.com/autobrr/autobrr/pkg/regexcache"
+	"github.com/autobrr/go-cache/regexcache"
 
 	"github.com/Masterminds/sprig/v3"
 	"github.com/dustin/go-humanize"
@@ -553,10 +554,7 @@ func parseLineMatchRegexp(pattern string, tmpVars map[string]string, line string
 				return true, nil
 			}
 
-			name := groupNames[groupIdx]
-			if name == "" {
-				name = "raw"
-			}
+			name := cmp.Or(groupNames[groupIdx], "raw")
 			tmpVars[name] = group
 		}
 	}

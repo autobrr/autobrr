@@ -317,6 +317,8 @@ func (r *IrcRepo) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 			"bouncer_addr",
 			"use_bouncer",
 			"bot_mode",
+			"use_proxy",
+			"proxy_id",
 		).
 		Values(
 			network.Enabled,
@@ -334,6 +336,8 @@ func (r *IrcRepo) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 			toNullString(network.BouncerAddr),
 			network.UseBouncer,
 			network.BotMode,
+			network.UseProxy,
+			toNullInt64(network.ProxyId),
 		).
 		Suffix("RETURNING id").
 		RunWith(r.db.Handler)
@@ -379,6 +383,25 @@ func (r *IrcRepo) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 	}
 
 	return err
+}
+
+func (r *IrcRepo) ToggleNetworkEnabled(ctx context.Context, id int64, enabled bool) error {
+	queryBuilder := r.db.squirrel.
+		Update("irc_network").
+		Set("enabled", enabled).
+		Set("updated_at", time.Now().Format(time.RFC3339)).
+		Where(sq.Eq{"id": id})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	if _, err := r.db.Handler.ExecContext(ctx, query, args...); err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	return nil
 }
 
 // TODO create new channel Handler to only add, not delete

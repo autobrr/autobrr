@@ -22,6 +22,11 @@
     "exportJson": "Exporter en JSON",
     "exportJsonDiscord": "Exporter le JSON vers Discord",
     "toggle": "Activer/Désactiver",
+    "toggleAll": "Tout activer/désactiver",
+    "toggleAllTitle": "Activer/désactiver tous les filtres visibles",
+    "toggleAllEnabled": "Filtres visibles activés : {{count}}",
+    "toggleAllDisabled": "Filtres visibles désactivés : {{count}}",
+    "toggleAllError": "Une erreur s'est produite lors de l'activation ou de la désactivation des filtres.",
     "duplicate": "Dupliquer",
     "delete": "Supprimer",
     "toggleSuccess": "{{name}} a été {{state}} avec succès",
@@ -115,6 +120,11 @@
     "maxDownloadsPer": "Téléchargements max. par",
     "selectUnit": "Sélectionner l'unité",
     "maxDownloadsPerTooltip": "L'unité de temps pour compter les téléchargements maximum par filtre.",
+    "maxDownloadsWindowType": "Type de fenêtre",
+    "selectWindowType": "Sélectionner le type de fenêtre",
+    "maxDownloadsWindowTypeTooltip": "Fixe réinitialise le compteur aux limites du calendrier (heure pile, minuit, début de semaine). Glissante compte une fenêtre glissante des N dernières unités.",
+    "maxDownloadsPeriod": "Tous les",
+    "maxDownloadsPeriodTooltip": "Taille de la fenêtre glissante en unités. Ex. 150 téléchargements max avec l'unité DAY et tous les 3 autorise 150 téléchargements sur les 3 derniers jours.",
     "skipDuplicatesProfile": "Profil d'exclusion des doublons",
     "selectProfile": "Sélectionner un profil",
     "skipDuplicatesProfileTooltip": "Sélectionner le profil d'exclusion des doublons.",
@@ -144,7 +154,8 @@
     "addNotification": "Ajouter une notification",
     "empty": "Aucune notification spécifique au filtre configurée. Les notifications globales seront utilisées.",
     "selectNotification": "Sélectionner une notification",
-    "muted": "En sourdine",
+    "notificationDisabled": "Désactivée pour ce filtre",
+    "serviceDisabled": "Service désactivé",
     "eventsCount_one": "{{count}} événement",
     "eventsCount_other": "{{count}} événements",
     "removeTitle": "Supprimer la notification",
@@ -155,9 +166,9 @@
     "selectNotificationService": "Sélectionner une notification",
     "notificationServiceTooltip": "Sélectionner le service de notification à utiliser pour ce filtre.",
     "notificationSettings": "Paramètres de notification",
-    "muteFilter": "Mettre le filtre en sourdine",
-    "muteFilterDesc": "Désactiver toutes les notifications pour ce filtre. En sourdine, aucune notification ne sera envoyée pour les releases correspondant à ce filtre.",
-    "mutedInfo": "Filtre en sourdine – remplace tous les paramètres de notification globaux",
+    "disableNotification": "Désactiver cette notification",
+    "disableNotificationDesc": "Ne pas envoyer d'événements via ce service de notification pour les releases correspondant à ce filtre.",
+    "notificationDisabledInfo": "Ce service de notification est désactivé pour le filtre. Le filtre continue de remplacer les paramètres de notification globaux.",
     "triggerEvents": "Événements déclencheurs",
     "pushApproved": "Push approuvé",
     "pushRejected": "Push rejeté",
@@ -414,6 +425,19 @@
     "onErrorTooltip": "Sélectionner l'action en cas d'erreur pour ce filtre externe.",
     "remove": "Supprimer l'externe",
     "close": "Fermer",
+    "test": "Tester",
+    "testing": "Test en cours",
+    "testResult": {
+      "dismiss": "Fermer",
+      "status": {
+        "EXEC": "Le script s'est terminé avec le code {{status}} (attendu {{expected}}) en {{duration}} ms",
+        "WEBHOOK": "Le webhook a répondu avec le statut {{status}} (attendu {{expected}}) en {{duration}} ms"
+      },
+      "error": {
+        "EXEC": "Échec du script : {{error}}",
+        "WEBHOOK": "Échec de la requête webhook : {{error}}"
+      }
+    },
     "types": {
       "EXEC": "Exec",
       "WEBHOOK": "Webhook"

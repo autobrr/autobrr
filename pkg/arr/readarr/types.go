@@ -48,25 +48,25 @@ type SystemStatusResponse struct {
 }
 
 type Book struct {
-	Title          string        `json:"title"`
-	SeriesTitle    string        `json:"seriesTitle"`
-	Overview       string        `json:"overview"`
-	AuthorID       int64         `json:"authorId"`
-	ForeignBookID  string        `json:"foreignBookId"`
-	TitleSlug      string        `json:"titleSlug"`
-	Monitored      bool          `json:"monitored"`
-	AnyEditionOk   bool          `json:"anyEditionOk"`
-	Ratings        *arr.Ratings  `json:"ratings"`
-	ReleaseDate    time.Time     `json:"releaseDate"`
-	PageCount      int           `json:"pageCount"`
-	Genres         []interface{} `json:"genres"`
-	Author         *BookAuthor   `json:"author,omitempty"`
-	Images         []*arr.Image  `json:"images"`
-	Links          []*arr.Link   `json:"links"`
-	Statistics     *Statistics   `json:"statistics,omitempty"`
-	Editions       []*Edition    `json:"editions"`
-	ID             int64         `json:"id"`
-	Disambiguation string        `json:"disambiguation,omitempty"`
+	Title          string       `json:"title"`
+	SeriesTitle    string       `json:"seriesTitle"`
+	Overview       string       `json:"overview"`
+	AuthorID       int64        `json:"authorId"`
+	ForeignBookID  string       `json:"foreignBookId"`
+	TitleSlug      string       `json:"titleSlug"`
+	Monitored      bool         `json:"monitored"`
+	AnyEditionOk   bool         `json:"anyEditionOk"`
+	Ratings        *arr.Ratings `json:"ratings"`
+	ReleaseDate    time.Time    `json:"releaseDate"`
+	PageCount      int          `json:"pageCount"`
+	Genres         []any        `json:"genres"`
+	Author         *BookAuthor  `json:"author,omitempty"`
+	Images         []*arr.Image `json:"images"`
+	Links          []*arr.Link  `json:"links"`
+	Statistics     *Statistics  `json:"statistics,omitempty"`
+	Editions       []*Edition   `json:"editions"`
+	ID             int64        `json:"id"`
+	Disambiguation string       `json:"disambiguation,omitempty"`
 }
 
 // Statistics for a Book, or maybe an author.
@@ -80,26 +80,26 @@ type Statistics struct {
 
 // BookAuthor of a Book.
 type BookAuthor struct {
-	ID                int64         `json:"id"`
-	Status            string        `json:"status"`
-	AuthorName        string        `json:"authorName"`
-	ForeignAuthorID   string        `json:"foreignAuthorId"`
-	TitleSlug         string        `json:"titleSlug"`
-	Overview          string        `json:"overview"`
-	Links             []*arr.Link   `json:"links"`
-	Images            []*arr.Image  `json:"images"`
-	Path              string        `json:"path"`
-	QualityProfileID  int64         `json:"qualityProfileId"`
-	MetadataProfileID int64         `json:"metadataProfileId"`
-	Genres            []interface{} `json:"genres"`
-	CleanName         string        `json:"cleanName"`
-	SortName          string        `json:"sortName"`
-	Tags              []int         `json:"tags"`
-	Added             time.Time     `json:"added"`
-	Ratings           *arr.Ratings  `json:"ratings"`
-	Statistics        *Statistics   `json:"statistics"`
-	Monitored         bool          `json:"monitored"`
-	Ended             bool          `json:"ended"`
+	ID                int64        `json:"id"`
+	Status            string       `json:"status"`
+	AuthorName        string       `json:"authorName"`
+	ForeignAuthorID   string       `json:"foreignAuthorId"`
+	TitleSlug         string       `json:"titleSlug"`
+	Overview          string       `json:"overview"`
+	Links             []*arr.Link  `json:"links"`
+	Images            []*arr.Image `json:"images"`
+	Path              string       `json:"path"`
+	QualityProfileID  int64        `json:"qualityProfileId"`
+	MetadataProfileID int64        `json:"metadataProfileId"`
+	Genres            []any        `json:"genres"`
+	CleanName         string       `json:"cleanName"`
+	SortName          string       `json:"sortName"`
+	Tags              []int        `json:"tags"`
+	Added             time.Time    `json:"added"`
+	Ratings           *arr.Ratings `json:"ratings"`
+	Statistics        *Statistics  `json:"statistics"`
+	Monitored         bool         `json:"monitored"`
+	Ended             bool         `json:"ended"`
 }
 
 // Edition is more Book meta data.

@@ -4,6 +4,7 @@
 package feed
 
 import (
+	"cmp"
 	"context"
 	"crypto/tls"
 	"fmt"
@@ -163,9 +164,7 @@ func (j *TorznabJob) processItems(items []torznab.FeedItem) ([]*domain.Release, 
 		// a magnet can not be fetched over http, so it never belongs in DownloadURL,
 		// whatever the feed is configured as
 		if strings.HasPrefix(rls.DownloadURL, domain.MagnetURIPrefix) {
-			if rls.MagnetURI == "" {
-				rls.MagnetURI = rls.DownloadURL
-			}
+			rls.MagnetURI = cmp.Or(rls.MagnetURI, rls.DownloadURL)
 
 			rls.DownloadURL = ""
 		}
@@ -322,8 +321,7 @@ func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
 		return nil, errors.Wrap(err, "could not check existing items")
 	}
 
-	// set ttl to 1 month
-	ttl := time.Now().AddDate(0, 1, 0)
+	ttl := j.Feed.CacheTTL()
 	toCache := make([]domain.FeedCacheItem, 0)
 
 	// Process items that don't exist in the cache

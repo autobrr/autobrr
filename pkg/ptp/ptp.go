@@ -109,7 +109,7 @@ func (t *Torrent) UnmarshalJSON(data []byte) error {
 	type Alias Torrent
 
 	aux := &struct {
-		Id interface{} `json:"Id"`
+		Id any `json:"Id"`
 		*Alias
 	}{
 		Alias: (*Alias)(t),

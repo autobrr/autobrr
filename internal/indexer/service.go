@@ -10,7 +10,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -43,6 +43,7 @@ type indexerRepo interface {
 
 type eventBus interface {
 	EmitIndexer(ctx context.Context, event events.IndexerChangeEvent)
+	OnProxy(handler func(ctx context.Context, event events.ProxyChangeEvent) error) func()
 }
 
 type Service struct {
@@ -62,7 +63,7 @@ type Service struct {
 }
 
 func NewService(log zerolog.Logger, bus eventBus, config *domain.Config, repo indexerRepo, releaseRepo releaseRepo, apiService apiService) *Service {
-	return &Service{
+	s := &Service{
 		log:                       log.With().Str("module", "indexer").Logger(),
 		eventBus:                  bus,
 		config:                    config,
@@ -73,6 +74,38 @@ func NewService(log zerolog.Logger, bus eventBus, config *domain.Config, repo in
 		definitions:               make(map[string]domain.IndexerDefinition),
 		mappedDefinitions:         make(map[string]*domain.IndexerDefinition),
 	}
+
+	s.setupEventListeners()
+
+	return s
+}
+
+func (s *Service) setupEventListeners() {
+	s.eventBus.OnProxy(func(ctx context.Context, event events.ProxyChangeEvent) error {
+		if event.Usage == nil {
+			return nil
+		}
+
+		return s.onProxyChanged(ctx, event)
+	})
+}
+
+// onProxyChanged reloads every indexer that routed through the changed proxy so the mapped
+// definition and api client are rebuilt from the current row and proxy settings.
+func (s *Service) onProxyChanged(ctx context.Context, event events.ProxyChangeEvent) error {
+	for _, item := range event.Usage.Indexers {
+		indexer, err := s.repo.FindByID(ctx, int(item.ID))
+		if err != nil {
+			s.log.Error().Err(err).Int64("indexer_id", item.ID).Int64("proxy_id", event.ProxyID).Msg("could not load indexer for changed proxy")
+			continue
+		}
+
+		if err := s.updateIndexer(indexer); err != nil {
+			s.log.Error().Err(err).Str("indexer", indexer.Identifier).Int64("proxy_id", event.ProxyID).Msg("could not reload indexer for changed proxy")
+		}
+	}
+
+	return nil
 }
 
 func (s *Service) Store(ctx context.Context, indexer domain.Indexer) (*domain.Indexer, error) {
@@ -186,7 +219,7 @@ func (s *Service) Update(ctx context.Context, indexer *domain.Indexer) error {
 		toggled.Enabled = indexer.Enabled
 
 		s.eventBus.EmitIndexer(ctx, events.IndexerChangeEvent{
-			Event:   events.Event{Type: events.IndexerToggleEnabled},
+			Type:    events.IndexerToggleEnabled,
 			Indexer: &toggled,
 		})
 	}
@@ -218,7 +251,7 @@ func (s *Service) Delete(ctx context.Context, id int) error {
 	}
 
 	s.eventBus.EmitIndexer(ctx, events.IndexerChangeEvent{
-		Event:   events.Event{Type: events.IndexerDeleted},
+		Type:    events.IndexerDeleted,
 		Indexer: indexer,
 	})
 
@@ -287,8 +320,8 @@ func (s *Service) GetAll() ([]*domain.IndexerDefinition, error) {
 	}
 
 	// sort by name
-	sort.SliceStable(res, func(i, j int) bool {
-		return strings.ToLower(res[i].Name) < strings.ToLower(res[j].Name)
+	slices.SortStableFunc(res, func(a, b *domain.IndexerDefinition) int {
+		return strings.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name))
 	})
 
 	return res, nil
@@ -413,8 +446,8 @@ func (s *Service) GetTemplates() ([]domain.IndexerDefinition, error) {
 	}
 
 	// sort by name
-	sort.SliceStable(ret, func(i, j int) bool {
-		return strings.ToLower(ret[i].Name) < strings.ToLower(ret[j].Name)
+	slices.SortStableFunc(ret, func(a, b domain.IndexerDefinition) int {
+		return strings.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name))
 	})
 
 	return ret, nil
@@ -462,7 +495,7 @@ func (s *Service) reconcileDeprecations(ctx context.Context, deprecations []doma
 	}
 
 	if len(untracked) > 0 {
-		sort.Strings(untracked)
+		slices.Sort(untracked)
 		s.log.Warn().Msgf("found %d indexer(s) with no active definition or bundled tombstone: %s - restore a custom definition or report the missing tombstone", len(untracked), strings.Join(untracked, ", "))
 	}
 
@@ -899,7 +932,7 @@ func (s *Service) ToggleEnabled(ctx context.Context, indexerID int, enabled bool
 	// snapshot misses racing opposite toggles, and the handler reconciles idempotently
 	if indexer.ImplementationIsFeed() {
 		s.eventBus.EmitIndexer(ctx, events.IndexerChangeEvent{
-			Event:   events.Event{Type: events.IndexerToggleEnabled},
+			Type:    events.IndexerToggleEnabled,
 			Indexer: indexer,
 		})
 	}

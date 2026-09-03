@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -69,7 +69,7 @@ func (w SSEWriter) Write(p []byte) (n int, err error) {
 		return len(p), nil
 	}
 
-	var evt map[string]interface{}
+	var evt map[string]any
 	p = decodeIfBinaryToBytes(p)
 	d := json.NewDecoder(bytes.NewReader(p))
 	d.UseNumber()
@@ -125,7 +125,7 @@ func (w SSEWriter) Write(p []byte) (n int, err error) {
 }
 
 // writeFields appends formatted key-value pairs to buf.
-func (w SSEWriter) writeFields(buf *bytes.Buffer, evt map[string]interface{}) {
+func (w SSEWriter) writeFields(buf *bytes.Buffer, evt map[string]any) {
 	var fields = make([]string, 0, len(evt))
 	for field := range evt {
 
@@ -135,7 +135,7 @@ func (w SSEWriter) writeFields(buf *bytes.Buffer, evt map[string]interface{}) {
 		}
 		fields = append(fields, field)
 	}
-	sort.Strings(fields)
+	slices.Sort(fields)
 
 	// Write space only if something has already been written to the buffer, and if there are fields.
 	if buf.Len() > 0 && len(fields) > 0 {
@@ -143,8 +143,7 @@ func (w SSEWriter) writeFields(buf *bytes.Buffer, evt map[string]interface{}) {
 	}
 
 	// Move the "error" field to the front
-	ei := sort.Search(len(fields), func(i int) bool { return fields[i] >= zerolog.ErrorFieldName })
-	if ei < len(fields) && fields[ei] == zerolog.ErrorFieldName {
+	if ei, found := slices.BinarySearch(fields, zerolog.ErrorFieldName); found {
 		fields[ei] = ""
 		fields = append([]string{zerolog.ErrorFieldName}, fields...)
 		var xfields = make([]string, 0, len(fields))
@@ -198,7 +197,7 @@ func (w SSEWriter) writeFields(buf *bytes.Buffer, evt map[string]interface{}) {
 }
 
 // writePart appends a formatted part to buf.
-func (w SSEWriter) writePart(buf *bytes.Buffer, evt map[string]interface{}, p string) {
+func (w SSEWriter) writePart(buf *bytes.Buffer, evt map[string]any, p string) {
 	var f Formatter
 
 	switch p {
@@ -229,7 +228,7 @@ func (w SSEWriter) writePart(buf *bytes.Buffer, evt map[string]interface{}, p st
 }
 
 // formatLevel format level to string
-func (w SSEWriter) formatLevel(evt map[string]interface{}) string {
+func (w SSEWriter) formatLevel(evt map[string]any) string {
 	var f Formatter
 
 	f = defaultFormatLevel()
@@ -248,7 +247,7 @@ const (
 )
 
 // Formatter transforms the input into a formatted string.
-type Formatter func(interface{}) string
+type Formatter func(any) string
 
 func decodeIfBinaryToBytes(in []byte) []byte {
 	return in
@@ -279,7 +278,7 @@ func defaultFormatTimestamp(timeFormat string) Formatter {
 	if timeFormat == "" {
 		timeFormat = defaultTimeFormat
 	}
-	return func(i interface{}) string {
+	return func(i any) string {
 		t := "<nil>"
 		switch tt := i.(type) {
 		case string:
@@ -316,7 +315,7 @@ func defaultFormatTimestamp(timeFormat string) Formatter {
 }
 
 func defaultFormatLevel() Formatter {
-	return func(i interface{}) string {
+	return func(i any) string {
 		var l string
 		if ll, ok := i.(string); ok {
 			switch ll {
@@ -349,7 +348,7 @@ func defaultFormatLevel() Formatter {
 }
 
 func defaultFormatCaller() Formatter {
-	return func(i interface{}) string {
+	return func(i any) string {
 		var c string
 		if cc, ok := i.(string); ok {
 			c = cc
@@ -366,7 +365,7 @@ func defaultFormatCaller() Formatter {
 	}
 }
 
-func defaultFormatMessage(i interface{}) string {
+func defaultFormatMessage(i any) string {
 	if i == nil {
 		return ""
 	}
@@ -374,23 +373,23 @@ func defaultFormatMessage(i interface{}) string {
 }
 
 func defaultFormatFieldName() Formatter {
-	return func(i interface{}) string {
+	return func(i any) string {
 		return fmt.Sprintf("%s=", i)
 	}
 }
 
-func defaultFormatFieldValue(i interface{}) string {
+func defaultFormatFieldValue(i any) string {
 	return fmt.Sprintf("%s", i)
 }
 
 func defaultFormatErrFieldName() Formatter {
-	return func(i interface{}) string {
+	return func(i any) string {
 		return fmt.Sprintf("%s=", i)
 	}
 }
 
 func defaultFormatErrFieldValue() Formatter {
-	return func(i interface{}) string {
+	return func(i any) string {
 		return fmt.Sprintf("%s=", i)
 	}
 }

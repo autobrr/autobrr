@@ -4,7 +4,7 @@
  */
 
 import { CollapsibleSection, FilterHalfRow, FilterLayout, FilterSection } from "../_components";
-import { DownloadClientSelect, NumberField, SwitchGroup, TextAreaAutoResize, TextField } from "@components/inputs";
+import { DownloaderSelect, NumberField, SwitchGroup, TextAreaAutoResize, TextField } from "@components/inputs";
 import { useTranslation } from "react-i18next";
 
 export const Deluge = ({ idx, action, clients }: ClientActionProps) => {
@@ -18,15 +18,15 @@ export const Deluge = ({ idx, action, clients }: ClientActionProps) => {
     >
       <FilterLayout>
         <FilterHalfRow>
-          <DownloadClientSelect
-            name={`actions.${idx}.client_id`}
+          <DownloaderSelect
+            name={`actions[${idx}].client_id`}
             action={action}
             clients={clients}
           />
         </FilterHalfRow>
         <FilterHalfRow>
           <TextField
-            name={`actions.${idx}.label`}
+            name={`actions[${idx}].label`}
             label={t("actionComponents.deluge.label")}
             columns={6}
             placeholder={t("actionComponents.deluge.labelPlaceholder")}
@@ -34,7 +34,7 @@ export const Deluge = ({ idx, action, clients }: ClientActionProps) => {
         </FilterHalfRow>
 
         <TextAreaAutoResize
-          name={`actions.${idx}.save_path`}
+          name={`actions[${idx}].save_path`}
           label={t("actionComponents.common.savePath")}
           placeholder={t("actionComponents.common.savePathPlaceholder")}
         />
@@ -43,14 +43,14 @@ export const Deluge = ({ idx, action, clients }: ClientActionProps) => {
       <FilterLayout className="pb-6">
         <FilterHalfRow>
           <SwitchGroup
-            name={`actions.${idx}.paused`}
+            name={`actions[${idx}].paused`}
             label={t("actionComponents.common.addPaused")}
             description={t("actionComponents.common.addPausedDescription")}
           />
         </FilterHalfRow>
         <FilterHalfRow>
         <SwitchGroup
-            name={`actions.${idx}.skip_hash_check`}
+            name={`actions[${idx}].skip_hash_check`}
             label={t("actionComponents.common.skipHashCheck")}
             description={t("actionComponents.common.skipHashCheckDescription")}
             tooltip={<div>{t("actionComponents.deluge.skipHashCheckTooltip")}</div>}
@@ -64,12 +64,12 @@ export const Deluge = ({ idx, action, clients }: ClientActionProps) => {
         subtitle={t("actionComponents.common.limitsSubtitle")}
       >
         <NumberField
-          name={`actions.${idx}.limit_download_speed`}
+          name={`actions[${idx}].limit_download_speed`}
           label={t("actionComponents.common.limitDownloadKb")}
           placeholder={t("actionComponents.common.numberNoLimit")}
         />
         <NumberField
-          name={`actions.${idx}.limit_upload_speed`}
+          name={`actions[${idx}].limit_upload_speed`}
           label={t("actionComponents.common.limitUploadKb")}
           placeholder={t("actionComponents.common.numberNoLimit")}
         />

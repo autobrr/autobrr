@@ -28,7 +28,7 @@ import (
 
 // playwrightVersion must track the playwright-go version in go.mod. It only
 // appears in the "how do I install the driver" hint on startup failure.
-const playwrightVersion = "v0.6100.0"
+const playwrightVersion = "v0.6201.1"
 
 // Binaries compiled once by Run and reused by every test in the package.
 var (
@@ -72,7 +72,7 @@ func Run(m *testing.M) (int, error) {
 	defer playwrightSetup.Stop()
 
 	browser, err = playwrightSetup.Chromium.Launch(playwright.BrowserTypeLaunchOptions{
-		Headless: playwright.Bool(!headed()),
+		Headless: new(!headed()),
 	})
 	if err != nil {
 		return 1, fmt.Errorf("could not launch chromium: %w", err)

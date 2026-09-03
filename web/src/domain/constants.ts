@@ -297,7 +297,7 @@ export interface RadioFieldsetOption {
   type?: string;
 }
 
-export const DownloadClientTypeOptions: RadioFieldsetOption[] = [
+export const DownloaderTypeOptions: RadioFieldsetOption[] = [
   {
     label: "qBittorrent",
     description: "Add torrents directly to qBittorrent",
@@ -382,7 +382,7 @@ export const DownloadClientTypeOptions: RadioFieldsetOption[] = [
   }
 ];
 
-export const getDownloadClientTypeOptions = (t: TFunction): RadioFieldsetOption[] => [
+export const getDownloaderTypeOptions = (t: TFunction): RadioFieldsetOption[] => [
   {
     label: t("options:downloadClient.QBITTORRENT.label"),
     description: t("options:downloadClient.QBITTORRENT.description"),
@@ -774,6 +774,10 @@ export const downloadsPerUnitOptions: OptionBasic[] = [
     value: ""
   },
   {
+    label: "MINUTE",
+    value: "MINUTE"
+  },
+  {
     label: "HOUR",
     value: "HOUR"
   },
@@ -795,6 +799,11 @@ export const downloadsPerUnitOptions: OptionBasic[] = [
   }
 ];
 
+export const getWindowTypeOptions = (t: TFunction): OptionBasic[] => [
+  { label: t("options:maxDownloadsWindowType.FIXED"), value: "FIXED" },
+  { label: t("options:maxDownloadsWindowType.ROLLING"), value: "ROLLING" }
+];
+
 export const DownloadRuleConditionOptions: OptionBasic[] = [
   {
     label: "Always",
@@ -806,7 +815,7 @@ export const DownloadRuleConditionOptions: OptionBasic[] = [
   }
 ];
 
-export const DownloadClientAuthType: OptionBasic[] = [
+export const DownloaderAuthType: OptionBasic[] = [
   {
     label: "None",
     value: "NONE"

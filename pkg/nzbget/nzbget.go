@@ -49,9 +49,9 @@ func New(opts Options) *Client {
 }
 
 type rpcRequest struct {
-	Method string        `json:"method"`
-	Params []interface{} `json:"params"`
-	ID     int           `json:"id"`
+	Method string `json:"method"`
+	Params []any  `json:"params"`
+	ID     int    `json:"id"`
 }
 
 type rpcResponse struct {
@@ -64,7 +64,7 @@ type rpcError struct {
 	Message string `json:"message"`
 }
 
-func (c *Client) call(ctx context.Context, method string, params []interface{}, result interface{}) error {
+func (c *Client) call(ctx context.Context, method string, params []any, result any) error {
 	body, err := json.Marshal(rpcRequest{
 		Method: method,
 		Params: params,
@@ -138,7 +138,7 @@ type AddNzbResponse struct {
 func (c *Client) AddFromURL(ctx context.Context, r AddNzbRequest) (*AddNzbResponse, error) {
 	// NZBGet append params: Filename, URL, Category, Priority, AddToTop,
 	// AddPaused, DupeKey, DupeScore, DupeMode, PPParameters
-	params := []interface{}{
+	params := []any{
 		"",         // Filename
 		r.URL,      // URL
 		r.Category, // Category

@@ -214,7 +214,7 @@ func (r *ActionRepo) findByFilterIDWithClient(ctx context.Context, filterID int,
 	actions := make([]*domain.Action, 0)
 	for rows.Next() {
 		var a domain.Action
-		var c domain.DownloadClient
+		var c domain.Downloader
 
 		var execCmd, execArgs, watchFolder, category, tags, label, savePath, downloadPath, contentLayout, priorityLayout, webhookHost, webhookType, webhookMethod, webhookData, externalClient sql.NullString
 		var limitUl, limitDl, limitSeedTime sql.NullInt64
@@ -260,7 +260,7 @@ func (r *ActionRepo) findByFilterIDWithClient(ctx context.Context, filterID int,
 
 		c.ID = clientClientId.V
 		c.Name = clientName.V
-		c.Type = domain.DownloadClientType(clientType.V)
+		c.Type = domain.DownloaderType(clientType.V)
 		c.Enabled = clientEnabled.V
 		c.Host = clientHost.V
 		c.Port = int(clientPort.V)
@@ -305,7 +305,7 @@ func (r *ActionRepo) FindByFilterIDTx(ctx context.Context, filterID int, active 
 
 	for _, action := range actions {
 		if action.ClientID > 0 {
-			client, err := r.attachDownloadClient(ctx, tx, action.ClientID)
+			client, err := r.attachDownloader(ctx, tx, action.ClientID)
 			if err != nil {
 				return nil, err
 			}
@@ -427,7 +427,7 @@ func (r *ActionRepo) findByFilterIDTx(ctx context.Context, tx *Tx, filterID int,
 	return actions, nil
 }
 
-func (r *ActionRepo) attachDownloadClient(ctx context.Context, tx *Tx, clientID int32) (*domain.DownloadClient, error) {
+func (r *ActionRepo) attachDownloader(ctx context.Context, tx *Tx, clientID int32) (*domain.Downloader, error) {
 	queryBuilder := r.db.squirrel.
 		Select(
 			"id",
@@ -455,7 +455,7 @@ func (r *ActionRepo) attachDownloadClient(ctx context.Context, tx *Tx, clientID 
 		return nil, errors.Wrap(err, "error executing query")
 	}
 
-	var client domain.DownloadClient
+	var client domain.Downloader
 	var settingsJsonStr string
 
 	if err := row.Scan(&client.ID, &client.Name, &client.Type, &client.Enabled, &client.Host, &client.Port, &client.TLS, &client.TLSSkipVerify, &client.Username, &client.Password, &settingsJsonStr); err != nil {

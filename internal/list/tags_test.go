@@ -13,12 +13,12 @@ import (
 
 func Test_containsTag(t *testing.T) {
 	type args struct {
-		tags      []*arr.Tag
+		tags      []arr.Tag
 		titleTags []int
 		checkTags []string
 	}
 
-	tags := []*arr.Tag{
+	tags := []arr.Tag{
 		{
 			ID:    1,
 			Label: "Want",

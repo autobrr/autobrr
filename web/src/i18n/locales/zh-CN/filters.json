@@ -22,6 +22,11 @@
     "exportJson": "导出 JSON",
     "exportJsonDiscord": "导出 JSON 到 Discord",
     "toggle": "切换",
+    "toggleAll": "全部启用/禁用",
+    "toggleAllTitle": "启用或禁用所有可见过滤器",
+    "toggleAllEnabled": "已启用可见过滤器：{{count}} 个",
+    "toggleAllDisabled": "已禁用可见过滤器：{{count}} 个",
+    "toggleAllError": "切换过滤器时出错。",
     "duplicate": "复制",
     "delete": "删除",
     "toggleSuccess": "{{name}} 已{{state}}成功",
@@ -115,6 +120,11 @@
     "maxDownloadsPer": "最大下载数 /",
     "selectUnit": "选择单位",
     "maxDownloadsPerTooltip": "统计每个过滤器最大下载数所使用的时间单位。",
+    "maxDownloadsWindowType": "窗口类型",
+    "selectWindowType": "选择窗口类型",
+    "maxDownloadsWindowTypeTooltip": "固定窗口在日历边界（整点、午夜、周初）重置计数。滚动窗口统计最近 N 个单位的滑动窗口。",
+    "maxDownloadsPeriod": "每",
+    "maxDownloadsPeriodTooltip": "滚动窗口的大小（以单位计）。例如最大下载数 150、单位为 DAY、每 3，则限制最近 3 天内最多 150 次下载。",
     "skipDuplicatesProfile": "跳过重复项配置",
     "selectProfile": "选择配置",
     "skipDuplicatesProfileTooltip": "选择用于跳过重复项的配置。",
@@ -144,7 +154,8 @@
     "addNotification": "添加通知",
     "empty": "当前没有为此过滤器配置专属通知，将使用全局通知。",
     "selectNotification": "选择通知",
-    "muted": "静音",
+    "notificationDisabled": "已对此过滤器禁用",
+    "serviceDisabled": "服务已禁用",
     "eventsCount_one": "{{count}} 个事件",
     "eventsCount_other": "{{count}} 个事件",
     "removeTitle": "移除通知",
@@ -155,9 +166,9 @@
     "selectNotificationService": "选择一个通知",
     "notificationServiceTooltip": "选择该过滤器要使用的通知服务。",
     "notificationSettings": "通知设置",
-    "muteFilter": "静音过滤器",
-    "muteFilterDesc": "禁用该过滤器的所有通知。静音后，匹配到的发布不会发送任何通知。",
-    "mutedInfo": "过滤器已静音，将覆盖所有全局通知设置",
+    "disableNotification": "禁用此通知",
+    "disableNotificationDesc": "对于匹配该过滤器的发布，不通过此通知服务发送事件。",
+    "notificationDisabledInfo": "此通知服务已对该过滤器禁用。该过滤器仍会覆盖全局通知设置。",
     "triggerEvents": "触发事件",
     "pushApproved": "推送成功",
     "pushRejected": "推送被拒绝",
@@ -414,6 +425,19 @@
     "onErrorTooltip": "选择此外部过滤器发生错误时的处理方式。",
     "remove": "移除外部过滤器",
     "close": "关闭",
+    "test": "测试",
+    "testing": "测试中",
+    "testResult": {
+      "dismiss": "关闭",
+      "status": {
+        "EXEC": "脚本以退出码 {{status}} 结束（预期 {{expected}}），耗时 {{duration}} 毫秒",
+        "WEBHOOK": "Webhook 返回状态码 {{status}}（预期 {{expected}}），耗时 {{duration}} 毫秒"
+      },
+      "error": {
+        "EXEC": "脚本执行失败：{{error}}",
+        "WEBHOOK": "Webhook 请求失败：{{error}}"
+      }
+    },
     "types": {
       "EXEC": "执行命令",
       "WEBHOOK": "Webhook"

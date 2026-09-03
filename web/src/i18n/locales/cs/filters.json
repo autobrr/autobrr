@@ -22,6 +22,11 @@
       "exportJson": "Exportovat JSON",
       "exportJsonDiscord": "Exportovat JSON do Discordu",
       "toggle": "Přepnout",
+      "toggleAll": "Přepnout vše",
+      "toggleAllTitle": "Přepnout všechny viditelné filtry",
+      "toggleAllEnabled": "Zapnuté viditelné filtry: {{count}}",
+      "toggleAllDisabled": "Vypnuté viditelné filtry: {{count}}",
+      "toggleAllError": "Při přepínání filtrů došlo k chybě.",
       "duplicate": "Duplikovat",
       "delete": "Odstranit",
       "toggleSuccess": "{{name}} byl úspěšně {{state}}",
@@ -115,6 +120,11 @@
       "maxDownloadsPer": "Maximální počet stahování za",
       "selectUnit": "Vybrat jednotku",
       "maxDownloadsPerTooltip": "Jednotka času pro počítání maximálního počtu stahování na filtr.",
+      "maxDownloadsWindowType": "Typ okna",
+      "selectWindowType": "Vyberte typ okna",
+      "maxDownloadsWindowTypeTooltip": "Pevné resetuje počítadlo na hranicích kalendáře (celá hodina, půlnoc, začátek týdne). Klouzavé počítá klouzavé okno posledních N jednotek.",
+      "maxDownloadsPeriod": "Každých",
+      "maxDownloadsPeriodTooltip": "Velikost klouzavého okna v jednotkách. Např. max. 150 stažení s jednotkou DAY a každých 3 povolí 150 stažení za poslední 3 dny.",
       "skipDuplicatesProfile": "Přeskočit profil duplicit",
       "selectProfile": "Vybrat profil",
       "skipDuplicatesProfileTooltip": "Vyberte profil pro přeskočení duplicit.",
@@ -144,7 +154,8 @@
       "addNotification": "Přidat notifikaci",
       "empty": "Dosud nemáte žádné notifikace filtru!",
       "selectNotification": "Vybrat notifikaci",
-      "muted": "Ztlumeno",
+      "notificationDisabled": "Vypnuto pro tento filtr",
+      "serviceDisabled": "Služba je vypnutá",
       "eventsCount_one": "{{count}} událost",
       "eventsCount_other": "{{count}} události",
       "removeTitle": "Odstranit notifikaci",
@@ -155,9 +166,9 @@
       "selectNotificationService": "Vybrat notifikaci",
       "notificationServiceTooltip": "Vyberte službu notifikace, která se má použít pro tento filtr.",
       "notificationSettings": "Nastavení notifikací",
-      "muteFilter": "Ztlumit filtr",
-      "muteFilterDesc": "Zakázat všechny notifikace pro tento filtr. Když je filtr ztlumen, nebudou odeslány žádné notifikace pro releasy, které odpovídají tomuto filtru.",
-      "mutedInfo": "Filtr ztlumen - přepíše všechna globální nastavení notifikací",
+      "disableNotification": "Vypnout tuto notifikaci",
+      "disableNotificationDesc": "Neodesílat přes tuto notifikační službu události pro releasy, které odpovídají tomuto filtru.",
+      "notificationDisabledInfo": "Tato notifikační služba je pro filtr vypnutá. Filtr nadále přepisuje globální nastavení notifikací.",
       "triggerEvents": "Aktivovat události",
       "pushApproved": "Úspěšný push",
       "pushRejected": "Odmítnutý push",
@@ -414,6 +425,19 @@
       "onErrorTooltip": "Vyberte co dělat při chybě tohoto externího filtru.",
       "remove": "Odstranit externí",
       "close": "Zavřít",
+      "test": "Otestovat",
+      "testing": "Testuji",
+      "testResult": {
+        "dismiss": "Zavřít",
+        "status": {
+          "EXEC": "Skript skončil s kódem {{status}} (očekáváno {{expected}}) za {{duration}} ms",
+          "WEBHOOK": "Webhook odpověděl stavem {{status}} (očekáváno {{expected}}) za {{duration}} ms"
+        },
+        "error": {
+          "EXEC": "Skript selhal: {{error}}",
+          "WEBHOOK": "Požadavek na webhook selhal: {{error}}"
+        }
+      },
       "types": {
         "EXEC": "Spustit",
         "WEBHOOK": "Webhook"

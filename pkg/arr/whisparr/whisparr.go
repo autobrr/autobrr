@@ -192,8 +192,8 @@ func (c *Client) GetMovies(ctx context.Context) ([]Movie, error) {
 	return data, nil
 }
 
-func (c *Client) GetTags(ctx context.Context) ([]*arr.Tag, error) {
-	data := make([]*arr.Tag, 0)
+func (c *Client) GetTags(ctx context.Context) ([]arr.Tag, error) {
+	data := make([]arr.Tag, 0)
 	if err := c.getJSON(ctx, "tag", nil, &data); err != nil {
 		return nil, errors.Wrap(err, "could not get tags")
 	}

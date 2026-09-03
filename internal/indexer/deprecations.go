@@ -5,10 +5,11 @@ package indexer
 
 import (
 	"bytes"
+	"cmp"
 	"io/fs"
 	"net/url"
 	"path"
-	"sort"
+	"slices"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -54,8 +55,8 @@ func LoadDeprecatedIndexerDefinitions() ([]domain.IndexerDeprecation, error) {
 		deprecations = append(deprecations, deprecation)
 	}
 
-	sort.Slice(deprecations, func(i, j int) bool {
-		return deprecations[i].Identifier < deprecations[j].Identifier
+	slices.SortFunc(deprecations, func(a, b domain.IndexerDeprecation) int {
+		return cmp.Compare(a.Identifier, b.Identifier)
 	})
 
 	return deprecations, nil

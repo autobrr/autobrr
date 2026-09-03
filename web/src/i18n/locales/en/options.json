@@ -6,6 +6,10 @@
     "PROMO_GP": "Promo GP",
     "RESURRECTED": "Resurrected"
   },
+  "maxDownloadsWindowType": {
+    "FIXED": "Fixed (calendar reset)",
+    "ROLLING": "Rolling (sliding window)"
+  },
   "downloadClient": {
     "QBITTORRENT": {
       "label": "qBittorrent",

@@ -21,12 +21,13 @@ import { APIClient } from "@api/APIClient";
 import { FilterKeys } from "@api/query_keys";
 import { classNames, humanFileSize, simplifyDate } from "@utils";
 import { ExternalLink } from "../ExternalLink";
+import { DataTableFeatures } from "./features";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { RingResizeSpinner } from "@components/Icons";
 import { Tooltip } from "@components/tooltips/Tooltip";
 
-export const NameCell = (props: CellContext<Release, unknown>) => {
+export const NameCell = (props: CellContext<DataTableFeatures, Release, unknown>) => {
   const { t } = useTranslation("common");
 
   return (
@@ -50,7 +51,7 @@ export const NameCell = (props: CellContext<Release, unknown>) => {
   );
 };
 
-export const LinksCell = (props: CellContext<Release, unknown>) => {
+export const LinksCell = (props: CellContext<DataTableFeatures, Release, unknown>) => {
   const { t } = useTranslation("common");
   return (
     <div className="flex space-x-2 text-blue-400 dark:text-blue-500">
@@ -109,13 +110,13 @@ export const LinksCell = (props: CellContext<Release, unknown>) => {
   );
 };
 
-export const AgeCell = ({cell}: CellContext<Release, unknown>) => (
+export const AgeCell = ({cell}: CellContext<DataTableFeatures, Release, unknown>) => (
   <div className="text-sm text-gray-500" title={simplifyDate(cell.getValue() as string)}>
     {formatDistanceToNowStrict(new Date(cell.getValue() as string), {addSuffix: false})}
   </div>
 );
 
-export const IndexerCell = (props: CellContext<Release, unknown>) => (
+export const IndexerCell = (props: CellContext<DataTableFeatures, Release, unknown>) => (
     <div
       className={classNames(
         "py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
@@ -134,7 +135,7 @@ export const IndexerCell = (props: CellContext<Release, unknown>) => (
     </div>
 );
 
-export const TitleCell = ({cell}: CellContext<Release, string>) => (
+export const TitleCell = ({cell}: CellContext<DataTableFeatures, Release, unknown>) => (
   <div
     className={classNames(
       "py-3 text-sm font-medium box-content text-gray-900 dark:text-gray-300",
@@ -143,11 +144,11 @@ export const TitleCell = ({cell}: CellContext<Release, string>) => (
   >
     <Tooltip
       requiresClick
-      label={cell.getValue()}
+      label={cell.getValue() as string}
       maxWidth="max-w-[90vw]"
     >
       <span className="whitespace-pre-wrap break-words">
-        {cell.getValue()}
+        {cell.getValue() as string}
       </span>
     </Tooltip>
   </div>
@@ -296,7 +297,7 @@ const CellLine = ({ title, children }: { title: string; children?: string; }) =>
   );
 };
 
-export const ReleaseStatusCell = ({ row }: CellContext<Release, unknown>) => {
+export const ReleaseStatusCell = ({ row }: CellContext<DataTableFeatures, Release, unknown>) => {
   const { t } = useTranslation("common");
   const statusCellMap = getStatusCellMap(t);
 

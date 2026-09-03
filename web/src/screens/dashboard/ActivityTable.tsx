@@ -6,8 +6,7 @@
 import { useMemo } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import {
-  useReactTable,
-  getCoreRowModel,
+  useTable,
   flexRender,
   type ColumnDef
 } from "@tanstack/react-table";
@@ -18,19 +17,20 @@ import * as DataTable from "@components/data-table";
 import { RandomLinuxIsos, RandomIsoTracker } from "@utils";
 import { ReleasesLatestQueryOptions } from "@api/queries";
 import { IndexerCell } from "@components/data-table";
+import { dataTableFeatures, type DataTableFeatures } from "@components/data-table/features";
 import { SettingsContext } from "@utils/Context";
 
 interface TableProps {
-  columns: ColumnDef<Release>[];
+  columns: ColumnDef<DataTableFeatures, Release>[];
   data: Release[];
 }
 
 function Table({ columns, data }: TableProps) {
   const { t } = useTranslation("common");
-  const tableInstance = useReactTable({
+  const tableInstance = useTable({
+    features: dataTableFeatures,
     columns,
     data,
-    getCoreRowModel: getCoreRowModel(),
   })
 
   if (data.length === 0) {
@@ -93,7 +93,7 @@ function Table({ columns, data }: TableProps) {
 
 export const ActivityTable = () => {
   const { t } = useTranslation("common");
-  const columns = useMemo<ColumnDef<Release>[]>(() => [
+  const columns = useMemo<ColumnDef<DataTableFeatures, Release>[]>(() => [
     {
       header: t("activityTable.columns.age"),
       accessorKey: "timestamp",

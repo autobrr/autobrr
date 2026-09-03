@@ -390,6 +390,8 @@
         "refreshTimeoutHelp": "Čekat počet sekund před zrušením refreshnutí.",
         "maxAge": "Max. věk",
         "maxAgeHelp": "Maximální věk obsahu kanálu v sekundách. Použijte 0 k vypnutí filtru věku a zpracování všech položek.",
+        "cacheTTL": "TTL mezipaměti",
+        "cacheTTLHelp": "Počet dní, po které si autobrr pamatuje zpracované položky kanálu. Položky, které jsou v kanálu stále přítomny po vypršení, budou zpracovány a staženy znovu. Výchozí hodnota je 31 dní.",
         "cookie": "Cookie",
         "cookieHelp": "Ne často používané",
         "userAgent": "User-Agent",
@@ -493,7 +495,13 @@
         "passHelp": "auth: heslo",
         "test": "Testovat",
         "cancel": "Zrušit",
-        "save": "Uložit"
+        "save": "Uložit",
+        "usageTitle": "Tento proxy server se stále používá",
+        "usageText": "Odstraněním se odpojí od následujících položek, které se poté budou připojovat bez proxy:",
+        "usageIndexers": "Indexery",
+        "usageIrcNetworks": "IRC sítě",
+        "usageFeeds": "Kanály",
+        "usageDisableText": "Vypnutím se vypnou následující IRC sítě, zatímco indexery a kanály se budou připojovat bez proxy:"
       },
     "apiKey": {
       "createTitle": "Vytvořit API klíč",
@@ -904,7 +912,10 @@
         "toggleSuccess": "Proxy {{name}} byl úspěšně {{state}}.",
         "toggleError": "Proxy server nebyl aktualizován",
         "enabledState": "zapnut",
-        "disabledState": "vypnut"
+        "disabledState": "vypnut",
+        "disableTitle": "Vypnout {{name}}",
+        "disableText": "Jste si jisti, že chcete tento proxy vypnout?",
+        "disable": "Vypnout"
       },
       "lists": {
         "title": "Listy",

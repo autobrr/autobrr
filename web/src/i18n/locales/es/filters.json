@@ -22,6 +22,11 @@
     "exportJson": "Exportar JSON",
     "exportJsonDiscord": "Exportar JSON a Discord",
     "toggle": "Alternar",
+    "toggleAll": "Alternar todos",
+    "toggleAllTitle": "Alternar todos los filtros visibles",
+    "toggleAllEnabled": "Filtros visibles habilitados: {{count}}",
+    "toggleAllDisabled": "Filtros visibles deshabilitados: {{count}}",
+    "toggleAllError": "Ocurrió un error al alternar los filtros.",
     "duplicate": "Duplicar",
     "delete": "Eliminar",
     "toggleSuccess": "{{name}} fue {{state}} exitosamente",
@@ -115,6 +120,11 @@
     "maxDownloadsPer": "Descargas máximas por",
     "selectUnit": "Seleccionar unidad",
     "maxDownloadsPerTooltip": "La unidad de tiempo para contar las descargas máximas por filtro.",
+    "maxDownloadsWindowType": "Tipo de ventana",
+    "selectWindowType": "Seleccionar tipo de ventana",
+    "maxDownloadsWindowTypeTooltip": "Fija reinicia el contador en los límites del calendario (hora en punto, medianoche, inicio de semana). Deslizante cuenta una ventana deslizante de las últimas N unidades.",
+    "maxDownloadsPeriod": "Cada",
+    "maxDownloadsPeriodTooltip": "Tamaño de la ventana deslizante en unidades. Ej. Descargas máx. 150 con unidad DAY y cada 3 permite 150 descargas en los últimos 3 días.",
     "skipDuplicatesProfile": "Perfil de omisión de duplicados",
     "selectProfile": "Seleccionar perfil",
     "skipDuplicatesProfileTooltip": "Seleccionar el perfil de omisión de duplicados.",
@@ -144,7 +154,8 @@
     "addNotification": "Agregar notificación",
     "empty": "No hay notificaciones específicas del filtro configuradas. Se usarán las notificaciones globales.",
     "selectNotification": "Seleccionar notificación",
-    "muted": "Silenciado",
+    "notificationDisabled": "Deshabilitada para este filtro",
+    "serviceDisabled": "Servicio deshabilitado",
     "eventsCount_one": "{{count}} evento",
     "eventsCount_other": "{{count}} eventos",
     "removeTitle": "Eliminar notificación",
@@ -155,9 +166,9 @@
     "selectNotificationService": "Seleccionar una notificación",
     "notificationServiceTooltip": "Selecciona el servicio de notificación a usar para este filtro.",
     "notificationSettings": "Configuración de notificaciones",
-    "muteFilter": "Silenciar filtro",
-    "muteFilterDesc": "Deshabilitar todas las notificaciones para este filtro. Cuando está silenciado, no se enviarán notificaciones para los lanzamientos coincidentes con este filtro.",
-    "mutedInfo": "Filtro silenciado - anula toda la configuración global de notificaciones",
+    "disableNotification": "Deshabilitar esta notificación",
+    "disableNotificationDesc": "No enviar eventos mediante este servicio de notificación para los lanzamientos que coincidan con este filtro.",
+    "notificationDisabledInfo": "Este servicio de notificación está deshabilitado para el filtro. El filtro sigue anulando la configuración global de notificaciones.",
     "triggerEvents": "Eventos de activación",
     "pushApproved": "Envío aprobado",
     "pushRejected": "Envío rechazado",
@@ -414,6 +425,19 @@
     "onErrorTooltip": "Selecciona qué hacer en caso de error para este filtro externo.",
     "remove": "Eliminar externo",
     "close": "Cerrar",
+    "test": "Probar",
+    "testing": "Probando",
+    "testResult": {
+      "dismiss": "Descartar",
+      "status": {
+        "EXEC": "El script terminó con código {{status}} (esperado {{expected}}) en {{duration}} ms",
+        "WEBHOOK": "El webhook respondió con estado {{status}} (esperado {{expected}}) en {{duration}} ms"
+      },
+      "error": {
+        "EXEC": "El script falló: {{error}}",
+        "WEBHOOK": "La solicitud al webhook falló: {{error}}"
+      }
+    },
     "types": {
       "EXEC": "Exec",
       "WEBHOOK": "Webhook"

@@ -91,7 +91,7 @@ func LoggerMiddleware(logger *zerolog.Logger) func(next http.Handler) http.Handl
 					log.Trace().
 						Str("type", "access").
 						Timestamp().
-						Fields(map[string]interface{}{
+						Fields(map[string]any{
 							"remote_ip":  r.RemoteAddr,
 							"url":        r.URL.Path,
 							"proto":      r.Proto,
@@ -116,8 +116,7 @@ func LoggerMiddleware(logger *zerolog.Logger) func(next http.Handler) http.Handl
 func BasicAuth(realm string, users string) func(next http.Handler) http.Handler {
 	creds := map[string]string{}
 
-	userCreds := strings.Split(users, ",")
-	for _, cred := range userCreds {
+	for cred := range strings.SplitSeq(users, ",") {
 		credParts := strings.Split(cred, ":")
 		if len(credParts) != 2 {
 			//s.log.Warn().Msgf("Invalid metrics basic auth credentials: %s", cred)

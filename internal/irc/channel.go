@@ -231,10 +231,8 @@ func (c *Channel) SetConnectionError(err string) {
 	c.m.Lock()
 	defer c.m.Unlock()
 
-	for _, existing := range c.ConnectionErrors {
-		if existing == err {
-			return
-		}
+	if slices.Contains(c.ConnectionErrors, err) {
+		return
 	}
 	c.ConnectionErrors = append(c.ConnectionErrors, err)
 }

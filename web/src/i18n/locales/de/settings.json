@@ -206,9 +206,9 @@
     "olderThan": "Älter als",
     "olderThanDesc": "Wie alt Releases sein müssen, bevor sie gelöscht werden (Erforderlich für automatisierte und manuelle Löschung)",
     "indexers": "Indexer",
-    "indexersDesc": "Optionaler Filter (wenn kein Indexer ausgewählt ist, gilt dieser für alle)",
+    "indexersDesc": "Optionaler Filter (wenn kein Indexer ausgewählt ist, gilt dieser für alle)",
     "releaseStatuses": "Releasestatus",
-    "releaseStatusesDesc": "Optionaler Filter (wenn kein Status ausgewählt ist, gilt dieser für alle)",
+    "releaseStatusesDesc": "Optionaler Filter (wenn kein Status ausgewählt ist, gilt dieser für alle)",
     "duplicateProfilesTitle": "Releaseduplikatprofile",
     "duplicateProfilesDesc": "Duplikatprofile verwalten.",
     "cleanupJobsTitle": "Releasebereinigungsaufgaben",
@@ -390,6 +390,8 @@
       "refreshTimeoutHelp": "Sekunden bis zum Abbrechen der Aktualisierung.",
       "maxAge": "Max. Alter",
       "maxAgeHelp": "Maximales Alter des Feedinhalts in Sekunden. 0 verwenden, um den Altersfilter zu deaktivieren und alle Einträge zu verarbeiten.",
+      "cacheTTL": "Cache-TTL",
+      "cacheTTLHelp": "Anzahl der Tage, die verarbeitete Feed-Einträge gemerkt werden. Einträge, die nach Ablauf noch im Feed vorhanden sind, werden erneut verarbeitet und heruntergeladen. Standard ist 31 Tage.",
       "cookie": "Cookie",
       "cookieHelp": "Nicht häufig verwendet",
       "userAgent": "User-Agent",
@@ -493,7 +495,13 @@
       "passHelp": "Auth: Passwort",
       "test": "Testen",
       "cancel": "Abbrechen",
-      "save": "Speichern"
+      "save": "Speichern",
+      "usageTitle": "Dieser Proxy wird noch verwendet",
+      "usageText": "Beim Entfernen wird er von den folgenden Einträgen getrennt, die sich danach ohne Proxy verbinden:",
+      "usageIndexers": "Indexer",
+      "usageIrcNetworks": "IRC-Netzwerke",
+      "usageFeeds": "Feeds",
+      "usageDisableText": "Beim Deaktivieren werden die folgenden IRC-Netzwerke deaktiviert, während sich Indexer und Feeds ohne Proxy verbinden:"
     },
     "apiKey": {
       "createTitle": "API-Schlüssel erstellen",
@@ -904,7 +912,10 @@
       "toggleSuccess": "Proxy {{name}} wurde erfolgreich {{state}}.",
       "toggleError": "Proxystatus konnte nicht aktualisiert werden",
       "enabledState": "aktiviert",
-      "disabledState": "deaktiviert"
+      "disabledState": "deaktiviert",
+      "disableTitle": "{{name}} deaktivieren",
+      "disableText": "Bist du sicher, dass du diesen Proxy deaktivieren möchtest?",
+      "disable": "Deaktivieren"
     },
     "lists": {
       "title": "Listen",

@@ -295,17 +295,17 @@ export const APIClient = {
       body: config
     })
   },
-  download_clients: {
-    getAll: () => appClient.Get<DownloadClient[]>("api/download_clients"),
-    getArrTags: (clientID: number) => appClient.Get<ArrTag[]>(`api/download_clients/${clientID}/arr/tags`),
-    create: (dc: DownloadClient) => appClient.Post("api/download_clients", {
+  downloaders: {
+    getAll: () => appClient.Get<Downloader[]>("api/downloaders"),
+    getArrTags: (clientID: number) => appClient.Get<ArrTag[]>(`api/downloaders/${clientID}/arr/tags`),
+    create: (dc: Downloader) => appClient.Post("api/downloaders", {
       body: dc
     }),
-    update: (dc: DownloadClient) => appClient.Put("api/download_clients", {
+    update: (dc: Downloader) => appClient.Put("api/downloaders", {
       body: dc
     }),
-    delete: (id: number) => appClient.Delete(`api/download_clients/${id}`),
-    test: (dc: DownloadClient) => appClient.Post("api/download_clients/test", {
+    delete: (id: number) => appClient.Delete(`api/downloaders/${id}`),
+    test: (dc: Downloader) => appClient.Post("api/downloaders/test", {
       body: dc
     })
   },
@@ -332,6 +332,11 @@ export const APIClient = {
       body: { identifiers }
     }),
     delete: (id: number) => appClient.Delete(`api/filters/${id}`),
+    external: {
+      test: (external: ExternalFilter) => appClient.Post<ExternalFilterTestResult>("api/filters/external/test", {
+        body: external
+      })
+    },
     notifications: {
       get: (filterId: number) => appClient.Get<FilterNotification[]>(`api/filters/${filterId}/notifications`),
       update: (filterId: number, notifications: FilterNotification[]) => 
@@ -469,6 +474,7 @@ export const APIClient = {
       body: proxy
     }),
     delete: (id: number) => appClient.Delete(`api/proxy/${id}`),
+    usage: (id: number) => appClient.Get<ProxyUsage>(`api/proxy/${id}/usage`),
     test: (proxy: Proxy) => appClient.Post("api/proxy/test", {
       body: proxy
     })
