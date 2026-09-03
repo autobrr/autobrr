@@ -15,7 +15,7 @@ import { SlideOver } from "@components/panels";
 import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import { SelectFieldBasic } from "@components/inputs/select_wide";
 import { sleep } from "@utils";
-import { ImplementationBadges } from "@screens/settings/Indexer";
+import { ImplementationBadge } from "@screens/settings/Indexer";
 import { FeedDownloadTypeOptions } from "@domain/constants";
 import { UpdateFormProps } from "@forms/_shared";
 import { useFormContext, useFormValues } from "@hooks/form";
@@ -156,7 +156,7 @@ export function FeedUpdateForm({ isOpen, toggle, data}: UpdateFormProps<Feed>) {
                 </label>
               </div>
               <div className="flex justify-end sm:col-span-2">
-                {ImplementationBadges[feed.type.toLowerCase()]}
+                <ImplementationBadge implementation={feed.type} />
               </div>
             </div>
 

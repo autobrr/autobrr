@@ -26,7 +26,7 @@ import Toast from "@components/notifications/Toast";
 import { DeleteModal, ForceRunModal } from "@components/modals";
 import { FeedUpdateForm } from "@forms/settings/FeedForms";
 import { EmptySimple } from "@components/emptystates";
-import { ImplementationBadges } from "./Indexer";
+import { ImplementationBadge } from "./Indexer";
 import { ArrowPathIcon } from "@heroicons/react/24/solid";
 import { ExternalLink } from "@components/ExternalLink";
 import { Section } from "./_components";
@@ -195,7 +195,7 @@ function ListItem({ feed }: ListItemProps) {
           </span>
         </div>
         <div className="hidden md:flex col-span-2 py-3 items-center">
-          {ImplementationBadges[feed.type.toLowerCase()]}
+          <ImplementationBadge implementation={feed.type} />
         </div>
         <div className="hidden md:flex col-span-2 py-3 items-center sm:px-4">
           <span title={simplifyDate(feed.last_run)}>

@@ -8,7 +8,8 @@ import { useTranslation } from "react-i18next";
 
 import { ReleasesTopFiltersQueryOptions, ReleasesTopIndexersQueryOptions } from "@api/queries";
 import { SettingsContext } from "@utils/Context";
-import { ChartCard, ChartError, ChartSkeleton, seriesColors, useIsDark } from "./charts";
+import { ChartCard, ChartError, ChartSkeleton } from "./charts";
+import { seriesColors, useIsDark } from "./chartTheme";
 
 interface BreakdownRow {
   name: string;

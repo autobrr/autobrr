@@ -7,9 +7,7 @@ import {
   createRootRouteWithContext,
   createRoute,
   createRouter,
-  Navigate,
   notFound,
-  Outlet,
   redirect,
 } from "@tanstack/react-router";
 import { z } from "zod";
@@ -38,23 +36,21 @@ import NotificationSettings from "@screens/settings/Notifications";
 import ApplicationSettings from "@screens/settings/Application";
 import { Logs } from "@screens/Logs";
 import IrcSettings from "@screens/settings/Irc";
-import { Header } from "@components/header";
 import { RingResizeSpinner } from "@components/Icons";
 import APISettings from "@screens/settings/Api";
 import { Releases } from "@screens/Releases";
 import IndexerSettings from "@screens/settings/Indexer";
-import DownloaderSettings from "@screens/settings/Downloaders.tsx";
+import DownloaderSettings from "@screens/settings/Downloaders";
 import FeedSettings from "@screens/settings/Feed";
 import { Dashboard } from "@screens/Dashboard";
 import AccountSettings from "@screens/settings/Account";
-import { AuthContext, SettingsContext } from "@utils/Context";
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { AuthContext } from "@utils/Context";
 import { queryClient } from "@api/QueryClient";
 import ProxySettings from "@screens/settings/Proxy";
 import ListsSettings from "@screens/settings/Lists";
 
 import { ErrorPage } from "@components/alerts";
+import { AuthenticatedLayout, RootComponent } from "@components/layouts";
 
 const DashboardRoute = createRoute({
   getParentRoute: () => AuthIndexRoute,
@@ -343,40 +339,11 @@ export const AuthRoute = createRoute({
   },
 })
 
-function AuthenticatedLayout() {
-  const isLoggedIn = AuthContext.useSelector((s) => s.isLoggedIn);
-  if (!isLoggedIn) {
-    return <Navigate to="/login" search={{ redirect: location.pathname + location.search }} />;
-  }
-
-  return (
-    <div className="flex flex-col min-h-screen">
-      <Header />
-      <Outlet />
-    </div>
-  )
-}
-
 export const AuthIndexRoute = createRoute({
   getParentRoute: () => AuthRoute,
   component: AuthenticatedLayout,
   id: 'authenticated-routes',
 });
-
-export const RootComponent = () => {
-  const settings = SettingsContext.useValue();
-  return (
-    <div className="flex flex-col min-h-screen">
-      <Outlet />
-      {settings.debug ? (
-        <>
-          {import.meta.env.DEV && <TanStackRouterDevtools />}
-          {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
-        </>
-      ) : null}
-    </div>
-  )
-}
 
 export const RootRoute = createRootRouteWithContext<{
   queryClient: QueryClient

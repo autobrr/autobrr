@@ -463,7 +463,7 @@ export interface componentMapType {
   [key: string]: ReactElement;
 }
 
-export const componentMap: componentMapType = {
+const componentMap: componentMapType = {
   DELUGE_V1: <FormFieldsDeluge />,
   DELUGE_V2: <FormFieldsDeluge />,
   QBITTORRENT: <FormFieldsQbit />,
@@ -643,7 +643,7 @@ function FormFieldsRulesTransmission() {
   );
 }
 
-export const rulesComponentMap: componentMapType = {
+const rulesComponentMap: componentMapType = {
   DELUGE_V1: <FormFieldsRulesBasic />,
   DELUGE_V2: <FormFieldsRulesBasic />,
   QBITTORRENT: <FormFieldsRulesQbit />,

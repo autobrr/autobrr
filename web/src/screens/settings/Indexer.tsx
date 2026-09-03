@@ -102,12 +102,14 @@ const ImplementationBadgeRSS = () => (
   </span>
 );
 
-export const ImplementationBadges: componentMapType = {
+const ImplementationBadges: componentMapType = {
   irc: <ImplementationBadgeIRC />,
   torznab: <ImplementationBadgeTorznab />,
   newznab: <ImplementationBadgeNewznab />,
   rss: <ImplementationBadgeRSS />
 };
+
+export const ImplementationBadge = ({ implementation }: { implementation: string }) => ImplementationBadges[implementation.toLowerCase()] ?? null;
 
 interface ListItemProps {
   indexer: IndexerDefinition;

@@ -14,7 +14,8 @@ import { curveMonotoneX } from "d3-shape";
 import { format } from "date-fns";
 
 import { ReleasesActivityQueryOptions } from "@api/queries";
-import { ChartCard, ChartError, ChartLegend, ChartSkeleton, RangeSelect, chartTheme, seriesColors, useIsDark } from "./charts";
+import { ChartCard, ChartError, ChartLegend, ChartSkeleton, RangeSelect } from "./charts";
+import { chartTheme, seriesColors, useIsDark } from "./chartTheme";
 
 interface ActivityDatum {
   date: Date;
