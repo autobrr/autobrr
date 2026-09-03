@@ -51,7 +51,6 @@ export const Logs = () => {
 
   const [logs, setLogs] = useState<LogEvent[]>([]);
   const [searchFilter, setSearchFilter] = useState("");
-  const [, setRegexPattern] = useState<RegExp | null>(null);
   const [filteredLogs, setFilteredLogs] = useState<LogEvent[]>([]);
   const [isInvalidRegex, setIsInvalidRegex] = useState(false);
 
@@ -65,11 +64,6 @@ export const Logs = () => {
       scrollToBottom();
   }, [filteredLogs, settings.scrollOnNewLog]);
 
-  // Add a useEffect to clear logs div when settings.scrollOnNewLog changes to prevent duplicate entries.
-  useEffect(() => {
-    setLogs([]);
-  }, [settings.scrollOnNewLog]);
-
   useEffect(() => {
     const es = APIClient.events.logs();
 
@@ -79,7 +73,7 @@ export const Logs = () => {
     };
 
     return () => es.close();
-  }, [setLogs, settings]);
+  }, []);
 
   useEffect(() => {
     if (!searchFilter.length) {
@@ -90,7 +84,6 @@ export const Logs = () => {
 
     try {
       const pattern = new RegExp(searchFilter, "i");
-      setRegexPattern(pattern);
       const newLogs = logs.filter(log => pattern.test(log.message));
       setFilteredLogs(newLogs);
       setIsInvalidRegex(false);

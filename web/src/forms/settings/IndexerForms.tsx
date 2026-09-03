@@ -784,6 +784,14 @@ function IndexerIdentifierField({ data, setIndexer }: IndexerIdentifierFieldProp
   const { t } = useTranslation("settings");
   const form = useFormContext();
 
+  const options = useMemo(
+    () => data?.toSorted((a, b) => a.name.localeCompare(b.name)).map((v) => ({
+      label: v.name,
+      value: v.identifier
+    })),
+    [data]
+  );
+
   return (
     <form.Field name="identifier">
       {(field) => (
@@ -837,10 +845,7 @@ function IndexerIdentifierField({ data, setIndexer }: IndexerIdentifierFieldProp
               }
             }
           }}
-          options={data && data.sort((a, b) => a.name.localeCompare(b.name)).map(v => ({
-            label: v.name,
-            value: v.identifier
-          }))}
+          options={options}
         />
       )}
     </form.Field>

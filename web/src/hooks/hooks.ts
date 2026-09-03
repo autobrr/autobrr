@@ -35,7 +35,7 @@ const getInitialState = (query: string, defaultState?: boolean) => {
 };
 
 export const useMedia = (query: string, defaultState?: boolean) => {
-  const [state, setState] = useState(getInitialState(query, defaultState));
+  const [state, setState] = useState(() => getInitialState(query, defaultState));
 
   useEffect(() => {
     let mounted = true;
