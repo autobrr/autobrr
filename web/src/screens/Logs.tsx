@@ -18,7 +18,7 @@ import { format } from "date-fns/format";
 
 import { APIClient } from "@api/APIClient";
 import { Checkbox } from "@components/Checkbox";
-import { baseUrl, classNames, simplifyDate } from "@utils";
+import { classNames, simplifyDate } from "@utils";
 import { SettingsContext } from "@utils/Context";
 import { EmptySimple } from "@components/emptystates";
 import { RingResizeSpinner } from "@components/Icons";
@@ -244,19 +244,19 @@ const LogFilesItem = ({ file }: LogFilesItemProps) => {
       <Toast type="info" body={t("logs.sanitizing")} t={toastInstance} />
     ));
 
-    const response = await fetch(`${baseUrl()}api/logs/files/${file.filename}`);
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = file.filename;
-    link.click();
-    URL.revokeObjectURL(url);
-
-    // Dismiss the custom toast after the download is complete
-    toast.dismiss(toastId);
-
-    setIsDownloading(false);
+    try {
+      const response = await APIClient.logs.download(file.filename);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = file.filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      toast.dismiss(toastId);
+      setIsDownloading(false);
+    }
   };
 
   return (

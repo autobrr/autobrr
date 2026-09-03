@@ -422,6 +422,7 @@ export const APIClient = {
   },
   logs: {
     files: () => appClient.Get<LogFileResponse>("api/logs/files"),
+    download: (filename: string) => appClient.Get<Response>(`api/logs/files/${encodeURIComponent(filename)}`),
     getFile: (file: string) => appClient.Get(`api/logs/files/${file}`)
   },
   events: {

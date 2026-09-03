@@ -613,9 +613,6 @@ function ListTypeArr({ listType, clients }: ListTypeFormProps) {
   const { t } = useTranslation("settings");
   const values = useFormValues<List>();
 
-  useEffect(() => {
-  }, [values.client_id]);
-
   const arrTagsQuery = useQuery(DownloadersArrTagsQueryOptions(values.client_id));
 
   return (

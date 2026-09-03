@@ -80,9 +80,10 @@ const ImportJSON = async (inputFilterText: string) => {
     const existingFilters = await APIClient.filters.getAll();
 
     // Create a unique filter title by appending an incremental number if title is taken by another filter
+    const existingNames = new Set(existingFilters.map((filter) => filter.name));
     let nameCounter = 0;
     let uniqueFilterName = importedData.name;
-    while (existingFilters.some((filter) => filter.name === uniqueFilterName)) {
+    while (existingNames.has(uniqueFilterName)) {
       nameCounter++;
       uniqueFilterName = `${importedData.name}-${nameCounter}`;
     }
@@ -135,24 +136,29 @@ const ImportAutodlIrssi = async (inputText: string) => {
     return;
   }
 
-  let numSuccess = 0;
-  for (const filter of parser.releaseFilters) {
-    try {
-      await APIClient.filters.create(filter.values as unknown as Filter);
-      ++numSuccess;
-    } catch (e) {
-      console.error(`Failed to import autodl-irssi filter '${filter.name}': `, e);
-      console.error("  --> Filter: ", filter);
+  const results = await Promise.allSettled(
+    parser.releaseFilters.map((filter) => APIClient.filters.create(filter.values as unknown as Filter))
+  );
 
-      toast.custom((t) =>
-        <Toast
-          type="error"
-          body={i18n.t("filters:importer.autodlImportFailed", { name: filter.name })}
-          t={t}
-        />
-      );
+  let numSuccess = 0;
+  results.forEach((result, index) => {
+    if (result.status === "fulfilled") {
+      ++numSuccess;
+      return;
     }
-  }
+
+    const filter = parser.releaseFilters[index];
+    console.error(`Failed to import autodl-irssi filter '${filter.name}': `, result.reason);
+    console.error("  --> Filter: ", filter);
+
+    toast.custom((t) =>
+      <Toast
+        type="error"
+        body={i18n.t("filters:importer.autodlImportFailed", { name: filter.name })}
+        t={t}
+      />
+    );
+  });
 
   if (numSuccess === parser.releaseFilters.length) {
     toast.custom((t) =>
