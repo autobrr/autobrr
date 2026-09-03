@@ -390,7 +390,7 @@ function ListUpdateFormPanel({ toggle, data }: ListUpdateFormPanelProps) {
                 <div className="h-7 flex items-center">
                   <button
                     type="button"
-                    className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                    className="bg-white dark:bg-gray-700 rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 cursor-pointer"
                     onClick={toggle}
                   >
                     <span className="sr-only">{t("forms.list.closePanel")}</span>

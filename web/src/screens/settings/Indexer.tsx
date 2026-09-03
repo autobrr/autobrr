@@ -197,7 +197,7 @@ function IndexerSettings() {
         <button
           type="button"
           onClick={toggleAddIndexer}
-          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 cursor-pointer"
         >
           <PlusIcon className="h-5 w-5 mr-1" />
           {t("listScreens.common.addNew")}
@@ -339,7 +339,7 @@ function DeprecatedIndexers() {
               type="button"
               onClick={() => setPendingAction({ type: "prune", identifiers: [] })}
               disabled={pruneMutation.isPending}
-              className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-red-600 dark:bg-red-600 hover:bg-red-700 dark:hover:bg-red-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+              className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-red-600 dark:bg-red-600 hover:bg-red-700 dark:hover:bg-red-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
             >
               <ArchiveBoxXMarkIcon className="h-5 w-5 mr-1" />
               {t("listScreens.indexers.deprecated.pruneAll")}
@@ -403,7 +403,7 @@ function DeprecatedIndexers() {
                           name: meta?.name || indexer.name
                         })}
                         disabled={pruneMutation.isPending}
-                        className="text-sm font-medium text-amber-700 hover:text-amber-900 dark:text-amber-400 dark:hover:text-amber-300 disabled:opacity-50"
+                        className="text-sm font-medium text-amber-700 hover:text-amber-900 dark:text-amber-400 dark:hover:text-amber-300 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                       >
                         {t("listScreens.indexers.deprecated.pruneOne")}
                       </button>
@@ -416,7 +416,7 @@ function DeprecatedIndexers() {
                           name: meta?.name || indexer.name
                         })}
                         disabled={purgeMutation.isPending}
-                        className="inline-flex items-center text-sm font-medium text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 disabled:opacity-50"
+                        className="inline-flex items-center text-sm font-medium text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                       >
                         <TrashIcon className="h-4 w-4 mr-1" aria-hidden="true" />
                         {t("listScreens.indexers.deprecated.purge")}

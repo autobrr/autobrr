@@ -379,7 +379,7 @@ function FeedCategoriesSection({ feedID }: { feedID: number }) {
             return (
               <div key={category.id} className="space-y-2">
                 <label
-                  className="flex items-center justify-between gap-3 text-sm text-gray-700 dark:text-gray-200"
+                  className="flex items-center justify-between gap-3 text-sm text-gray-700 dark:text-gray-200 cursor-pointer"
                   onClick={(event) => event.stopPropagation()}
                 >
                   <span className="flex items-center gap-3">
@@ -388,7 +388,7 @@ function FeedCategoriesSection({ feedID }: { feedID: number }) {
                       checked={(values.categories ?? []).includes(category.id)}
                       onChange={() => toggleParentCategory(category.id, childIds)}
                       onClick={(event) => event.stopPropagation()}
-                      className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800"
+                      className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 cursor-pointer"
                     />
                     <span className="font-medium truncate">{category.name}</span>
                   </span>
@@ -398,7 +398,7 @@ function FeedCategoriesSection({ feedID }: { feedID: number }) {
                 {category.subcategories.map((subCategory) => (
                   <label
                     key={subCategory.id}
-                    className="flex items-center justify-between gap-3 pl-6 text-sm text-gray-700 dark:text-gray-200"
+                    className="flex items-center justify-between gap-3 pl-6 text-sm text-gray-700 dark:text-gray-200 cursor-pointer"
                     onClick={(event) => event.stopPropagation()}
                   >
                     <span className="flex items-center gap-3">

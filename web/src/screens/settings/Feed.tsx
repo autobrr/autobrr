@@ -321,7 +321,7 @@ const FeedItemDropdown = ({
         title={t("listScreens.feeds.forceRunTitle", { name: feed.name })}
         text={t("listScreens.feeds.forceRunText", { name: feed.name })}
       />
-      <MenuButton className="px-4 py-2">
+      <MenuButton className="px-4 py-2 cursor-pointer">
         <EllipsisHorizontalIcon
           className="w-5 h-5 text-gray-700 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-400"
           aria-hidden="true"
@@ -345,6 +345,7 @@ const FeedItemDropdown = ({
               {({ active }) => (
                 <button
                   className={classNames(
+                    "cursor-pointer",
                     active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
                     "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
                   )}
@@ -365,6 +366,7 @@ const FeedItemDropdown = ({
               {({ active }) => (
                 <button
                   className={classNames(
+                    "cursor-pointer",
                     active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
                     "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
                   )}
@@ -388,6 +390,7 @@ const FeedItemDropdown = ({
                 <button
                   onClick={() => toggleForceRunModal()}
                   className={classNames(
+                    "cursor-pointer",
                     active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
                     "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
                   )}
@@ -419,6 +422,7 @@ const FeedItemDropdown = ({
               {({ active }) => (
                 <button
                   className={classNames(
+                    "cursor-pointer",
                     active ? "bg-red-600 text-white" : "text-gray-900 dark:text-gray-300",
                     "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
                   )}
@@ -442,6 +446,7 @@ const FeedItemDropdown = ({
               {({ active }) => (
                 <button
                   className={classNames(
+                    "cursor-pointer",
                     active ? "bg-red-600 text-white" : "text-gray-900 dark:text-gray-300",
                     "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
                   )}

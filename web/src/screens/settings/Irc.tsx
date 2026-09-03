@@ -186,7 +186,7 @@ const IrcSettings = () => {
         <button
           type="button"
           onClick={toggleAddNetwork}
-          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 cursor-pointer"
         >
           <PlusIcon className="h-5 w-5 mr-1" />
           {t("forms.irc.addNew")}
@@ -227,7 +227,7 @@ const IrcSettings = () => {
         </ul>
         <div className="flex gap-x-2">
           <button
-            className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded-sm shadow-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600"
+            className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded-sm shadow-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 cursor-pointer"
             onClick={toggleExpand}
             title={expandNetworks ? t("forms.irc.collapseTitle") : t("forms.irc.expandTitle")}
           >
@@ -450,7 +450,7 @@ const ChannelItem = ({ network, channel }: ChannelItemProps) => {
       )}
     >
       <div
-        className="grid grid-cols-12 gap-4 items-center py-4 "
+        className="grid grid-cols-12 gap-4 items-center py-4 cursor-pointer"
         onClick={toggleView}
       >
         <div className="col-span-5 sm:col-span-4 flex flex-col md:px-6 pl-2 sm:pl-0">
@@ -482,7 +482,7 @@ const ChannelItem = ({ network, channel }: ChannelItemProps) => {
           </span>
         </div>
         <div className="col-span-1 flex items-center justify-end">
-          <button className="hover:text-gray-500 px-2 mx-2 py-1 dark:bg-gray-800 rounded-sm dark:border-gray-900">
+          <button className="hover:text-gray-500 px-2 mx-2 py-1 dark:bg-gray-800 rounded-sm dark:border-gray-900 cursor-pointer">
             {viewChannel ? t("forms.irc.hide") : t("forms.irc.view")}
           </button>
         </div>
@@ -613,7 +613,7 @@ const ListItemDropdown = ({
         title={t("forms.irc.removeNetworkTitle", { name: network.name })}
         text={t("forms.irc.removeNetworkText")}
       />
-      <MenuButton className="px-4 py-2">
+      <MenuButton className="px-4 py-2 cursor-pointer">
         <EllipsisHorizontalIcon
           className="w-5 h-5 text-gray-700 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-400"
           aria-hidden="true"
@@ -637,6 +637,7 @@ const ListItemDropdown = ({
               {({ active }) => (
                 <button
                   className={classNames(
+                    "cursor-pointer",
                     active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
                     "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
                   )}
@@ -677,6 +678,7 @@ const ListItemDropdown = ({
               {({ active }) => (
                 <button
                   className={classNames(
+                    "cursor-pointer disabled:cursor-not-allowed",
                     "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm",
                     network.enabled
                       ? active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300"
@@ -705,6 +707,7 @@ const ListItemDropdown = ({
               {({ active }) => (
                 <button
                   className={classNames(
+                    "cursor-pointer",
                     active ? "bg-red-600 text-white" : "text-gray-900 dark:text-gray-300",
                     "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
                   )}
@@ -761,7 +764,7 @@ const ReprocessAnnounceButton = ({ networkId, channel, msg }: ReprocessAnnounceP
 
   return (
     <div className="block">
-    <button className="flex items-center justify-center size-5 mr-1 p-1 rounded-sm transition border-gray-500 bg-gray-250 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600" onClick={reprocessAnnounce} title={t("forms.irc.reprocessAnnounce")}>
+    <button className="flex items-center justify-center size-5 mr-1 p-1 rounded-sm transition border-gray-500 bg-gray-250 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 cursor-pointer" onClick={reprocessAnnounce} title={t("forms.irc.reprocessAnnounce")}>
       {mutation.isPending
         ? <RingResizeSpinner className="text-blue-500 iconHeight" aria-hidden="true" />
         : <ArrowPathIcon />
@@ -898,7 +901,7 @@ const IRCLogsDropdown = () => {
   //  at IRCLogsDropdown (http://localhost:3000/src/screens/settings/Irc.tsx?t=1694269937935:1354:53)
   return (
     <Menu as="div" className="relative">
-      <MenuButton className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded-sm shadow-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">
+      <MenuButton className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded-sm shadow-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 cursor-pointer">
         <span className="flex items-center">{t("forms.irc.options")} <Cog6ToothIcon className="ml-1 w-4 h-4" /></span>
       </MenuButton>
       <Transition

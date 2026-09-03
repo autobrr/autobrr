@@ -184,7 +184,7 @@ const RetryActionButton = ({ status }: RetryActionButtonProps) => {
   };
 
   return (
-    <button className="flex items-center px-1.5 py-1 ml-2 rounded-sm transition border-gray-500 bg-gray-250 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600" onClick={replayAction}>
+    <button className="flex items-center px-1.5 py-1 ml-2 rounded-sm transition border-gray-500 bg-gray-250 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 cursor-pointer" onClick={replayAction}>
       <span className="mr-1.5">{t("releaseTable.retry")}</span>
       {mutation.isPending
         ? <RingResizeSpinner className="text-blue-500 w-4 h-4 iconHeight" aria-hidden="true" />

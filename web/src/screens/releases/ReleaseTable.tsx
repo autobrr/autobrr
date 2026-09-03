@@ -437,7 +437,7 @@ export const ReleaseTable = () => {
               <div className="absolute -bottom-11 right-0 p-2">
                 <button
                   onClick={toggleReleaseNames}
-                  className="p-2 absolute bottom-0 right-0 bg-gray-750 text-white rounded-full opacity-10 hover:opacity-100 transition-opacity duration-300"
+                  className="p-2 absolute bottom-0 right-0 bg-gray-750 text-white rounded-full opacity-10 hover:opacity-100 transition-opacity duration-300 cursor-pointer"
                   aria-label={t("releaseTable.toggleView")}
                   title={t("releaseTable.goIncognito")}
                 >

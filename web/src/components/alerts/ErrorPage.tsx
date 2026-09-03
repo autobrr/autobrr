@@ -88,7 +88,7 @@ export const ErrorPage = ({ error, reset }: ErrorPageProps) => {
           </span>
           <button
             type="button"
-            className="text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:outline-hidden focus:ring-red-300 font-medium rounded-lg text-sm px-3 py-1.5 mr-2 text-center inline-flex items-center dark:bg-red-800 dark:hover:bg-red-900"
+            className="text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:outline-hidden focus:ring-red-300 font-medium rounded-lg text-sm px-3 py-1.5 mr-2 text-center inline-flex items-center dark:bg-red-800 dark:hover:bg-red-900 cursor-pointer"
             onClick={(event) => {
               event.preventDefault();
               reset();
