@@ -5,7 +5,7 @@
 
 import { useTranslation } from "react-i18next";
 
-import { useFormValues } from "@hooks/form";
+import { useFormValue } from "@hooks/form";
 import { DocsLink } from "@components/ExternalLink";
 import { WarningAlert } from "@components/alerts";
 import {
@@ -29,7 +29,7 @@ import {
 
 const Releases = () => {
   const { t } = useTranslation("filters");
-  const values = useFormValues<Filter>();
+  const values = useFormValue((v: Filter) => ({ except_releases: v.except_releases, match_releases: v.match_releases, use_regex: v.use_regex }));
 
   return (
     <CollapsibleSection
@@ -116,7 +116,7 @@ const Releases = () => {
 
 const Groups = () => {
   const { t } = useTranslation("filters");
-  const values = useFormValues<Filter>();
+  const values = useFormValue((v: Filter) => ({ except_release_groups: v.except_release_groups, match_release_groups: v.match_release_groups }));
 
   return (
     <CollapsibleSection
@@ -154,7 +154,7 @@ const Groups = () => {
 
 const Categories = () => {
   const { t } = useTranslation("filters");
-  const values = useFormValues<Filter>();
+  const values = useFormValue((v: Filter) => ({ except_categories: v.except_categories, match_categories: v.match_categories }));
 
   return (
     <CollapsibleSection
@@ -192,7 +192,7 @@ const Categories = () => {
 
 const Tags = () => {
   const { t } = useTranslation("filters");
-  const values = useFormValues<Filter>();
+  const values = useFormValue((v: Filter) => ({ except_tags: v.except_tags, tags: v.tags }));
 
   return (
     <CollapsibleSection
@@ -260,7 +260,7 @@ const Tags = () => {
 
 const Uploaders = () => {
   const { t } = useTranslation("filters");
-  const values = useFormValues<Filter>();
+  const values = useFormValue((v: Filter) => ({ except_uploaders: v.except_uploaders, match_uploaders: v.match_uploaders }));
 
   return (
     <CollapsibleSection
@@ -298,7 +298,7 @@ const Uploaders = () => {
 
 const Language = () => {
   const { t } = useTranslation("filters");
-  const values = useFormValues<Filter>();
+  const values = useFormValue((v: Filter) => ({ except_language: v.except_language, match_language: v.match_language }));
 
   return (
     <CollapsibleSection
@@ -324,7 +324,7 @@ const Language = () => {
 
 const Origins = () => {
   const { t } = useTranslation("filters");
-  const values = useFormValues<Filter>();
+  const values = useFormValue((v: Filter) => ({ except_origins: v.except_origins, origins: v.origins }));
 
   return (
     <CollapsibleSection
@@ -350,7 +350,7 @@ const Origins = () => {
 
 const Freeleech = () => {
   const { t } = useTranslation("filters");
-  const values = useFormValues<Filter>();
+  const values = useFormValue((v: Filter) => ({ freeleech: v.freeleech, freeleech_percent: v.freeleech_percent }));
 
   return (
     <CollapsibleSection
@@ -403,7 +403,7 @@ const Freeleech = () => {
 
 const FeedSpecific = () => {
   const { t } = useTranslation("filters");
-  const values = useFormValues<Filter>();
+  const values = useFormValue((v: Filter) => ({ except_description: v.except_description, match_description: v.match_description, max_leechers: v.max_leechers, max_seeders: v.max_seeders, min_leechers: v.min_leechers, min_seeders: v.min_seeders, use_regex_description: v.use_regex_description }));
 
   return (
     <CollapsibleSection
@@ -514,7 +514,7 @@ const FeedSpecific = () => {
 }
 const RawReleaseTags = () => {
   const { t } = useTranslation("filters");
-  const values = useFormValues<Filter>();
+  const values = useFormValue((v: Filter) => ({ except_release_tags: v.except_release_tags, match_release_tags: v.match_release_tags, use_regex_release_tags: v.use_regex_release_tags }));
 
   return (
     <CollapsibleSection

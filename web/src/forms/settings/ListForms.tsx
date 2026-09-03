@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Fragment, JSX, useEffect, useRef, useState } from "react";
+import { Fragment, JSX, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSelector } from "@tanstack/react-form";
 import Select from "react-select";
@@ -21,7 +21,7 @@ import { APIClient } from "@api/APIClient";
 import { ListKeys } from "@api/query_keys";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
-import * as common from "@components/inputs/common";
+import { selectComponents, selectStyles, selectTheme } from "@components/inputs/select_props";
 import {
   MultiSelectOption,
   PasswordFieldWide,
@@ -36,7 +36,7 @@ import {
   ListTypeOptions,
   OptionBasicTyped
 } from "@domain/constants";
-import { DEBUG } from "@components/debug";
+import { FormDebug } from "@components/debug";
 import {
   DownloadersArrTagsQueryOptions,
   DownloadersQueryOptions,
@@ -51,8 +51,13 @@ import {
 import { DocsTooltip } from "@components/tooltips/DocsTooltip";
 import { MultiSelect as RMSC } from "react-multi-select-component";
 import { useToggle } from "@hooks/hooks.ts";
-import { errorMessages, fieldErrors, fieldHasError, useAppForm, useFormContext, useFormValues } from "@hooks/form";
+import { errorMessages, fieldErrors, fieldHasError, useAppForm, useFormContext, useFormValue } from "@hooks/form";
 import type { FormFieldErrors } from "@hooks/form";
+
+const LISTSTRAKT_SELECT_OPTIONS = ListsTraktOptions.map((u) => ({ value: u.value, label: u.label, key: u.label }));
+const LISTSANILIST_SELECT_OPTIONS = ListsAniListOptions.map((u) => ({ value: u.value, label: u.label, key: u.label }));
+const LISTSMETACRITIC_SELECT_OPTIONS = ListsMetacriticOptions.map((u) => ({ value: u.value, label: u.label, key: u.label }));
+const LISTSMDBLIST_SELECT_OPTIONS = ListsMDBListOptions.map((u) => ({ value: u.value, label: u.label, key: u.label }));
 import { DeleteModal } from "@components/modals";
 import { SlideOverShell, SlideOverTitle } from "@components/panels";
 import {DocsLink} from "@components/ExternalLink.tsx";
@@ -136,7 +141,7 @@ function ListAddFormPanel({ toggle }: ListAddFormPanelProps) {
     onSubmit: ({ value }) => onSubmit(value)
   });
 
-  const values = useSelector(form.store, (state) => state.values);
+  const type = useSelector(form.store, (state) => state.values.type);
 
   return (
     <form.AppForm>
@@ -193,33 +198,19 @@ function ListAddFormPanel({ toggle }: ListAddFormPanelProps) {
                       name={field.name}
                       isClearable={true}
                       isSearchable={true}
-                      components={{
-                        Input: common.SelectInput,
-                        Control: common.SelectControl,
-                        Menu: common.SelectMenu,
-                        Option: common.SelectOption,
-                        IndicatorSeparator: common.IndicatorSeparator,
-                        DropdownIndicator: common.DropdownIndicator
-                      }}
+                      components={selectComponents}
                       placeholder={t("forms.list.chooseType")}
-                      styles={{
-                        singleValue: (base) => ({
-                          ...base,
-                          color: "unset"
-                        })
-                      }}
-                      theme={(theme) => ({
-                        ...theme,
-                        spacing: {
-                          ...theme.spacing,
-                          controlHeight: 30,
-                          baseUnit: 2
-                        }
-                      })}
+                      styles={selectStyles}
+                      theme={selectTheme}
                       value={ListTypeOptions.find((o) => o.value === field.state.value) ?? null}
                       onChange={(newValue: unknown) => {
                         const option = newValue as { value: string };
-                        field.handleChange(option?.value ?? "");
+                        const nextType = option?.value ?? "";
+                        if (nextType !== field.state.value) {
+                          form.setFieldValue("client_id", 0, { dontUpdateMeta: true });
+                          form.setFieldValue("url", "", { dontUpdateMeta: true });
+                        }
+                        field.handleChange(nextType);
                       }}
                       onBlur={field.handleBlur}
                       options={ListTypeOptions}
@@ -232,7 +223,7 @@ function ListAddFormPanel({ toggle }: ListAddFormPanelProps) {
             <SwitchGroupWide name="enabled" label={t("forms.list.enabled")}/>
           </div>
 
-          <ListTypeForm listType={values.type as ListType} clients={clients ?? []}/>
+          <ListTypeForm listType={type as ListType} clients={clients ?? []}/>
 
           <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
             <div className="border-t border-gray-200 dark:border-gray-700 py-4">
@@ -254,7 +245,7 @@ function ListAddFormPanel({ toggle }: ListAddFormPanelProps) {
 
             </div>
           </div>
-          <DEBUG values={values}/>
+          <FormDebug />
         </div>
 
         <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4 sm:px-6">
@@ -352,7 +343,7 @@ function ListUpdateFormPanel({ toggle, data }: ListUpdateFormPanelProps) {
     onSubmit: ({ value }) => onSubmit(value)
   });
 
-  const values = useSelector(form.store, (state) => state.values);
+  const type = useSelector(form.store, (state) => state.values.type);
 
   return (
     <>
@@ -409,7 +400,7 @@ function ListUpdateFormPanel({ toggle, data }: ListUpdateFormPanelProps) {
               <SwitchGroupWide name="enabled" label={t("forms.list.enabled")}/>
 
               <div className="space-y-2 divide-y divide-gray-200 dark:divide-gray-700">
-                <ListTypeForm listType={values.type} clients={clientsQuery.data ?? []}/>
+                <ListTypeForm listType={type} clients={clientsQuery.data ?? []}/>
               </div>
 
               <div className="flex flex-col space-y-4 py-6 sm:py-0 sm:space-y-0">
@@ -434,7 +425,7 @@ function ListUpdateFormPanel({ toggle, data }: ListUpdateFormPanelProps) {
               </div>
 
             </div>
-            <DEBUG values={values}/>
+            <FormDebug />
           </div>
 
           <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4">
@@ -524,18 +515,7 @@ interface ListTypeFormProps {
 }
 
 const ListTypeForm = (props: ListTypeFormProps) => {
-  const form = useFormContext();
-  const [prevActionType, setPrevActionType] = useState<string | null>(null);
   const { listType } = props;
-
-  useEffect(() => {
-    if (prevActionType !== null && prevActionType !== listType && ListTypeOptions.map(l => l.value).includes(listType)) {
-      form.setFieldValue("client_id", 0, { dontUpdateMeta: true });
-      form.setFieldValue("url", "", { dontUpdateMeta: true });
-    }
-
-    setPrevActionType(listType);
-  }, [listType, prevActionType, form]);
 
   switch (listType) {
     case "RADARR":
@@ -611,10 +591,7 @@ const FilterOptionCheckBoxes = (props: ListTypeFormProps) => {
 
 function ListTypeArr({ listType, clients }: ListTypeFormProps) {
   const { t } = useTranslation("settings");
-  const values = useFormValues<List>();
-
-  useEffect(() => {
-  }, [values.client_id]);
+  const values = useFormValue((v: List) => ({ client_id: v.client_id, type: v.type }));
 
   const arrTagsQuery = useQuery(DownloadersArrTagsQueryOptions(values.client_id));
 
@@ -658,7 +635,7 @@ function ListTypeArr({ listType, clients }: ListTypeFormProps) {
 
 function ListTypeTrakt() {
   const { t } = useTranslation("settings");
-  const values = useFormValues<List>();
+  const values = useFormValue((v: List) => ({ url: v.url }));
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
@@ -675,7 +652,7 @@ function ListTypeTrakt() {
         name="url"
         label={t("forms.list.listUrl")}
         help={t("forms.list.traktHelp")}
-        options={ListsTraktOptions.map(u => ({ value: u.value, label: u.label, key: u.label }))}
+        options={LISTSTRAKT_SELECT_OPTIONS}
       />
 
       {!values.url.startsWith("https://api.autobrr.com/") && (
@@ -712,7 +689,7 @@ function ListTypeAniList() {
       <SelectFieldBasic
         name="url"
         label={t("forms.list.listUrl")}
-        options={ListsAniListOptions.map(u => ({ value: u.value, label: u.label, key: u.label }))}
+        options={LISTSANILIST_SELECT_OPTIONS}
       />
 
       <div className="space-y-1">
@@ -806,7 +783,7 @@ function ListTypeMetacritic() {
         name="url"
         label={t("forms.list.listUrl")}
         help={t("forms.list.metacriticHelp")}
-        options={ListsMetacriticOptions.map(u => ({ value: u.value, label: u.label, key: u.label }))}
+        options={LISTSMETACRITIC_SELECT_OPTIONS}
       />
 
       <div className="space-y-1">
@@ -822,14 +799,6 @@ function ListTypeMetacritic() {
 function ListTypeMDBList() {
     const { t } = useTranslation("settings");
     const form = useFormContext();
-    const values = useFormValues<List>();
-
-    useEffect(() => {
-        if (!values.match_release && values.include_year) {
-            form.setFieldValue("match_release", true);
-        }
-
-    }, [form, values.include_year, values.match_release])
 
     return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-4">
@@ -846,14 +815,23 @@ function ListTypeMDBList() {
         name="url"
         label={t("forms.list.listUrl")}
         help={t("forms.list.mdblistHelp")}
-        options={ListsMDBListOptions.map(u => ({ value: u.value, label: u.label, key: u.label }))}
+        options={LISTSMDBLIST_SELECT_OPTIONS}
       />
 
       <div className="space-y-1">
         <fieldset>
           <legend className="sr-only">{t("forms.list.settingsLegend")}</legend>
           <SwitchGroupWide name="match_release" label={t("forms.list.matchRelease")} description={t("forms.list.matchReleaseDesc")} />
-          <SwitchGroupWide name="include_year" label={t("forms.list.includeYear")} description={t("forms.list.includeYearDesc")} />
+          <SwitchGroupWide
+            name="include_year"
+            label={t("forms.list.includeYear")}
+            description={t("forms.list.includeYearDesc")}
+            onChange={(includeYear) => {
+              if (includeYear) {
+                form.setFieldValue("match_release", true);
+              }
+            }}
+          />
         </fieldset>
       </div>
     </div>

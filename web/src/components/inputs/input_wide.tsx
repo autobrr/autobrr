@@ -17,15 +17,8 @@ import { SelectFieldProps } from "./select";
 
 import { DocsTooltip } from "@components/tooltips/DocsTooltip";
 import { Checkbox } from "@components/Checkbox";
-import {
-  DropdownIndicator,
-  ErrorField, IndicatorSeparator,
-  RequiredField,
-  SelectControl,
-  SelectInput,
-  SelectMenu,
-  SelectOption
-} from "@components/inputs/common.tsx";
+import { ErrorField, RequiredField } from "@components/inputs/common.tsx";
+import { selectComponents, selectStyles, selectTheme } from "@components/inputs/select_props";
 
 export type FieldValidator = (value: string) => string | undefined;
 
@@ -270,13 +263,15 @@ interface SwitchGroupWideProps {
   defaultValue?: boolean;
   className?: string;
   tooltip?: JSX.Element;
+  onChange?: (value: boolean) => void;
 }
 
 export const SwitchGroupWide = ({
   name,
   label,
   description,
-  tooltip
+  tooltip,
+  onChange
 }: SwitchGroupWideProps) => {
   const form = useFormContext();
 
@@ -303,7 +298,10 @@ export const SwitchGroupWide = ({
             <Checkbox
               name={name}
               value={!!field.state.value}
-              setValue={(value) => field.handleChange(value)}
+              setValue={(value) => {
+                field.handleChange(value);
+                onChange?.(value);
+              }}
             />
           )}
         </form.Field>
@@ -343,29 +341,10 @@ export const SelectFieldWide = ({
               name={name}
               isClearable={true}
               isSearchable={true}
-              components={{
-                Input: SelectInput,
-                Control: SelectControl,
-                Menu: SelectMenu,
-                Option: SelectOption,
-                IndicatorSeparator: IndicatorSeparator,
-                DropdownIndicator: DropdownIndicator
-              }}
+              components={selectComponents}
               placeholder={optionDefaultText}
-              styles={{
-                singleValue: (base) => ({
-                  ...base,
-                  color: "unset"
-                })
-              }}
-              theme={(theme) => ({
-                ...theme,
-                spacing: {
-                  ...theme.spacing,
-                  controlHeight: 30,
-                  baseUnit: 2
-                }
-              })}
+              styles={selectStyles}
+              theme={selectTheme}
               value={field.state.value && field.state.value.value}
               onChange={(newValue: unknown) => {
                 if (newValue) {

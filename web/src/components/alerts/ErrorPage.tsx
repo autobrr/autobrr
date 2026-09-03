@@ -3,10 +3,26 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import StackTracey from "stacktracey";
+import { lazy, Suspense } from "react";
 import { ArrowPathIcon } from "@heroicons/react/24/solid";
 import { useTranslation } from "react-i18next";
+
 import { ExternalLink } from "@components/ExternalLink";
+
+declare global {
+  interface Window {
+    Buffer: typeof import("buffer").Buffer;
+  }
+}
+
+// stacktracey and its source-map dependency need a Buffer global, so both load only
+// once an error actually renders instead of shipping in the entry chunk.
+const ErrorSummary = lazy(async () => {
+  const { Buffer } = await import("buffer");
+  window.Buffer = Buffer;
+  const module = await import("./ErrorSummary");
+  return { default: module.ErrorSummary };
+});
 
 type ErrorPageProps = {
   error: unknown;
@@ -16,26 +32,10 @@ type ErrorPageProps = {
 export const ErrorPage = ({ error, reset }: ErrorPageProps) => {
   const { t } = useTranslation("common");
   let pageTitle = t("errorPage.unrecoverable");
-  let errorLine: string, summary ="";
+  const errorLine = error instanceof Error ? error.toString() : String(error);
 
-  if (error instanceof Error) {
-    const stack = new StackTracey(error);
-    summary = stack.clean().asTable({
-      maxColumnWidths: {
-        callee: 48,
-        file: 48,
-        sourceLine: 384
-      }
-    });
-
-    if (error.cause === "OFFLINE") {
-      pageTitle = t("errorPage.offline");
-    }
-
-    errorLine = error.toString();
-  } else {
-    errorLine = String(error);
-    // Leave summary blank?
+  if (error instanceof Error && error.cause === "OFFLINE") {
+    pageTitle = t("errorPage.offline");
   }
 
   return (
@@ -78,10 +78,10 @@ export const ErrorPage = ({ error, reset }: ErrorPageProps) => {
             </svg>
             <h3 className="text-lg font-medium text-red-700 dark:text-red-800">{errorLine}</h3>
           </div>
-          {summary ? (
-            <pre className="mt-2 mb-4 text-sm text-red-700 dark:text-red-800 overflow-x-auto">
-              {summary}
-            </pre>
+          {error instanceof Error ? (
+            <Suspense fallback={null}>
+              <ErrorSummary error={error} />
+            </Suspense>
           ) : null}
           <span className="block text-gray-800 mb-2 text-md">
             {t("errorPage.recoveryHint")}

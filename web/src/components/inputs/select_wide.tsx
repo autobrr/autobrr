@@ -11,6 +11,7 @@ import { useTranslation } from "react-i18next";
 import { OptionBasicTyped } from "@domain/constants";
 import { useFormContext } from "@hooks/form";
 import * as common from "@components/inputs/common";
+import { selectComponents, selectStyles, selectTheme } from "@components/inputs/select_props";
 import { DocsTooltip } from "@components/tooltips/DocsTooltip";
 import { MultiSelect as RMSC } from "react-multi-select-component";
 import { MultiSelectOption } from "@components/inputs/select.tsx";
@@ -52,29 +53,10 @@ export function SelectFieldCreatable<T>({ name, label, help, placeholder, toolti
               name={name}
               isClearable={true}
               isSearchable={true}
-              components={{
-                Input: common.SelectInput,
-                Control: common.SelectControl,
-                Menu: common.SelectMenu,
-                Option: common.SelectOption,
-                IndicatorSeparator: common.IndicatorSeparator,
-                DropdownIndicator: common.DropdownIndicator
-              }}
+              components={selectComponents}
               placeholder={placeholder ?? t("forms.chooseOption")}
-              styles={{
-                singleValue: (base) => ({
-                  ...base,
-                  color: "unset"
-                })
-              }}
-              theme={(theme) => ({
-                ...theme,
-                spacing: {
-                  ...theme.spacing,
-                  controlHeight: 30,
-                  baseUnit: 2
-                }
-              })}
+              styles={selectStyles}
+              theme={selectTheme}
               value={field.state.value ? { value: field.state.value, label: field.state.value } : field.state.value}
               onChange={(newValue: unknown) => {
                 const option = newValue as { value: string };
@@ -113,29 +95,10 @@ export function SelectField<T>({ name, label, help, placeholder, options }: Sele
             <Select
               id={name}
               name={name}
-              components={{
-                Input: common.SelectInput,
-                Control: common.SelectControl,
-                Menu: common.SelectMenu,
-                Option: common.SelectOption,
-                IndicatorSeparator: common.IndicatorSeparator,
-                DropdownIndicator: common.DropdownIndicator
-              }}
+              components={selectComponents}
               placeholder={placeholder ?? t("forms.chooseOption")}
-              styles={{
-                singleValue: (base) => ({
-                  ...base,
-                  color: "unset"
-                })
-              }}
-              theme={(theme) => ({
-                ...theme,
-                spacing: {
-                  ...theme.spacing,
-                  controlHeight: 30,
-                  baseUnit: 2
-                }
-              })}
+              styles={selectStyles}
+              theme={selectTheme}
               value={field.state.value ? { value: field.state.value, label: field.state.value } : field.state.value}
               onChange={(newValue: unknown) => {
                 const option = newValue as { value: string };
@@ -179,29 +142,10 @@ export function SelectFieldBasic<T>({ name, label, help, placeholder, required, 
               id={name}
               name={name}
               required={required}
-              components={{
-                Input: common.SelectInput,
-                Control: common.SelectControl,
-                Menu: common.SelectMenu,
-                Option: common.SelectOption,
-                IndicatorSeparator: common.IndicatorSeparator,
-                DropdownIndicator: common.DropdownIndicator
-              }}
+              components={selectComponents}
               placeholder={placeholder ?? t("forms.chooseOption")}
-              styles={{
-                singleValue: (base) => ({
-                  ...base,
-                  color: "unset"
-                })
-              }}
-              theme={(theme) => ({
-                ...theme,
-                spacing: {
-                  ...theme.spacing,
-                  controlHeight: 30,
-                  baseUnit: 2
-                }
-              })}
+              styles={selectStyles}
+              theme={selectTheme}
               defaultValue={defaultValue}
               value={field.state.value && options.find(o => o.value == field.state.value)}
               onChange={(newValue: unknown) => {

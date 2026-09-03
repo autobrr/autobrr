@@ -12,8 +12,8 @@ import { useTranslation } from "react-i18next";
 
 import { classNames, sleep } from "@utils";
 import { extractCategoryTreeFromCaps, flattenCategoryIds, parseCapabilitiesPayload } from "@utils/caps";
-import { useAppForm, useFormContext, useFormValues } from "@hooks/form";
-import { DEBUG } from "@components/debug";
+import { useAppForm, useFormContext, useFormValue } from "@hooks/form";
+import { FormDebug } from "@components/debug";
 import { APIClient } from "@api/APIClient";
 import { FeedKeys, IndexerKeys, ReleaseKeys } from "@api/query_keys";
 import { IndexersSchemaQueryOptions, ProxiesQueryOptions } from "@api/queries";
@@ -25,6 +25,7 @@ import { SelectFieldBasic, SelectFieldCreatable } from "@components/inputs/selec
 import { FeedDownloadTypeOptions } from "@domain/constants";
 import { DocsLink } from "@components/ExternalLink";
 import * as common from "@components/inputs/common";
+import { selectComponents, selectStyles, selectTheme } from "@components/inputs/select_props";
 import { SelectField } from "@forms/settings/IrcForms";
 import { AddFormProps, UpdateFormProps } from "@forms/_shared";
 
@@ -235,7 +236,7 @@ const RSSFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
 
 function FeedCategoriesDraftSection({ feedType }: { feedType: FeedType }) {
   const { t } = useTranslation("settings");
-  const values = useFormValues<Record<string, unknown>>();
+  const values = useFormValue((v: Record<string, unknown>) => ({ feed: v.feed }));
   const form = useFormContext();
   const feedValues = (values.feed ?? {}) as Record<string, unknown>;
   const capabilities = feedValues.capabilities ?? null;
@@ -674,7 +675,7 @@ function IndexerAddFormPanel({ toggle }: IndexerAddFormPanelProps) {
     onSubmit: ({ value }) => onSubmit(value)
   });
 
-  const values = useSelector(form.store, (state) => state.values);
+  const { identifier, use_proxy } = useSelector(form.store, (state) => ({ identifier: state.values.identifier, use_proxy: state.values.use_proxy }));
 
   return (
     <form.AppForm>
@@ -737,20 +738,20 @@ function IndexerAddFormPanel({ toggle }: IndexerAddFormPanelProps) {
               />
             )}
 
-            {SettingFields(indexer, values.identifier)}
+            {SettingFields(indexer, identifier)}
 
           </div>
 
-          {IrcSettingFields(indexer, values.identifier)}
-          {TorznabFeedSettingFields(indexer, values.identifier)}
-          {NewznabFeedSettingFields(indexer, values.identifier)}
-          {RSSFeedSettingFields(indexer, values.identifier)}
+          {IrcSettingFields(indexer, identifier)}
+          {TorznabFeedSettingFields(indexer, identifier)}
+          {NewznabFeedSettingFields(indexer, identifier)}
+          {RSSFeedSettingFields(indexer, identifier)}
 
-          {values.identifier !== "" && (
-            <ProxyFields useProxy={values.use_proxy} />
+          {identifier !== "" && (
+            <ProxyFields useProxy={use_proxy} />
           )}
 
-          <DEBUG values={values} />
+          <FormDebug />
         </div>
 
         <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-5 sm:px-6">
@@ -784,6 +785,14 @@ function IndexerIdentifierField({ data, setIndexer }: IndexerIdentifierFieldProp
   const { t } = useTranslation("settings");
   const form = useFormContext();
 
+  const options = useMemo(
+    () => data?.toSorted((a, b) => a.name.localeCompare(b.name)).map((v) => ({
+      label: v.name,
+      value: v.identifier
+    })),
+    [data]
+  );
+
   return (
     <form.Field name="identifier">
       {(field) => (
@@ -792,29 +801,10 @@ function IndexerIdentifierField({ data, setIndexer }: IndexerIdentifierFieldProp
           onBlur={field.handleBlur}
           isClearable={true}
           isSearchable={true}
-          components={{
-            Input: common.SelectInput,
-            Control: common.SelectControl,
-            Menu: common.SelectMenu,
-            Option: common.SelectOption,
-            IndicatorSeparator: common.IndicatorSeparator,
-            DropdownIndicator: common.DropdownIndicator
-          }}
+          components={selectComponents}
           placeholder={t("forms.indexer.chooseIndexer")}
-          styles={{
-            singleValue: (base) => ({
-              ...base,
-              color: "unset"
-            })
-          }}
-          theme={(theme) => ({
-            ...theme,
-            spacing: {
-              ...theme.spacing,
-              controlHeight: 30,
-              baseUnit: 2
-            }
-          })}
+          styles={selectStyles}
+          theme={selectTheme}
           onChange={(option: unknown) => {
             form.reset();
 
@@ -837,10 +827,7 @@ function IndexerIdentifierField({ data, setIndexer }: IndexerIdentifierFieldProp
               }
             }
           }}
-          options={data && data.sort((a, b) => a.name.localeCompare(b.name)).map(v => ({
-            label: v.name,
-            value: v.identifier
-          }))}
+          options={options}
         />
       )}
     </form.Field>

@@ -414,15 +414,11 @@ export const APIClient = {
     allEvents: () => new EventSource(
       `${sseBaseUrl()}api/irc/events?stream=irc`,
       { withCredentials: true }
-    ),
-    events: (network: string) => new EventSource(
-      `${sseBaseUrl()}api/irc/events?stream=${encodeRFC3986URIComponent(network)}`,
-      { withCredentials: true }
     )
   },
   logs: {
     files: () => appClient.Get<LogFileResponse>("api/logs/files"),
-    getFile: (file: string) => appClient.Get(`api/logs/files/${file}`)
+    download: (filename: string) => appClient.Get<Response>(`api/logs/files/${encodeURIComponent(filename)}`)
   },
   events: {
     logs: () => new EventSource(`${sseBaseUrl()}api/events?stream=logs`, { withCredentials: true })

@@ -6,8 +6,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useSelector } from "@tanstack/react-form";
 import { UserIcon } from "@heroicons/react/24/solid";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faOpenid } from "@fortawesome/free-brands-svg-icons";
 import { useTranslation } from "react-i18next";
 
 import { APIClient } from "@api/APIClient";
@@ -16,6 +14,7 @@ import { Section } from "./_components";
 import { PasswordField, TextField } from "@components/inputs";
 import toast from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
+import { OpenIdIcon } from "@components/Icons";
 import { AuthContext } from "@utils/Context";
 
 const AccountSettings = () => {
@@ -102,7 +101,7 @@ function Credentials() {
     }
   });
 
-  const values = useSelector(form.store, (state) => state.values);
+  const newPassword = useSelector(form.store, (state) => state.values.newPassword);
 
   const separatorClass = "mb-6";
 
@@ -150,7 +149,7 @@ function Credentials() {
                     </div>
                   } />
                 </div>
-                {values.newPassword && (
+                {newPassword && (
                   <div className={separatorClass}>
                     <PasswordField name="confirmPassword" label={t("account.confirmNewPassword")} autoComplete="new-password" />
                   </div>
@@ -195,7 +194,7 @@ function OIDCAccount() {
       titleElement={
         <div className="flex items-center space-x-2">
           <span className="text-gray-700 dark:text-gray-300 font-bold">{t("account.oidcTitle")}</span>
-          <FontAwesomeIcon icon={faOpenid} className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+          <OpenIdIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
         </div>
       }
       title={t("account.oidcTitle")}
@@ -214,11 +213,7 @@ function OIDCAccount() {
               />
             ) : (
               <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-700 transition duration-200">
-                <FontAwesomeIcon 
-                  icon={faOpenid} 
-                  className="h-16 w-16 text-gray-500 dark:text-gray-400" 
-                  aria-hidden="true"
-                />
+                <OpenIdIcon className="h-16 w-16 text-gray-500 dark:text-gray-400" />
               </div>
             )}
           </div>
@@ -227,7 +222,7 @@ function OIDCAccount() {
               {auth.username}
             </h3>
             <div className="mt-1 flex items-center text-sm text-gray-500 dark:text-gray-400">
-              <FontAwesomeIcon icon={faOpenid} className="mr-1.5 h-4 w-4 flex-shrink-0" />
+              <OpenIdIcon className="mr-1.5 h-4 w-4 flex-shrink-0" />
               <p>{t("account.authenticatedViaOidc")}</p>
             </div>
             {auth.issuerUrl && (

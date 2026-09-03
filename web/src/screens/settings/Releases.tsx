@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Fragment, useRef, useState } from "react";
+import { Fragment, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient, useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { MultiSelect as RMSC } from "react-multi-select-component";
 import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/react";
@@ -14,7 +14,7 @@ import { useTranslation } from "react-i18next";
 
 import { APIClient } from "@api/APIClient";
 import { ReleaseKeys } from "@api/query_keys";
-import { ReleaseProfileDuplicateList } from "@api/queries";
+import { IndexersQueryOptions, ReleaseCleanupJobsQueryOptions, ReleaseProfileDuplicateList } from "@api/queries";
 import { useToggle } from "@hooks/hooks";
 
 import { toast } from "@components/hot-toast";
@@ -194,10 +194,7 @@ function ReleaseCleanupJobs() {
   const { t } = useTranslation("settings");
   const [addPanelIsOpen, toggleAdd] = useToggle(false);
 
-  const cleanupJobsQuery = useSuspenseQuery({
-    queryKey: ReleaseKeys.cleanupJobs.lists(),
-    queryFn: () => APIClient.release.cleanupJobs.list()
-  });
+  const cleanupJobsQuery = useSuspenseQuery(ReleaseCleanupJobsQueryOptions());
 
   return (
     <Section
@@ -271,6 +268,7 @@ function CleanupJobListItem({ job }: CleanupJobListItemProps) {
     mutationFn: () => APIClient.release.cleanupJobs.forceRun(job.id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ReleaseKeys.cleanupJobs.lists() });
+      queryClient.invalidateQueries({ queryKey: ReleaseKeys.all });
       toast.custom(toastInstance => <Toast type="success" body={t("releases.cleanupJobTriggered", { name: job.name })} t={toastInstance} />);
     }
   });
@@ -485,7 +483,7 @@ interface ReleaseStatus {
 function DeleteReleases() {
   const { t } = useTranslation(["settings", "options"]);
   const queryClient = useQueryClient();
-  const pushStatusOptions = getPushStatusOptions(t);
+  const pushStatusOptions = useMemo(() => getPushStatusOptions(t), [t]);
   const [duration, setDuration] = useState<string>("");
   const [parsedDuration, setParsedDuration] = useState<number>();
   const [indexers, setIndexers] = useState<Indexer[]>([]);
@@ -493,13 +491,9 @@ function DeleteReleases() {
   const cancelModalButtonRef = useRef<HTMLInputElement | null>(null);
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
 
-  const { data: indexerOptions } = useQuery<IndexerDefinition[], Error, { identifier: string; name: string; }[]>({
-    queryKey: ['indexers'],
-    queryFn: () => APIClient.indexers.getAll(),
-    select: data => data.map(indexer => ({
-      identifier: indexer.identifier,
-      name: indexer.name
-    })),
+  const { data: indexerOptions } = useQuery({
+    ...IndexersQueryOptions(),
+    select: (data) => data.map((indexer) => ({ value: indexer.identifier, label: indexer.name }))
   });
 
   const deleteOlderMutation = useMutation({
@@ -517,7 +511,7 @@ function DeleteReleases() {
         ));
       }
 
-      queryClient.invalidateQueries({ queryKey: ReleaseKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ReleaseKeys.all });
     }
   });
 
@@ -582,7 +576,7 @@ function DeleteReleases() {
             {
               label: `${t("releases.indexers")}:`,
               content: <RMSC
-                options={indexerOptions?.map(option => ({ value: option.identifier, label: option.name })) || []}
+                options={indexerOptions ?? []}
                 value={indexers} onChange={setIndexers} labelledBy="Select indexers"/>
             },
             {

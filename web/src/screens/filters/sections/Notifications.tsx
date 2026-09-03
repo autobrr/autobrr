@@ -3,20 +3,19 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { ChevronRightIcon, InformationCircleIcon } from "@heroicons/react/24/solid";
 import { BellIcon } from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
 
-import { APIClient } from "@api/APIClient";
-import { NotificationKeys } from "@api/query_keys";
+import { NotificationsQueryOptions } from "@api/queries";
 import { Checkbox } from "@components/Checkbox";
 import { TitleSubtitle } from "@components/headings";
 import { EmptyListState } from "@components/emptystates";
 import { DeleteModal } from "@components/modals";
 import { Select } from "@components/inputs";
-import { useFormContext, useFormValues } from "@hooks/form";
+import { useFormContext, useFormValue } from "@hooks/form";
 import { useToggle } from "@hooks/hooks";
 import { classNames } from "@utils";
 import { FilterSection, FilterLayout, FilterPage } from "./_components";
@@ -42,12 +41,9 @@ const NOTIFICATION_TYPE_MAP: Record<string, string> = {
 export function Notifications() {
   const { t } = useTranslation("filters");
   const form = useFormContext();
-  const values = useFormValues<Filter>();
+  const values = useFormValue((v: Filter) => ({ notifications: v.notifications }));
 
-  const { data: availableNotifications = [] } = useSuspenseQuery({
-    queryKey: NotificationKeys.lists(),
-    queryFn: () => APIClient.notifications.getAll()
-  });
+  const { data: availableNotifications = [] } = useSuspenseQuery(NotificationsQueryOptions());
   const enabledNotifications = availableNotifications.filter(notification => notification.enabled);
 
   const createNewNotification = (): FilterNotification => {
@@ -95,7 +91,7 @@ export function Notifications() {
         <ul className="rounded-md">
           {values.notifications.map((notification: FilterNotification, index: number) => (
             <NotificationItem
-              key={index}
+              key={notification.notification_id || `new-${index}`}
               notification={notification}
               availableNotifications={availableNotifications}
               idx={index}
@@ -122,7 +118,7 @@ interface NotificationItemProps {
 function NotificationItem({ notification, availableNotifications, idx, initialEdit, remove }: NotificationItemProps) {
   const { t } = useTranslation("filters");
   const form = useFormContext();
-  const values = useFormValues<Filter>();
+  const values = useFormValue((v: Filter) => ({ notifications: v.notifications }));
   const cancelButtonRef = useRef(null);
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
   const [edit, toggleEdit] = useToggle(initialEdit);
@@ -138,16 +134,6 @@ function NotificationItem({ notification, availableNotifications, idx, initialEd
       : currentEvents.filter((e: string) => e !== event);
     form.setFieldValue(`notifications[${idx}].events`, newEvents);
   };
-
-  const currentNotificationId = values.notifications?.[idx]?.notification_id;
-  useEffect(() => {
-    if (currentNotificationId) {
-      const notif = availableNotifications.find(n => n.id === currentNotificationId);
-      if (notif) {
-        form.setFieldValue(`notifications[${idx}].notification`, notif, { dontUpdateMeta: true });
-      }
-    }
-  }, [currentNotificationId, availableNotifications, idx, form]);
 
   const selectedNotification = availableNotifications.find(
     n => n.id === notification.notification_id
@@ -216,6 +202,12 @@ function NotificationItem({ notification, availableNotifications, idx, initialEd
                     optionDefaultText={t("notificationsSection.selectNotificationService")}
                     options={availableOptions}
                     tooltip={<div><p>{t("notificationsSection.notificationServiceTooltip")}</p></div>}
+                    onChange={(notificationId) => {
+                      const notif = availableNotifications.find((n) => n.id === notificationId);
+                      if (notif) {
+                        form.setFieldValue(`notifications[${idx}].notification`, notif, { dontUpdateMeta: true });
+                      }
+                    }}
                   />
                 </div>
 

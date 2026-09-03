@@ -389,7 +389,7 @@ export const FilterDetails = () => {
     onSuccess: (newFilter, variables) => {
       queryClient.setQueryData(FilterKeys.detail(variables.id), newFilter);
 
-      queryClient.setQueryData<Filter[]>(FilterKeys.lists(), (previous) => {
+      queryClient.setQueriesData<Filter[]>({ queryKey: FilterKeys.lists() }, (previous) => {
         if (previous) {
           return previous.map((filter: Filter) => (filter.id === variables.id ? newFilter : filter));
         }

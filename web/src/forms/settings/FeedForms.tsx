@@ -18,7 +18,7 @@ import { sleep } from "@utils";
 import { ImplementationBadge } from "@screens/settings/Indexer";
 import { FeedDownloadTypeOptions } from "@domain/constants";
 import { UpdateFormProps } from "@forms/_shared";
-import { useFormContext, useFormValues } from "@hooks/form";
+import { useFormContext, useFormValue } from "@hooks/form";
 import { extractCategoryTreeFromCaps, flattenCategoryIds, parseCapabilitiesPayload } from "@utils/caps";
 
 interface InitialValues {
@@ -191,7 +191,7 @@ function WarningLabel() {
 
 function FormFieldsTorznab({ feedID }: { feedID: number }) {
   const { t } = useTranslation("settings");
-  const { interval } = useFormValues<InitialValues>();
+  const interval = useFormValue((v: InitialValues) => v.interval);
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5">
@@ -231,7 +231,7 @@ function FormFieldsTorznab({ feedID }: { feedID: number }) {
 
 function FormFieldsNewznab({ feedID }: { feedID: number }) {
   const { t } = useTranslation("settings");
-  const { interval } = useFormValues<InitialValues>();
+  const interval = useFormValue((v: InitialValues) => v.interval);
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5">
@@ -269,7 +269,7 @@ function FormFieldsNewznab({ feedID }: { feedID: number }) {
 
 function FormFieldsRSS() {
   const { t } = useTranslation("settings");
-  const { interval } = useFormValues<InitialValues>();
+  const interval = useFormValue((v: InitialValues) => v.interval);
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5">
@@ -299,21 +299,22 @@ function FormFieldsRSS() {
 function FeedCategoriesSection({ feedID }: { feedID: number }) {
   const { t } = useTranslation("settings");
   const form = useFormContext();
-  const values = useFormValues<InitialValues>();
+  const values = useFormValue((v: InitialValues) => ({ capabilities: v.capabilities, categories: v.categories }));
   const capsPayload = useMemo(() => parseCapabilitiesPayload(values.capabilities), [values.capabilities]);
   const categoriesTree = useMemo(() => extractCategoryTreeFromCaps(capsPayload), [capsPayload]);
   const hasCaps = Boolean(values.capabilities);
+  const selectedCategories = useMemo(() => new Set(values.categories ?? []), [values.categories]);
 
   const fetchCapsMutation = useMutation({
     mutationFn: () => APIClient.feeds.fetchCaps(feedID),
     onSuccess: (caps) => {
-      const nextCategories = flattenCategoryIds(extractCategoryTreeFromCaps(caps));
+      const nextCategories = new Set(flattenCategoryIds(extractCategoryTreeFromCaps(caps)));
       const selected = values.categories ?? [];
 
       form.setFieldValue("capabilities", caps ?? null);
       form.setFieldValue(
         "categories",
-        selected.filter((id) => nextCategories.includes(id))
+        selected.filter((id) => nextCategories.has(id))
       );
     },
     onError: (error: unknown) => {
@@ -374,7 +375,7 @@ function FeedCategoriesSection({ feedID }: { feedID: number }) {
         <div className="px-4 pt-4 pb-2 space-y-3 overflow-y-auto">
           {categoriesTree.map((category) => {
             const childIds = category.subcategories.map((sub) => sub.id);
-            const isParentSelected = (values.categories ?? []).includes(category.id);
+            const isParentSelected = selectedCategories.has(category.id);
 
             return (
               <div key={category.id} className="space-y-2">
@@ -385,7 +386,7 @@ function FeedCategoriesSection({ feedID }: { feedID: number }) {
                   <span className="flex items-center gap-3">
                     <input
                       type="checkbox"
-                      checked={(values.categories ?? []).includes(category.id)}
+                      checked={selectedCategories.has(category.id)}
                       onChange={() => toggleParentCategory(category.id, childIds)}
                       onClick={(event) => event.stopPropagation()}
                       className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 cursor-pointer"
@@ -404,7 +405,7 @@ function FeedCategoriesSection({ feedID }: { feedID: number }) {
                     <span className="flex items-center gap-3">
                       <input
                         type="checkbox"
-                        checked={(values.categories ?? []).includes(subCategory.id)}
+                        checked={selectedCategories.has(subCategory.id)}
                         onChange={() => toggleCategory(subCategory.id)}
                         onClick={(event) => event.stopPropagation()}
                         disabled={isParentSelected}

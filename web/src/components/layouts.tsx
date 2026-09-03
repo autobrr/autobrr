@@ -25,11 +25,11 @@ export function AuthenticatedLayout() {
 }
 
 export const RootComponent = () => {
-  const settings = SettingsContext.useValue();
+  const debug = SettingsContext.useSelector((s) => s.debug);
   return (
     <div className="flex flex-col min-h-screen">
       <Outlet />
-      {settings.debug ? (
+      {debug ? (
         <>
           {import.meta.env.DEV && <TanStackRouterDevtools />}
           {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}

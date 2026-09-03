@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
@@ -76,14 +77,14 @@ const BreakdownTable = ({ title, nameHeader, rows, isLoading, isError }: Breakdo
 
 export const TopIndexers = () => {
   const { t } = useTranslation("common");
-  const settings = SettingsContext.useValue();
+  const incognitoMode = SettingsContext.useSelector((s) => s.incognitoMode);
   const { isLoading, isError, data } = useQuery(ReleasesTopIndexersQueryOptions());
 
-  const rows = (data?.top ?? []).map((indexer, i) => ({
-    name: settings.incognitoMode ? `tracker-${i + 1}` : indexer.indexer,
+  const rows = useMemo(() => (data?.top ?? []).map((indexer, i) => ({
+    name: incognitoMode ? `tracker-${i + 1}` : indexer.indexer,
     matched: indexer.matched_count,
     approved: indexer.push_approved_count
-  }));
+  })), [data?.top, incognitoMode]);
 
   return (
     <BreakdownTable
@@ -98,14 +99,14 @@ export const TopIndexers = () => {
 
 export const TopFilters = () => {
   const { t } = useTranslation("common");
-  const settings = SettingsContext.useValue();
+  const incognitoMode = SettingsContext.useSelector((s) => s.incognitoMode);
   const { isLoading, isError, data } = useQuery(ReleasesTopFiltersQueryOptions());
 
-  const rows = (data?.top ?? []).map((filter, i) => ({
-    name: settings.incognitoMode ? `filter-${i + 1}` : filter.filter,
+  const rows = useMemo(() => (data?.top ?? []).map((filter, i) => ({
+    name: incognitoMode ? `filter-${i + 1}` : filter.filter,
     matched: filter.matched_count,
     approved: filter.push_approved_count
-  }));
+  })), [data?.top, incognitoMode]);
 
   return (
     <BreakdownTable

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Dispatch, FC, Fragment, MouseEventHandler, useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { Dispatch, FC, Fragment, MouseEventHandler, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from "react-i18next";
 import {
@@ -232,18 +232,13 @@ export function Filters() {
 }
 
 function filteredData(data: Filter[], status: string) {
-  let filtered: Filter[];
-
-  const enabledItems = data?.filter(f => f.enabled);
-  const disabledItems = data?.filter(f => !f.enabled);
-
-  if (status === "enabled") {
-    filtered = enabledItems;
-  } else if (status === "disabled") {
-    filtered = disabledItems;
-  } else {
-    filtered = data;
+  const enabledItems: Filter[] = [];
+  const disabledItems: Filter[] = [];
+  for (const filter of data) {
+    (filter.enabled ? enabledItems : disabledItems).push(filter);
   }
+
+  const filtered = status === "enabled" ? enabledItems : status === "disabled" ? disabledItems : data;
 
   return {
     all: data,
@@ -255,25 +250,18 @@ function filteredData(data: Filter[], status: string) {
 
 function FilterList({ toggleCreateFilter }: { toggleCreateFilter: () => void }) {
   const { t } = useTranslation("filters");
-  const filterListState = FilterListContext.useValue();
-
-  const [{ indexerFilter, sortOrder, status }, dispatchFilter] = useReducer(
-    FilterListReducer,
-    filterListState
-  );
+  const { indexerFilter, sortOrder, status } = FilterListContext.useValue();
+  const dispatchFilter: Dispatch<Actions> = (action) => {
+    FilterListContext.set(FilterListReducer(FilterListContext.get(), action));
+  };
 
   const { isLoading: isLoadingFilters, data: filtersData, error: filtersError } = useQuery(FiltersQueryOptions(indexerFilter, sortOrder));
-
-  useEffect(() => {
-    FilterListContext.set({ indexerFilter, sortOrder, status });
-  }, [indexerFilter, sortOrder, status]);
+  const filtered = useMemo(() => filteredData(filtersData ?? [], status), [filtersData, status]);
 
   if (filtersError) {
     // TODO: Better error handling
     return <p>{t("list.loadError")}</p>;
   }
-
-  const filtered = filteredData(filtersData ?? [], status);
 
   return (
     <div className="max-w-(--breakpoint-xl) mx-auto pb-12 px-2 sm:px-6 lg:px-8 relative">

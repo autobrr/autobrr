@@ -11,7 +11,7 @@ import { Trans, useTranslation } from "react-i18next";
 
 import { useToggle } from "@hooks/hooks";
 import { APIClient } from "@api/APIClient";
-import { FilterKeys, IndexerKeys } from "@api/query_keys";
+import { FilterKeys, IndexerKeys, ReleaseKeys } from "@api/query_keys";
 import { IndexerDeprecationsQueryOptions, IndexersOptionsQueryOptions, IndexersQueryOptions } from "@api/queries";
 import { Checkbox } from "@components/Checkbox";
 import { ExternalLink } from "@components/ExternalLink";
@@ -287,6 +287,7 @@ function DeprecatedIndexers() {
       ));
       queryClient.invalidateQueries({ queryKey: FilterKeys.all });
       queryClient.invalidateQueries({ queryKey: IndexerKeys.deprecations() });
+      queryClient.invalidateQueries({ queryKey: ReleaseKeys.indexers() });
     },
     onError: () => {
       toast.custom((tt) => (
@@ -303,6 +304,7 @@ function DeprecatedIndexers() {
       ));
       queryClient.invalidateQueries({ queryKey: IndexerKeys.options() });
       queryClient.invalidateQueries({ queryKey: IndexerKeys.deprecations() });
+      queryClient.invalidateQueries({ queryKey: ReleaseKeys.indexers() });
     },
     onError: () => {
       toast.custom((tt) => (

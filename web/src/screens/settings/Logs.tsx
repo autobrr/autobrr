@@ -17,7 +17,7 @@ import { LogLevelOptions } from "@domain/constants";
 import { MultiSelectOption } from "@components/inputs/select";
 
 import { Section, RowItem } from "./_components";
-import * as common from "@components/inputs/common";
+import { selectComponents, selectStyles, selectTheme } from "@components/inputs/select_props";
 import { LogFiles } from "@screens/Logs";
 
 type SelectWrapperProps = {
@@ -33,29 +33,10 @@ const SelectWrapper = ({ id, value, onChange, options }: SelectWrapperProps) => 
   return (
     <Select
       id={id}
-      components={{
-        Input: common.SelectInput,
-        Control: common.SelectControl,
-        Menu: common.SelectMenu,
-        Option: common.SelectOption,
-        IndicatorSeparator: common.IndicatorSeparator,
-        DropdownIndicator: common.DropdownIndicator
-      }}
+      components={selectComponents}
       placeholder={t("logsPage.chooseType")}
-      styles={{
-        singleValue: (base) => ({
-          ...base,
-          color: "unset"
-        })
-      }}
-      theme={(theme) => ({
-        ...theme,
-        spacing: {
-          ...theme.spacing,
-          controlHeight: 30,
-          baseUnit: 2
-        }
-      })}
+      styles={selectStyles}
+      theme={selectTheme}
       value={options.find((o) => o.value == value)}
       onChange={(newValue: unknown) => {
         if (newValue) {
