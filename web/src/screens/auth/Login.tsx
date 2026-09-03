@@ -8,8 +8,6 @@ import { useMutation, useQuery, useQueryErrorResetBoundary } from "@tanstack/rea
 import { getRouteApi, useRouter } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form"
 import { Checkbox, Field, Label } from "@headlessui/react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faOpenid } from "@fortawesome/free-brands-svg-icons";
 import { RocketLaunchIcon } from "@heroicons/react/24/outline";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 import { useTranslation } from "react-i18next";
@@ -19,6 +17,7 @@ import { CanOnboardQueryOptions, OIDCConfigQueryOptions } from "@api/queries";
 import toast from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { Tooltip } from "@components/tooltips/Tooltip";
+import { OpenIdIcon } from "@components/Icons";
 
 import Logo from "@app/logo.svg?react";
 import { AuthContext, AuthInfo } from "@utils/Context";
@@ -279,7 +278,7 @@ export const Login = () => {
                                     onClick={handleOIDCLogin}
                                     className="w-full flex items-center justify-center gap-3 py-2 px-4 border border-gray-300 dark:border-gray-700 rounded-md shadow-xs text-sm font-medium text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
                                 >
-                                    <FontAwesomeIcon icon={faOpenid} className="h-5 w-5"/>
+                                    <OpenIdIcon className="h-5 w-5"/>
                                     <span>{t("openidConnect")}</span>
                                 </button>
                             </div>

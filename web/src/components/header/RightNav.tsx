@@ -6,11 +6,10 @@
 import { Fragment } from "react";
 import { UserIcon } from "@heroicons/react/24/solid";
 import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faOpenid } from "@fortawesome/free-brands-svg-icons";
 import { useTranslation } from "react-i18next";
 
 import { classNames } from "@utils";
+import { OpenIdIcon } from "@components/Icons";
 
 import { RightNavProps } from "./_shared";
 
@@ -91,11 +90,7 @@ export const RightNav = (props: RightNavProps) => {
                         />
                       </div>
                     ) : (
-                      <FontAwesomeIcon
-                        icon={faOpenid}
-                        className="inline ml-1 h-4 w-4 text-gray-500 dark:text-gray-500"
-                        aria-hidden="true"
-                      />
+                      <OpenIdIcon className="inline ml-1 h-4 w-4 text-gray-500 dark:text-gray-500" />
                     )
                   ) : (
                     <UserIcon
