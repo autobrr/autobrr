@@ -3,8 +3,11 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+
 import { APIClient } from "@api/APIClient";
+import { IrcKeys } from "@api/query_keys";
 
 type IrcEvent = {
   network: number;
@@ -281,55 +284,21 @@ export function useIrcChannelWithHistory(
   error: Error | null;
   clearEvents: () => void;
 } {
-  const [events, setEvents] = useState<IrcEvent[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [hasHistory, setHasHistory] = useState(false);
-  const isFetchingRef = useRef(false);
+  const queryClient = useQueryClient();
+  const [liveEvents, setLiveEvents] = useState<IrcEvent[]>([]);
+  const queryKey = IrcKeys.channelHistory(networkId, channel);
 
-  // Load historical events
+  const historyQuery = useQuery({
+    queryKey,
+    queryFn: () => APIClient.irc.getChannelHistory(networkId, channel.startsWith("#") ? channel.substring(1) : channel),
+    enabled: enabled && !!networkId && !!channel,
+    staleTime: Infinity
+  });
+  const hasHistory = historyQuery.isSuccess;
+
   useEffect(() => {
-    if (!enabled || !networkId || !channel || hasHistory || isFetchingRef.current) {
-      return;
-    }
-
-    let cancelled = false;
-
-    const loadHistory = async () => {
-      isFetchingRef.current = true;
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const cleanChannel = channel.startsWith("#") ? channel.substring(1) : channel;
-        const history = await APIClient.irc.getChannelHistory(networkId, cleanChannel);
-        if (cancelled) {
-          return;
-        }
-
-        const trimmed = limit > 0 ? history.slice(-limit) : history;
-        setEvents(trimmed);
-        setHasHistory(true);
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err : new Error("Failed to load channel history"));
-          setHasHistory(false);
-          console.error("Failed to load IRC channel history:", err);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-        isFetchingRef.current = false;
-      }
-    };
-
-    loadHistory();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [networkId, channel, limit, enabled, hasHistory]);
+    setLiveEvents([]);
+  }, [networkId, channel]);
 
   // Subscribe to new events once history is available
   useEffect(() => {
@@ -338,7 +307,7 @@ export function useIrcChannelWithHistory(
     }
 
     const handleEvent = (event: IrcEvent) => {
-      setEvents(prev => {
+      setLiveEvents((prev) => {
         const next = [...prev, event];
         if (limit > 0 && next.length > limit) {
           return next.slice(-limit);
@@ -347,27 +316,20 @@ export function useIrcChannelWithHistory(
       });
     };
 
-    const unsubscribe = ircEventManager.subscribe(networkId, channel, handleEvent);
-
-    return () => {
-      unsubscribe();
-    };
+    return ircEventManager.subscribe(networkId, channel, handleEvent);
   }, [networkId, channel, enabled, hasHistory, limit]);
 
-  // Reset when network or channel changes
-  useEffect(() => {
-    setHasHistory(false);
-    isFetchingRef.current = false;
-    setEvents([]);
-    setError(null);
-  }, [networkId, channel]);
+  const events = useMemo(() => {
+    const all = [...(historyQuery.data ?? []), ...liveEvents];
+    return limit > 0 ? all.slice(-limit) : all;
+  }, [historyQuery.data, liveEvents, limit]);
 
   const clearEvents = useCallback(() => {
-    setEvents([]);
-    setHasHistory(false);
-  }, []);
+    setLiveEvents([]);
+    queryClient.setQueryData(queryKey, []);
+  }, [queryClient, queryKey]);
 
-  return { events, isLoading, error, clearEvents };
+  return { events, isLoading: historyQuery.isLoading, error: historyQuery.error, clearEvents };
 }
 
 /**
