@@ -46,6 +46,8 @@ class IrcEventManager {
   private healthSubscribers: Map<number, Set<HealthEventHandler>> = new Map();
   private stateSubscribers: Map<number, Set<StateEventHandler>> = new Map();
   private refCount = 0;
+  private reconnectTimer: number | null = null;
+  private reconnectAttempt = 0;
 
   private getChannelKey(networkId: number, channel: string): ChannelKey {
     return `${networkId}:${channel.toLowerCase()}`;
@@ -204,13 +206,38 @@ class IrcEventManager {
       console.warn("Received untyped IRC event:", event.data);
     };
 
-    this.eventSource.onerror = (error) => {
-      console.error("IRC EventSource error:", error);
-      // The browser will automatically attempt to reconnect
+    this.eventSource.onopen = () => {
+      this.reconnectAttempt = 0;
+    };
+
+    // The browser only retries transport errors. A non-2xx handshake (expired session,
+    // proxy restart) closes the stream for good, so reconnect ourselves with backoff.
+    this.eventSource.onerror = () => {
+      if (this.eventSource?.readyState !== EventSource.CLOSED) {
+        return;
+      }
+
+      this.disconnect();
+      if (this.refCount === 0) {
+        return;
+      }
+
+      const delay = Math.min(1000 * 2 ** this.reconnectAttempt, 30000);
+      this.reconnectAttempt++;
+      this.reconnectTimer = window.setTimeout(() => {
+        this.reconnectTimer = null;
+        if (this.refCount > 0) {
+          this.connect();
+        }
+      }, delay);
     };
   }
 
   private disconnect() {
+    if (this.reconnectTimer !== null) {
+      window.clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
     if (this.eventSource) {
       this.eventSource.close();
       this.eventSource = null;
@@ -294,15 +321,16 @@ export function useIrcChannelWithHistory(
     enabled: enabled && !!networkId && !!channel,
     staleTime: Infinity
   });
-  const hasHistory = historyQuery.isSuccess;
+  const historySettled = historyQuery.isSuccess || historyQuery.isError;
 
   useEffect(() => {
     setLiveEvents([]);
   }, [networkId, channel]);
 
-  // Subscribe to new events once history is available
+  // Subscribe to new events once history has loaded, or failed to, so a missing
+  // history endpoint still gives a live view
   useEffect(() => {
-    if (!enabled || !networkId || !channel || !hasHistory) {
+    if (!enabled || !networkId || !channel || !historySettled) {
       return;
     }
 
@@ -317,7 +345,7 @@ export function useIrcChannelWithHistory(
     };
 
     return ircEventManager.subscribe(networkId, channel, handleEvent);
-  }, [networkId, channel, enabled, hasHistory, limit]);
+  }, [networkId, channel, enabled, historySettled, limit]);
 
   const events = useMemo(() => {
     const all = [...(historyQuery.data ?? []), ...liveEvents];

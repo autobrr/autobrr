@@ -18,7 +18,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 import { APIClient } from "@api/APIClient";
-import { FilterKeys } from "@api/query_keys";
+import { ReleaseKeys } from "@api/query_keys";
 import { classNames, humanFileSize, simplifyDate } from "@utils";
 import { ExternalLink } from "../ExternalLink";
 import { DataTableFeatures } from "./features";
@@ -170,8 +170,7 @@ const RetryActionButton = ({ status }: RetryActionButtonProps) => {
   const mutation = useMutation({
     mutationFn: (vars: RetryAction) => APIClient.release.replayAction(vars.releaseId, vars.actionId),
     onSuccess: () => {
-      // Invalidate filters just in case, most likely not necessary but can't hurt.
-      queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ReleaseKeys.lists() });
 
       toast.custom((tst) => (
         <Toast type="success" body={t("releaseTable.actionReplayed", { action: status?.action })} t={tst} />
@@ -303,18 +302,24 @@ export const ReleaseStatusCell = ({ row }: CellContext<DataTableFeatures, Releas
 
   return (
     <div className="flex text-sm font-medium text-gray-900 dark:text-gray-300">
-      {row.original.action_status.map((v, idx) => (
+      {row.original.action_status.map((v, idx) => {
+        const entry = statusCellMap[v.status];
+        if (!entry) {
+          return null;
+        }
+
+        return (
         <div
           key={idx}
           className={classNames(
-            statusCellMap[v.status].colors,
+            entry.colors,
             "mr-1 inline-flex items-center rounded-sm text-xs cursor-pointer"
           )}
         >
           <Tooltip
             requiresClick
-            label={statusCellMap[v.status].icon}
-            title={statusCellMap[v.status].textFormatter(v)}
+            label={entry.icon}
+            title={entry.textFormatter(v)}
           >
             <div className="mb-1">
               <CellLine title={t("releaseTable.fields.type")}>{v.type}</CellLine>
@@ -329,7 +334,8 @@ export const ReleaseStatusCell = ({ row }: CellContext<DataTableFeatures, Releas
             </div>
           </Tooltip>
         </div>
-      ))}
+      );
+      })}
     </div>
   );
 };

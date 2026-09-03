@@ -55,12 +55,7 @@ export const Tooltip = ({
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
-    setIsTooltipVisible(!isTooltipVisible);
-  };
-
-  const handleTouch = (e: React.TouchEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsTooltipVisible(!isTooltipVisible);
+    setIsTooltipVisible((visible) => !visible);
   };
 
   const setTooltipRef = (node: HTMLDivElement | null) => {
@@ -95,7 +90,6 @@ export const Tooltip = ({
         ref={setTriggerRef}
         className="truncate cursor-pointer"
         onClick={handleClick}
-        onTouchStart={handleTouch}
       >
         {label}
       </div>

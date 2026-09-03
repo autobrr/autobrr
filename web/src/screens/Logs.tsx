@@ -87,14 +87,38 @@ export const Logs = () => {
   }, [filteredLogs, settings.scrollOnNewLog]);
 
   useEffect(() => {
-    const es = APIClient.events.logs();
+    let es: EventSource | null = null;
+    let reconnectTimer: number | null = null;
+    let attempt = 0;
 
-    es.onmessage = (event) => {
-      const newData = JSON.parse(event.data) as LogEvent;
-      setLogs((prevState) => [...prevState, newData]);
+    const connect = () => {
+      es = APIClient.events.logs();
+      es.onopen = () => {
+        attempt = 0;
+      };
+      es.onmessage = (event) => {
+        const newData = JSON.parse(event.data) as LogEvent;
+        setLogs((prevState) => [...prevState, newData]);
+      };
+      // The browser stops retrying once the handshake fails, so back off and reconnect ourselves
+      es.onerror = () => {
+        if (es?.readyState !== EventSource.CLOSED) {
+          return;
+        }
+        es.close();
+        reconnectTimer = window.setTimeout(connect, Math.min(1000 * 2 ** attempt, 30000));
+        attempt++;
+      };
     };
 
-    return () => es.close();
+    connect();
+
+    return () => {
+      if (reconnectTimer !== null) {
+        window.clearTimeout(reconnectTimer);
+      }
+      es?.close();
+    };
   }, []);
 
   const handleClearLogs = () => {

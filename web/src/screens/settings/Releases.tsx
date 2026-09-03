@@ -14,7 +14,7 @@ import { useTranslation } from "react-i18next";
 
 import { APIClient } from "@api/APIClient";
 import { ReleaseKeys } from "@api/query_keys";
-import { ReleaseProfileDuplicateList } from "@api/queries";
+import { IndexersQueryOptions, ReleaseProfileDuplicateList } from "@api/queries";
 import { useToggle } from "@hooks/hooks";
 
 import { toast } from "@components/hot-toast";
@@ -271,6 +271,7 @@ function CleanupJobListItem({ job }: CleanupJobListItemProps) {
     mutationFn: () => APIClient.release.cleanupJobs.forceRun(job.id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ReleaseKeys.cleanupJobs.lists() });
+      queryClient.invalidateQueries({ queryKey: ReleaseKeys.all });
       toast.custom(toastInstance => <Toast type="success" body={t("releases.cleanupJobTriggered", { name: job.name })} t={toastInstance} />);
     }
   });
@@ -493,13 +494,9 @@ function DeleteReleases() {
   const cancelModalButtonRef = useRef<HTMLInputElement | null>(null);
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
 
-  const { data: indexerOptions } = useQuery<IndexerDefinition[], Error, { identifier: string; name: string; }[]>({
-    queryKey: ['indexers'],
-    queryFn: () => APIClient.indexers.getAll(),
-    select: data => data.map(indexer => ({
-      identifier: indexer.identifier,
-      name: indexer.name
-    })),
+  const { data: indexerOptions } = useQuery({
+    ...IndexersQueryOptions(),
+    select: (data) => data.map((indexer) => ({ value: indexer.identifier, label: indexer.name }))
   });
 
   const deleteOlderMutation = useMutation({
@@ -517,7 +514,7 @@ function DeleteReleases() {
         ));
       }
 
-      queryClient.invalidateQueries({ queryKey: ReleaseKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: ReleaseKeys.all });
     }
   });
 
@@ -582,7 +579,7 @@ function DeleteReleases() {
             {
               label: `${t("releases.indexers")}:`,
               content: <RMSC
-                options={indexerOptions?.map(option => ({ value: option.identifier, label: option.name })) || []}
+                options={indexerOptions ?? []}
                 value={indexers} onChange={setIndexers} labelledBy="Select indexers"/>
             },
             {

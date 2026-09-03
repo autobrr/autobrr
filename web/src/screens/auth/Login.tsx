@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryErrorResetBoundary } from "@tanstack/react-query";
 import { getRouteApi, useRouter } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form"
@@ -66,13 +66,15 @@ export const Login = () => {
         AuthContext.reset();
     }, [queryErrorResetBoundary]);
 
+    const oidcCallbackHandled = useRef(false);
     useEffect(() => {
         // Check if this is an OIDC callback
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get('code');
         const state = urlParams.get('state');
 
-        if (code && state) {
+        if (code && state && !oidcCallbackHandled.current) {
+            oidcCallbackHandled.current = true;
             // This is an OIDC callback, validate the session
             APIClient.auth.validate().then((response: ValidateResponse) => {
                 // If validation succeeds, set the user as logged in

@@ -33,7 +33,11 @@ export const CanOnboardQueryOptions = () =>
       try {
         await APIClient.auth.canOnboard();
         return true;
-      } catch {
+      } catch (error) {
+        // fetch rejects with a TypeError when the request never reached the server
+        if (error instanceof TypeError) {
+          throw error;
+        }
         return false;
       }
     },

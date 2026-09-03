@@ -494,25 +494,25 @@ const ChannelItem = ({ network, channel }: ChannelItemProps) => {
   );
 };
 
-function IrcChannelStatePill({ state, errors }: { state: IrcChannelState; errors?: string[] }) {
-  const stateMap: Record<IrcChannelState, string> = {
-    Idle: "Idle",
-    AwaitingInvite: "Awaiting invite",
-    AwaitingInviteBot: "Awaiting invite bot, might not be present yet",
-    InviteFailed: "Invite failed",
-    InviteFailedNoSuchNick: "Invite failed, invite bot not present",
-    Joining: "Joining",
-    Monitoring: "Monitoring",
-    Kicked: "Kicked",
-    Parted: "Parting",
-    Disabled: "Disabled",
-    Error: "Error",
-    Unknown: "Unknown"
-  }
+const channelStateLabels: Record<IrcChannelState, string> = {
+  Idle: "Idle",
+  AwaitingInvite: "Awaiting invite",
+  AwaitingInviteBot: "Awaiting invite bot, might not be present yet",
+  InviteFailed: "Invite failed",
+  InviteFailedNoSuchNick: "Invite failed, invite bot not present",
+  Joining: "Joining",
+  Monitoring: "Monitoring",
+  Kicked: "Kicked",
+  Parted: "Parting",
+  Disabled: "Disabled",
+  Error: "Error",
+  Unknown: "Unknown"
+};
 
+function IrcChannelStatePill({ state, errors }: { state: IrcChannelState; errors?: string[] }) {
   // prefer the specific error reason (e.g. "wrong or missing channel password
   // (+k)") over the bare state name so users can debug from the pill directly
-  const title = errors && errors.length > 0 ? errors.join(", ") : stateMap[state];
+  const title = errors && errors.length > 0 ? errors.join(", ") : channelStateLabels[state];
 
     switch (state) {
      case "Idle":
