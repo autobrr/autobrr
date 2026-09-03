@@ -161,7 +161,12 @@ export default ({ mode }: ConfigEnv) => {
       }
     },
     experimental: {
-      renderBuiltUrl(filename: string) {
+      renderBuiltUrl(filename: string, { hostType }: { hostType: "js" | "css" | "html" }) {
+        // Go only templates index.html. URLs emitted into JS (lazy chunks, modulepreload
+        // hints) must resolve relative to the importing chunk so the runtime base URL holds.
+        if (hostType === "js") {
+          return { relative: true };
+        }
         return '{{.AssetBaseUrl}}' + filename
       }
     }

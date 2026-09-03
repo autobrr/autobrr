@@ -4,7 +4,7 @@
  */
 
 import { useMemo } from "react";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   useTable,
   flexRender,
@@ -14,7 +14,7 @@ import { useTranslation } from "react-i18next";
 
 import { EmptyListState } from "@components/emptystates";
 import * as DataTable from "@components/data-table";
-import { RandomLinuxIsos, RandomIsoTracker } from "@utils";
+import { classNames, RandomLinuxIsos, RandomIsoTracker } from "@utils";
 import { ReleasesLatestQueryOptions } from "@api/queries";
 import { IndexerCell } from "@components/data-table";
 import { dataTableFeatures, type DataTableFeatures } from "@components/data-table/features";
@@ -116,7 +116,7 @@ export const ActivityTable = () => {
     }
   ], [t]);
 
-  const { isLoading, data } = useSuspenseQuery(ReleasesLatestQueryOptions());
+  const { isLoading, isError, data } = useQuery(ReleasesLatestQueryOptions());
 
   const settings = SettingsContext.useValue();
   const displayData = useMemo(() => {
@@ -142,14 +142,14 @@ export const ActivityTable = () => {
     });
   }, [settings.incognitoMode, data?.data]);
 
-  if (isLoading) {
+  if (isLoading || isError) {
     return (
       <div className="flex h-full min-w-0 flex-col">
         <h3 className="text-2xl font-medium leading-6 text-gray-900 dark:text-gray-200">
           {t("activityTable.title")}
         </h3>
-        <div className="animate-pulse text-black dark:text-white">
-          <EmptyListState text={t("activityTable.loading")}/>
+        <div className={classNames("text-black dark:text-white", isLoading ? "animate-pulse" : "")}>
+          <EmptyListState text={isLoading ? t("activityTable.loading") : t("dashboardCharts.loadError")} />
         </div>
       </div>
     );
