@@ -107,7 +107,7 @@ export const Login = () => {
                 ));
             });
         }
-    }, [queryErrorResetBoundary, oidcConfig, setAuth, router]);
+    }, [queryErrorResetBoundary, oidcConfig, setAuth, router, t]);
 
     const loginMutation = useMutation({
         mutationFn: (data: LoginFormFields) => APIClient.auth.login(data.username, data.password, data.remember_me),
@@ -139,7 +139,7 @@ export const Login = () => {
         } else if (auth.isLoggedIn) {
             router.history.push("/")
         }
-    }, [auth.isLoggedIn, search.redirect, router.history]) // eslint-disable-line
+    }, [auth.isLoggedIn, search.redirect, router.history])
 
     return (
         <div className="flex min-h-full flex-1 flex-col justify-center py-12 sm:px-6 lg:px-8">

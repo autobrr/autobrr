@@ -148,22 +148,8 @@ export default ({ mode }: ConfigEnv) => {
       }
     },
     experimental: {
-      renderBuiltUrl(filename: string, { hostId, hostType, type }: {
-        hostId: string,
-        hostType: 'js' | 'css' | 'html',
-        type: 'public' | 'asset'
-      }) {
-        // console.debug(filename, hostId, hostType, type)
+      renderBuiltUrl(filename: string) {
         return '{{.AssetBaseUrl}}' + filename
-        // if (type === 'public') {
-        //   return 'https://www.domain.com/' + filename
-        // }
-        // else if (path.extname(hostId) === '.js') {
-        //   return { runtime: `window.__assetsPath(${JSON.stringify(filename)})` }
-        // }
-        // else {
-        //   return 'https://cdn.domain.com/assets/' + filename
-        // }
       }
     }
   });

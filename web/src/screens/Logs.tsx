@@ -94,8 +94,7 @@ export const Logs = () => {
       const newLogs = logs.filter(log => pattern.test(log.message));
       setFilteredLogs(newLogs);
       setIsInvalidRegex(false);
-    } catch (error) {
-      // Handle regex errors by showing nothing when the regex pattern is invalid
+    } catch {
       setFilteredLogs([]);
       setIsInvalidRegex(true);
     }

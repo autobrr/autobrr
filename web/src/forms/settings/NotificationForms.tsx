@@ -764,7 +764,7 @@ const EventSounds = () => {
       ...PushoverSoundOptions,
       ...customSounds
     ];
-  }, [soundsQuery.data]);
+  }, [soundsQuery.data, t]);
 
   return (
     <fieldset className="">

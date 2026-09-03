@@ -252,7 +252,7 @@ function filteredData(data: Filter[], status: string) {
   };
 }
 
-function FilterList({ toggleCreateFilter }: any) {
+function FilterList({ toggleCreateFilter }: { toggleCreateFilter: () => void }) {
   const { t } = useTranslation("filters");
   const filterListState = FilterListContext.useValue();
 
@@ -872,7 +872,7 @@ const ListboxFilter = ({
 );
 
 // a unique option from a list
-const IndexerSelectFilter = ({ dispatch }: any) => {
+const IndexerSelectFilter = ({ dispatch }: { dispatch: Dispatch<Actions> }) => {
   const { t } = useTranslation("filters");
   const filterListState = FilterListContext.useValue();
 
@@ -936,7 +936,7 @@ const FilterOption = ({ label, value }: FilterOptionProps) => (
   </ListboxOption>
 );
 
-export const SortSelectFilter = ({ dispatch }: any) => {
+export const SortSelectFilter = ({ dispatch }: { dispatch: Dispatch<Actions> }) => {
   const { t } = useTranslation("filters");
   const filterListState = FilterListContext.useValue();
 
