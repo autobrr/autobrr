@@ -15,6 +15,7 @@ import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 import { useTranslation } from "react-i18next";
 
 import { APIClient } from "@api/APIClient";
+import { CanOnboardQueryOptions, OIDCConfigQueryOptions } from "@api/queries";
 import toast from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { Tooltip } from "@components/tooltips/Tooltip";
@@ -45,28 +46,8 @@ export const Login = () => {
     const loginRoute = getRouteApi('/login');
     const search = loginRoute.useSearch();
 
-    // Query to check if onboarding is available
-    const {data: canOnboard} = useQuery({
-        queryKey: ["can-onboard"],
-        queryFn: async () => {
-            try {
-                await APIClient.auth.canOnboard();
-                return true;
-            } catch {
-                return false;
-            }
-        },
-    });
-
-    // Query to check if OIDC is enabled
-    const {data: oidcConfig} = useQuery({
-        queryKey: ["oidc-config"],
-        queryFn: async () => {
-            const config = await APIClient.auth.getOIDCConfig();
-            console.debug("OIDC config:", config);
-            return config;
-        },
-    });
+    const {data: canOnboard} = useQuery(CanOnboardQueryOptions());
+    const {data: oidcConfig} = useQuery(OIDCConfigQueryOptions());
 
     const form = useForm({
         defaultValues: {

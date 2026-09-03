@@ -5,6 +5,12 @@
 
 import { ColumnFilter } from "@tanstack/react-table";
 
+export const AuthKeys = {
+  all: ["auth"] as const,
+  oidcConfig: () => [...AuthKeys.all, "oidc-config"] as const,
+  canOnboard: () => [...AuthKeys.all, "can-onboard"] as const
+};
+
 export const SettingsKeys = {
   all: ["settings"] as const,
   updates: () => [...SettingsKeys.all, "updates"] as const,
@@ -92,7 +98,8 @@ export const IrcKeys = {
   lists: () => [...IrcKeys.all, "list"] as const,
   // list: (indexers: string[], sortOrder: string) => [...ircKeys.lists(), { indexers, sortOrder }] as const,
   details: () => [...IrcKeys.all, "detail"] as const,
-  detail: (id: number) => [...IrcKeys.details(), id] as const
+  detail: (id: number) => [...IrcKeys.details(), id] as const,
+  channelHistory: (networkId: number, channel: string) => [...IrcKeys.all, "channel-history", networkId, channel] as const
 };
 
 export const NotificationKeys = {

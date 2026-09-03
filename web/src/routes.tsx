@@ -20,6 +20,7 @@ import { FilterNotFound } from "@screens/filters/NotFound";
 import { Settings } from "@screens/Settings";
 import {
   ApikeysQueryOptions,
+  CanOnboardQueryOptions,
   ConfigQueryOptions,
   DownloadersQueryOptions,
   FeedsQueryOptions,
@@ -27,6 +28,7 @@ import {
   IndexersQueryOptions,
   IrcQueryOptions, ListsQueryOptions,
   NotificationsQueryOptions,
+  OIDCConfigQueryOptions,
   ProxiesQueryOptions
 } from "@api/queries";
 import { RingResizeSpinner } from "@components/Icons";
@@ -240,12 +242,9 @@ export const LogsRoute = createRoute({
 export const OnboardRoute = createRoute({
   getParentRoute: () => RootRoute,
   path: 'onboard',
-  beforeLoad: async () => {
-    // Check if onboarding is available for this instance
-    // and redirect if needed
-    try {
-      await APIClient.auth.canOnboard()
-    } catch {
+  beforeLoad: async ({ context }) => {
+    const canOnboard = await context.queryClient.ensureQueryData(CanOnboardQueryOptions());
+    if (!canOnboard) {
       console.error("onboarding not available, redirect to login")
 
       throw redirect({
@@ -262,10 +261,10 @@ export const LoginRoute = createRoute({
   validateSearch: z.object({
     redirect: z.string().optional(),
   }),
-  beforeLoad: async ({ navigate }) => {
+  beforeLoad: async ({ context, navigate }) => {
     // First check if OIDC is enabled
     try {
-      const oidcConfig = await APIClient.auth.getOIDCConfig();
+      const oidcConfig = await context.queryClient.ensureQueryData(OIDCConfigQueryOptions());
       if (oidcConfig.enabled) {
         return;
       }
@@ -274,11 +273,11 @@ export const LoginRoute = createRoute({
     }
 
     // Only check onboarding if OIDC is not enabled
-    try {
-      await APIClient.auth.canOnboard();
+    const canOnboard = await context.queryClient.ensureQueryData(CanOnboardQueryOptions());
+    if (canOnboard) {
       console.info("onboarding available, redirecting");
       navigate({ to: OnboardRoute.to });
-    } catch {
+    } else {
       console.info("onboarding not available, please login");
     }
   },
@@ -297,7 +296,7 @@ export const AuthRoute = createRoute({
         // Also get OIDC config if needed
         let issuerUrl;
         if (response.auth_method === 'oidc') {
-          const oidcConfig = await APIClient.auth.getOIDCConfig();
+          const oidcConfig = await context.queryClient.ensureQueryData(OIDCConfigQueryOptions());
           issuerUrl = oidcConfig.issuerUrl;
         }
         

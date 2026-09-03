@@ -7,6 +7,7 @@ import { keepPreviousData, queryOptions } from "@tanstack/react-query";
 import { APIClient } from "@api/APIClient";
 import {
   ApiKeys,
+  AuthKeys,
   DownloaderKeys,
   FeedKeys,
   FilterKeys,
@@ -16,6 +17,28 @@ import {
   SettingsKeys
 } from "@api/query_keys";
 import { ColumnFilter } from "@tanstack/react-table";
+
+export const OIDCConfigQueryOptions = () =>
+  queryOptions({
+    queryKey: AuthKeys.oidcConfig(),
+    queryFn: () => APIClient.auth.getOIDCConfig(),
+    staleTime: Infinity
+  });
+
+// The endpoint answers 200 while onboarding is still possible and errors once a user exists.
+export const CanOnboardQueryOptions = () =>
+  queryOptions({
+    queryKey: AuthKeys.canOnboard(),
+    queryFn: async () => {
+      try {
+        await APIClient.auth.canOnboard();
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    staleTime: Infinity
+  });
 
 export const FiltersGetAllQueryOptions = () =>
   queryOptions({
