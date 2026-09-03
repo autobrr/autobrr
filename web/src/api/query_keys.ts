@@ -5,6 +5,11 @@
 
 import { ColumnFilter } from "@tanstack/react-table";
 
+export const LogKeys = {
+  all: ["logs"] as const,
+  files: () => [...LogKeys.all, "files"] as const
+};
+
 export const AuthKeys = {
   all: ["auth"] as const,
   oidcConfig: () => [...AuthKeys.all, "oidc-config"] as const,

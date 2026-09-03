@@ -12,7 +12,7 @@ import {
   FeedKeys,
   FilterKeys,
   IndexerKeys,
-  IrcKeys, ListKeys, NotificationKeys, ProxyKeys,
+  IrcKeys, ListKeys, LogKeys, NotificationKeys, ProxyKeys,
   ReleaseKeys, ReleaseProfileDuplicateKeys,
   SettingsKeys
 } from "@api/query_keys";
@@ -148,6 +148,27 @@ export const NotificationsQueryOptions = () =>
   queryOptions({
     queryKey: NotificationKeys.lists(),
     queryFn: () => APIClient.notifications.getAll()
+  });
+
+export const LogFilesQueryOptions = () =>
+  queryOptions({
+    queryKey: LogKeys.files(),
+    queryFn: () => APIClient.logs.files(),
+    retry: false,
+    refetchOnWindowFocus: false
+  });
+
+export const ReleaseCleanupJobsQueryOptions = () =>
+  queryOptions({
+    queryKey: ReleaseKeys.cleanupJobs.lists(),
+    queryFn: () => APIClient.release.cleanupJobs.list()
+  });
+
+export const IrcChannelHistoryQueryOptions = (networkId: number, channel: string) =>
+  queryOptions({
+    queryKey: IrcKeys.channelHistory(networkId, channel),
+    queryFn: () => APIClient.irc.getChannelHistory(networkId, channel.startsWith("#") ? channel.substring(1) : channel),
+    staleTime: Infinity
   });
 
 export const PushoverSoundsQueryOptions = (apiToken: string) =>

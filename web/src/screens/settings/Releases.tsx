@@ -14,7 +14,7 @@ import { useTranslation } from "react-i18next";
 
 import { APIClient } from "@api/APIClient";
 import { ReleaseKeys } from "@api/query_keys";
-import { IndexersQueryOptions, ReleaseProfileDuplicateList } from "@api/queries";
+import { IndexersQueryOptions, ReleaseCleanupJobsQueryOptions, ReleaseProfileDuplicateList } from "@api/queries";
 import { useToggle } from "@hooks/hooks";
 
 import { toast } from "@components/hot-toast";
@@ -194,10 +194,7 @@ function ReleaseCleanupJobs() {
   const { t } = useTranslation("settings");
   const [addPanelIsOpen, toggleAdd] = useToggle(false);
 
-  const cleanupJobsQuery = useSuspenseQuery({
-    queryKey: ReleaseKeys.cleanupJobs.lists(),
-    queryFn: () => APIClient.release.cleanupJobs.list()
-  });
+  const cleanupJobsQuery = useSuspenseQuery(ReleaseCleanupJobsQueryOptions());
 
   return (
     <Section

@@ -21,7 +21,7 @@ import { APIClient } from "@api/APIClient";
 import { ListKeys } from "@api/query_keys";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
-import * as common from "@components/inputs/common";
+import { selectComponents, selectStyles, selectTheme } from "@components/inputs/select_props";
 import {
   MultiSelectOption,
   PasswordFieldWide,
@@ -53,6 +53,11 @@ import { MultiSelect as RMSC } from "react-multi-select-component";
 import { useToggle } from "@hooks/hooks.ts";
 import { errorMessages, fieldErrors, fieldHasError, useAppForm, useFormContext, useFormValue } from "@hooks/form";
 import type { FormFieldErrors } from "@hooks/form";
+
+const LISTSTRAKT_SELECT_OPTIONS = ListsTraktOptions.map((u) => ({ value: u.value, label: u.label, key: u.label }));
+const LISTSANILIST_SELECT_OPTIONS = ListsAniListOptions.map((u) => ({ value: u.value, label: u.label, key: u.label }));
+const LISTSMETACRITIC_SELECT_OPTIONS = ListsMetacriticOptions.map((u) => ({ value: u.value, label: u.label, key: u.label }));
+const LISTSMDBLIST_SELECT_OPTIONS = ListsMDBListOptions.map((u) => ({ value: u.value, label: u.label, key: u.label }));
 import { DeleteModal } from "@components/modals";
 import { SlideOverShell, SlideOverTitle } from "@components/panels";
 import {DocsLink} from "@components/ExternalLink.tsx";
@@ -193,29 +198,10 @@ function ListAddFormPanel({ toggle }: ListAddFormPanelProps) {
                       name={field.name}
                       isClearable={true}
                       isSearchable={true}
-                      components={{
-                        Input: common.SelectInput,
-                        Control: common.SelectControl,
-                        Menu: common.SelectMenu,
-                        Option: common.SelectOption,
-                        IndicatorSeparator: common.IndicatorSeparator,
-                        DropdownIndicator: common.DropdownIndicator
-                      }}
+                      components={selectComponents}
                       placeholder={t("forms.list.chooseType")}
-                      styles={{
-                        singleValue: (base) => ({
-                          ...base,
-                          color: "unset"
-                        })
-                      }}
-                      theme={(theme) => ({
-                        ...theme,
-                        spacing: {
-                          ...theme.spacing,
-                          controlHeight: 30,
-                          baseUnit: 2
-                        }
-                      })}
+                      styles={selectStyles}
+                      theme={selectTheme}
                       value={ListTypeOptions.find((o) => o.value === field.state.value) ?? null}
                       onChange={(newValue: unknown) => {
                         const option = newValue as { value: string };
@@ -666,7 +652,7 @@ function ListTypeTrakt() {
         name="url"
         label={t("forms.list.listUrl")}
         help={t("forms.list.traktHelp")}
-        options={ListsTraktOptions.map(u => ({ value: u.value, label: u.label, key: u.label }))}
+        options={LISTSTRAKT_SELECT_OPTIONS}
       />
 
       {!values.url.startsWith("https://api.autobrr.com/") && (
@@ -703,7 +689,7 @@ function ListTypeAniList() {
       <SelectFieldBasic
         name="url"
         label={t("forms.list.listUrl")}
-        options={ListsAniListOptions.map(u => ({ value: u.value, label: u.label, key: u.label }))}
+        options={LISTSANILIST_SELECT_OPTIONS}
       />
 
       <div className="space-y-1">
@@ -797,7 +783,7 @@ function ListTypeMetacritic() {
         name="url"
         label={t("forms.list.listUrl")}
         help={t("forms.list.metacriticHelp")}
-        options={ListsMetacriticOptions.map(u => ({ value: u.value, label: u.label, key: u.label }))}
+        options={LISTSMETACRITIC_SELECT_OPTIONS}
       />
 
       <div className="space-y-1">
@@ -829,7 +815,7 @@ function ListTypeMDBList() {
         name="url"
         label={t("forms.list.listUrl")}
         help={t("forms.list.mdblistHelp")}
-        options={ListsMDBListOptions.map(u => ({ value: u.value, label: u.label, key: u.label }))}
+        options={LISTSMDBLIST_SELECT_OPTIONS}
       />
 
       <div className="space-y-1">

@@ -17,6 +17,7 @@ import { ExclamationCircleIcon } from "@heroicons/react/24/solid";
 import { format } from "date-fns/format";
 
 import { APIClient } from "@api/APIClient";
+import { LogFilesQueryOptions } from "@api/queries";
 import { Checkbox } from "@components/Checkbox";
 import { classNames, simplifyDate } from "@utils";
 import { SettingsContext } from "@utils/Context";
@@ -210,12 +211,7 @@ export const Logs = () => {
 
 export const LogFiles = () => {
   const { t } = useTranslation("common");
-  const { data } = useSuspenseQuery({
-    queryKey: ["log-files"],
-    queryFn: () => APIClient.logs.files(),
-    retry: false,
-    refetchOnWindowFocus: false
-  });
+  const { data } = useSuspenseQuery(LogFilesQueryOptions());
 
   return (
     <div>

@@ -7,7 +7,7 @@ import { useCallback, useState, useSyncExternalStore } from "react";
 
 export function useToggle(initialValue = false): [boolean, () => void] {
   const [value, setValue] = useState(initialValue);
-  const toggle = () => setValue(v => !v);
+  const toggle = useCallback(() => setValue((v) => !v), []);
 
   return [value, toggle];
 }

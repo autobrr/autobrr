@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { APIClient } from "@api/APIClient";
-import { IrcKeys } from "@api/query_keys";
+import { IrcChannelHistoryQueryOptions } from "@api/queries";
 
 type IrcEvent = {
   network: number;
@@ -244,51 +244,10 @@ class IrcEventManager {
     }
   }
 
-  public forceReconnect() {
-    this.disconnect();
-    if (this.refCount > 0) {
-      this.connect();
-    }
-  }
 }
 
 // Singleton instance
 const ircEventManager = new IrcEventManager();
-
-/**
- * Hook to subscribe to IRC events for a specific network and channel.
- * Uses a single shared SSE connection for all channels.
- *
- * @param networkId The IRC network ID
- * @param channel The channel name (with or without #)
- * @param enabled Whether to actively subscribe (default: true)
- * @returns Array of IRC events for this channel
- */
-export function useIrcEvents(
-  networkId: number,
-  channel: string,
-  enabled: boolean = true
-): IrcEvent[] {
-  const [events, setEvents] = useState<IrcEvent[]>([]);
-
-  useEffect(() => {
-    if (!enabled || !networkId || !channel) {
-      return;
-    }
-
-    const handleEvent = (event: IrcEvent) => {
-      setEvents(prev => [...prev, event]);
-    };
-
-    const unsubscribe = ircEventManager.subscribe(networkId, channel, handleEvent);
-
-    return () => {
-      unsubscribe();
-    };
-  }, [networkId, channel, enabled]);
-
-  return events;
-}
 
 /**
  * Hook to load channel history and subscribe to new events.
@@ -313,13 +272,11 @@ export function useIrcChannelWithHistory(
 } {
   const queryClient = useQueryClient();
   const [liveEvents, setLiveEvents] = useState<IrcEvent[]>([]);
-  const queryKey = IrcKeys.channelHistory(networkId, channel);
+  const historyOptions = IrcChannelHistoryQueryOptions(networkId, channel);
 
   const historyQuery = useQuery({
-    queryKey,
-    queryFn: () => APIClient.irc.getChannelHistory(networkId, channel.startsWith("#") ? channel.substring(1) : channel),
-    enabled: enabled && !!networkId && !!channel,
-    staleTime: Infinity
+    ...historyOptions,
+    enabled: enabled && !!networkId && !!channel
   });
   const historySettled = historyQuery.isSuccess || historyQuery.isError;
 
@@ -354,43 +311,10 @@ export function useIrcChannelWithHistory(
 
   const clearEvents = useCallback(() => {
     setLiveEvents([]);
-    queryClient.setQueryData(queryKey, []);
-  }, [queryClient, queryKey]);
+    queryClient.setQueryData(historyOptions.queryKey, []);
+  }, [queryClient, historyOptions.queryKey]);
 
   return { events, isLoading: historyQuery.isLoading, error: historyQuery.error, clearEvents };
-}
-
-/**
- * Hook to subscribe to IRC network health events.
- * Receives real-time updates when network health changes.
- *
- * @param networkId The IRC network ID to monitor
- * @param enabled Whether to actively subscribe (default: true)
- * @returns The latest health event for this network, or null if none received
- */
-export function useIrcNetworkHealth(
-  networkId: number,
-  enabled: boolean = true
-): IrcHealthEvent | null {
-  const [healthEvent, setHealthEvent] = useState<IrcHealthEvent | null>(null);
-
-  useEffect(() => {
-    if (!enabled || !networkId) {
-      return;
-    }
-
-    const handleHealthEvent = (event: IrcHealthEvent) => {
-      setHealthEvent(event);
-    };
-
-    const unsubscribe = ircEventManager.subscribeToHealth(networkId, handleHealthEvent);
-
-    return () => {
-      unsubscribe();
-    };
-  }, [networkId, enabled]);
-
-  return healthEvent;
 }
 
 /**
@@ -490,13 +414,4 @@ export function useIrcNetworkStateSync(
   }, []);
 }
 
-/**
- * Force reconnect the shared SSE connection.
- * Useful when you need to manually trigger a reconnection.
- */
-export function reconnectIrcEvents() {
-  ircEventManager.forceReconnect();
-}
-
-// Export types for use in other files
 export type { IrcEvent, IrcHealthEvent, IrcStateEvent };

@@ -25,6 +25,7 @@ import { SelectFieldBasic, SelectFieldCreatable } from "@components/inputs/selec
 import { FeedDownloadTypeOptions } from "@domain/constants";
 import { DocsLink } from "@components/ExternalLink";
 import * as common from "@components/inputs/common";
+import { selectComponents, selectStyles, selectTheme } from "@components/inputs/select_props";
 import { SelectField } from "@forms/settings/IrcForms";
 import { AddFormProps, UpdateFormProps } from "@forms/_shared";
 
@@ -800,29 +801,10 @@ function IndexerIdentifierField({ data, setIndexer }: IndexerIdentifierFieldProp
           onBlur={field.handleBlur}
           isClearable={true}
           isSearchable={true}
-          components={{
-            Input: common.SelectInput,
-            Control: common.SelectControl,
-            Menu: common.SelectMenu,
-            Option: common.SelectOption,
-            IndicatorSeparator: common.IndicatorSeparator,
-            DropdownIndicator: common.DropdownIndicator
-          }}
+          components={selectComponents}
           placeholder={t("forms.indexer.chooseIndexer")}
-          styles={{
-            singleValue: (base) => ({
-              ...base,
-              color: "unset"
-            })
-          }}
-          theme={(theme) => ({
-            ...theme,
-            spacing: {
-              ...theme.spacing,
-              controlHeight: 30,
-              baseUnit: 2
-            }
-          })}
+          styles={selectStyles}
+          theme={selectTheme}
           onChange={(option: unknown) => {
             form.reset();
 

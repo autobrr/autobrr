@@ -18,7 +18,7 @@ import { NumberFieldWide, PasswordFieldWide, SwitchButton, SwitchGroupWide, Text
 import { SlideOver } from "@components/panels";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
-import * as common from "@components/inputs/common";
+import { selectComponents, selectStyles, selectTheme } from "@components/inputs/select_props";
 import { classNames } from "@utils";
 import { ProxiesQueryOptions } from "@api/queries";
 import { AddFormProps, UpdateFormProps } from "@forms/_shared";
@@ -35,8 +35,8 @@ const ChannelsFieldArray = ({ channels }: ChannelsFieldArrayProps) => {
     <div className="px-4">
       <div className="flex flex-col space-y-2">
         {channels && channels.length > 0 ? (
-          channels.map((_, index) => (
-            <div key={index} className="flex justify-between border dark:border-gray-700 dark:bg-gray-815 p-2 rounded-md">
+          channels.map((channel, index) => (
+            <div key={channel.id || `new-${index}`} className="flex justify-between border dark:border-gray-700 dark:bg-gray-815 p-2 rounded-md">
               <div className="flex gap-2 items-center">
                 <div className="shrink-0" title={t("forms.irc.channelEnabled")}>
                   <SwitchButton name={`channels[${index}].enabled`} defaultValue={true}/>
@@ -521,29 +521,10 @@ export function SelectField<T>({ name, label, options, placeholder, isClearable 
               name={name}
               isClearable={isClearable}
               isSearchable={true}
-              components={{
-                Input: common.SelectInput,
-                Control: common.SelectControl,
-                Menu: common.SelectMenu,
-                Option: common.SelectOption,
-                IndicatorSeparator: common.IndicatorSeparator,
-                DropdownIndicator: common.DropdownIndicator
-              }}
+              components={selectComponents}
               placeholder={placeholder ?? t("forms.irc.chooseType")}
-              styles={{
-                singleValue: (base) => ({
-                  ...base,
-                  color: "unset"
-                })
-              }}
-              theme={(theme) => ({
-                ...theme,
-                spacing: {
-                  ...theme.spacing,
-                  controlHeight: 30,
-                  baseUnit: 2
-                }
-              })}
+              styles={selectStyles}
+              theme={selectTheme}
               value={field.state.value && options.find(o => o.value == field.state.value)}
               onChange={(newValue: unknown) => {
                 if (newValue) {

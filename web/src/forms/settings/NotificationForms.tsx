@@ -22,7 +22,7 @@ import { SlideOver, SlideOverShell, SlideOverTitle } from "@components/panels";
 import { ExternalLink } from "@components/ExternalLink";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
-import * as common from "@components/inputs/common";
+import { selectComponents, selectStyles, selectTheme } from "@components/inputs/select_props";
 import { NumberFieldWide, PasswordFieldWide, SelectFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import { Checkbox } from "@components/Checkbox";
 import { EmptySimple } from "@components/emptystates";
@@ -589,29 +589,10 @@ const NotificationTypeSelector = () => {
           onBlur={field.handleBlur}
           isClearable={true}
           isSearchable={true}
-          components={{
-            Input: common.SelectInput,
-            Control: common.SelectControl,
-            Menu: common.SelectMenu,
-            Option: common.SelectOption,
-            IndicatorSeparator: common.IndicatorSeparator,
-            DropdownIndicator: common.DropdownIndicator
-          }}
+          components={selectComponents}
           placeholder={t("settings:forms.notification.chooseType")}
-          styles={{
-            singleValue: (base) => ({
-              ...base,
-              color: "unset"
-            })
-          }}
-          theme={(theme) => ({
-            ...theme,
-            spacing: {
-              ...theme.spacing,
-              controlHeight: 30,
-              baseUnit: 2
-            }
-          })}
+          styles={selectStyles}
+          theme={selectTheme}
           value={field.state.value && notificationTypeOptions.find(o => o.value == field.state.value)}
           onChange={(option: unknown) => {
             // Reset clears the provider-specific fields; the shared ones carry over to the new type.
@@ -697,29 +678,10 @@ const EventSoundSelector = ({event, soundOptions}: {
               onBlur={soundField.handleBlur}
               isClearable={true}
               isSearchable={true}
-              components={{
-                Input: common.SelectInput,
-                Control: common.SelectControl,
-                Menu: common.SelectMenu,
-                Option: common.SelectOption,
-                IndicatorSeparator: common.IndicatorSeparator,
-                DropdownIndicator: common.DropdownIndicator
-              }}
+              components={selectComponents}
               placeholder={t("settings:forms.notification.defaultTone")}
-              styles={{
-                singleValue: (base) => ({
-                  ...base,
-                  color: "unset"
-                })
-              }}
-              theme={(theme) => ({
-                ...theme,
-                spacing: {
-                  ...theme.spacing,
-                  controlHeight: 30,
-                  baseUnit: 2
-                }
-              })}
+              styles={selectStyles}
+              theme={selectTheme}
               value={soundOptions.find(o => o.value === currentSound) || null}
               onChange={(option: unknown) => {
                 const opt = option as SoundOption | null;

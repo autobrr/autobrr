@@ -787,8 +787,12 @@ export const Events = ({ network, channel }: EventsProps) => {
   const [isFullscreen, toggleFullscreen] = useToggle(false);
 
   useEffect(() => {
+    if (!isFullscreen) {
+      return;
+    }
+
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && isFullscreen) {
+      if (event.key === "Escape") {
         toggleFullscreen();
       }
     };

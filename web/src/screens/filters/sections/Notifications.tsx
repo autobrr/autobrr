@@ -9,8 +9,7 @@ import { ChevronRightIcon, InformationCircleIcon } from "@heroicons/react/24/sol
 import { BellIcon } from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
 
-import { APIClient } from "@api/APIClient";
-import { NotificationKeys } from "@api/query_keys";
+import { NotificationsQueryOptions } from "@api/queries";
 import { Checkbox } from "@components/Checkbox";
 import { TitleSubtitle } from "@components/headings";
 import { EmptyListState } from "@components/emptystates";
@@ -44,10 +43,7 @@ export function Notifications() {
   const form = useFormContext();
   const values = useFormValue((v: Filter) => ({ notifications: v.notifications }));
 
-  const { data: availableNotifications = [] } = useSuspenseQuery({
-    queryKey: NotificationKeys.lists(),
-    queryFn: () => APIClient.notifications.getAll()
-  });
+  const { data: availableNotifications = [] } = useSuspenseQuery(NotificationsQueryOptions());
   const enabledNotifications = availableNotifications.filter(notification => notification.enabled);
 
   const createNewNotification = (): FilterNotification => {
@@ -95,7 +91,7 @@ export function Notifications() {
         <ul className="rounded-md">
           {values.notifications.map((notification: FilterNotification, index: number) => (
             <NotificationItem
-              key={index}
+              key={notification.notification_id || `new-${index}`}
               notification={notification}
               availableNotifications={availableNotifications}
               idx={index}
