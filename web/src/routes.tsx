@@ -72,7 +72,7 @@ export const FilterGetByIdRoute = createRoute({
   stringifyParams: ({ filterId }) => ({ filterId: `${filterId}` }),
   loader: async ({ context, params }) => {
     try {
-      const filter = await context.queryClient.ensureQueryData(FilterByIdQueryOptions(params.filterId))
+      const filter = await context.queryClient.query({ ...FilterByIdQueryOptions(params.filterId), staleTime: "static" })
       return { filter }
     } catch {
       throw notFound()
@@ -161,63 +161,63 @@ export const SettingsIndexRoute = createRoute({
 export const SettingsLogRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'logs',
-  loader: (opts) => opts.context.queryClient.ensureQueryData(ConfigQueryOptions()),
+  loader: (opts) => opts.context.queryClient.query({ ...ConfigQueryOptions(), staleTime: "static" }),
   component: lazyRouteComponent(() => import("@screens/settings/Logs"))
 });
 
 export const SettingsIndexersRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'indexers',
-  loader: (opts) => opts.context.queryClient.ensureQueryData(IndexersQueryOptions()),
+  loader: (opts) => opts.context.queryClient.query({ ...IndexersQueryOptions(), staleTime: "static" }),
   component: lazyRouteComponent(() => import("@screens/settings/Indexer"))
 });
 
 export const SettingsIrcRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'irc',
-  loader: (opts) => opts.context.queryClient.ensureQueryData(IrcQueryOptions()),
+  loader: (opts) => opts.context.queryClient.query({ ...IrcQueryOptions(), staleTime: "static" }),
   component: lazyRouteComponent(() => import("@screens/settings/Irc"))
 });
 
 export const SettingsListsRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'lists',
-  loader: (opts) => opts.context.queryClient.ensureQueryData(ListsQueryOptions()),
+  loader: (opts) => opts.context.queryClient.query({ ...ListsQueryOptions(), staleTime: "static" }),
   component: lazyRouteComponent(() => import("@screens/settings/Lists"))
 });
 
 export const SettingsFeedsRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'feeds',
-  loader: (opts) => opts.context.queryClient.ensureQueryData(FeedsQueryOptions()),
+  loader: (opts) => opts.context.queryClient.query({ ...FeedsQueryOptions(), staleTime: "static" }),
   component: lazyRouteComponent(() => import("@screens/settings/Feed"))
 });
 
 export const SettingsClientsRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'clients',
-  loader: (opts) => opts.context.queryClient.ensureQueryData(DownloadersQueryOptions()),
+  loader: (opts) => opts.context.queryClient.query({ ...DownloadersQueryOptions(), staleTime: "static" }),
   component: lazyRouteComponent(() => import("@screens/settings/Downloaders"))
 });
 
 export const SettingsNotificationsRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'notifications',
-  loader: (opts) => opts.context.queryClient.ensureQueryData(NotificationsQueryOptions()),
+  loader: (opts) => opts.context.queryClient.query({ ...NotificationsQueryOptions(), staleTime: "static" }),
   component: lazyRouteComponent(() => import("@screens/settings/Notifications"))
 });
 
 export const SettingsApiRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'api',
-  loader: (opts) => opts.context.queryClient.ensureQueryData(ApikeysQueryOptions()),
+  loader: (opts) => opts.context.queryClient.query({ ...ApikeysQueryOptions(), staleTime: "static" }),
   component: lazyRouteComponent(() => import("@screens/settings/Api"))
 });
 
 export const SettingsProxiesRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'proxies',
-  loader: (opts) => opts.context.queryClient.ensureQueryData(ProxiesQueryOptions()),
+  loader: (opts) => opts.context.queryClient.query({ ...ProxiesQueryOptions(), staleTime: "static" }),
   component: lazyRouteComponent(() => import("@screens/settings/Proxy"))
 });
 
@@ -243,7 +243,7 @@ export const OnboardRoute = createRoute({
   getParentRoute: () => RootRoute,
   path: 'onboard',
   beforeLoad: async ({ context }) => {
-    const canOnboard = await context.queryClient.ensureQueryData(CanOnboardQueryOptions());
+    const canOnboard = await context.queryClient.query({ ...CanOnboardQueryOptions(), staleTime: "static" });
     if (!canOnboard) {
       console.error("onboarding not available, redirect to login")
 
@@ -264,7 +264,7 @@ export const LoginRoute = createRoute({
   beforeLoad: async ({ context, navigate }) => {
     // First check if OIDC is enabled
     try {
-      const oidcConfig = await context.queryClient.ensureQueryData(OIDCConfigQueryOptions());
+      const oidcConfig = await context.queryClient.query({ ...OIDCConfigQueryOptions(), staleTime: "static" });
       if (oidcConfig.enabled) {
         return;
       }
@@ -273,7 +273,7 @@ export const LoginRoute = createRoute({
     }
 
     // Only check onboarding if OIDC is not enabled
-    const canOnboard = await context.queryClient.ensureQueryData(CanOnboardQueryOptions());
+    const canOnboard = await context.queryClient.query({ ...CanOnboardQueryOptions(), staleTime: "static" });
     if (canOnboard) {
       console.info("onboarding available, redirecting");
       navigate({ to: OnboardRoute.to });
@@ -296,7 +296,7 @@ export const AuthRoute = createRoute({
         // Also get OIDC config if needed
         let issuerUrl;
         if (response.auth_method === 'oidc') {
-          const oidcConfig = await context.queryClient.ensureQueryData(OIDCConfigQueryOptions());
+          const oidcConfig = await context.queryClient.query({ ...OIDCConfigQueryOptions(), staleTime: "static" });
           issuerUrl = oidcConfig.issuerUrl;
         }
         
