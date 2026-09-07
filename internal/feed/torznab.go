@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"net/url"
 	"slices"
 	"strconv"
 	"strings"
@@ -144,7 +145,18 @@ func (j *TorznabJob) processItems(items []torznab.FeedItem) ([]*domain.Release, 
 
 		rls.TorrentName = item.Title
 		rls.DownloadURL = item.Link
-		rls.InfoURL = item.GUID
+
+		if comments := strings.TrimSpace(item.Comments); rls.InfoURL == "" && comments != "" {
+			if u, err := url.Parse(comments); err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != "" {
+				rls.InfoURL = comments
+			}
+		}
+
+		if guid := strings.TrimSpace(item.GUID); rls.InfoURL == "" && guid != "" {
+			if u, err := url.Parse(guid); err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != "" {
+				rls.InfoURL = guid
+			}
+		}
 
 		if item.Enclosure != nil && item.Enclosure.Type == "application/x-bittorrent" {
 			rls.DownloadURL = item.Enclosure.URL
