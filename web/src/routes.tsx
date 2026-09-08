@@ -68,6 +68,9 @@ export const FilterGetByIdRoute = createRoute({
   path: '$filterId',
   params: {
     parse: (params) => {
+      if (!/^[1-9]\d*$/.test(params.filterId)) {
+        throw notFound();
+      }
       const filterId = z.int().safeParse(Number(params.filterId));
       if (!filterId.success) {
         throw notFound();

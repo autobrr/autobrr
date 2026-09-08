@@ -14,7 +14,7 @@ test("numeric filter id parses to a number", () => {
   expect(parse("42")).toEqual({ filterId: 42 });
 });
 
-test.each(["does-not-exist", "1.5", "NaN", "Infinity"])("filter id %s throws notFound instead of a parse error", (filterId) => {
+test.each(["does-not-exist", "1.5", "NaN", "Infinity", "1e3", "0x10", " ", "", "-1", "+5", "01", "0", "99999999999999999999"])("filter id %s throws notFound instead of a parse error", (filterId) => {
   let thrown: unknown;
   try {
     parse(filterId);
