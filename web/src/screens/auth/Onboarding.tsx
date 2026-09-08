@@ -3,11 +3,13 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
 import { APIClient } from "@api/APIClient";
+import { AuthKeys } from "@api/query_keys";
+import { OIDCConfigQueryOptions } from "@api/queries";
 import { fieldErrors, useAppForm } from "@hooks/form";
 import { TextField, PasswordField } from "@components/inputs";
 
@@ -43,15 +45,16 @@ export const Onboarding = () => {
 
   const navigate = useNavigate();
 
-  // Query to check if OIDC is enabled
-  const { data: oidcConfig } = useQuery({
-    queryKey: ["oidc-config"],
-    queryFn: () => APIClient.auth.getOIDCConfig(),
-  });
+  const queryClient = useQueryClient();
+  const { data: oidcConfig } = useQuery(OIDCConfigQueryOptions());
 
   const mutation = useMutation({
     mutationFn: (data: InputValues) => APIClient.auth.onboard(data.username, data.password1),
-    onSuccess: () => navigate({ to: "/login" })
+    onSuccess: () => {
+      // The login route redirects here while onboarding is still cached as available.
+      queryClient.setQueryData(AuthKeys.canOnboard(), false);
+      navigate({ to: "/login" });
+    }
   });
 
   const form = useAppForm({

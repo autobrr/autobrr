@@ -210,7 +210,7 @@ export const RegexField = ({
         validators={{ onChange: ({ value }) => validateRegexp(value ?? "") }}
       >
         {(field) => {
-          const valid = validRegex(field.state.value ?? "");
+          const valid = useRegex ? validRegex(field.state.value ?? "") : true;
 
           return (
             <div className="relative">
@@ -296,7 +296,7 @@ export const RegexTextAreaField = ({
         validators={{ onChange: ({ value }) => validateRegexp(value ?? "") }}
       >
         {(field) => {
-          const valid = validRegex(field.state.value ?? "");
+          const valid = useRegex ? validRegex(field.state.value ?? "") : true;
 
           return (
             <div className="relative">

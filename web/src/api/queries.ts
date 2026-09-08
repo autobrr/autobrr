@@ -7,15 +7,42 @@ import { keepPreviousData, queryOptions } from "@tanstack/react-query";
 import { APIClient } from "@api/APIClient";
 import {
   ApiKeys,
+  AuthKeys,
   DownloaderKeys,
   FeedKeys,
   FilterKeys,
   IndexerKeys,
-  IrcKeys, ListKeys, NotificationKeys, ProxyKeys,
+  IrcKeys, ListKeys, LogKeys, NotificationKeys, ProxyKeys,
   ReleaseKeys, ReleaseProfileDuplicateKeys,
   SettingsKeys
 } from "@api/query_keys";
 import { ColumnFilter } from "@tanstack/react-table";
+
+export const OIDCConfigQueryOptions = () =>
+  queryOptions({
+    queryKey: AuthKeys.oidcConfig(),
+    queryFn: () => APIClient.auth.getOIDCConfig(),
+    staleTime: Infinity
+  });
+
+// The endpoint answers 200 while onboarding is still possible and errors once a user exists.
+export const CanOnboardQueryOptions = () =>
+  queryOptions({
+    queryKey: AuthKeys.canOnboard(),
+    queryFn: async () => {
+      try {
+        await APIClient.auth.canOnboard();
+        return true;
+      } catch (error) {
+        // fetch rejects with a TypeError when the request never reached the server
+        if (error instanceof TypeError) {
+          throw error;
+        }
+        return false;
+      }
+    },
+    staleTime: Infinity
+  });
 
 export const FiltersGetAllQueryOptions = () =>
   queryOptions({
@@ -123,6 +150,27 @@ export const NotificationsQueryOptions = () =>
     queryFn: () => APIClient.notifications.getAll()
   });
 
+export const LogFilesQueryOptions = () =>
+  queryOptions({
+    queryKey: LogKeys.files(),
+    queryFn: () => APIClient.logs.files(),
+    retry: false,
+    refetchOnWindowFocus: false
+  });
+
+export const ReleaseCleanupJobsQueryOptions = () =>
+  queryOptions({
+    queryKey: ReleaseKeys.cleanupJobs.lists(),
+    queryFn: () => APIClient.release.cleanupJobs.list()
+  });
+
+export const IrcChannelHistoryQueryOptions = (networkId: number, channel: string) =>
+  queryOptions({
+    queryKey: IrcKeys.channelHistory(networkId, channel),
+    queryFn: () => APIClient.irc.getChannelHistory(networkId, channel.startsWith("#") ? channel.substring(1) : channel),
+    staleTime: Infinity
+  });
+
 export const PushoverSoundsQueryOptions = (apiToken: string) =>
   queryOptions({
     queryKey: NotificationKeys.pushoverSounds(apiToken),
@@ -225,9 +273,11 @@ export const ReleasesIndexersQueryOptions = () =>
   queryOptions({
     queryKey: ReleaseKeys.indexers(),
     queryFn: async () => {
-      const indexersResponse: IndexerDefinition[] = await APIClient.indexers.getAll();
-      const deprecationsResponse: IndexerDeprecation[] = await APIClient.indexers.getDeprecations();
-      const indexerOptionsResponse: string[] = await APIClient.release.indexerOptions();
+      const [indexersResponse, deprecationsResponse, indexerOptionsResponse] = await Promise.all([
+        APIClient.indexers.getAll(),
+        APIClient.indexers.getDeprecations(),
+        APIClient.release.indexerOptions()
+      ]);
 
       const indexersMap = new Map(indexersResponse.map((indexer: IndexerDefinition) => [indexer.identifier, indexer.name]));
       // fall back to deprecation metadata so removed indexers still show a friendly name

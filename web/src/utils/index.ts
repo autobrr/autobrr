@@ -141,64 +141,48 @@ export function formatHoursAsDuration(hours: number): string {
   return `${hours} ${hours === 1 ? "hour" : "hours"}`;
 }
 
-export const RandomLinuxIsos = (count: number) => {
-  const linuxIsos = [
-    "debian-live-12.10.0-amd64-kde.iso",
-    "xubuntu-25.04-desktop-amd64.iso",
-    "ubuntu-25.04-live-server-amd64.iso",
-    "ubuntu-25.04-desktop-amd64.iso",
-    "edubuntu-25.04-desktop-amd64.iso",
-    "deepin-desktop-community-23.1-amd64.iso",
-    "TUXEDO-OS-202504150920.iso",
-    "tails-amd64-6.14.2.iso",
-    "manjaro-kde-25.0.0-250414-linux612.iso",
-    "Fedora-KDE-Desktop-Live-x86_64-42.iso",
-    "manjaro-xfce-25.0.0-250414-linux612.iso",
-    "manjaro-gnome-25.0.0-250414-linux612.iso",
-    "neon-user-20250410-1320.iso",
-    "sparkylinux-7.7-x86_64-xfce.iso",
-    "Gobo-017.01-x86_64.iso",
-    "lite-7.4-64bit.iso",
-    "EndeavourOS_Mercury-Neo-2025.03.19.iso",
-    "elementary-8.0.1-20250314.iso",
-    "debian-12.10.0-amd64-DVD-1.iso",
-    "finnix-250.iso",
-    "kali-linux-2025.1a-installer-amd64.iso",
-    "linuxmint-22.1-cinnamon-64bit.iso",
-    "MX-23.5_x64.iso",
-    "Solus-Plasma-Release-2025-01-26.iso"
-  ];
+const linuxIsos = [
+  "debian-live-12.10.0-amd64-kde.iso",
+  "xubuntu-25.04-desktop-amd64.iso",
+  "ubuntu-25.04-live-server-amd64.iso",
+  "ubuntu-25.04-desktop-amd64.iso",
+  "edubuntu-25.04-desktop-amd64.iso",
+  "deepin-desktop-community-23.1-amd64.iso",
+  "TUXEDO-OS-202504150920.iso",
+  "tails-amd64-6.14.2.iso",
+  "manjaro-kde-25.0.0-250414-linux612.iso",
+  "Fedora-KDE-Desktop-Live-x86_64-42.iso",
+  "manjaro-xfce-25.0.0-250414-linux612.iso",
+  "manjaro-gnome-25.0.0-250414-linux612.iso",
+  "neon-user-20250410-1320.iso",
+  "sparkylinux-7.7-x86_64-xfce.iso",
+  "Gobo-017.01-x86_64.iso",
+  "lite-7.4-64bit.iso",
+  "EndeavourOS_Mercury-Neo-2025.03.19.iso",
+  "elementary-8.0.1-20250314.iso",
+  "debian-12.10.0-amd64-DVD-1.iso",
+  "finnix-250.iso",
+  "kali-linux-2025.1a-installer-amd64.iso",
+  "linuxmint-22.1-cinnamon-64bit.iso",
+  "MX-23.5_x64.iso",
+  "Solus-Plasma-Release-2025-01-26.iso"
+];
 
-  const selectedIsos = [];
-  const availableIsos = [...linuxIsos];
-  const numToSelect = Math.min(count, availableIsos.length);
+const fossTorrentSites = [
+  "fosstorrents",
+  "linuxtracker",
+  "distrowatch",
+];
 
-  for (let i = 0; i < numToSelect; i++) {
-    const randomIndex = Math.floor(Math.random() * availableIsos.length);
-    selectedIsos.push(availableIsos.splice(randomIndex, 1)[0]);
-  }
-
-  return selectedIsos;
+// Shuffles the pool and repeats it so any row count gets a name.
+const randomPicks = (pool: string[], count: number) => {
+  const shuffled = pool.toSorted(() => Math.random() - 0.5);
+  return Array.from({ length: count }, (_, i) => shuffled[i % shuffled.length]);
 };
 
-export const RandomIsoTracker = (count: number) => {
-  const fossTorrentSites = [
-    "fosstorrents",
-    "linuxtracker",
-    "distrowatch",
-  ];
+export const RandomLinuxIsos = (count: number) => randomPicks(linuxIsos, count);
 
-  const selectedSites = [];
-  const availableSites = [...fossTorrentSites];
-  const numToSelect = Math.min(count, availableSites.length);
-
-  for (let i = 0; i < numToSelect; i++) {
-    const randomIndex = Math.floor(Math.random() * availableSites.length);
-    selectedSites.push(availableSites.splice(randomIndex, 1)[0]);
-  }
-
-  return selectedSites;
-};
+export const RandomIsoTracker = (count: number) => randomPicks(fossTorrentSites, count);
 
 export const IsErrorWithMessage = (error: unknown): error is { message: string } => {
   return typeof error === 'object' && error !== null && 'message' in error;

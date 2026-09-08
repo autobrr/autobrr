@@ -37,6 +37,9 @@ export const queryClient = new QueryClient({
   }),
   defaultOptions: {
     queries: {
+      // Settings tabs share cached lists for a while instead of refetching on every mount and focus;
+      // mutations invalidate their keys, so edits still show up immediately.
+      staleTime: 30 * 1000,
       // The retries will have exponential delay.
       // See https://tanstack.com/query/v4/docs/guides/query-retries#retry-delay
       // delay = Math.min(1000 * 2 ** attemptIndex, 30000)

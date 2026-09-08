@@ -6,7 +6,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
-import { useFormValues } from "@hooks/form";
+import { useFormValue } from "@hooks/form";
 import { downloadsPerUnitOptions, getWindowTypeOptions } from "@domain/constants";
 import { IndexersOptionsQueryOptions, ReleaseProfileDuplicateList } from "@api/queries";
 
@@ -34,7 +34,7 @@ const MapReleaseProfile = (profile: ReleaseProfileDuplicate) => (
 
 export const General = () => {
   const { t } = useTranslation(["options", "filters"]);
-  const values = useFormValues<Filter>();
+  const values = useFormValue((v: Filter) => ({ indexers: v.indexers, max_downloads_unit: v.max_downloads_unit, max_downloads_window_type: v.max_downloads_window_type }));
 
   const indexersQuery = useSuspenseQuery(IndexersOptionsQueryOptions())
 

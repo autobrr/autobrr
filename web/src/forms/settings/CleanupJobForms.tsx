@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MultiSelect as RMSC } from "react-multi-select-component";
 import { format } from "date-fns";
@@ -10,6 +11,7 @@ import { useTranslation } from "react-i18next";
 
 import { APIClient } from "@api/APIClient";
 import { ReleaseKeys } from "@api/query_keys";
+import { IndexersQueryOptions } from "@api/queries";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { useFormContext } from "@hooks/form";
@@ -21,7 +23,7 @@ import { getPushStatusOptions, OptionBasic } from "@domain/constants";
 
 export function CleanupJobAddForm({isOpen, toggle}: AddFormProps) {
   const { t } = useTranslation(["options", "settings"]);
-  const pushStatusOptions = getPushStatusOptions(t);
+  const pushStatusOptions = useMemo(() => getPushStatusOptions(t), [t]);
   const queryClient = useQueryClient();
 
   const addMutation = useMutation({
@@ -47,13 +49,9 @@ export function CleanupJobAddForm({isOpen, toggle}: AddFormProps) {
     statuses: ""
   };
 
-  const {data: indexerOptions} = useQuery<IndexerDefinition[], Error, { identifier: string; name: string; }[]>({
-    queryKey: ['indexers'],
-    queryFn: () => APIClient.indexers.getAll(),
-    select: data => data.map(indexer => ({
-      identifier: indexer.identifier,
-      name: indexer.name
-    })),
+  const {data: indexerOptions} = useQuery({
+    ...IndexersQueryOptions(),
+    select: (data) => data.map((indexer) => ({ value: indexer.identifier, label: indexer.name }))
   });
 
   return (
@@ -98,7 +96,7 @@ export function CleanupJobAddForm({isOpen, toggle}: AddFormProps) {
             <div className="col-span-2">
               <MultiSelectField
                 name="indexers"
-                options={indexerOptions?.map(opt => ({value: opt.identifier, label: opt.name})) || []}
+                options={indexerOptions ?? []}
                 labelledBy="cleanup-job-add-indexers"
               />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -130,7 +128,7 @@ export function CleanupJobAddForm({isOpen, toggle}: AddFormProps) {
 
 export function CleanupJobUpdateForm({isOpen, toggle, data: job}: UpdateFormProps<ReleaseCleanupJob>) {
   const { t } = useTranslation(["options", "settings"]);
-  const pushStatusOptions = getPushStatusOptions(t);
+  const pushStatusOptions = useMemo(() => getPushStatusOptions(t), [t]);
   const queryClient = useQueryClient();
 
   const updateMutation = useMutation({
@@ -177,13 +175,9 @@ export function CleanupJobUpdateForm({isOpen, toggle, data: job}: UpdateFormProp
   };
 
   // Get indexer options for multi-select
-  const {data: indexerOptions} = useQuery<IndexerDefinition[], Error, { identifier: string; name: string; }[]>({
-    queryKey: ['indexers'],
-    queryFn: () => APIClient.indexers.getAll(),
-    select: data => data.map(indexer => ({
-      identifier: indexer.identifier,
-      name: indexer.name
-    })),
+  const {data: indexerOptions} = useQuery({
+    ...IndexersQueryOptions(),
+    select: (data) => data.map((indexer) => ({ value: indexer.identifier, label: indexer.name }))
   });
 
   return (
@@ -230,7 +224,7 @@ export function CleanupJobUpdateForm({isOpen, toggle, data: job}: UpdateFormProp
             <div className="col-span-2">
               <MultiSelectField
                 name="indexers"
-                options={indexerOptions?.map(opt => ({value: opt.identifier, label: opt.name})) || []}
+                options={indexerOptions ?? []}
                 labelledBy="cleanup-job-edit-indexers"
               />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">

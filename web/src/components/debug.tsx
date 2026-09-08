@@ -4,16 +4,18 @@
  */
 
 import { FC } from "react";
+
 import { SettingsContext } from "@utils/Context";
+import { useFormValues } from "@hooks/form";
 
 interface DebugProps {
     values: unknown;
 }
 
 export const DEBUG: FC<DebugProps> = ({ values }) => {
-  const settings = SettingsContext.useValue();
+  const debug = SettingsContext.useSelector((s) => s.debug);
 
-  if (!import.meta.env.DEV || !settings.debug) {
+  if (!import.meta.env.DEV || !debug) {
     return null;
   }
 
@@ -22,6 +24,20 @@ export const DEBUG: FC<DebugProps> = ({ values }) => {
       <pre className="dark:text-gray-400 break-all whitespace-pre-wrap">{JSON.stringify(values, null, 2)}</pre>
     </div>
   );
+};
+
+const FormDebugValues = () => <DEBUG values={useFormValues()} />;
+
+// Drop-in for <DEBUG values={values} /> inside a form.AppForm; the form subscription
+// only exists while the panel is enabled.
+export const FormDebug = () => {
+  const debug = SettingsContext.useSelector((s) => s.debug);
+
+  if (!import.meta.env.DEV || !debug) {
+    return null;
+  }
+
+  return <FormDebugValues />;
 };
 
 export function LogDebug(...data: unknown[]): void {

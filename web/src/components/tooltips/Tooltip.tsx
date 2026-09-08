@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 
 import { Transition } from "@headlessui/react";
@@ -11,6 +11,7 @@ import { usePopperTooltip } from "react-popper-tooltip";
 import { Placement } from '@popperjs/core';
 
 import { classNames } from "@utils";
+import { useMedia } from "@hooks/hooks";
 
 interface TooltipProps {
   label: ReactNode;
@@ -32,30 +33,12 @@ export const Tooltip = ({
   maxWidth = "max-w-sm"
 }: TooltipProps) => {
   const [isTooltipVisible, setIsTooltipVisible] = useState(false);
-  const [tooltipNode, setTooltipNode] = useState<HTMLDivElement | null>(null);
-  const [triggerNode, setTriggerNode] = useState<HTMLDivElement | null>(null);
+  const tooltipNode = useRef<HTMLDivElement | null>(null);
+  const triggerNode = useRef<HTMLDivElement | null>(null);
 
-  // default tooltip placement to right
-  const [placement, setPlacement] = useState<Placement>('right');
-
-  // check screen size and update placement if needed
-  useEffect(() => {
-    const updatePlacementForScreenSize = () => {
-      const screenWidth = window.innerWidth;
-      if (screenWidth < 640) { // tailwind's sm breakpoint
-        setPlacement('top');
-      } else {
-        setPlacement('right');
-      }
-    };
-
-    updatePlacementForScreenSize();
-    window.addEventListener('resize', updatePlacementForScreenSize);
-
-    return () => {
-      window.removeEventListener('resize', updatePlacementForScreenSize);
-    };
-  }, []);
+  // Below tailwind's sm breakpoint the tooltip sits above its trigger instead of to the right
+  const isSmallScreen = useMedia("(max-width: 639px)", false);
+  const placement: Placement = isSmallScreen ? "top" : "right";
 
   const {
     getTooltipProps,
@@ -72,38 +55,40 @@ export const Tooltip = ({
 
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
-    setIsTooltipVisible(!isTooltipVisible);
-  };
-
-  const handleTouch = (e: React.TouchEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsTooltipVisible(!isTooltipVisible);
+    setIsTooltipVisible((visible) => !visible);
   };
 
   const setTooltipRef = (node: HTMLDivElement | null) => {
     popperSetTooltipRef(node);
-    setTooltipNode(node);
+    tooltipNode.current = node;
   };
 
   const setTriggerRef = (node: HTMLDivElement | null) => {
     popperSetTriggerRef(node);
-    setTriggerNode(node);
+    triggerNode.current = node;
   };
 
-  const handleClickOutside = useCallback((event: MouseEvent | TouchEvent) => {
-    if (tooltipNode && !tooltipNode.contains(event.target as Node) && triggerNode && !triggerNode.contains(event.target as Node)) {
-      setIsTooltipVisible(false);
-    }
-  }, [tooltipNode, triggerNode]);
-
+  // Only an open tooltip needs to hear about outside clicks, so a table full of
+  // closed ones registers nothing on the document
   useEffect(() => {
-    document.addEventListener('touchstart', handleClickOutside as EventListener, true);
-    document.addEventListener('mousedown', handleClickOutside as EventListener, true);
-    return () => {
-      document.removeEventListener('touchstart', handleClickOutside as EventListener, true);
-      document.removeEventListener('mousedown', handleClickOutside as EventListener, true);
+    if (!isTooltipVisible) {
+      return;
+    }
+
+    const handleClickOutside = (event: Event) => {
+      const target = event.target as Node;
+      if (tooltipNode.current && !tooltipNode.current.contains(target) && triggerNode.current && !triggerNode.current.contains(target)) {
+        setIsTooltipVisible(false);
+      }
     };
-  }, [handleClickOutside]);
+
+    document.addEventListener('touchstart', handleClickOutside, { capture: true, passive: true });
+    document.addEventListener('mousedown', handleClickOutside, true);
+    return () => {
+      document.removeEventListener('touchstart', handleClickOutside, true);
+      document.removeEventListener('mousedown', handleClickOutside, true);
+    };
+  }, [isTooltipVisible]);
 
   return (
     <>
@@ -111,7 +96,6 @@ export const Tooltip = ({
         ref={setTriggerRef}
         className="truncate cursor-pointer"
         onClick={handleClick}
-        onTouchStart={handleTouch}
       >
         {label}
       </div>

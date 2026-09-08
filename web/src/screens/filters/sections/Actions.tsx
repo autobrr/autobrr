@@ -3,14 +3,14 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ChevronRightIcon, BoltIcon } from "@heroicons/react/24/solid";
 import { useTranslation } from "react-i18next";
 
 import { classNames } from "@utils";
 import { useToggle } from "@hooks/hooks";
-import { useFormContext, useFormValues } from "@hooks/form";
+import { useFormContext, useFormValue } from "@hooks/form";
 import { APIClient } from "@api/APIClient";
 import { DOWNLOAD_CLIENTS, getActionTypeNameMap, getActionTypeOptions } from "@domain/constants";
 
@@ -40,7 +40,7 @@ import {
 export function Actions() {
   const { t } = useTranslation(["options", "filters"]);
   const form = useFormContext();
-  const values = useFormValues<Filter>();
+  const values = useFormValue((v: Filter) => ({ actions: v.actions, id: v.id }));
   const actionTypeOptions = getActionTypeOptions(t);
 
   const { data } = useQuery(DownloadersQueryOptions());
@@ -129,18 +129,7 @@ export function Actions() {
 }
 
 const TypeForm = (props: ClientActionProps) => {
-  const form = useFormContext();
-  const [prevActionType, setPrevActionType] = useState<string | null>(null);
-
-  const { action, idx } = props;
-
-  useEffect(() => {
-    if (prevActionType !== null && prevActionType !== action.type && DOWNLOAD_CLIENTS.includes(action.type)) {
-      form.setFieldValue(`actions[${idx}].client_id`, 0, { dontUpdateMeta: true });
-    }
-
-    setPrevActionType(action.type);
-  }, [action.type, idx, prevActionType, form]);
+  const { action } = props;
 
   switch (action.type) {
   // torrent clients
@@ -290,6 +279,11 @@ function FilterActionsItem({ action, actionTypeOptions, clients, idx, initialEdi
                     optionDefaultText={t("filters:actionsSection.selectType")}
                     options={actionTypeOptions}
                     tooltip={<div><p>{t("filters:actionsSection.actionTypeTooltip")}</p></div>}
+                    onChange={(type) => {
+                      if (DOWNLOAD_CLIENTS.includes(type as ActionType)) {
+                        form.setFieldValue(`actions[${idx}].client_id`, 0, { dontUpdateMeta: true });
+                      }
+                    }}
                   />
                 </FilterHalfRow>
 

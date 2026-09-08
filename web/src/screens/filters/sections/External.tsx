@@ -11,7 +11,7 @@ import { useTranslation } from "react-i18next";
 
 import { classNames } from "@utils";
 import { useToggle } from "@hooks/hooks";
-import { useFormContext, useFormValues } from "@hooks/form";
+import { useFormContext, useFormValue } from "@hooks/form";
 import { APIClient } from "@api/APIClient";
 import { TextAreaAutoResize } from "@components/inputs/input";
 import { EmptyListState } from "@components/emptystates";
@@ -31,7 +31,7 @@ import { FilterLayout, FilterPage, FilterSection } from "@screens/filters/sectio
 export function External() {
   const { t } = useTranslation("filters");
   const form = useFormContext();
-  const values = useFormValues<Filter>();
+  const values = useFormValue((v: Filter) => ({ external: v.external }));
 
   const newItem: ExternalFilter = {
     id: values.external.length + 1,
@@ -113,7 +113,7 @@ interface FilterExternalItemProps {
 function FilterExternalItem({ idx, external, initialEdit, remove, move }: FilterExternalItemProps) {
   const { t } = useTranslation("filters");
   const form = useFormContext();
-  const values = useFormValues<Filter>();
+  const externalCount = useFormValue((v: Filter) => v.external.length);
   const cancelButtonRef = useRef(null);
 
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
@@ -141,7 +141,7 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
           "flex items-center transition px-2 sm:px-6 rounded-md my-1 border border-gray-150 dark:border-gray-750 hover:bg-gray-200 dark:hover:bg-gray-850"
         )}
       >
-        {((idx > 0) || (idx < values.external.length - 1)) ? (
+        {((idx > 0) || (idx < externalCount - 1)) ? (
           <div className="flex flex-col pr-3 justify-between">
             {idx > 0 && (
               <button type="button" className="cursor-pointer" onClick={moveUp}>
@@ -152,7 +152,7 @@ function FilterExternalItem({ idx, external, initialEdit, remove, move }: Filter
               </button>
             )}
 
-            {idx < values.external.length - 1 && (
+            {idx < externalCount - 1 && (
               <button type="button" className="cursor-pointer" onClick={moveDown}>
                 <ArrowDownIcon
                   className="p-0.5 h-4 w-4 text-gray-700 dark:text-gray-400"

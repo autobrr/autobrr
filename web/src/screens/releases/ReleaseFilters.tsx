@@ -169,7 +169,7 @@ const FilterOption = ({ label, value }: FilterOptionProps) => (
 export const PushStatusSelectColumnFilter = ({ column }: { column: Column<DataTableFeatures, Release, unknown> }) => {
   const { t: tOptions } = useTranslation("options");
   const { t } = useTranslation("common");
-  const pushStatusOptions = getPushStatusOptions(tOptions);
+  const pushStatusOptions = React.useMemo(() => getPushStatusOptions(tOptions), [tOptions]);
   // React.useEffect(() => {
   //   if (initialFilterValue) {
   //     setFilter(initialFilterValue);

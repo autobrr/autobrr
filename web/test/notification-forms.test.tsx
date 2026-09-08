@@ -50,3 +50,35 @@ test("saving an unrelated change keeps the webhook method and custom headers", a
     headers: "Authorization=Bearer placeholder"
   });
 });
+
+test("changing the type keeps the name, enabled flag and selected events", async () => {
+  const update = vi.spyOn(APIClient.notifications, "update").mockResolvedValue(undefined as never);
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <NotificationUpdateForm isOpen={true} toggle={() => {}} data={webhook} />
+    </QueryClientProvider>
+  );
+
+  fireEvent.change(screen.getByLabelText(/^Name/), { target: { value: "Renamed" } });
+
+  const picker = document.querySelector("input[id^='react-select'][id$='-input']") as HTMLInputElement;
+  fireEvent.keyDown(picker, { key: "ArrowDown", keyCode: 40 });
+  await act(async () => {
+    fireEvent.click(await screen.findByText("Discord"));
+  });
+
+  expect((screen.getByLabelText(/^Name/) as HTMLInputElement).value).toBe("Renamed");
+
+  await act(async () => {
+    fireEvent.click(screen.getByText("Save"));
+  });
+
+  expect(update).toHaveBeenCalledTimes(1);
+  expect(update.mock.calls[0][0]).toMatchObject({
+    id: 7,
+    type: "DISCORD",
+    name: "Renamed",
+    enabled: true,
+    events: ["PUSH_APPROVED"]
+  });
+});

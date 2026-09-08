@@ -3,8 +3,11 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+
 import { APIClient } from "@api/APIClient";
+import { IrcChannelHistoryQueryOptions } from "@api/queries";
 
 type IrcEvent = {
   network: number;
@@ -43,6 +46,8 @@ class IrcEventManager {
   private healthSubscribers: Map<number, Set<HealthEventHandler>> = new Map();
   private stateSubscribers: Map<number, Set<StateEventHandler>> = new Map();
   private refCount = 0;
+  private reconnectTimer: number | null = null;
+  private reconnectAttempt = 0;
 
   private getChannelKey(networkId: number, channel: string): ChannelKey {
     return `${networkId}:${channel.toLowerCase()}`;
@@ -201,64 +206,48 @@ class IrcEventManager {
       console.warn("Received untyped IRC event:", event.data);
     };
 
-    this.eventSource.onerror = (error) => {
-      console.error("IRC EventSource error:", error);
-      // The browser will automatically attempt to reconnect
+    this.eventSource.onopen = () => {
+      this.reconnectAttempt = 0;
+    };
+
+    // The browser only retries transport errors. A non-2xx handshake (expired session,
+    // proxy restart) closes the stream for good, so reconnect ourselves with backoff.
+    this.eventSource.onerror = () => {
+      if (this.eventSource?.readyState !== EventSource.CLOSED) {
+        return;
+      }
+
+      this.disconnect();
+      if (this.refCount === 0) {
+        return;
+      }
+
+      const delay = Math.min(1000 * 2 ** this.reconnectAttempt, 30000);
+      this.reconnectAttempt++;
+      this.reconnectTimer = window.setTimeout(() => {
+        this.reconnectTimer = null;
+        if (this.refCount > 0) {
+          this.connect();
+        }
+      }, delay);
     };
   }
 
   private disconnect() {
+    if (this.reconnectTimer !== null) {
+      window.clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
     if (this.eventSource) {
       this.eventSource.close();
       this.eventSource = null;
     }
   }
 
-  public forceReconnect() {
-    this.disconnect();
-    if (this.refCount > 0) {
-      this.connect();
-    }
-  }
 }
 
 // Singleton instance
 const ircEventManager = new IrcEventManager();
-
-/**
- * Hook to subscribe to IRC events for a specific network and channel.
- * Uses a single shared SSE connection for all channels.
- *
- * @param networkId The IRC network ID
- * @param channel The channel name (with or without #)
- * @param enabled Whether to actively subscribe (default: true)
- * @returns Array of IRC events for this channel
- */
-export function useIrcEvents(
-  networkId: number,
-  channel: string,
-  enabled: boolean = true
-): IrcEvent[] {
-  const [events, setEvents] = useState<IrcEvent[]>([]);
-
-  useEffect(() => {
-    if (!enabled || !networkId || !channel) {
-      return;
-    }
-
-    const handleEvent = (event: IrcEvent) => {
-      setEvents(prev => [...prev, event]);
-    };
-
-    const unsubscribe = ircEventManager.subscribe(networkId, channel, handleEvent);
-
-    return () => {
-      unsubscribe();
-    };
-  }, [networkId, channel, enabled]);
-
-  return events;
-}
 
 /**
  * Hook to load channel history and subscribe to new events.
@@ -281,64 +270,29 @@ export function useIrcChannelWithHistory(
   error: Error | null;
   clearEvents: () => void;
 } {
-  const [events, setEvents] = useState<IrcEvent[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const [hasHistory, setHasHistory] = useState(false);
-  const isFetchingRef = useRef(false);
+  const queryClient = useQueryClient();
+  const [liveEvents, setLiveEvents] = useState<IrcEvent[]>([]);
+  const historyOptions = IrcChannelHistoryQueryOptions(networkId, channel);
 
-  // Load historical events
+  const historyQuery = useQuery({
+    ...historyOptions,
+    enabled: enabled && !!networkId && !!channel
+  });
+  const historySettled = historyQuery.isSuccess || historyQuery.isError;
+
   useEffect(() => {
-    if (!enabled || !networkId || !channel || hasHistory || isFetchingRef.current) {
-      return;
-    }
+    setLiveEvents([]);
+  }, [networkId, channel]);
 
-    let cancelled = false;
-
-    const loadHistory = async () => {
-      isFetchingRef.current = true;
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const cleanChannel = channel.startsWith("#") ? channel.substring(1) : channel;
-        const history = await APIClient.irc.getChannelHistory(networkId, cleanChannel);
-        if (cancelled) {
-          return;
-        }
-
-        const trimmed = limit > 0 ? history.slice(-limit) : history;
-        setEvents(trimmed);
-        setHasHistory(true);
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err : new Error("Failed to load channel history"));
-          setHasHistory(false);
-          console.error("Failed to load IRC channel history:", err);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-        isFetchingRef.current = false;
-      }
-    };
-
-    loadHistory();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [networkId, channel, limit, enabled, hasHistory]);
-
-  // Subscribe to new events once history is available
+  // Subscribe to new events once history has loaded, or failed to, so a missing
+  // history endpoint still gives a live view
   useEffect(() => {
-    if (!enabled || !networkId || !channel || !hasHistory) {
+    if (!enabled || !networkId || !channel || !historySettled) {
       return;
     }
 
     const handleEvent = (event: IrcEvent) => {
-      setEvents(prev => {
+      setLiveEvents((prev) => {
         const next = [...prev, event];
         if (limit > 0 && next.length > limit) {
           return next.slice(-limit);
@@ -347,60 +301,20 @@ export function useIrcChannelWithHistory(
       });
     };
 
-    const unsubscribe = ircEventManager.subscribe(networkId, channel, handleEvent);
+    return ircEventManager.subscribe(networkId, channel, handleEvent);
+  }, [networkId, channel, enabled, historySettled, limit]);
 
-    return () => {
-      unsubscribe();
-    };
-  }, [networkId, channel, enabled, hasHistory, limit]);
-
-  // Reset when network or channel changes
-  useEffect(() => {
-    setHasHistory(false);
-    isFetchingRef.current = false;
-    setEvents([]);
-    setError(null);
-  }, [networkId, channel]);
+  const events = useMemo(() => {
+    const all = [...(historyQuery.data ?? []), ...liveEvents];
+    return limit > 0 ? all.slice(-limit) : all;
+  }, [historyQuery.data, liveEvents, limit]);
 
   const clearEvents = useCallback(() => {
-    setEvents([]);
-    setHasHistory(false);
-  }, []);
+    setLiveEvents([]);
+    queryClient.setQueryData(historyOptions.queryKey, []);
+  }, [queryClient, historyOptions.queryKey]);
 
-  return { events, isLoading, error, clearEvents };
-}
-
-/**
- * Hook to subscribe to IRC network health events.
- * Receives real-time updates when network health changes.
- *
- * @param networkId The IRC network ID to monitor
- * @param enabled Whether to actively subscribe (default: true)
- * @returns The latest health event for this network, or null if none received
- */
-export function useIrcNetworkHealth(
-  networkId: number,
-  enabled: boolean = true
-): IrcHealthEvent | null {
-  const [healthEvent, setHealthEvent] = useState<IrcHealthEvent | null>(null);
-
-  useEffect(() => {
-    if (!enabled || !networkId) {
-      return;
-    }
-
-    const handleHealthEvent = (event: IrcHealthEvent) => {
-      setHealthEvent(event);
-    };
-
-    const unsubscribe = ircEventManager.subscribeToHealth(networkId, handleHealthEvent);
-
-    return () => {
-      unsubscribe();
-    };
-  }, [networkId, enabled]);
-
-  return healthEvent;
+  return { events, isLoading: historyQuery.isLoading, error: historyQuery.error, clearEvents };
 }
 
 /**
@@ -500,13 +414,4 @@ export function useIrcNetworkStateSync(
   }, []);
 }
 
-/**
- * Force reconnect the shared SSE connection.
- * Useful when you need to manually trigger a reconnection.
- */
-export function reconnectIrcEvents() {
-  ircEventManager.forceReconnect();
-}
-
-// Export types for use in other files
 export type { IrcEvent, IrcHealthEvent, IrcStateEvent };

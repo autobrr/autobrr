@@ -10,14 +10,14 @@ import { useSelector } from "@tanstack/react-form";
 import { useTranslation } from "react-i18next";
 
 import { classNames, sleep } from "@utils";
-import { DEBUG } from "@components/debug";
+import { FormDebug } from "@components/debug";
 import { APIClient } from "@api/APIClient";
 import { DownloaderKeys } from "@api/query_keys";
 import { DownloaderAuthType, DownloadRuleConditionOptions, getDownloaderTypeOptions } from "@domain/constants";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { useToggle } from "@hooks/hooks";
-import { useAppForm, useFormValues } from "@hooks/form";
+import { useAppForm, useFormValue } from "@hooks/form";
 import { DeleteModal } from "@components/modals";
 import { SlideOverShell, SlideOverTitle } from "@components/panels";
 import {
@@ -69,7 +69,7 @@ interface InitialValues {
 
 function FormFieldsDeluge() {
   const { t } = useTranslation("settings");
-  const { tls } = useFormValues<InitialValues>();
+  const { tls } = useFormValue((v: InitialValues) => ({ tls: v.tls }));
 
   return (
     <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
@@ -113,7 +113,7 @@ function FormFieldsDeluge() {
 
 function FormFieldsArr() {
   const { t } = useTranslation("settings");
-  const { tls, settings } = useFormValues<InitialValues>();
+  const { tls, settings } = useFormValue((v: InitialValues) => ({ tls: v.tls, settings: v.settings }));
 
   return (
     <div className="flex flex-col space-y-4 px-1 mb-4 sm:py-0 sm:space-y-0">
@@ -159,7 +159,7 @@ function FormFieldsArr() {
 
 function FormFieldsQbit() {
   const { t } = useTranslation("settings");
-  const { port, tls, settings } = useFormValues<InitialValues>();
+  const { port, tls, settings } = useFormValue((v: InitialValues) => ({ port: v.port, tls: v.tls, settings: v.settings }));
 
   return (
     <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
@@ -216,7 +216,7 @@ function FormFieldsQbit() {
 
 function FormFieldsPorla() {
   const { t } = useTranslation("settings");
-  const { tls, settings } = useFormValues<InitialValues>();
+  const { tls, settings } = useFormValue((v: InitialValues) => ({ tls: v.tls, settings: v.settings }));
 
   return (
     <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
@@ -252,7 +252,7 @@ function FormFieldsPorla() {
 
 function FormFieldsAria2() {
   const { t } = useTranslation("settings");
-  const { tls, settings } = useFormValues<InitialValues>();
+  const { tls, settings } = useFormValue((v: InitialValues) => ({ tls: v.tls, settings: v.settings }));
 
   return (
     <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
@@ -292,7 +292,7 @@ function FormFieldsAria2() {
 
 function FormFieldsRTorrent() {
   const { t } = useTranslation("settings");
-  const { tls, settings } = useFormValues<InitialValues>();
+  const { tls, settings } = useFormValue((v: InitialValues) => ({ tls: v.tls, settings: v.settings }));
 
   return (
     <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
@@ -343,7 +343,7 @@ function FormFieldsRTorrent() {
 
 function FormFieldsTransmission() {
   const { t } = useTranslation("settings");
-  const { port, tls } = useFormValues<InitialValues>();
+  const { port, tls } = useFormValue((v: InitialValues) => ({ port: v.port, tls: v.tls }));
 
   return (
     <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
@@ -389,7 +389,7 @@ function FormFieldsTransmission() {
 
 function FormFieldsSabnzbd() {
   const { t } = useTranslation("settings");
-  const { port, tls, settings } = useFormValues<InitialValues>();
+  const { port, tls, settings } = useFormValue((v: InitialValues) => ({ port: v.port, tls: v.tls, settings: v.settings }));
 
   return (
     <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
@@ -484,7 +484,7 @@ const componentMap: componentMapType = {
 
 function FormFieldsRulesBasic() {
   const { t } = useTranslation("settings");
-  const { settings } = useFormValues<InitialValues>();
+  const { settings } = useFormValue((v: InitialValues) => ({ settings: v.settings }));
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5">
@@ -540,7 +540,7 @@ function FormFieldsRulesArr() {
 
 function FormFieldsRulesQbit() {
   const { t } = useTranslation("settings");
-  const { settings } = useFormValues<InitialValues>();
+  const { settings } = useFormValue((v: InitialValues) => ({ settings: v.settings }));
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5 px-2">
@@ -607,7 +607,7 @@ function FormFieldsRulesQbit() {
 
 function FormFieldsRulesTransmission() {
   const { t } = useTranslation("settings");
-  const { settings } = useFormValues<InitialValues>();
+  const { settings } = useFormValue((v: InitialValues) => ({ settings: v.settings }));
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5 px-2">
@@ -664,8 +664,7 @@ interface formButtonsProps {
   isErrorTest: boolean;
   isTesting: boolean;
   cancelFn: () => void;
-  testFn: (data: unknown) => void;
-  values: unknown;
+  testFn: () => void;
   type: "CREATE" | "UPDATE";
   toggleDeleteModal?: () => void;
 }
@@ -677,14 +676,9 @@ function DownloaderFormButtons({
   isTesting,
   cancelFn,
   testFn,
-  values,
   toggleDeleteModal
 }: formButtonsProps) {
   const { t } = useTranslation("settings");
-
-  const test = () => {
-    testFn(values);
-  };
 
   return (
     <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-5 sm:px-6">
@@ -712,7 +706,7 @@ function DownloaderFormButtons({
             )}
             disabled={isTesting}
             // onClick={() => testClient(values)}
-            onClick={test}
+            onClick={testFn}
           >
             {isTesting ? (
               <svg
@@ -847,7 +841,7 @@ function DownloaderAddFormPanel({ toggle }: DownloaderAddFormPanelProps) {
     onSubmit: ({ value }) => onSubmit(value)
   });
 
-  const values = useSelector(form.store, (state) => state.values);
+  const type = useSelector(form.store, (state) => state.values.type);
 
   return (
     <form.AppForm>
@@ -894,12 +888,12 @@ function DownloaderAddFormPanel({ toggle }: DownloaderAddFormPanelProps) {
               legend={t("settings:forms.downloadClient.type")}
               options={downloaderTypeOptions}
             />
-            <div>{componentMap[values.type]}</div>
+            <div>{componentMap[type]}</div>
           </div>
 
-          {rulesComponentMap[values.type]}
+          {rulesComponentMap[type]}
 
-          <DEBUG values={values} />
+          <FormDebug />
         </div>
 
         <DownloaderFormButtons
@@ -908,8 +902,7 @@ function DownloaderAddFormPanel({ toggle }: DownloaderAddFormPanelProps) {
           isSuccessfulTest={isSuccessfulTest}
           isErrorTest={isErrorTest}
           cancelFn={toggle}
-          testFn={testClient}
-          values={values}
+          testFn={() => testClient(form.state.values)}
         />
       </form>
     </form.AppForm>
@@ -1019,7 +1012,7 @@ function DownloaderUpdateFormPanel({ toggle, data: client }: DownloaderUpdateFor
     onSubmit: ({ value }) => onSubmit(value)
   });
 
-  const values = useSelector(form.store, (state) => state.values);
+  const type = useSelector(form.store, (state) => state.values.type);
 
   return (
     <>
@@ -1076,12 +1069,12 @@ function DownloaderUpdateFormPanel({ toggle, data: client }: DownloaderUpdateFor
                 legend={t("settings:forms.downloadClient.type")}
                 options={downloaderTypeOptions}
               />
-              <div>{componentMap[values.type]}</div>
+              <div>{componentMap[type]}</div>
             </div>
 
-            {rulesComponentMap[values.type]}
+            {rulesComponentMap[type]}
 
-            <DEBUG values={values} />
+            <FormDebug />
           </div>
 
           <DownloaderFormButtons
@@ -1091,8 +1084,7 @@ function DownloaderUpdateFormPanel({ toggle, data: client }: DownloaderUpdateFor
             isSuccessfulTest={isSuccessfulTest}
             isErrorTest={isErrorTest}
             cancelFn={toggle}
-            testFn={testClient}
-            values={values}
+            testFn={() => testClient(form.state.values)}
           />
         </form>
       </form.AppForm>

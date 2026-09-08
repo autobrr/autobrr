@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/react";
 import { DebounceInput } from "react-debounce-input";
@@ -17,8 +17,9 @@ import { ExclamationCircleIcon } from "@heroicons/react/24/solid";
 import { format } from "date-fns/format";
 
 import { APIClient } from "@api/APIClient";
+import { LogFilesQueryOptions } from "@api/queries";
 import { Checkbox } from "@components/Checkbox";
-import { baseUrl, classNames, simplifyDate } from "@utils";
+import { classNames, simplifyDate } from "@utils";
 import { SettingsContext } from "@utils/Context";
 import { EmptySimple } from "@components/emptystates";
 import { RingResizeSpinner } from "@components/Icons";
@@ -51,9 +52,30 @@ export const Logs = () => {
 
   const [logs, setLogs] = useState<LogEvent[]>([]);
   const [searchFilter, setSearchFilter] = useState("");
-  const [, setRegexPattern] = useState<RegExp | null>(null);
-  const [filteredLogs, setFilteredLogs] = useState<LogEvent[]>([]);
-  const [isInvalidRegex, setIsInvalidRegex] = useState(false);
+
+  const pattern = useMemo(() => {
+    if (!searchFilter.length) {
+      return null;
+    }
+
+    try {
+      return new RegExp(searchFilter, "i");
+    } catch {
+      return undefined;
+    }
+  }, [searchFilter]);
+  const isInvalidRegex = pattern === undefined;
+
+  const filteredLogs = useMemo(() => {
+    if (pattern === null) {
+      return logs;
+    }
+    if (pattern === undefined) {
+      return [];
+    }
+
+    return logs.filter((log) => pattern.test(log.message));
+  }, [logs, pattern]);
 
   useEffect(() => {
     const scrollToBottom = () => {
@@ -65,40 +87,40 @@ export const Logs = () => {
       scrollToBottom();
   }, [filteredLogs, settings.scrollOnNewLog]);
 
-  // Add a useEffect to clear logs div when settings.scrollOnNewLog changes to prevent duplicate entries.
   useEffect(() => {
-    setLogs([]);
-  }, [settings.scrollOnNewLog]);
+    let es: EventSource | null = null;
+    let reconnectTimer: number | null = null;
+    let attempt = 0;
 
-  useEffect(() => {
-    const es = APIClient.events.logs();
-
-    es.onmessage = (event) => {
-      const newData = JSON.parse(event.data) as LogEvent;
-      setLogs((prevState) => [...prevState, newData]);
+    const connect = () => {
+      es = APIClient.events.logs();
+      es.onopen = () => {
+        attempt = 0;
+      };
+      es.onmessage = (event) => {
+        const newData = JSON.parse(event.data) as LogEvent;
+        setLogs((prevState) => [...prevState, newData]);
+      };
+      // The browser stops retrying once the handshake fails, so back off and reconnect ourselves
+      es.onerror = () => {
+        if (es?.readyState !== EventSource.CLOSED) {
+          return;
+        }
+        es.close();
+        reconnectTimer = window.setTimeout(connect, Math.min(1000 * 2 ** attempt, 30000));
+        attempt++;
+      };
     };
 
-    return () => es.close();
-  }, [setLogs, settings]);
+    connect();
 
-  useEffect(() => {
-    if (!searchFilter.length) {
-      setFilteredLogs(logs);
-      setIsInvalidRegex(false);
-      return;
-    }
-
-    try {
-      const pattern = new RegExp(searchFilter, "i");
-      setRegexPattern(pattern);
-      const newLogs = logs.filter(log => pattern.test(log.message));
-      setFilteredLogs(newLogs);
-      setIsInvalidRegex(false);
-    } catch {
-      setFilteredLogs([]);
-      setIsInvalidRegex(true);
-    }
-  }, [logs, searchFilter]);
+    return () => {
+      if (reconnectTimer !== null) {
+        window.clearTimeout(reconnectTimer);
+      }
+      es?.close();
+    };
+  }, []);
 
   const handleClearLogs = () => {
     setLogs([]);
@@ -189,12 +211,7 @@ export const Logs = () => {
 
 export const LogFiles = () => {
   const { t } = useTranslation("common");
-  const { data } = useSuspenseQuery({
-    queryKey: ["log-files"],
-    queryFn: () => APIClient.logs.files(),
-    retry: false,
-    refetchOnWindowFocus: false
-  });
+  const { data } = useSuspenseQuery(LogFilesQueryOptions());
 
   return (
     <div>
@@ -247,19 +264,19 @@ const LogFilesItem = ({ file }: LogFilesItemProps) => {
       <Toast type="info" body={t("logs.sanitizing")} t={toastInstance} />
     ));
 
-    const response = await fetch(`${baseUrl()}api/logs/files/${file.filename}`);
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = file.filename;
-    link.click();
-    URL.revokeObjectURL(url);
-
-    // Dismiss the custom toast after the download is complete
-    toast.dismiss(toastId);
-
-    setIsDownloading(false);
+    try {
+      const response = await APIClient.logs.download(file.filename);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = file.filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      toast.dismiss(toastId);
+      setIsDownloading(false);
+    }
   };
 
   return (

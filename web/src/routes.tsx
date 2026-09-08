@@ -3,25 +3,24 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+import { z } from "zod/mini";
 import {
   createRootRouteWithContext,
   createRoute,
   createRouter,
+  lazyRouteComponent,
   notFound,
   redirect,
 } from "@tanstack/react-router";
-import { z } from "zod";
 import { QueryClient } from "@tanstack/react-query";
 
-import { Actions, Advanced, Books, External, General, MoviesTv, Music, Notifications } from "@screens/filters/sections";
 import { APIClient } from "@api/APIClient";
-import { Login, Onboarding } from "@screens/auth";
-import ReleaseSettings from "@screens/settings/Releases";
 import { NotFound } from "@components/alerts/NotFound";
-import { FilterDetails, FilterNotFound, Filters } from "@screens/filters";
+import { FilterNotFound } from "@screens/filters/NotFound";
 import { Settings } from "@screens/Settings";
 import {
   ApikeysQueryOptions,
+  CanOnboardQueryOptions,
   ConfigQueryOptions,
   DownloadersQueryOptions,
   FeedsQueryOptions,
@@ -29,25 +28,12 @@ import {
   IndexersQueryOptions,
   IrcQueryOptions, ListsQueryOptions,
   NotificationsQueryOptions,
+  OIDCConfigQueryOptions,
   ProxiesQueryOptions
 } from "@api/queries";
-import LogSettings from "@screens/settings/Logs";
-import NotificationSettings from "@screens/settings/Notifications";
-import ApplicationSettings from "@screens/settings/Application";
-import { Logs } from "@screens/Logs";
-import IrcSettings from "@screens/settings/Irc";
 import { RingResizeSpinner } from "@components/Icons";
-import APISettings from "@screens/settings/Api";
-import { Releases } from "@screens/Releases";
-import IndexerSettings from "@screens/settings/Indexer";
-import DownloaderSettings from "@screens/settings/Downloaders";
-import FeedSettings from "@screens/settings/Feed";
-import { Dashboard } from "@screens/Dashboard";
-import AccountSettings from "@screens/settings/Account";
 import { AuthContext } from "@utils/Context";
 import { queryClient } from "@api/QueryClient";
-import ProxySettings from "@screens/settings/Proxy";
-import ListsSettings from "@screens/settings/Lists";
 
 import { ErrorPage } from "@components/alerts";
 import { AuthenticatedLayout, RootComponent } from "@components/layouts";
@@ -63,7 +49,7 @@ const DashboardRoute = createRoute({
 
     return {}
   },
-  component: Dashboard,
+  component: lazyRouteComponent(() => import("@screens/Dashboard"), "Dashboard"),
 });
 
 const FiltersRoute = createRoute({
@@ -74,25 +60,25 @@ const FiltersRoute = createRoute({
 const FilterIndexRoute = createRoute({
   getParentRoute: () => FiltersRoute,
   path: '/',
-  component: Filters,
+  component: lazyRouteComponent(() => import("@screens/filters/List"), "Filters"),
 });
 
 export const FilterGetByIdRoute = createRoute({
   getParentRoute: () => FiltersRoute,
   path: '$filterId',
   parseParams: (params) => ({
-    filterId: z.number().int().parse(Number(params.filterId)),
+    filterId: z.int().parse(Number(params.filterId)),
   }),
   stringifyParams: ({ filterId }) => ({ filterId: `${filterId}` }),
   loader: async ({ context, params }) => {
     try {
-      const filter = await context.queryClient.ensureQueryData(FilterByIdQueryOptions(params.filterId))
+      const filter = await context.queryClient.query({ ...FilterByIdQueryOptions(params.filterId), staleTime: "static" })
       return { filter }
     } catch {
       throw notFound()
     }
   },
-  component: FilterDetails,
+  component: lazyRouteComponent(() => import("@screens/filters/Details"), "FilterDetails"),
   notFoundComponent: () => {
     return <FilterNotFound />
   },
@@ -101,61 +87,61 @@ export const FilterGetByIdRoute = createRoute({
 export const FilterGeneralRoute = createRoute({
   getParentRoute: () => FilterGetByIdRoute,
   path: '/',
-  component: General
+  component: lazyRouteComponent(() => import("@screens/filters/sections/General"), "General")
 });
 
 export const FilterMoviesTvRoute = createRoute({
   getParentRoute: () => FilterGetByIdRoute,
   path: 'movies-tv',
-  component: MoviesTv
+  component: lazyRouteComponent(() => import("@screens/filters/sections/MoviesAndTV"), "MoviesTv")
 });
 
 export const FilterMusicRoute = createRoute({
   getParentRoute: () => FilterGetByIdRoute,
   path: 'music',
-  component: Music
+  component: lazyRouteComponent(() => import("@screens/filters/sections/Music"), "Music")
 });
 
 export const FilterBooksRoute = createRoute({
   getParentRoute: () => FilterGetByIdRoute,
   path: 'books',
-  component: Books
+  component: lazyRouteComponent(() => import("@screens/filters/sections/Books"), "Books")
 });
 
 export const FilterAdvancedRoute = createRoute({
   getParentRoute: () => FilterGetByIdRoute,
   path: 'advanced',
-  component: Advanced
+  component: lazyRouteComponent(() => import("@screens/filters/sections/Advanced"), "Advanced")
 });
 
 export const FilterExternalRoute = createRoute({
   getParentRoute: () => FilterGetByIdRoute,
   path: 'external',
-  component: External
+  component: lazyRouteComponent(() => import("@screens/filters/sections/External"), "External")
 });
 
 export const FilterActionsRoute = createRoute({
   getParentRoute: () => FilterGetByIdRoute,
   path: 'actions',
-  component: Actions
+  component: lazyRouteComponent(() => import("@screens/filters/sections/Actions"), "Actions")
 });
 
 export const FilterNotificationsRoute = createRoute({
   getParentRoute: () => FilterGetByIdRoute,
   path: 'notifications',
-  component: Notifications
+  component: lazyRouteComponent(() => import("@screens/filters/sections/Notifications"), "Notifications")
 });
 
 export const ReleasesRoute = createRoute({
   getParentRoute: () => AuthIndexRoute,
   path: 'releases',
-  component: Releases,
+  component: lazyRouteComponent(() => import("@screens/Releases"), "Releases"),
   validateSearch: (search) => z.object({
-    page: z.number().optional(),
-    pageSize: z.number().optional(),
-    q: z.string().optional(),
-    action_status: z.enum(['PUSH_APPROVED', 'PUSH_REJECTED', 'PENDING', 'PUSH_ERROR', '']).optional(),
-    indexer: z.string().optional(),
+    page: z.optional(z.number()),
+    pageSize: z.optional(z.number()),
+    q: z.optional(z.string()),
+    action_status: z.optional(z.enum(['PUSH_APPROVED', 'PUSH_REJECTED', 'PENDING', 'PUSH_ERROR', ''])),
+    indexer: z.optional(z.string()),
   }).parse(search),
 });
 
@@ -169,99 +155,96 @@ export const SettingsRoute = createRoute({
 export const SettingsIndexRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: '/',
-  component: ApplicationSettings
+  component: lazyRouteComponent(() => import("@screens/settings/Application"))
 });
 
 export const SettingsLogRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'logs',
-  loader: (opts) => opts.context.queryClient.ensureQueryData(ConfigQueryOptions()),
-  component: LogSettings
+  loader: (opts) => opts.context.queryClient.query({ ...ConfigQueryOptions(), staleTime: "static" }),
+  component: lazyRouteComponent(() => import("@screens/settings/Logs"))
 });
 
 export const SettingsIndexersRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'indexers',
-  loader: (opts) => opts.context.queryClient.ensureQueryData(IndexersQueryOptions()),
-  component: IndexerSettings
+  loader: (opts) => opts.context.queryClient.query({ ...IndexersQueryOptions(), staleTime: "static" }),
+  component: lazyRouteComponent(() => import("@screens/settings/Indexer"))
 });
 
 export const SettingsIrcRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'irc',
-  loader: (opts) => opts.context.queryClient.ensureQueryData(IrcQueryOptions()),
-  component: IrcSettings
+  loader: (opts) => opts.context.queryClient.query({ ...IrcQueryOptions(), staleTime: "static" }),
+  component: lazyRouteComponent(() => import("@screens/settings/Irc"))
 });
 
 export const SettingsListsRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'lists',
-  loader: (opts) => opts.context.queryClient.ensureQueryData(ListsQueryOptions()),
-  component: ListsSettings
+  loader: (opts) => opts.context.queryClient.query({ ...ListsQueryOptions(), staleTime: "static" }),
+  component: lazyRouteComponent(() => import("@screens/settings/Lists"))
 });
 
 export const SettingsFeedsRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'feeds',
-  loader: (opts) => opts.context.queryClient.ensureQueryData(FeedsQueryOptions()),
-  component: FeedSettings
+  loader: (opts) => opts.context.queryClient.query({ ...FeedsQueryOptions(), staleTime: "static" }),
+  component: lazyRouteComponent(() => import("@screens/settings/Feed"))
 });
 
 export const SettingsClientsRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'clients',
-  loader: (opts) => opts.context.queryClient.ensureQueryData(DownloadersQueryOptions()),
-  component: DownloaderSettings
+  loader: (opts) => opts.context.queryClient.query({ ...DownloadersQueryOptions(), staleTime: "static" }),
+  component: lazyRouteComponent(() => import("@screens/settings/Downloaders"))
 });
 
 export const SettingsNotificationsRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'notifications',
-  loader: (opts) => opts.context.queryClient.ensureQueryData(NotificationsQueryOptions()),
-  component: NotificationSettings
+  loader: (opts) => opts.context.queryClient.query({ ...NotificationsQueryOptions(), staleTime: "static" }),
+  component: lazyRouteComponent(() => import("@screens/settings/Notifications"))
 });
 
 export const SettingsApiRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'api',
-  loader: (opts) => opts.context.queryClient.ensureQueryData(ApikeysQueryOptions()),
-  component: APISettings
+  loader: (opts) => opts.context.queryClient.query({ ...ApikeysQueryOptions(), staleTime: "static" }),
+  component: lazyRouteComponent(() => import("@screens/settings/Api"))
 });
 
 export const SettingsProxiesRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'proxies',
-  loader: (opts) => opts.context.queryClient.ensureQueryData(ProxiesQueryOptions()),
-  component: ProxySettings
+  loader: (opts) => opts.context.queryClient.query({ ...ProxiesQueryOptions(), staleTime: "static" }),
+  component: lazyRouteComponent(() => import("@screens/settings/Proxy"))
 });
 
 export const SettingsReleasesRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'releases',
-  component: ReleaseSettings
+  component: lazyRouteComponent(() => import("@screens/settings/Releases"))
 });
 
 export const SettingsAccountRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'account',
-  component: AccountSettings
+  component: lazyRouteComponent(() => import("@screens/settings/Account"))
 });
 
 export const LogsRoute = createRoute({
   getParentRoute: () => AuthIndexRoute,
   path: 'logs',
-  component: Logs
+  component: lazyRouteComponent(() => import("@screens/Logs"), "Logs")
 });
 
 export const OnboardRoute = createRoute({
   getParentRoute: () => RootRoute,
   path: 'onboard',
-  beforeLoad: async () => {
-    // Check if onboarding is available for this instance
-    // and redirect if needed
-    try {
-      await APIClient.auth.canOnboard()
-    } catch {
+  beforeLoad: async ({ context }) => {
+    const canOnboard = await context.queryClient.query({ ...CanOnboardQueryOptions(), staleTime: "static" });
+    if (!canOnboard) {
       console.error("onboarding not available, redirect to login")
 
       throw redirect({
@@ -269,19 +252,19 @@ export const OnboardRoute = createRoute({
       })
     }
   },
-  component: Onboarding
+  component: lazyRouteComponent(() => import("@screens/auth/Onboarding"), "Onboarding")
 });
 
 export const LoginRoute = createRoute({
   getParentRoute: () => RootRoute,
   path: 'login',
   validateSearch: z.object({
-    redirect: z.string().optional(),
+    redirect: z.optional(z.string()),
   }),
-  beforeLoad: async ({ navigate }) => {
+  beforeLoad: async ({ context, navigate }) => {
     // First check if OIDC is enabled
     try {
-      const oidcConfig = await APIClient.auth.getOIDCConfig();
+      const oidcConfig = await context.queryClient.query({ ...OIDCConfigQueryOptions(), staleTime: "static" });
       if (oidcConfig.enabled) {
         return;
       }
@@ -290,15 +273,15 @@ export const LoginRoute = createRoute({
     }
 
     // Only check onboarding if OIDC is not enabled
-    try {
-      await APIClient.auth.canOnboard();
+    const canOnboard = await context.queryClient.query({ ...CanOnboardQueryOptions(), staleTime: "static" });
+    if (canOnboard) {
       console.info("onboarding available, redirecting");
       navigate({ to: OnboardRoute.to });
-    } catch {
+    } else {
       console.info("onboarding not available, please login");
     }
   },
-}).update({ component: Login });
+}).update({ component: lazyRouteComponent(() => import("@screens/auth/Login"), "Login") });
 
 export const AuthRoute = createRoute({
   getParentRoute: () => RootRoute,
@@ -313,7 +296,7 @@ export const AuthRoute = createRoute({
         // Also get OIDC config if needed
         let issuerUrl;
         if (response.auth_method === 'oidc') {
-          const oidcConfig = await APIClient.auth.getOIDCConfig();
+          const oidcConfig = await context.queryClient.query({ ...OIDCConfigQueryOptions(), staleTime: "static" });
           issuerUrl = oidcConfig.issuerUrl;
         }
         
@@ -363,6 +346,7 @@ const routeTree = RootRoute.addChildren([
 
 export const Router = createRouter({
   routeTree,
+  defaultPreload: "intent",
   defaultPendingComponent: () => (
     <div className="flex grow items-center justify-center col-span-9">
       <RingResizeSpinner className="text-blue-500 size-24" />

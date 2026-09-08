@@ -258,6 +258,7 @@ export interface SelectFieldProps {
   columns?: COL_WIDTHS;
   tooltip?: React.JSX.Element;
   className?: string;
+  onChange?: (value: SelectFieldOption["value"]) => void;
 }
 
 export const Select = ({
@@ -267,7 +268,8 @@ export const Select = ({
   optionDefaultText,
   options,
   columns = 6,
-  className
+  className,
+  onChange
 }: SelectFieldProps) => {
   const form = useFormContext();
   const smColClass = SMColSpanClasses[columns] || "sm:col-span-6";
@@ -286,7 +288,13 @@ export const Select = ({
             // "console.js:213 A component is changing from uncontrolled to controlled.
             // This may be caused by the value changing from undefined to a defined value, which should not happen."
             value={field.state.value ?? null}
-            onChange={(value) => field.handleChange(value)}
+            onChange={(value) => {
+              const changed = value !== field.state.value;
+              field.handleChange(value);
+              if (changed) {
+                onChange?.(value);
+              }
+            }}
           >
             {({ open }) => (
               <div>

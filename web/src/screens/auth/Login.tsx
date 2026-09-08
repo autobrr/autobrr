@@ -3,21 +3,21 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryErrorResetBoundary } from "@tanstack/react-query";
 import { getRouteApi, useRouter } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form"
 import { Checkbox, Field, Label } from "@headlessui/react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faOpenid } from "@fortawesome/free-brands-svg-icons";
 import { RocketLaunchIcon } from "@heroicons/react/24/outline";
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 import { useTranslation } from "react-i18next";
 
 import { APIClient } from "@api/APIClient";
+import { CanOnboardQueryOptions, OIDCConfigQueryOptions } from "@api/queries";
 import toast from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { Tooltip } from "@components/tooltips/Tooltip";
+import { OpenIdIcon } from "@components/Icons";
 
 import Logo from "@app/logo.svg?react";
 import { AuthContext, AuthInfo } from "@utils/Context";
@@ -45,28 +45,8 @@ export const Login = () => {
     const loginRoute = getRouteApi('/login');
     const search = loginRoute.useSearch();
 
-    // Query to check if onboarding is available
-    const {data: canOnboard} = useQuery({
-        queryKey: ["can-onboard"],
-        queryFn: async () => {
-            try {
-                await APIClient.auth.canOnboard();
-                return true;
-            } catch {
-                return false;
-            }
-        },
-    });
-
-    // Query to check if OIDC is enabled
-    const {data: oidcConfig} = useQuery({
-        queryKey: ["oidc-config"],
-        queryFn: async () => {
-            const config = await APIClient.auth.getOIDCConfig();
-            console.debug("OIDC config:", config);
-            return config;
-        },
-    });
+    const {data: canOnboard} = useQuery(CanOnboardQueryOptions());
+    const {data: oidcConfig} = useQuery(OIDCConfigQueryOptions());
 
     const form = useForm({
         defaultValues: {
@@ -83,20 +63,24 @@ export const Login = () => {
         queryErrorResetBoundary.reset()
         // remove user session when visiting login page
         AuthContext.reset();
+    }, [queryErrorResetBoundary]);
 
+    const oidcCallbackHandled = useRef(false);
+    useEffect(() => {
         // Check if this is an OIDC callback
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get('code');
         const state = urlParams.get('state');
 
-        if (code && state) {
+        if (code && state && !oidcCallbackHandled.current) {
+            oidcCallbackHandled.current = true;
             // This is an OIDC callback, validate the session
             APIClient.auth.validate().then((response: ValidateResponse) => {
                 // If validation succeeds, set the user as logged in
                 setAuth({
                     isLoggedIn: true,
                     username: response.username || 'unknown',
-                    authMethod: response.auth_method || (oidcConfig?.enabled ? 'oidc' : 'password'),
+                    authMethod: response.auth_method || 'oidc',
                     profilePicture: response.profile_picture,
                 });
                 router.invalidate();
@@ -107,7 +91,7 @@ export const Login = () => {
                 ));
             });
         }
-    }, [queryErrorResetBoundary, oidcConfig, setAuth, router, t]);
+    }, [setAuth, router, t]);
 
     const loginMutation = useMutation({
         mutationFn: (data: LoginFormFields) => APIClient.auth.login(data.username, data.password, data.remember_me),
@@ -294,7 +278,7 @@ export const Login = () => {
                                     onClick={handleOIDCLogin}
                                     className="w-full flex items-center justify-center gap-3 py-2 px-4 border border-gray-300 dark:border-gray-700 rounded-md shadow-xs text-sm font-medium text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
                                 >
-                                    <FontAwesomeIcon icon={faOpenid} className="h-5 w-5"/>
+                                    <OpenIdIcon className="h-5 w-5"/>
                                     <span>{t("openidConnect")}</span>
                                 </button>
                             </div>
