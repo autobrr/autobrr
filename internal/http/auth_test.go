@@ -13,8 +13,11 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
+	"strings"
+	"sync"
 	"testing"
 
+	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -128,7 +131,7 @@ func newHttpTestClient() *http.Client {
 func setupServer(srv *Server) chi.Router {
 	r := chi.NewRouter()
 	//r.Use(middleware.Logger)
-	r.Use(srv.sessionManager.LoadAndSave)
+	r.Use(srv.sessionMiddleware)
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("OK"))
@@ -142,6 +145,147 @@ func runTestServer(s chi.Router) *httptest.Server {
 
 func setupAuthHandler() {
 
+}
+
+func TestAuthHandlerLoginMixedSchemes(t *testing.T) {
+	srv := NewServer(Deps{
+		Log:            zerolog.Nop(),
+		Config:         &config.AppConfig{Config: &domain.Config{BaseURL: "/autobrr/"}},
+		SessionManager: scs.New(),
+	})
+	service := authServiceMock{users: map[string]*domain.User{
+		"test": {Username: "test", Password: "pass"},
+	}}
+	handler := newAuthHandler(encoder{}, zerolog.Nop(), srv, srv.config.Config, srv.sessionManager, service, &oidcAuthServiceMock{})
+	router := setupServer(srv)
+	router.Route("/autobrr/auth", handler.Routes)
+
+	login := func(secure bool, previous *http.Cookie) *http.Cookie {
+		t.Helper()
+
+		req := httptest.NewRequest(http.MethodPost, "/autobrr/auth/login", strings.NewReader(`{"username":"test","password":"pass","remember_me":true}`))
+		if secure {
+			req.Header.Set("X-Forwarded-Proto", "https")
+		}
+		if previous != nil {
+			req.AddCookie(previous)
+		}
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		assert.Equal(t, http.StatusNoContent, rec.Code)
+		cookies := rec.Result().Cookies()
+		if !assert.Len(t, cookies, 1) {
+			return nil
+		}
+		cookie := cookies[0]
+		assert.Equal(t, secure, cookie.Secure)
+		assert.True(t, cookie.HttpOnly)
+		assert.Equal(t, http.SameSiteLaxMode, cookie.SameSite)
+		assert.Equal(t, "/autobrr/", cookie.Path)
+		return cookie
+	}
+	validate := func(cookie *http.Cookie, status int) {
+		t.Helper()
+
+		req := httptest.NewRequest(http.MethodGet, "/autobrr/auth/validate", nil)
+		if cookie != nil && !cookie.Secure {
+			req.AddCookie(cookie)
+		}
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		assert.Equal(t, status, rec.Code)
+	}
+
+	httpCookie := login(false, nil)
+	validate(httpCookie, http.StatusOK)
+	login(true, nil)
+	validate(httpCookie, http.StatusOK)
+	newCookie := login(false, httpCookie)
+	validate(newCookie, http.StatusOK)
+	validate(httpCookie, http.StatusForbidden)
+
+	for _, secure := range []bool{false, true} {
+		cookie := login(secure, nil)
+		if cookie == nil {
+			continue
+		}
+		req := httptest.NewRequest(http.MethodPost, "/autobrr/auth/logout", nil)
+		req.AddCookie(cookie)
+		if secure {
+			req.Header.Set("X-Forwarded-Proto", "https")
+		}
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		assert.Equal(t, http.StatusNoContent, rec.Code)
+		cookies := rec.Result().Cookies()
+		if assert.Len(t, cookies, 1) {
+			assert.Equal(t, secure, cookies[0].Secure)
+			assert.Equal(t, -1, cookies[0].MaxAge)
+			assert.Equal(t, "/autobrr/", cookies[0].Path)
+		}
+	}
+
+	var wg sync.WaitGroup
+	for i := range 20 {
+		wg.Go(func() { login(i%2 == 0, nil) })
+	}
+	wg.Wait()
+}
+
+func TestServer_sessionMiddleware(t *testing.T) {
+	for _, secure := range []bool{false, true} {
+		for _, mode := range []string{"header", "body", "empty", "renew", "destroy", "forbidden"} {
+			name := "http_" + mode
+			if secure {
+				name = "https_" + mode
+			}
+			t.Run(name, func(t *testing.T) {
+				srv := NewServer(Deps{
+					Log:            zerolog.Nop(),
+					Config:         &config.AppConfig{Config: &domain.Config{BaseURL: "/"}},
+					SessionManager: scs.New(),
+				})
+				handler := srv.sessionMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					http.SetCookie(w, &http.Cookie{Name: "other", Value: "value", Path: "/"})
+					srv.sessionManager.Put(r.Context(), "authenticated", true)
+					switch mode {
+					case "header":
+						w.WriteHeader(http.StatusNoContent)
+					case "body":
+						_, err := w.Write([]byte("OK"))
+						assert.NoError(t, err)
+					case "renew":
+						assert.NoError(t, srv.sessionManager.RenewToken(r.Context()))
+					case "destroy":
+						assert.NoError(t, srv.sessionManager.Destroy(r.Context()))
+					case "forbidden":
+						srv.sessionManager.Remove(r.Context(), "authenticated")
+						srv.IsAuthenticated(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+							assert.Fail(t, "unauthenticated request reached handler")
+						})).ServeHTTP(w, r)
+					}
+				}))
+				req := httptest.NewRequest(http.MethodGet, "/", nil)
+				if secure {
+					req.Header.Set("X-Forwarded-Proto", "https")
+				}
+				rec := httptest.NewRecorder()
+				handler.ServeHTTP(rec, req)
+				cookies := rec.Result().Cookies()
+				if !assert.Len(t, cookies, 2) {
+					return
+				}
+				assert.Equal(t, "other", cookies[0].Name)
+				assert.False(t, cookies[0].Secure)
+				assert.Equal(t, "autobrr_user_session", cookies[1].Name)
+				assert.Equal(t, secure, cookies[1].Secure)
+				if mode == "destroy" || mode == "forbidden" {
+					assert.Equal(t, -1, cookies[1].MaxAge)
+					assert.Empty(t, cookies[1].Value)
+				}
+			})
+		}
+	}
 }
 
 func TestAuthHandlerLogin(t *testing.T) {

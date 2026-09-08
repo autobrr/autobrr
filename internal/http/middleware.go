@@ -16,6 +16,58 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+func (s *Server) sessionMiddleware(next http.Handler) http.Handler {
+	handler := s.sessionManager.LoadAndSave(next)
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("X-Forwarded-Proto") != "https" {
+			handler.ServeHTTP(w, r)
+			return
+		}
+
+		// SCS must write its cookie before we add Secure, including when the handler writes no response.
+		sw := &secureSessionResponseWriter{ResponseWriter: w, cookieName: s.sessionManager.Cookie.Name}
+		handler.ServeHTTP(sw, r)
+		sw.secureCookie()
+	})
+}
+
+type secureSessionResponseWriter struct {
+	http.ResponseWriter
+	cookieName string
+	written    bool
+}
+
+func (s *secureSessionResponseWriter) secureCookie() {
+	if s.written {
+		return
+	}
+
+	for i, cookie := range s.Header()["Set-Cookie"] {
+		if strings.HasPrefix(cookie, s.cookieName+"=") {
+			s.Header()["Set-Cookie"][i] = cookie + "; Secure"
+		}
+	}
+	s.written = true
+}
+
+func (s *secureSessionResponseWriter) WriteHeader(status int) {
+	if status >= http.StatusOK {
+		s.secureCookie()
+	}
+	s.ResponseWriter.WriteHeader(status)
+}
+
+func (s *secureSessionResponseWriter) Write(data []byte) (int, error) {
+	s.secureCookie()
+
+	return s.ResponseWriter.Write(data)
+}
+
+func (s *secureSessionResponseWriter) Unwrap() http.ResponseWriter {
+	return s.ResponseWriter
+}
+
 func (s *Server) IsAuthenticated(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if token := r.Header.Get("X-API-Token"); token != "" {
