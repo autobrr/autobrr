@@ -8,7 +8,7 @@ import { expect, test } from "vitest";
 
 import { FilterGetByIdRoute } from "@app/routes";
 
-const parse = (filterId: string) => FilterGetByIdRoute.options.parseParams?.({ filterId });
+const parse = (filterId: string) => FilterGetByIdRoute.options.params?.parse?.({ filterId });
 
 test("numeric filter id parses to a number", () => {
   expect(parse("42")).toEqual({ filterId: 42 });

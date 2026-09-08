@@ -66,14 +66,16 @@ const FilterIndexRoute = createRoute({
 export const FilterGetByIdRoute = createRoute({
   getParentRoute: () => FiltersRoute,
   path: '$filterId',
-  parseParams: (params) => {
-    const filterId = z.int().safeParse(Number(params.filterId));
-    if (!filterId.success) {
-      throw notFound();
-    }
-    return { filterId: filterId.data };
+  params: {
+    parse: (params) => {
+      const filterId = z.int().safeParse(Number(params.filterId));
+      if (!filterId.success) {
+        throw notFound();
+      }
+      return { filterId: filterId.data };
+    },
+    stringify: ({ filterId }) => ({ filterId: `${filterId}` }),
   },
-  stringifyParams: ({ filterId }) => ({ filterId: `${filterId}` }),
   loader: async ({ context, params }) => {
     try {
       const filter = await context.queryClient.query({ ...FilterByIdQueryOptions(params.filterId), staleTime: "static" })
