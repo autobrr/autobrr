@@ -66,9 +66,13 @@ const FilterIndexRoute = createRoute({
 export const FilterGetByIdRoute = createRoute({
   getParentRoute: () => FiltersRoute,
   path: '$filterId',
-  parseParams: (params) => ({
-    filterId: z.int().parse(Number(params.filterId)),
-  }),
+  parseParams: (params) => {
+    const filterId = z.int().safeParse(Number(params.filterId));
+    if (!filterId.success) {
+      throw notFound();
+    }
+    return { filterId: filterId.data };
+  },
   stringifyParams: ({ filterId }) => ({ filterId: `${filterId}` }),
   loader: async ({ context, params }) => {
     try {
