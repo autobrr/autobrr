@@ -11,7 +11,6 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/downloader"
 	"github.com/autobrr/autobrr/internal/events"
-	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/rs/zerolog"
@@ -119,27 +118,4 @@ func (s *Service) DeleteByFilterID(ctx context.Context, filterID int) error {
 
 func (s *Service) ToggleEnabled(actionID int) error {
 	return s.repo.ToggleEnabled(actionID)
-}
-
-func (s *Service) getClientInstance[T any](ctx context.Context, clientID int32) (*T, error) {
-	instance, err := s.downloaderSvc.GetInstance(ctx, clientID)
-	if err != nil {
-		return nil, err
-	}
-
-	cfg := instance.Config()
-	if cfg == nil {
-		return nil, errors.New("client %d has no config", clientID)
-	}
-
-	if !cfg.Enabled {
-		return nil, errors.New("client %s %s not enabled", cfg.Type, cfg.Name)
-	}
-
-	client, err := instance.ClientAs[T]()
-	if err != nil {
-		return nil, err
-	}
-
-	return &client, nil
 }

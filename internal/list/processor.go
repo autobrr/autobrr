@@ -40,12 +40,7 @@ func (s *Service) getClientInstance[T any](ctx context.Context, clientID int) (*
 		return nil, errors.Errorf("client %s %s not enabled", cfg.Type, cfg.Name)
 	}
 
-	client, err := instance.ClientAs[T]()
-	if err != nil {
-		return nil, err
-	}
-
-	return &client, nil
+	return instance.ClientAs[*T]()
 }
 
 func (s *Service) getProcessor(ctx context.Context, list *domain.List) (Processor, error) {
