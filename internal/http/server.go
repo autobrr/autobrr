@@ -81,6 +81,10 @@ func NewServer(deps Deps) *Server {
 	sessionManager.Lifetime = 24 * time.Hour * 30
 	sessionManager.Cookie.Name = "autobrr_user_session"
 	sessionManager.Cookie.Persist = false
+	sessionManager.Cookie.HttpOnly = true
+	sessionManager.Cookie.SameSite = http.SameSiteLaxMode
+	sessionManager.Cookie.Path = deps.Config.Config.BaseURL
+	sessionManager.Cookie.Secure = false
 
 	srv := &Server{
 		log:    deps.Log.With().Str("module", "http").Logger(),
@@ -176,7 +180,7 @@ func (s *Server) Handler() http.Handler {
 	})
 
 	r.Use(c.Handler)
-	r.Use(s.sessionManager.LoadAndSave)
+	r.Use(s.sessionMiddleware)
 
 	encoder := newEncoder(s.log)
 
