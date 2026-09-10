@@ -767,6 +767,66 @@ func TestReleaseRepo_StatsDashboard(t *testing.T) {
 	}
 }
 
+func TestReleaseRepo_StatsBucketUTC(t *testing.T) {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		db := testDb.db
+		log := setupLoggerForTest()
+
+		downloadClientRepo := NewDownloaderRepo(log, db)
+		filterRepo := NewFilterRepo(log, db)
+		repo := NewReleaseRepo(log, db)
+
+		mockData := getMockRelease()
+
+		t.Run(fmt.Sprintf("StatsBucketUTC_BucketsInUTC [%s]", dbType), func(t *testing.T) {
+			// Setup
+			mock := getMockDownloader()
+			err := downloadClientRepo.Store(ctx, &mock)
+			assert.NoError(t, err)
+
+			err = filterRepo.Store(ctx, getMockFilter())
+			assert.NoError(t, err)
+
+			createdFilters, err := filterRepo.ListFilters(ctx)
+			assert.NoError(t, err)
+			assert.NotNil(t, createdFilters)
+
+			mockData.FilterID = createdFilters[0].ID
+
+			// A recent release whose wall clock is in a non-UTC zone, so its local
+			// hour/day differ from UTC. The dashboard stats must bucket in UTC on both
+			// dialects; the pre-fix substr (sqlite) and no-AT-TIME-ZONE (postgres) code
+			// bucketed in local/server time, which is what this test guards against.
+			loc := time.FixedZone("UTC-4", -4*3600)
+			ts := time.Now().Add(-6 * time.Hour).In(loc)
+			mockData.Timestamp = ts
+
+			err = repo.Store(ctx, mockData)
+			assert.NoError(t, err)
+
+			// Execute
+			heatmap, err := repo.StatsHeatmap(ctx, 30)
+			assert.NoError(t, err)
+			assert.NotNil(t, heatmap)
+			assert.Len(t, heatmap.Heatmap, 168)
+
+			// Verify: the release lands in its UTC weekday+hour cell, not the local one.
+			utcIdx := int(ts.UTC().Weekday())*24 + ts.UTC().Hour()
+			localIdx := int(ts.Weekday())*24 + ts.Hour()
+			assert.NotEqual(t, utcIdx, localIdx, "the offset must make the UTC and local buckets differ [%s]", dbType)
+			assert.Equal(t, int64(1), heatmap.Heatmap[utcIdx], "release should be counted in the UTC bucket [%s]", dbType)
+			assert.Equal(t, int64(0), heatmap.Heatmap[localIdx], "release must not be counted in the local-time bucket [%s]", dbType)
+
+			// Cleanup
+			_ = repo.Delete(ctx, &domain.DeleteReleaseRequest{OlderThan: 0})
+			_ = filterRepo.Delete(ctx, createdFilters[0].ID)
+			_ = downloadClientRepo.Delete(ctx, mock.ID)
+		})
+	}
+}
+
 func TestReleaseRepo_Delete(t *testing.T) {
 	ctx := t.Context()
 
