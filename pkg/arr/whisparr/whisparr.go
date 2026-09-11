@@ -133,6 +133,11 @@ func (c *Client) Push(ctx context.Context, release ReleasePushRequest) ([]string
 		badRequestResponses := make([]*BadRequestResponse, 0)
 
 		if err = json.Unmarshal(res, &badRequestResponses); err != nil {
+			var errResp arr.ErrorResponse
+			if errJSON := json.Unmarshal(res, &errResp); errJSON == nil && errResp.String() != "" {
+				return nil, errors.New("whisparr: %s", errResp.String())
+			}
+
 			return nil, errors.Wrap(err, "could not unmarshal data")
 		}
 
