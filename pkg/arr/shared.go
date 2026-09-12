@@ -58,3 +58,24 @@ type QualityRevision struct {
 	Real     int64 `json:"real"`
 	IsRepack bool  `json:"isRepack,omitempty"`
 }
+
+// ErrorResponse represents an unhandled exception or API error returned by Servarr apps as a single JSON object.
+type ErrorResponse struct {
+	Message     string `json:"message"`
+	Description string `json:"description,omitempty"`
+	Title       string `json:"title,omitempty"`
+	Detail      string `json:"detail,omitempty"`
+}
+
+func (e ErrorResponse) String() string {
+	if e.Message != "" {
+		return e.Message
+	}
+	if e.Detail != "" {
+		return e.Detail
+	}
+	if e.Title != "" {
+		return e.Title
+	}
+	return e.Description
+}

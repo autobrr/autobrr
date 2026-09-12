@@ -240,3 +240,34 @@ func TestClient_Push_temporarilyRejected(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, []string{"Waiting for a better quality release"}, rejections)
 }
+
+func TestClient_Push_badRequest_errorObject(t *testing.T) {
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v3/release/push", func(w http.ResponseWriter, r *http.Request) {
+		payload, err := os.ReadFile("testdata/release_push_error_object.json")
+		require.NoError(t, err)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write(payload)
+	})
+
+	ts := httptest.NewServer(mux)
+	t.Cleanup(ts.Close)
+
+	rejections, err := newTestClient(ts.URL, VersionV3).Push(t.Context(), ReleasePushRequest{
+		Title:            "JimSlip 26 09 11 Charlotte Rose Third Visit Part 1 XXX XviD-iPT Team",
+		DownloadUrl:      ts.URL + "/download",
+		Size:             309750000,
+		Indexer:          "IPTorrents",
+		Protocol:         "torrent",
+		DownloadProtocol: "torrent",
+	})
+
+	require.Error(t, err)
+	assert.Nil(t, rejections)
+	assert.Equal(t, "whisparr: Indexer with name 'IPTorrents' could not be found", err.Error())
+}
+
