@@ -1038,19 +1038,19 @@ func minDateKey[T any](m map[string]*T) string {
 
 func (repo *ReleaseRepo) statsDayExpr() string {
 	if repo.db.Driver == "sqlite" {
-		// substr instead of strftime: both timestamp formats found in old
-		// databases share the YYYY-MM-DD HH prefix, and skipping per-row date
-		// parsing roughly halves the scan cost on large tables
-		return "substr(timestamp, 1, 10)"
+		// strftime normalizes the stored offset to UTC for both the RFC3339 and the
+		// legacy space-separated forms, so buckets match Postgres (timestamptz).
+		// substr returned the raw local hour/day, which broke the dashboard charts.
+		return "strftime('%Y-%m-%d', timestamp)"
 	}
-	return "to_char(timestamp, 'YYYY-MM-DD')"
+	return "to_char(timestamp AT TIME ZONE 'UTC', 'YYYY-MM-DD')"
 }
 
 func (repo *ReleaseRepo) statsHourExpr() string {
 	if repo.db.Driver == "sqlite" {
-		return "CAST(substr(timestamp, 12, 2) AS INTEGER)"
+		return "CAST(strftime('%H', timestamp) AS INTEGER)"
 	}
-	return "EXTRACT(HOUR FROM timestamp)::int"
+	return "EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC')::int"
 }
 
 func (repo *ReleaseRepo) statsQueryRows(ctx context.Context, qb sq.SelectBuilder, scan func(rows *sql.Rows) error) error {

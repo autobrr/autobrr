@@ -17,7 +17,7 @@ import { humanFileSize } from "@utils";
 import { ChartCard, ChartError, ChartSkeleton } from "./charts";
 import { chartTheme, seriesColors, useIsDark } from "./chartTheme";
 
-const asDate = (value: string) => new Date(`${value}T00:00:00Z`);
+const asDate = (value: string) => new Date(`${value}T00:00:00`);
 
 export const VolumeChart = () => {
   const { t } = useTranslation("common");
@@ -44,7 +44,7 @@ export const VolumeChart = () => {
           grid: false,
           axis: {
             ticks: {
-              format: (value: string) => (asDate(value).getUTCDay() === 1 ? format(asDate(value), "MMM d") : "")
+              format: (value: string) => (asDate(value).getDay() === 1 ? format(asDate(value), "MMM d") : "")
             }
           }
         },
