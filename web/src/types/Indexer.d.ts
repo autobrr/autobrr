@@ -124,4 +124,5 @@ interface IndexerTestApiReq {
   identifier?: string;
   api_user?: string;
   api_key: string;
+  cookie?: string;
 }

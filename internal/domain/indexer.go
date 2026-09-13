@@ -759,12 +759,16 @@ func (p *IndexerIRCV2Parse) Parse(def *IndexerDefinition, channelName string, va
 }
 
 type TorrentBasic struct {
-	Id          string `json:"Id"`
-	TorrentId   string `json:"TorrentId,omitempty"`
-	InfoHash    string `json:"InfoHash"`
-	Size        string `json:"Size"`
-	Uploader    string `json:"Uploader"`
-	RecordLabel string `json:"RecordLabel"`
+	Id               string `json:"Id"`
+	TorrentId        string `json:"TorrentId,omitempty"`
+	InfoHash         string `json:"InfoHash"`
+	Size             string `json:"Size"`
+	Uploader         string `json:"Uploader"`
+	RecordLabel      string `json:"RecordLabel"`
+	Freeleech        bool   `json:"Freeleech,omitempty"`
+	FreeleechPercent int    `json:"FreeleechPercent,omitempty"`
+	Seeders          int    `json:"Seeders,omitempty"`
+	Leechers         int    `json:"Leechers,omitempty"`
 }
 
 func (t TorrentBasic) ReleaseSizeBytes() uint64 {
@@ -785,6 +789,7 @@ type IndexerTestApiRequest struct {
 	Identifier string `json:"identifier,omitempty"`
 	ApiUser    string `json:"api_user,omitempty"`
 	ApiKey     string `json:"api_key"`
+	Cookie     string `json:"cookie,omitempty"`
 	ProxyID    int64  `json:"proxy_id,omitempty"`
 	UseProxy   bool   `json:"use_proxy"`
 }

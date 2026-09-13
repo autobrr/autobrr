@@ -578,6 +578,8 @@ func (s *Service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 
 	l.Debug().Msg("checking filter with release")
 
+	s.enrichRelease(ctx, release)
+
 	l.Trace().Interface("filter_data", f).Msg("checking filter")
 	l.Trace().Interface("release_data", release).Msg("checking filter for release")
 
@@ -721,6 +723,44 @@ func (s *Service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 	return true, nil
 }
 
+func (s *Service) enrichRelease(ctx context.Context, release *domain.Release) {
+	if release.Enriched {
+		return
+	}
+	defer func() { release.Enriched = true }()
+
+	if release.Indexer.Identifier != "hebits" || release.TorrentID == "" || s.apiService == nil {
+		return
+	}
+
+	l := s.log.With().Str("method", "enrichRelease").Str("trace_id", release.TraceID).Str("indexer", release.Indexer.Identifier).Str("torrent_id", release.TorrentID).Logger()
+
+	torrentInfo, err := s.apiService.GetTorrentByID(ctx, release.Indexer.Identifier, release.TorrentID)
+	if err != nil || torrentInfo == nil {
+		l.Warn().Err(err).Msg("could not enrich release from indexer api")
+		return
+	}
+
+	if torrentInfo.Freeleech {
+		release.Freeleech = true
+		if torrentInfo.FreeleechPercent > 0 {
+			release.FreeleechPercent = torrentInfo.FreeleechPercent
+		} else {
+			release.FreeleechPercent = 100
+		}
+		release.Bonus = append(release.Bonus, "Freeleech")
+	}
+
+	release.Seeders = torrentInfo.Seeders
+	release.Leechers = torrentInfo.Leechers
+
+	if release.Size == 0 {
+		if size := torrentInfo.ReleaseSizeBytes(); size > 0 {
+			release.Size = size
+		}
+	}
+}
+
 // AdditionalSizeCheck performs additional out-of-band checks to determine the
 // values of a torrent. Some indexers do not announce torrent size, so it is
 // necessary to determine the size of the torrent in some other way. Some
@@ -740,7 +780,7 @@ func (s *Service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, rel
 	l.Debug().Msg("additional api size check required")
 
 	switch release.Indexer.Identifier {
-	case "btn", "ggn", "redacted", "ops", "mock":
+	case "btn", "ggn", "redacted", "ops", "hebits", "mock":
 		if (release.Size == 0 && release.AdditionalSizeCheckRequired) || (release.Uploader == "" && release.AdditionalUploaderCheckRequired) || (release.RecordLabel == "" && release.AdditionalRecordLabelCheckRequired) {
 			l.Trace().Str("filter", f.Name).Msg("preparing to check size via api")
 

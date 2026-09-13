@@ -14,6 +14,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/btn"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/ggn"
+	"github.com/autobrr/autobrr/pkg/hebits"
 	"github.com/autobrr/autobrr/pkg/ops"
 	"github.com/autobrr/autobrr/pkg/red"
 
@@ -144,6 +145,13 @@ func (s *APIService) AddClient(indexer string, settings map[string]string, proxy
 		}
 		s.apiClients[indexer] = ops.NewClient(key, ops.WithHTTPClient(proxyHttpClient), ops.WithLog(subLogger))
 
+	case "hebits":
+		cookie, ok := settings["cookie"]
+		if !ok || cookie == "" {
+			return errors.New("api.Service.AddClient: could not initialize hebits client: missing var 'cookie'")
+		}
+		s.apiClients[indexer] = hebits.NewClient(cookie, hebits.WithHTTPClient(proxyHttpClient), hebits.WithLog(subLogger))
+
 	case "mock":
 		s.apiClients[indexer] = mock.NewMockClient("mock")
 
@@ -209,6 +217,16 @@ func (s *APIService) getClientForTest(req domain.IndexerTestApiRequest) (apiClie
 			return nil, errors.New("api.Service.AddClient: could not initialize orpheus client: missing var 'api_key'")
 		}
 		return ops.NewClient(req.ApiKey, ops.WithHTTPClient(proxyHttpClient), ops.WithLog(subLogger)), nil
+
+	case "hebits":
+		cookie := req.Cookie
+		if cookie == "" {
+			cookie = req.ApiKey
+		}
+		if cookie == "" {
+			return nil, errors.New("api.Service.AddClient: could not initialize hebits client: missing var 'cookie'")
+		}
+		return hebits.NewClient(cookie, hebits.WithHTTPClient(proxyHttpClient), hebits.WithLog(subLogger)), nil
 
 	case "mock":
 		return mock.NewMockClient("mock"), nil

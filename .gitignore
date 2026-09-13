@@ -51,6 +51,10 @@ package-lock.json
 # Docker
 config/
 
+# Local secrets — never commit tracker session cookies
+.hebits.cookie
+**/.hebits.cookie
+
 # Others
 web/build
 bin/

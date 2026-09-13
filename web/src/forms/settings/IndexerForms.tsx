@@ -884,7 +884,8 @@ function TestApiButton({ values, show }: TestApiButtonProps) {
 
     const req: IndexerTestApiReq = {
       id: values.id,
-      api_key: values.settings.api_key ?? ""
+      api_key: values.settings.api_key ?? "",
+      cookie: values.settings.cookie ?? ""
     };
 
     if (values.settings.api_user) {
@@ -960,6 +961,7 @@ interface IndexerUpdateInitialValues {
     api_user?: string;
     authkey?: string;
     torrent_pass?: string;
+    cookie?: string;
   }
 }
 
