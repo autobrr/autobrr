@@ -21,24 +21,8 @@ This file provides guidance to AI coding agents (Claude Code, Codex, Cursor, etc
 
 ## Development Commands
 
-### Backend (Go)
-- **Build**: `make build` - Builds both web frontend and Go backend
-- **Build backend only**: `make build/app` - Builds the main autobrr binary
-- **Build CLI tool**: `make build/ctl` - Builds the autobrrctl binary
-- **Test**: `make test` - Runs Go tests (excludes integration tests)
-- **Run a single test**: `go test ./path/to/pkg -run TestName`
-- **Install dependencies**: `make deps` - Installs both Go and web dependencies
-- **Development mode**: `make dev` - Starts both frontend dev server and backend in tmux session
-
-### Frontend (React/TypeScript)
-- **Development server**: `pnpm --dir web dev` - Starts Vite dev server
-- **Build**: `pnpm --dir web build` - TypeScript compilation and Vite build
-- **Test**: `pnpm --dir web test` - Vitest unit/component tests (`test:watch` for watch mode)
-- **Lint**: `pnpm --dir web lint` - ESLint check
-- **Lint with watch**: `pnpm --dir web lint:watch` - ESLint in watch mode
-
-### Docker
-- **Build image**: `make build/docker` - Builds development Docker image
+- Go targets are in the `Makefile` (`make build`, `make test`, `make dev`); web scripts are in `web/package.json` (`dev`, `build`, `test`, `lint`)
+- Run web scripts from the repo root as `pnpm --dir web <script>` - `cd web && pnpm ...` aborts under corepack's pnpm 11 with a "no TTY" error
 
 ## Project Architecture
 
@@ -50,7 +34,7 @@ The backend follows a layered architecture with clear separation of concerns:
   - `autobrrctl/main.go`: CLI tool for administration
 
 - **`internal/`**: Core application logic organized by domain
-  - **Domain layer** (`internal/domain/`): Core business entities and interfaces
+  - **Domain layer** (`internal/domain/`): Core business entities. It holds no repository or service interfaces - each consumer declares a small unexported interface listing only the methods it calls, and constructors return concrete `*Service` structs
   - **Database layer** (`internal/database/`): Repository implementations and database logic
   - **Service layer**: Business logic services (e.g., `internal/release/`, `internal/filter/`)
   - **HTTP layer** (`internal/http/`): REST API handlers and routing
@@ -72,7 +56,7 @@ The backend follows a layered architecture with clear separation of concerns:
 - **Releases**: Torrent/Usenet releases that get processed through filters
 - **Filters**: Rules that determine which releases should be downloaded
 - **Actions**: What to do with matched releases (send to download clients, *arr apps, etc.)
-- **Indexers**: Torrent trackers and Usenet indexers (75+ supported via IRC announces)
+- **Indexers**: Torrent trackers and Usenet indexers, defined as YAML in `internal/indexer/definitions/`
 - **IRC**: Real-time monitoring of indexer announce channels
 - **Feed**: RSS/Newznab/Torznab feed processing for indexers without IRC
 
@@ -81,20 +65,8 @@ The backend follows a layered architecture with clear separation of concerns:
 - Database migrations handled automatically
 - Repository pattern for data access
 
-### Service Dependencies
-The main application (`cmd/autobrr/main.go`) orchestrates these key services:
-- **IRC Service**: Monitors IRC channels for torrent announces
-- **Feed Service**: Processes RSS/Newznab feeds
-- **Filter Service**: Applies user-defined rules to releases
-- **Release Service**: Manages release lifecycle and processing
-- **Action Service**: Executes actions on matched releases
-- **Indexer Service**: Manages indexer definitions and API interactions
-- **Download Client Service**: Interfaces with various download clients
-
-### Configuration
-- Configuration via `config.toml` file or environment variables
-- Dynamic configuration reloading supported
-- Extensive environment variable support (see README.md for full list)
+### Service Wiring
+- `cmd/autobrr/main.go` constructs repos and services in two dependency-ordered `var` blocks; services talk across packages through the typed event bus in `internal/events/` when a direct dependency would create an import cycle
 
 ## Code Style
 
@@ -103,14 +75,14 @@ The main application (`cmd/autobrr/main.go`) orchestrates these key services:
 - Group imports: stdlib, internal, third-party; keep alphabetical within groups
 - Use the `pkg/errors` helpers for wrapping and sentinel errors; return wrapped errors and avoid panics outside `main`
 - Handle errors explicitly with early returns; don't swallow errors
-- Use `logger.Logger`/zerolog for structured logging; avoid bare `fmt.Println`
+- Log with zerolog through the injected `zerolog.Logger`: values go in typed fields and the message stays a constant - `log.Error().Err(err).Int("filter_id", id).Msg("could not find filter")`, not `Msgf` with values inline
 - Functions receiving context should take `context.Context` as the first parameter and respect cancellation
 - Exported identifiers need doc comments; keep names descriptive and consistent
 - Keep domain DTOs and JSON tags synced; prefer tagged struct fields over `map[string]any`
 
 ### Frontend
 - Prefer functional components, React hooks, and typed props/interfaces
-- Run `pnpm --dir web lint` and `pnpm --dir web build` for diagnostics before shipping
+- `pnpm --dir web lint`, `build` and `test` are all green on `develop` and stay green - lint runs with `--max-warnings 0`
 - Tailwind: reuse tokens from `web/tailwind.config.ts`; keep utility classes ordered logically
 
 ### Comments
@@ -124,8 +96,7 @@ Applies to Go and TypeScript alike. Excessive low-value comments are the most co
 - Some older code contains narration comments (`// get filters`) - do not take them as license to add more, and feel free to drop them in code you're already touching
 
 ## Testing
-- Go tests exclude integration tests by default: `go test $(go list ./... | grep -v test/integration)`
-- Integration tests available in `test/integration/`, run with `go test ./... -tags=integration` (Postgres tests require Docker)
+- `make test` runs the untagged Go suite. Database and other integration tests carry `//go:build integration` next to the code they test and run with `go test -tags=integration ./...`; Postgres is embedded (downloaded on first run), so no Docker is needed
 - IRC integration tests in `test/irc/`, run with `go test -tags=irc_integration_test ./test/irc/...` (in-process ircd, no Docker) - see `test/irc/README.md`
 - Browser end-to-end tests in `test/e2e/`, run with `go test -tags=e2e ./test/e2e/...` (needs a built `web/dist` and a Playwright browser) - see `test/e2e/README.md`
 - Build-tagged packages are invisible to a plain `go list ./...`; pass the tag to tooling that discovers packages first
@@ -134,7 +105,7 @@ Applies to Go and TypeScript alike. Excessive low-value comments are the most co
 
 ## Development Notes
 - The project uses **pnpm** as the package manager for the frontend
-- Go version 1.26+ required (see `go.mod` for the current minimum)
+- The Go minimum is the `go` line in `go.mod`
 - The application serves the built React frontend from the Go server
 - Real-time updates via Server-Sent Events (SSE)
 
@@ -142,7 +113,7 @@ Applies to Go and TypeScript alike. Excessive low-value comments are the most co
 - PRs target the `develop` branch
 - Use the PR template at `.github/pull_request_template.md` - fill out the relevant sections and delete those that don't apply
 - PR titles follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/#summary) (e.g. `feat(indexers): add NewTracker`, `fix(irc): reconnect on timeout`) - commits are squashed on merge, so the PR title becomes the commit message
-- Indexer definitions live as YAML files in `internal/indexer/definitions/` - adding a new indexer is the most common contribution, and usually only touches a single definition file there
+- Indexer definitions live as YAML files in `internal/indexer/definitions/` - adding a new indexer is the most common contribution, and usually only touches a single definition file there. Removing one requires a tombstone in `internal/indexer/definitions/deprecated/` (CI rejects a removal without it) - see `CONTRIBUTING.md`
 - Database schema changes require migrations for **both SQLite and PostgreSQL** (`internal/database/`)
 - The template has an **AI disclosure** section - always answer it truthfully, stating what was AI-generated and which model/tool was used
 - Do **not** add AI attribution to commit messages or PR descriptions - no `Co-Authored-By: Claude`, `Generated with ...` trailers, or similar. AI usage belongs in the PR template's AI disclosure section, not in the git history
