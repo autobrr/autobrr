@@ -121,6 +121,7 @@ type Release struct {
 	ActionStatus                       []ReleaseActionStatus `json:"action_status"`
 	MetaIMDB                           string                `json:"-"`
 	MetaTMDB                           int                   `json:"-"`
+	Enriched                           bool                  `json:"-"`
 }
 
 // Hash return md5 hashed normalized release name

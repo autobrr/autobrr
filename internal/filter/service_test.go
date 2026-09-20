@@ -385,3 +385,121 @@ func Test_outputBuffer_Write(t *testing.T) {
 	assert.Equal(t, 4, n)
 	assert.Len(t, b.String(), externalOutputMaxBytes)
 }
+
+type apiServiceStub struct {
+	torrent *domain.TorrentBasic
+	err     error
+	calls   int
+	indexer string
+	id      string
+}
+
+func (s *apiServiceStub) GetTorrentByID(_ context.Context, indexer string, torrentID string) (*domain.TorrentBasic, error) {
+	s.calls++
+	s.indexer = indexer
+	s.id = torrentID
+	return s.torrent, s.err
+}
+
+func hebitsRelease() *domain.Release {
+	return &domain.Release{
+		TorrentName: "What.We.Do.in.the.Shadows.S04E03.720p.WEB.DL-FLUX",
+		TorrentID:   "134205",
+		Indexer:     domain.IndexerMinimal{Identifier: "hebits", Name: "Hebits"},
+	}
+}
+
+func TestService_CheckFilter_HebitsEnrichment(t *testing.T) {
+	freeleechFilter := &domain.Filter{Name: "hebits-freeleech", Freeleech: true}
+
+	t.Run("freeleech filter matches enriched true", func(t *testing.T) {
+		api := &apiServiceStub{torrent: &domain.TorrentBasic{
+			Id:               "134205",
+			Size:             "1276432647",
+			Freeleech:        true,
+			FreeleechPercent: 100,
+			Seeders:          10,
+			Leechers:         2,
+		}}
+		svc := &Service{log: zerolog.Nop(), apiService: api}
+		release := hebitsRelease()
+
+		matched, err := svc.CheckFilter(t.Context(), freeleechFilter, release)
+		assert.NoError(t, err)
+		assert.True(t, matched)
+		assert.True(t, release.Freeleech)
+		assert.Equal(t, 100, release.FreeleechPercent)
+		assert.Equal(t, 10, release.Seeders)
+		assert.Equal(t, 2, release.Leechers)
+		assert.Equal(t, uint64(1276432647), release.Size)
+		assert.Contains(t, release.Bonus, "Freeleech")
+		assert.True(t, release.Enriched)
+		assert.Equal(t, 1, api.calls)
+		assert.Equal(t, "hebits", api.indexer)
+		assert.Equal(t, "134205", api.id)
+	})
+
+	t.Run("freeleech filter rejects enriched false", func(t *testing.T) {
+		api := &apiServiceStub{torrent: &domain.TorrentBasic{
+			Id:        "134205",
+			Freeleech: false,
+			Seeders:   3,
+			Leechers:  1,
+		}}
+		svc := &Service{log: zerolog.Nop(), apiService: api}
+		release := hebitsRelease()
+
+		matched, err := svc.CheckFilter(t.Context(), freeleechFilter, release)
+		assert.NoError(t, err)
+		assert.False(t, matched)
+		assert.False(t, release.Freeleech)
+		assert.Equal(t, 3, release.Seeders)
+		assert.Equal(t, 1, release.Leechers)
+		assert.True(t, release.Enriched)
+	})
+
+	t.Run("does not retry after first enrichment", func(t *testing.T) {
+		api := &apiServiceStub{torrent: &domain.TorrentBasic{Id: "134205", Freeleech: true, FreeleechPercent: 100}}
+		svc := &Service{log: zerolog.Nop(), apiService: api}
+		release := hebitsRelease()
+
+		matched, err := svc.CheckFilter(t.Context(), freeleechFilter, release)
+		assert.NoError(t, err)
+		assert.True(t, matched)
+
+		matched, err = svc.CheckFilter(t.Context(), freeleechFilter, release)
+		assert.NoError(t, err)
+		assert.True(t, matched)
+		assert.Equal(t, 1, api.calls)
+	})
+
+	t.Run("fail-open leaves freeleech unset so filter rejects", func(t *testing.T) {
+		api := &apiServiceStub{err: assert.AnError}
+		svc := &Service{log: zerolog.Nop(), apiService: api}
+		release := hebitsRelease()
+
+		matched, err := svc.CheckFilter(t.Context(), freeleechFilter, release)
+		assert.NoError(t, err)
+		assert.False(t, matched)
+		assert.False(t, release.Freeleech)
+		assert.True(t, release.Enriched)
+		assert.Equal(t, 1, api.calls)
+	})
+
+	t.Run("other indexers are not enriched", func(t *testing.T) {
+		api := &apiServiceStub{torrent: &domain.TorrentBasic{Freeleech: true, FreeleechPercent: 100}}
+		svc := &Service{log: zerolog.Nop(), apiService: api}
+		release := &domain.Release{
+			TorrentName: "Some.Release.2024",
+			TorrentID:   "99",
+			Indexer:     domain.IndexerMinimal{Identifier: "redacted"},
+		}
+
+		matched, err := svc.CheckFilter(t.Context(), freeleechFilter, release)
+		assert.NoError(t, err)
+		assert.False(t, matched)
+		assert.False(t, release.Freeleech)
+		assert.Equal(t, 0, api.calls)
+		assert.True(t, release.Enriched)
+	})
+}

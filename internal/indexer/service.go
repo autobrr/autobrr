@@ -891,6 +891,12 @@ func (s *Service) TestApi(ctx context.Context, req domain.IndexerTestApiRequest)
 		req.ApiKey = apikey
 	}
 
+	if req.Cookie == "" || domain.IsRedactedString(req.Cookie) {
+		if cookie, ok := indexer.Settings["cookie"]; ok && cookie != "" {
+			req.Cookie = cookie
+		}
+	}
+
 	req.Identifier = def.Identifier
 	req.ProxyID = def.ProxyID
 	req.UseProxy = def.UseProxy

@@ -10,6 +10,7 @@ privacy: private
 protocol: torrent
 supports:
   - irc
+  - api
 # source: gazelle
 settings:
   - name: passkey
@@ -23,6 +24,12 @@ settings:
     required: true
     label: Auth key
     help: Right click download on a torrent and get the authkey.
+
+  - name: cookie
+    type: secret
+    required: false
+    label: Cookie
+    help: Authenticated Hebits session cookie used to fetch torrent details (freeleech, seeders, leechers) before filters run. Copy the Cookie header from a logged-in browser request.
 
 irc:
   network: Hebits
