@@ -8,6 +8,9 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestModeAdds verifies the mode-string parser used by handleMode, including the
@@ -32,9 +35,7 @@ func TestModeAdds(t *testing.T) {
 		{"-B", 'B', false},
 	}
 	for _, c := range cases {
-		if got := modeAdds(c.modes, c.flag); got != c.want {
-			t.Errorf("modeAdds(%q, %q) = %v, want %v", c.modes, string(c.flag), got, c.want)
-		}
+		assert.Equalf(t, c.want, modeAdds(c.modes, c.flag), "modeAdds(%q, %q)", c.modes, string(c.flag))
 	}
 }
 
@@ -47,12 +48,8 @@ func TestOnPartedSetsParted(t *testing.T) {
 
 	sm.OnParted()
 
-	if got := sm.CurrentState(); got != ChannelStateParted {
-		t.Fatalf("OnParted from Monitoring: state = %s, want Parted", got)
-	}
-	if !waitFor(func() bool { return sse.hasStateEvent("#chan", "Parted") }, time.Second) {
-		t.Fatal("OnParted should broadcast the Parted state")
-	}
+	require.Equal(t, ChannelStateParted, sm.CurrentState(), "OnParted from Monitoring")
+	require.True(t, waitFor(func() bool { return sse.hasStateEvent("#chan", "Parted") }, time.Second), "OnParted should broadcast the Parted state")
 }
 
 // TestOnPartedIgnoredWhenNotMonitoring verifies OnParted only acts from Monitoring.
@@ -62,9 +59,7 @@ func TestOnPartedIgnoredWhenNotMonitoring(t *testing.T) {
 
 	sm.OnParted()
 
-	if got := sm.CurrentState(); got != ChannelStateIdle {
-		t.Fatalf("OnParted from Idle changed state to %s", got)
-	}
+	require.Equal(t, ChannelStateIdle, sm.CurrentState(), "OnParted from Idle changed state")
 }
 
 // defWithChannel builds a minimal indexer definition whose IRC settings match a
@@ -108,26 +103,17 @@ func TestInitIndexersOnlyJoinsConfiguredChannels(t *testing.T) {
 	// the configured channel is registered, enabled, and has an announce
 	// processor wired from its matching definition
 	ch, found := h.channels.Get("#milkie-announce")
-	if !found {
-		t.Fatal("configured channel #milkie-announce was not registered")
-	}
-	if !ch.IsEnabled() {
-		t.Error("configured channel #milkie-announce should be enabled")
-	}
-	if ch.announceProcessor == nil {
-		t.Error("configured channel #milkie-announce should have an announce processor")
-	}
+	require.True(t, found, "configured channel #milkie-announce was not registered")
+	assert.True(t, ch.IsEnabled(), "configured channel #milkie-announce should be enabled")
+	assert.NotNil(t, ch.announceProcessor, "configured channel #milkie-announce should have an announce processor")
 
 	// the sibling instances' channels must NOT be registered/joined
 	for _, name := range []string{"#hdbits.announce", "#seedcore.net"} {
-		if _, found := h.channels.Get(name); found {
-			t.Errorf("channel %s belongs to another network instance and must not be joined", name)
-		}
+		_, found := h.channels.Get(name)
+		assert.Falsef(t, found, "channel %s belongs to another network instance and must not be joined", name)
 	}
 
-	if got := h.channels.Len(); got != 1 {
-		t.Errorf("handler should track exactly 1 channel, got %d", got)
-	}
+	assert.Equal(t, uintptr(1), h.channels.Len(), "handler should track exactly 1 channel")
 }
 
 // TestInitIndexersSharedNetworkJoinsAllConfiguredChannels guards the legitimate
@@ -150,15 +136,9 @@ func TestInitIndexersSharedNetworkJoinsAllConfiguredChannels(t *testing.T) {
 
 	for _, name := range []string{"#hdbits.announce", "#milkie-announce"} {
 		ch, found := h.channels.Get(name)
-		if !found {
-			t.Fatalf("configured channel %s was not registered", name)
-		}
-		if ch.announceProcessor == nil {
-			t.Errorf("configured channel %s should have an announce processor", name)
-		}
+		require.Truef(t, found, "configured channel %s was not registered", name)
+		assert.NotNilf(t, ch.announceProcessor, "configured channel %s should have an announce processor", name)
 	}
 
-	if got := h.channels.Len(); got != 2 {
-		t.Errorf("handler should track exactly 2 channels, got %d", got)
-	}
+	assert.Equal(t, uintptr(2), h.channels.Len(), "handler should track exactly 2 channels")
 }

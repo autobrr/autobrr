@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // newIdleSM builds a fresh Idle channel state machine (not yet monitoring).
@@ -55,9 +57,7 @@ func TestChannelStateTransitions_Recoverable(t *testing.T) {
 	}
 	sm := &ChannelStateMachine{}
 	for _, c := range cases {
-		if !sm.isValidTransition(c.from, c.to) {
-			t.Errorf("expected %s -> %s to be valid (recoverable), but it is not", c.from, c.to)
-		}
+		assert.Truef(t, sm.isValidTransition(c.from, c.to), "expected %s -> %s to be valid (recoverable), but it is not", c.from, c.to)
 	}
 }
 
@@ -70,9 +70,7 @@ func TestOnInviteRecoversFromError(t *testing.T) {
 
 	sm.OnInvite("invitebot")
 
-	if !waitFor(func() bool { return sse.hasStateEvent("#announce", "Joining") }, time.Second) {
-		t.Fatalf("OnInvite from Error did not restart the join workflow, state=%s", sm.CurrentState())
-	}
+	require.Truef(t, waitFor(func() bool { return sse.hasStateEvent("#announce", "Joining") }, time.Second), "OnInvite from Error did not restart the join workflow, state=%s", sm.CurrentState())
 }
 
 // TestForceJoinBeforeStart covers servers (e.g. InspIRCd trackers) that
@@ -85,15 +83,11 @@ func TestForceJoinBeforeStart(t *testing.T) {
 
 	sm.OnJoinSuccess()
 
-	if !waitForState(sm, ChannelStateMonitoring, time.Second) {
-		t.Fatalf("force-join while Idle did not confirm the channel, state=%s", sm.CurrentState())
-	}
+	require.Truef(t, waitForState(sm, ChannelStateMonitoring, time.Second), "force-join while Idle did not confirm the channel, state=%s", sm.CurrentState())
 
 	sm.Start()
 
-	if got := sm.CurrentState(); got != ChannelStateMonitoring {
-		t.Fatalf("Start() after a force-join disturbed the channel, state=%s", got)
-	}
+	require.Equal(t, ChannelStateMonitoring, sm.CurrentState(), "Start() after a force-join disturbed the channel")
 }
 
 // TestOnInviteIgnoredWhenMonitoring ensures a stray invite for a channel we are
@@ -105,12 +99,8 @@ func TestOnInviteIgnoredWhenMonitoring(t *testing.T) {
 	sm.OnInvite("invitebot")
 
 	time.Sleep(50 * time.Millisecond)
-	if sse.hasStateEvent("#announce", "Joining") {
-		t.Fatal("OnInvite while Monitoring should be ignored")
-	}
-	if got := sm.CurrentState(); got != ChannelStateMonitoring {
-		t.Fatalf("state changed to %s on stray invite while Monitoring", got)
-	}
+	require.False(t, sse.hasStateEvent("#announce", "Joining"), "OnInvite while Monitoring should be ignored")
+	require.Equal(t, ChannelStateMonitoring, sm.CurrentState(), "state changed on stray invite while Monitoring")
 }
 
 // TestOnInviteTimeout covers the AwaitingInvite timeout that rescues a channel
@@ -124,9 +114,7 @@ func TestOnInviteTimeout(t *testing.T) {
 
 		sm.onInviteTimeout(7)
 
-		if !waitForState(sm, ChannelStateAwaitingInviteBot, time.Second) {
-			t.Fatalf("timeout did not route into backoff, state=%s", sm.CurrentState())
-		}
+		require.Truef(t, waitForState(sm, ChannelStateAwaitingInviteBot, time.Second), "timeout did not route into backoff, state=%s", sm.CurrentState())
 	})
 
 	t.Run("no-op on a stale attempt", func(t *testing.T) {
@@ -137,9 +125,7 @@ func TestOnInviteTimeout(t *testing.T) {
 
 		sm.onInviteTimeout(6) // a newer attempt already superseded this one
 
-		if got := sm.CurrentState(); got != ChannelStateAwaitingInvite {
-			t.Fatalf("stale timeout changed state to %s", got)
-		}
+		require.Equal(t, ChannelStateAwaitingInvite, sm.CurrentState(), "stale timeout")
 	})
 
 	t.Run("no-op when no longer awaiting", func(t *testing.T) {
@@ -150,9 +136,7 @@ func TestOnInviteTimeout(t *testing.T) {
 
 		sm.onInviteTimeout(7)
 
-		if got := sm.CurrentState(); got != ChannelStateMonitoring {
-			t.Fatalf("timeout fired while Monitoring, state=%s", got)
-		}
+		require.Equal(t, ChannelStateMonitoring, sm.CurrentState(), "timeout fired while Monitoring")
 	})
 }
 
@@ -167,9 +151,7 @@ func TestOnJoinTimeout(t *testing.T) {
 
 		sm.onJoinTimeout(3)
 
-		if !waitFor(func() bool { return sse.hasStateEvent("#c", "Error") }, time.Second) {
-			t.Fatalf("join timeout did not fail the channel, state=%s", sm.CurrentState())
-		}
+		require.Truef(t, waitFor(func() bool { return sse.hasStateEvent("#c", "Error") }, time.Second), "join timeout did not fail the channel, state=%s", sm.CurrentState())
 	})
 
 	t.Run("no-op on a stale attempt", func(t *testing.T) {
@@ -181,9 +163,7 @@ func TestOnJoinTimeout(t *testing.T) {
 		sm.onJoinTimeout(2) // a newer JOIN superseded this one
 
 		time.Sleep(20 * time.Millisecond)
-		if sse.hasStateEvent("#c", "Error") {
-			t.Fatal("a stale join timeout should not fail the channel")
-		}
+		require.False(t, sse.hasStateEvent("#c", "Error"), "a stale join timeout should not fail the channel")
 	})
 
 	t.Run("no-op after a successful join", func(t *testing.T) {
@@ -195,9 +175,7 @@ func TestOnJoinTimeout(t *testing.T) {
 		sm.onJoinTimeout(3)
 
 		time.Sleep(20 * time.Millisecond)
-		if sse.hasStateEvent("#c", "Error") {
-			t.Fatal("join timeout fired after the join was confirmed")
-		}
+		require.False(t, sse.hasStateEvent("#c", "Error"), "join timeout fired after the join was confirmed")
 	})
 }
 
@@ -210,22 +188,14 @@ func TestKickDoesNotAutoRejoin(t *testing.T) {
 
 	sm.OnKicked("me", "operator", "spam")
 
-	if !sse.hasStateEvent("#announce", "Kicked") {
-		t.Fatal("kick did not broadcast the Kicked state")
-	}
-	if sm.channel.Monitoring {
-		t.Error("channel should not be monitoring after a kick")
-	}
+	require.True(t, sse.hasStateEvent("#announce", "Kicked"), "kick did not broadcast the Kicked state")
+	assert.False(t, sm.channel.Monitoring, "channel should not be monitoring after a kick")
 
 	// give any (unwanted) rejoin machinery ample time to fire, then assert we
 	// are still parked in Kicked and never attempted a JOIN.
 	time.Sleep(100 * time.Millisecond)
-	if got := sm.CurrentState(); got != ChannelStateKicked {
-		t.Fatalf("kicked channel left Kicked on its own (state=%s) — it must not auto-rejoin", got)
-	}
-	if sse.hasStateEvent("#announce", "Joining") || sse.hasStateEvent("#announce", "AwaitingInvite") {
-		t.Fatal("kicked channel attempted to rejoin on its own")
-	}
+	require.Equal(t, ChannelStateKicked, sm.CurrentState(), "kicked channel left Kicked on its own — it must not auto-rejoin")
+	require.False(t, sse.hasStateEvent("#announce", "Joining") || sse.hasStateEvent("#announce", "AwaitingInvite"), "kicked channel attempted to rejoin on its own")
 }
 
 // TestKickRecoversOnExplicitInvite verifies that being invited back after a kick
@@ -235,15 +205,11 @@ func TestKickRecoversOnExplicitInvite(t *testing.T) {
 	sm := addMonitoredChannel(h, "#announce", "")
 
 	sm.OnKicked("me", "operator", "spam")
-	if !waitForState(sm, ChannelStateKicked, time.Second) {
-		t.Fatalf("expected Kicked, got %s", sm.CurrentState())
-	}
+	require.Truef(t, waitForState(sm, ChannelStateKicked, time.Second), "expected Kicked, got %s", sm.CurrentState())
 
 	sm.OnInvite("someop")
 
-	if !waitFor(func() bool { return sse.hasStateEvent("#announce", "Joining") }, time.Second) {
-		t.Fatalf("an explicit invite after a kick should resume joining, state=%s", sm.CurrentState())
-	}
+	require.Truef(t, waitFor(func() bool { return sse.hasStateEvent("#announce", "Joining") }, time.Second), "an explicit invite after a kick should resume joining, state=%s", sm.CurrentState())
 }
 
 // TestErrorAutoRetries verifies a channel in Error schedules a recovery attempt.
@@ -254,12 +220,8 @@ func TestErrorAutoRetries(t *testing.T) {
 
 	sm.enterError("boom")
 
-	if !sse.hasStateEvent("#announce", "Error") {
-		t.Fatal("enterError did not broadcast the Error state")
-	}
-	if !waitFor(func() bool { return sse.hasStateEvent("#announce", "Joining") }, time.Second) {
-		t.Fatal("Error state did not auto-retry the join workflow")
-	}
+	require.True(t, sse.hasStateEvent("#announce", "Error"), "enterError did not broadcast the Error state")
+	require.True(t, waitFor(func() bool { return sse.hasStateEvent("#announce", "Joining") }, time.Second), "Error state did not auto-retry the join workflow")
 }
 
 // TestErrorRetryGivesUp verifies recovery stops after maxErrorRetries.
@@ -271,9 +233,7 @@ func TestErrorRetryGivesUp(t *testing.T) {
 	sm.scheduleErrorRetry(maxErrorRetries + 1)
 
 	time.Sleep(20 * time.Millisecond)
-	if sse.hasStateEvent("#announce", "Joining") {
-		t.Fatal("error recovery should have given up, but it retried")
-	}
+	require.False(t, sse.hasStateEvent("#announce", "Joining"), "error recovery should have given up, but it retried")
 }
 
 // TestErrorRetryStaleGeneration verifies only the most recent error drives recovery.
@@ -286,9 +246,7 @@ func TestErrorRetryStaleGeneration(t *testing.T) {
 
 	sm.scheduleErrorRetry(1) // the stale attempt
 
-	if sse.hasStateEvent("#announce", "Joining") {
-		t.Fatal("a stale error retry attempted recovery")
-	}
+	require.False(t, sse.hasStateEvent("#announce", "Joining"), "a stale error retry attempted recovery")
 }
 
 // TestHandleMonitoringResetsCounters verifies a successful join clears the
@@ -303,10 +261,8 @@ func TestHandleMonitoringResetsCounters(t *testing.T) {
 
 	sm.m.RLock()
 	defer sm.m.RUnlock()
-	if sm.authAttempts != 0 || sm.errorAttempts != 0 {
-		t.Fatalf("handleMonitoring did not reset counters: auth=%d err=%d",
-			sm.authAttempts, sm.errorAttempts)
-	}
+	require.Zero(t, sm.authAttempts, "handleMonitoring did not reset authAttempts")
+	require.Zero(t, sm.errorAttempts, "handleMonitoring did not reset errorAttempts")
 }
 
 // TestResetClearsRecoveryCounters verifies a disconnect wipes the recovery
@@ -322,15 +278,9 @@ func TestResetClearsRecoveryCounters(t *testing.T) {
 
 	sm.m.RLock()
 	defer sm.m.RUnlock()
-	if sm.errorAttempts != 0 {
-		t.Fatalf("Reset did not clear errorAttempts: err=%d", sm.errorAttempts)
-	}
-	if sm.inviteGen != 5 {
-		t.Errorf("Reset should bump inviteGen (4 -> 5) to void pending timeouts, got %d", sm.inviteGen)
-	}
-	if sm.joinGen != 7 {
-		t.Errorf("Reset should bump joinGen (6 -> 7) to void pending timeouts, got %d", sm.joinGen)
-	}
+	require.Zero(t, sm.errorAttempts, "Reset did not clear errorAttempts")
+	assert.Equal(t, 5, sm.inviteGen, "Reset should bump inviteGen to void pending timeouts")
+	assert.Equal(t, 7, sm.joinGen, "Reset should bump joinGen to void pending timeouts")
 }
 
 // TestRetryBackoffSchedule pins the documented invite backoff, including the
@@ -349,11 +299,10 @@ func TestRetryBackoffSchedule(t *testing.T) {
 		{129, time.Hour}, // phase 4
 	}
 	for _, c := range cases {
-		if d, ok := retryBackoff(c.attempt); !ok || d != c.want {
-			t.Errorf("retryBackoff(%d) = %s,%v; want %s,true", c.attempt, d, ok, c.want)
-		}
+		d, ok := retryBackoff(c.attempt)
+		assert.Truef(t, ok, "retryBackoff(%d)", c.attempt)
+		assert.Equalf(t, c.want, d, "retryBackoff(%d)", c.attempt)
 	}
-	if _, ok := retryBackoff(1_000_000); ok {
-		t.Error("retryBackoff should give up for very large attempt counts")
-	}
+	_, ok := retryBackoff(1_000_000)
+	assert.False(t, ok, "retryBackoff should give up for very large attempt counts")
 }

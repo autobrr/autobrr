@@ -4,11 +4,13 @@
 package indexer
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/autobrr/autobrr/internal/domain"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestIndexersParseAndFilter(t *testing.T) {
@@ -69,7 +71,7 @@ func TestIndexersParseAndFilter(t *testing.T) {
 									Years:           "2008",
 								},
 								match:      false,
-								rejections: []string{"category not matching. got: Album want: Single"},
+								rejections: []string{"[match category] not matching: got Album want: Single"},
 							},
 						},
 					},
@@ -120,7 +122,7 @@ func TestIndexersParseAndFilter(t *testing.T) {
 									Albums:          "Best album",
 								},
 								match:      false,
-								rejections: []string{"albums not matching. got: Bogies & Alcohol want: Best album", "quality not matching. got: [FLAC Lossless] want: [24bit Lossless]"},
+								rejections: []string{"[albums] not matching: got Bogies & Alcohol want: Best album", "[quality] not matching: got [Cue FLAC Lossless Log100 Log] want: [24bit Lossless]"},
 							},
 						},
 					},
@@ -144,7 +146,7 @@ func TestIndexersParseAndFilter(t *testing.T) {
 									Albums:          "Best album",
 								},
 								match:      false,
-								rejections: []string{"albums not matching. got: Bogies & Alcohol want: Best album", "quality not matching. got: [Cue FLAC Lossless Log80 Log] want: [24bit Lossless]", "log score. got 80 want: 100"},
+								rejections: []string{"[albums] not matching: got Bogies & Alcohol want: Best album", "[quality] not matching: got [Cue FLAC Lossless Log80 Log] want: [24bit Lossless]", "[log score] not matching: got 80 want: 100"},
 							},
 						},
 					},
@@ -184,7 +186,7 @@ func TestIndexersParseAndFilter(t *testing.T) {
 									MatchCategories: "Album",
 								},
 								match:      false,
-								rejections: []string{"category not matching. got: Album want: Single"},
+								rejections: []string{"[match category] not matching: got Single want: Album"},
 							},
 						},
 					},
@@ -218,7 +220,7 @@ func TestIndexersParseAndFilter(t *testing.T) {
 									Formats:         []string{"FLAC"},
 								},
 								match:      false,
-								rejections: []string{"year not matching. got: 1991 want: 2024", "quality not matching. got: [Cue FLAC Lossless Log100 Log] want: [24bit Lossless]"},
+								rejections: []string{"[year] not matching: got 1991 want: 2024", "[quality] not matching: got [Cue FLAC Lossless Log100 Log] want: [24bit Lossless]"},
 							},
 						},
 					},
@@ -253,7 +255,7 @@ func TestIndexersParseAndFilter(t *testing.T) {
 									Formats:         []string{"FLAC"},
 								},
 								match:      false,
-								rejections: []string{"quality not matching. got: [FLAC Lossless] want: [24bit Lossless]"},
+								rejections: []string{"[quality] not matching: got [Cue FLAC Lossless Log100 Log] want: [24bit Lossless]"},
 							},
 						},
 					},
@@ -288,7 +290,7 @@ func TestIndexersParseAndFilter(t *testing.T) {
 									Formats:         []string{"FLAC"},
 								},
 								match:      false,
-								rejections: []string{"quality not matching. got: [FLAC Lossless] want: [24bit Lossless]"},
+								rejections: []string{"[quality] not matching: got [Cue FLAC Lossless Log100 Log] want: [24bit Lossless]"},
 							},
 						},
 					},
@@ -312,7 +314,7 @@ func TestIndexersParseAndFilter(t *testing.T) {
 									Cue:             true,
 								},
 								match:      false,
-								rejections: []string{"log score. got: 87 want: 100"},
+								rejections: []string{"[log score] not matching: got 87 want: 100"},
 							},
 							{
 								filter: &domain.Filter{
@@ -321,7 +323,7 @@ func TestIndexersParseAndFilter(t *testing.T) {
 									PerfectFlac:     true,
 								},
 								match:      false,
-								rejections: []string{"wanted: perfect flac. got: [Cue FLAC Lossless Log87 Log]"},
+								rejections: []string{"[perfect flac] not matching: got CD FLAC Lossless (log: true, score: 87) want: wanted Log Score 100, got 87"},
 							},
 						},
 					},
@@ -352,7 +354,7 @@ func TestIndexersParseAndFilter(t *testing.T) {
 									PerfectFlac:     true,
 								},
 								match:      false,
-								rejections: []string{"wanted: perfect flac. got: [Cue FLAC Lossless Log]"},
+								rejections: []string{"[perfect flac] not matching: got CD FLAC Lossless (log: true, score: 0) want: wanted Log Score 100, got 0"},
 							},
 						},
 					},
@@ -367,7 +369,7 @@ func TestIndexersParseAndFilter(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var def *domain.IndexerDefinition
 			defErr := OpenAndDecodeDefinition("./definitions/"+tt.fields.identifier+".yaml", &def)
-			assert.NoError(t, defErr)
+			require.NoError(t, defErr)
 
 			def.Prepare()
 
@@ -383,29 +385,19 @@ func TestIndexersParseAndFilter(t *testing.T) {
 
 					// from announce/announce.go
 					tmpVars := map[string]string{}
-					parseFailed := false
 
 					for _, channel := range def.IRC.ChannelsMap {
+						require.Len(t, subT.args.announceLines, len(channel.Parse.Lines))
+
 						for idx, parseLine := range channel.Parse.Lines {
 							match, err := parseLine.ParseLine(tmpVars, subT.args.announceLines[idx], parseLine.Ignore)
-							if err != nil {
-								parseFailed = true
-								break
-							}
-
-							if !match {
-								parseFailed = true
-								break
-							}
-						}
-
-						if parseFailed {
-							return
+							require.NoError(t, err)
+							require.Truef(t, match, "announce line did not match pattern %q: %q", parseLine.Pattern, subT.args.announceLines[idx])
 						}
 
 						// on lines matched
 						parseErr := channel.Parse.Parse(def, channel.Name, tmpVars, rls)
-						assert.NoError(t, parseErr)
+						require.NoError(t, parseErr)
 					}
 
 					// release/service.go
@@ -428,7 +420,7 @@ func TestIndexersParseAndFilter(t *testing.T) {
 							//match, err := filterSvc.CheckFilter(ctx, filter, rls)
 
 							rejections, matchedFilter := filter.CheckFilter(rls)
-							assert.Equal(t, rejections.Len(), len(filterT.rejections))
+							assert.Equal(t, strings.Join(filterT.rejections, ", "), rejections.String())
 							assert.Equal(t, filterT.match, matchedFilter)
 						})
 					}

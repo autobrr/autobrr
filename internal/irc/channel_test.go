@@ -8,6 +8,8 @@ import (
 
 	"github.com/ergochat/irc-go/ircmsg"
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func newAnnouncerChannel(announcers []string) *Channel {
@@ -34,9 +36,7 @@ func TestChannel_IsValidAnnouncer(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := newAnnouncerChannel(tt.announcers)
-			if got := c.IsValidAnnouncer(tt.nick); got != tt.want {
-				t.Errorf("IsValidAnnouncer(%q) = %v, want %v", tt.nick, got, tt.want)
-			}
+			assert.Equal(t, tt.want, c.IsValidAnnouncer(tt.nick))
 		})
 	}
 }
@@ -60,9 +60,7 @@ func TestChannel_IsValidAnnouncer_Exp_Flag(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := newAnnouncerChannel(tt.announcers)
-			if got := c.IsValidAnnouncer(tt.nick); got != tt.want {
-				t.Errorf("IsValidAnnouncer(%q) = %v, want %v", tt.nick, got, tt.want)
-			}
+			assert.Equal(t, tt.want, c.IsValidAnnouncer(tt.nick))
 		})
 	}
 }
@@ -90,21 +88,13 @@ func TestChannel_OnMsg_SkipCleanMessage(t *testing.T) {
 			}
 
 			got, ok := c.OnMsg(msg)
-			if !ok {
-				t.Fatal("OnMsg() returned ok = false")
-			}
-			if got.Message != tt.want {
-				t.Errorf("OnMsg() message = %q, want %q", got.Message, tt.want)
-			}
+			require.True(t, ok, "OnMsg() returned ok = false")
+			assert.Equal(t, tt.want, got.Message)
 
 			// the broadcast message must match what went into history
 			history := c.Messages.GetMessages()
-			if len(history) != 1 {
-				t.Fatalf("history has %d messages, want 1", len(history))
-			}
-			if history[0].Message != got.Message {
-				t.Errorf("history message = %q, broadcast = %q", history[0].Message, got.Message)
-			}
+			require.Len(t, history, 1)
+			assert.Equal(t, got.Message, history[0].Message)
 		})
 	}
 }

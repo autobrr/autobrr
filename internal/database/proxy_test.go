@@ -14,6 +14,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func getMockProxy() *domain.Proxy {
@@ -41,11 +42,11 @@ func TestProxyRepo_Store(t *testing.T) {
 		t.Run(fmt.Sprintf("Store_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
 			err := repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			proxies, err := repo.List(ctx)
-			assert.NoError(t, err)
-			assert.NotNil(t, proxies)
+			require.NoError(t, err)
+			require.NotEmpty(t, proxies)
 			assert.Equal(t, mockData.Name, proxies[0].Name)
 
 			// Cleanup
@@ -58,7 +59,7 @@ func TestProxyRepo_Store(t *testing.T) {
 			assert.Error(t, err)
 
 			proxies, err := repo.List(ctx)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Empty(t, proxies)
 			//assert.Nil(t, proxies)
 
@@ -88,7 +89,7 @@ func TestProxyRepo_Update(t *testing.T) {
 		t.Run(fmt.Sprintf("Update_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
 			err := repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Update mockData
 			updatedProxy := mockData
@@ -97,13 +98,13 @@ func TestProxyRepo_Update(t *testing.T) {
 
 			// Execute
 			err = repo.Update(ctx, updatedProxy)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			proxies, err := repo.List(ctx)
-			assert.NoError(t, err)
-			assert.NotNil(t, proxies)
+			require.NoError(t, err)
+			require.NotEmpty(t, proxies)
 			assert.Equal(t, "Updated Proxy", proxies[0].Name)
-			assert.Equal(t, false, proxies[0].Enabled)
+			assert.False(t, proxies[0].Enabled)
 
 			// Cleanup
 			_ = repo.Delete(ctx, proxies[0].ID)
@@ -112,7 +113,6 @@ func TestProxyRepo_Update(t *testing.T) {
 		t.Run(fmt.Sprintf("Update_Fails_Invalid_ID [%s]", dbType), func(t *testing.T) {
 			mockData.ID = -1
 			err := repo.Update(ctx, mockData)
-			assert.Error(t, err)
 			assert.ErrorIs(t, err, domain.ErrUpdateFailed)
 		})
 	}
@@ -130,16 +130,16 @@ func TestProxyRepo_Delete(t *testing.T) {
 		t.Run(fmt.Sprintf("Delete_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
 			err := repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			proxies, err := repo.List(ctx)
-			assert.NoError(t, err)
-			assert.NotNil(t, proxies)
+			require.NoError(t, err)
+			require.NotEmpty(t, proxies)
 			assert.Equal(t, mockData.Name, proxies[0].Name)
 
 			// Execute
 			err = repo.Delete(ctx, proxies[0].ID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify that the proxy is deleted and return error ErrRecordNotFound
 			proxy, err := repo.FindByID(ctx, proxies[0].ID)
@@ -149,7 +149,6 @@ func TestProxyRepo_Delete(t *testing.T) {
 
 		t.Run(fmt.Sprintf("Delete_Fails_No_Record [%s]", dbType), func(t *testing.T) {
 			err := repo.Delete(ctx, 9999)
-			assert.Error(t, err)
 			assert.ErrorIs(t, err, domain.ErrDeleteFailed)
 		})
 
@@ -160,32 +159,32 @@ func TestProxyRepo_Delete(t *testing.T) {
 
 			mockData := getMockProxy()
 			err := repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockIndexer := getMockIndexer()
 			mockIndexer.UseProxy = true
 			mockIndexer.ProxyID = mockData.ID
 			indexer, err := indexerRepo.Store(ctx, mockIndexer)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			network := getMockIrcNetwork()
 			network.UseProxy = true
 			network.ProxyId = mockData.ID
 			err = ircRepo.StoreNetwork(ctx, &network)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute
 			err = repo.Delete(ctx, mockData.ID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
 			detachedIndexer, err := indexerRepo.FindByID(ctx, int(indexer.ID))
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.False(t, detachedIndexer.UseProxy)
 			assert.Equal(t, int64(0), detachedIndexer.ProxyID)
 
 			detachedNetwork, err := ircRepo.GetNetworkByID(ctx, network.ID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.False(t, detachedNetwork.UseProxy)
 			assert.Equal(t, int64(0), detachedNetwork.ProxyId)
 
@@ -208,22 +207,22 @@ func TestProxyRepo_ToggleEnabled(t *testing.T) {
 		t.Run(fmt.Sprintf("ToggleEnabled_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
 			err := repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			proxies, err := repo.List(ctx)
-			assert.NoError(t, err)
-			assert.NotNil(t, proxies)
-			assert.Equal(t, true, proxies[0].Enabled)
+			require.NoError(t, err)
+			require.NotEmpty(t, proxies)
+			assert.True(t, proxies[0].Enabled)
 
 			// Execute
 			err = repo.ToggleEnabled(ctx, mockData.ID, false)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify that the proxy is updated
 			proxy, err := repo.FindByID(ctx, proxies[0].ID)
-			assert.NoError(t, err)
-			assert.NotNil(t, proxy)
-			assert.Equal(t, false, proxy.Enabled)
+			require.NoError(t, err)
+			require.NotNil(t, proxy)
+			assert.False(t, proxy.Enabled)
 
 			// Cleanup
 			_ = repo.Delete(ctx, proxies[0].ID)
@@ -231,7 +230,6 @@ func TestProxyRepo_ToggleEnabled(t *testing.T) {
 
 		t.Run(fmt.Sprintf("ToggleEnabled_Fails_Invalid_ID [%s]", dbType), func(t *testing.T) {
 			err := repo.ToggleEnabled(ctx, -1, false)
-			assert.Error(t, err)
 			assert.ErrorIs(t, err, domain.ErrUpdateFailed)
 		})
 	}
@@ -249,16 +247,16 @@ func TestProxyRepo_FindByID(t *testing.T) {
 		t.Run(fmt.Sprintf("FindByID_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
 			err := repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			proxies, err := repo.List(ctx)
-			assert.NoError(t, err)
-			assert.NotNil(t, proxies)
+			require.NoError(t, err)
+			require.NotEmpty(t, proxies)
 
 			// Execute
 			proxy, err := repo.FindByID(ctx, proxies[0].ID)
-			assert.NoError(t, err)
-			assert.NotNil(t, proxy)
+			require.NoError(t, err)
+			require.NotNil(t, proxy)
 			assert.Equal(t, proxies[0].ID, proxy.ID)
 
 			// Cleanup
@@ -290,7 +288,7 @@ func TestProxyRepo_Usage(t *testing.T) {
 			// Setup
 			mockData := getMockProxy()
 			err := repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			proxiedIndexer := getMockIndexer()
 			proxiedIndexer.Name = "proxied indexer"
@@ -298,29 +296,29 @@ func TestProxyRepo_Usage(t *testing.T) {
 			proxiedIndexer.UseProxy = true
 			proxiedIndexer.ProxyID = mockData.ID
 			indexer, err := indexerRepo.Store(ctx, proxiedIndexer)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			directIndexer := getMockIndexer()
 			directIndexer.Name = "direct indexer"
 			directIndexer.Identifier = "direct-indexer"
 			directIndexer.ProxyID = mockData.ID
 			unusedIndexer, err := indexerRepo.Store(ctx, directIndexer)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			network := getMockIrcNetwork()
 			network.UseProxy = true
 			network.ProxyId = mockData.ID
 			err = ircRepo.StoreNetwork(ctx, &network)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			feed := getMockFeed()
 			feed.IndexerID = int(indexer.ID)
 			err = feedRepo.Store(ctx, feed)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute
 			usage, err := repo.Usage(ctx, mockData.ID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
 			assert.Equal(t, []domain.ProxyUsageItem{{ID: indexer.ID, Name: proxiedIndexer.Name}}, usage.Indexers)
@@ -339,11 +337,11 @@ func TestProxyRepo_Usage(t *testing.T) {
 			// Setup
 			mockData := getMockProxy()
 			err := repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute
 			usage, err := repo.Usage(ctx, mockData.ID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
 			assert.Empty(t, usage.Indexers)

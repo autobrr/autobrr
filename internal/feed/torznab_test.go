@@ -13,6 +13,7 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTorznabJob_processItems(t *testing.T) {
@@ -90,8 +91,8 @@ func TestTorznabJob_processItems(t *testing.T) {
 			tt.item.Title = "Some.Release.Title.2022.09.22.720p.WEB.h264-GROUP"
 
 			releases, err := j.processItems([]torznab.FeedItem{tt.item})
-			assert.NoError(t, err)
-			assert.Len(t, releases, 1)
+			require.NoError(t, err)
+			require.Len(t, releases, 1)
 
 			assert.Equal(t, tt.wantDownloadURL, releases[0].DownloadURL, "download url")
 			assert.Equal(t, tt.wantMagnetURI, releases[0].MagnetURI, "magnet uri")

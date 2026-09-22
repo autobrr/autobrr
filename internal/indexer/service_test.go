@@ -13,6 +13,7 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type stubIndexerRepo struct {
@@ -142,8 +143,8 @@ func TestServiceUpdate_SecretSettings(t *testing.T) {
 				return
 			}
 
-			assert.NoError(t, err)
-			assert.NotNil(t, repo.updated)
+			require.NoError(t, err)
+			require.NotNil(t, repo.updated)
 			assert.Equal(t, tt.wantUpdated, repo.updated.Settings)
 		})
 	}

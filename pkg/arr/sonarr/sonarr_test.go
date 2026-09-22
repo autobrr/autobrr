@@ -229,10 +229,8 @@ func Test_client_Push_invalid_download_client(t *testing.T) {
 	})
 
 	assert.Nil(t, rejections)
-	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "invalid configuration")
-		assert.Contains(t, err.Error(), "Download client does not exist.")
-	}
+	assert.ErrorContains(t, err, "invalid configuration")
+	assert.ErrorContains(t, err, "Download client does not exist.")
 }
 
 // A temporarily rejected release comes back with rejected false and temporarilyRejected

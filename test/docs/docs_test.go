@@ -17,6 +17,8 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type AutobrrURLChecker struct {
@@ -71,8 +73,7 @@ func TestAutobrrURLsInRepository(t *testing.T) {
 		}
 
 		fileURLs, err := processFile(path, checker)
-		if err != nil {
-			t.Errorf("Error processing file %s: %v", path, err)
+		if !assert.NoErrorf(t, err, "processing file %s", path) {
 			return err
 		}
 
@@ -83,8 +84,7 @@ func TestAutobrrURLsInRepository(t *testing.T) {
 		return nil
 	})
 
-	if err != nil {
-		t.Errorf("Error walking the repository directory tree: %v", err)
+	if !assert.NoError(t, err, "walking the repository directory tree") {
 		return
 	}
 
@@ -101,22 +101,18 @@ func TestAutobrrURLsInRepository(t *testing.T) {
 	for _, url := range deduplicatedURLs {
 		t.Run(url, func(t *testing.T) {
 			req, err := http.NewRequest("GET", url, nil)
-			if err != nil {
-				t.Errorf("Failed to create request for url %s: %v", url, err)
+			if !assert.NoError(t, err, "creating request") {
 				return
 			}
 			req.Header.Set("User-Agent", "autobrr")
 
 			resp, err := client.Do(req)
-			if err != nil {
-				t.Errorf("Failed to GET url %s: %v", url, err)
+			if !assert.NoError(t, err, "GET request") {
 				return
 			}
 			defer sharedhttp.DrainAndClose(resp)
 
-			if resp.StatusCode == http.StatusNotFound {
-				t.Errorf("URL %s returned 404 Not Found", url)
-			}
+			assert.NotEqualf(t, http.StatusNotFound, resp.StatusCode, "URL %s returned 404 Not Found", url)
 
 			time.Sleep(checker.SleepDuration)
 		})

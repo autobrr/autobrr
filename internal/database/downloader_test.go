@@ -14,6 +14,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func getMockDownloader() domain.Downloader {
@@ -86,7 +87,7 @@ func TestDownloaderRepo_List(t *testing.T) {
 			mock := &mockData
 			err := repo.Store(ctx, mock)
 			clients, err := repo.List(ctx)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotEmpty(t, clients)
 
 			// Cleanup
@@ -95,7 +96,7 @@ func TestDownloaderRepo_List(t *testing.T) {
 
 		t.Run(fmt.Sprintf("List_Succeeds_With_Empty_Database [%s]", dbType), func(t *testing.T) {
 			clients, err := repo.List(ctx)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Empty(t, clients)
 		})
 
@@ -110,8 +111,8 @@ func TestDownloaderRepo_List(t *testing.T) {
 			mock := &mockData
 			err := repo.Store(ctx, mock)
 			clients, err := repo.List(ctx)
-			assert.NoError(t, err)
-			assert.Equal(t, 1, len(clients))
+			require.NoError(t, err)
+			require.Len(t, clients, 1)
 			assert.Equal(t, mock.Name, clients[0].Name)
 
 			// Cleanup
@@ -123,7 +124,7 @@ func TestDownloaderRepo_List(t *testing.T) {
 			mock.Port = 65535
 			err := repo.Store(ctx, mock)
 			clients, err := repo.List(ctx)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, 65535, clients[0].Port)
 
 			// Cleanup
@@ -136,10 +137,10 @@ func TestDownloaderRepo_List(t *testing.T) {
 			mockData.TLSSkipVerify = false
 			err := repo.Store(ctx, &mockData)
 			clients, err := repo.List(ctx)
-			assert.NoError(t, err)
-			assert.Equal(t, false, clients[0].Enabled)
-			assert.Equal(t, false, clients[0].TLS)
-			assert.Equal(t, false, clients[0].TLSSkipVerify)
+			require.NoError(t, err)
+			assert.False(t, clients[0].Enabled)
+			assert.False(t, clients[0].TLS)
+			assert.False(t, clients[0].TLSSkipVerify)
 
 			// Cleanup
 			_ = repo.Delete(ctx, mockData.ID)
@@ -149,7 +150,7 @@ func TestDownloaderRepo_List(t *testing.T) {
 			mockData.Name = "Special$Name"
 			err := repo.Store(ctx, &mockData)
 			clients, err := repo.List(ctx)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, "Special$Name", clients[0].Name)
 
 			// Cleanup
@@ -171,7 +172,7 @@ func TestDownloaderRepo_FindByID(t *testing.T) {
 			mock := &mockData
 			_ = repo.Store(ctx, mock)
 			foundClient, err := repo.FindByID(ctx, mock.ID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, foundClient)
 
 			// Cleanup
@@ -180,7 +181,6 @@ func TestDownloaderRepo_FindByID(t *testing.T) {
 
 		t.Run(fmt.Sprintf("FindByID_Fails_With_Nonexistent_ID [%s]", dbType), func(t *testing.T) {
 			_, err := repo.FindByID(ctx, 9999)
-			assert.Error(t, err)
 			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
 		})
 
@@ -202,7 +202,6 @@ func TestDownloaderRepo_FindByID(t *testing.T) {
 			_ = repo.Store(ctx, mock)
 			_ = repo.Delete(ctx, mock.ID)
 			_, err := repo.FindByID(ctx, mock.ID)
-			assert.Error(t, err)
 			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
 
 			// Cleanup
@@ -213,7 +212,7 @@ func TestDownloaderRepo_FindByID(t *testing.T) {
 			mock := &mockData
 			_ = repo.Store(ctx, mock)
 			foundClient, err := repo.FindByID(ctx, mock.ID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, mock.Name, foundClient.Name)
 
 			// Cleanup
@@ -225,7 +224,7 @@ func TestDownloaderRepo_FindByID(t *testing.T) {
 			_ = repo.Store(ctx, mock)
 			foundClient1, _ := repo.FindByID(ctx, mock.ID)
 			foundClient2, err := repo.FindByID(ctx, mock.ID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, foundClient1, foundClient2)
 
 			// Cleanup
@@ -245,7 +244,7 @@ func TestDownloaderRepo_Store(t *testing.T) {
 		t.Run(fmt.Sprintf("Store_Succeeds [%s]", dbType), func(t *testing.T) {
 			mockData := getMockDownloader()
 			err := repo.Store(ctx, &mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, mockData)
 
 			// Cleanup
@@ -308,7 +307,7 @@ func TestDownloaderRepo_Update(t *testing.T) {
 			mockClient.Name = "updatedName"
 			err := repo.Update(ctx, &mockClient)
 
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, "updatedName", mockClient.Name)
 
 			// Cleanup
@@ -357,7 +356,7 @@ func TestDownloaderRepo_Delete(t *testing.T) {
 			_ = repo.Store(ctx, &mockClient)
 
 			err := repo.Delete(ctx, mockClient.ID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify client was deleted
 			_, err = repo.FindByID(ctx, mockClient.ID)
@@ -389,11 +388,11 @@ func TestDownloaderRepo_Delete(t *testing.T) {
 
 			mockClient := getMockDownloader()
 			err := repo.Store(ctx, &mockClient)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			filter := getMockFilter()
 			err = filterRepo.Store(ctx, filter)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			actionWithoutFilter := getMockAction()
 			actionWithoutFilter.ClientID = mockClient.ID
@@ -401,7 +400,7 @@ func TestDownloaderRepo_Delete(t *testing.T) {
 			actionWithoutFilter.Name = "action-without-filter"
 
 			err = actionRepo.Store(ctx, actionWithoutFilter)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			actionWithFilter := getMockAction()
 			actionWithFilter.ClientID = mockClient.ID
@@ -409,25 +408,24 @@ func TestDownloaderRepo_Delete(t *testing.T) {
 			actionWithFilter.Name = "action-with-filter"
 
 			err = actionRepo.Store(ctx, actionWithFilter)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			err = repo.Delete(ctx, mockClient.ID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			updatedActionWithoutFilter, err := actionRepo.Get(ctx, &domain.GetActionRequest{Id: actionWithoutFilter.ID})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.False(t, updatedActionWithoutFilter.Enabled)
 			assert.Zero(t, updatedActionWithoutFilter.ClientID)
 			assert.Zero(t, updatedActionWithoutFilter.FilterID)
 
 			updatedActionWithFilter, err := actionRepo.Get(ctx, &domain.GetActionRequest{Id: actionWithFilter.ID})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.False(t, updatedActionWithFilter.Enabled)
 			assert.Zero(t, updatedActionWithFilter.ClientID)
 			assert.Equal(t, filter.ID, updatedActionWithFilter.FilterID)
 
 			_, err = repo.FindByID(ctx, mockClient.ID)
-			assert.Error(t, err)
 			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
 
 			_ = actionRepo.Delete(ctx, &domain.DeleteActionRequest{ActionId: actionWithoutFilter.ID})
@@ -441,21 +439,21 @@ func TestDownloaderRepo_Delete(t *testing.T) {
 
 			mockClient := getMockDownloader()
 			err := repo.Store(ctx, &mockClient)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			filter := getMockFilter()
 			err = filterRepo.Store(ctx, filter)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			list := getMockArrList(filter.ID, mockClient.ID)
 			err = listRepo.Store(ctx, list)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			err = repo.Delete(ctx, mockClient.ID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			lists, err := listRepo.List(ctx)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			var updatedList *domain.List
 			for _, existingList := range lists {
@@ -465,13 +463,11 @@ func TestDownloaderRepo_Delete(t *testing.T) {
 				}
 			}
 
-			if assert.NotNil(t, updatedList) {
-				assert.False(t, updatedList.Enabled)
-				assert.Zero(t, updatedList.ClientID)
-			}
+			require.NotNil(t, updatedList)
+			assert.False(t, updatedList.Enabled)
+			assert.Zero(t, updatedList.ClientID)
 
 			_, err = repo.FindByID(ctx, mockClient.ID)
-			assert.Error(t, err)
 			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
 
 			_ = listRepo.Delete(ctx, list.ID)
