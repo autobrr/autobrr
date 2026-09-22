@@ -4,6 +4,9 @@ name: build-pr-image
 # The workflow file always comes from the ref it is dispatched on, only the
 # build context is checked out from the fork, so fork code never gets to
 # change what runs with the repository token.
+# Caches are restore-only: fork code runs before a save, and release.yml
+# restores the same keys. The pnpm key mirrors setup-node's
+# node-cache-<os>-<arch>-pnpm-<lockfile hash> so develop's caches still hit.
 on:
   workflow_dispatch:
     inputs:
@@ -50,24 +53,29 @@ jobs:
         with:
           repository: ${{ steps.pr.outputs.repo }}
           ref: ${{ steps.pr.outputs.sha }}
-          fetch-depth: 0
           persist-credentials: false
 
       - name: Set up Node
         uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
+          package-manager-cache: false
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v6.0.10
         with:
           package_json_file: web/package.json
 
-      - name: Set up cache
-        uses: actions/setup-node@v7
+      - name: Get pnpm store directory
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> "$GITHUB_ENV"
+
+      - name: Restore pnpm cache
+        uses: actions/cache/restore@v6
         with:
-          cache: pnpm
-          cache-dependency-path: web/pnpm-lock.yaml
+          path: ${{ env.STORE_PATH }}
+          key: node-cache-Linux-x64-pnpm-${{ hashFiles('web/pnpm-lock.yaml') }}
+          restore-keys: |
+            node-cache-Linux-x64-pnpm
 
       - name: Fetch web dependencies
         working-directory: web
