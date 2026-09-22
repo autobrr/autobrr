@@ -57,26 +57,29 @@ irc:
       parse:
         type: single
         lines:
-          - pattern: '^(?P<releaseName>.+?) - Size: (?P<torrentSize>[\d.]+ [KMGT]i?B) - Tags: (?P<tags>.*?) - (?P<baseUrl>https?:\/\/[^\/]+\/)torrents\?torrentid=(?P<torrentId>\d+)$'
+          - pattern: '^(?P<category>.+?) - (?P<releaseName>.+?) - Size: (?P<torrentSize>[\d.]+ [KMGT]i?B) - Tags: (?P<tags>.*?) - (?P<baseUrl>https?:\/\/[^\/]+\/)torrents\?torrentid=(?P<torrentId>\d+)$'
             tests:
-              - line: 'Some Blade: That is Sharp (August 2026) - Size: 6.08 GiB - Tags: sharp.blade, jpg, lys, png, stl, car.cad, model, unsupported, presupported, webp, 2026, august.2026, 3d, link, august, blade, monthly.release - https://materialize.is/torrents?torrentid=6767'
+              - line: 'Model - Some Blade: That is Sharp (August 2026) - Size: 6.08 GiB - Tags: sharp.blade, jpg, lys, png, stl, car.cad, model, unsupported, presupported, webp, 2026, august.2026, 3d, link, august, blade, monthly.release - https://materialize.is/torrents?torrentid=6767'
                 expect:
+                  category: Model
                   releaseName: 'Some Blade: That is Sharp (August 2026)'
                   torrentSize: 6.08 GiB
                   tags: sharp.blade, jpg, lys, png, stl, car.cad, model, unsupported, presupported, webp, 2026, august.2026, 3d, link, august, blade, monthly.release
                   baseUrl: https://materialize.is/
                   torrentId: "6767"
 
-              - line: 'Y-Women Savage: Psylock  August 2026) - Size: 3.38 GiB - Tags: psylocke, jpg, lys, png, stl, car.cad, model, unsupported, presupported, webp, 2026, august.2026, 3d, link, august, y.women, monthly.release - https://materialize.is/torrents?torrentid=69696'
+              - line: 'Model - Y-Women Savage: Psylock  August 2026) - Size: 3.38 GiB - Tags: psylocke, jpg, lys, png, stl, car.cad, model, unsupported, presupported, webp, 2026, august.2026, 3d, link, august, y.women, monthly.release - https://materialize.is/torrents?torrentid=69696'
                 expect:
+                  category: Model
                   releaseName: 'Y-Women Savage: Psylock  August 2026)'
                   torrentSize: 3.38 GiB
                   tags: psylocke, jpg, lys, png, stl, car.cad, model, unsupported, presupported, webp, 2026, august.2026, 3d, link, august, y.women, monthly.release
                   baseUrl: https://materialize.is/
                   torrentId: "69696"
 
-              - line: 'The Unknown Gallow: Carnival of the Unknown (September 2026) - Size: 8.49 GiB - Tags: jpg, lys, pdf, stl, the.dragon.lodge, model.pack, unsupported, pack, presupported, dragon, webp, 2026, link, models, it, september, september.2026, giant, rose, fire, town, carnival, puppet, monthly.release - https://materialize.is/torrents?torrentid=420420'
+              - line: 'Model Pack - The Unknown Gallow: Carnival of the Unknown (September 2026) - Size: 8.49 GiB - Tags: jpg, lys, pdf, stl, the.dragon.lodge, model.pack, unsupported, pack, presupported, dragon, webp, 2026, link, models, it, september, september.2026, giant, rose, fire, town, carnival, puppet, monthly.release - https://materialize.is/torrents?torrentid=420420'
                 expect:
+                  category: Model Pack
                   releaseName: 'The Unknown Gallow: Carnival of the Unknown (September 2026)'
                   torrentSize: 8.49 GiB
                   tags: jpg, lys, pdf, stl, the.dragon.lodge, model.pack, unsupported, pack, presupported, dragon, webp, 2026, link, models, it, september, september.2026, giant, rose, fire, town, carnival, puppet, monthly.release
