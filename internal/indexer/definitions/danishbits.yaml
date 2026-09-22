@@ -1,0 +1,89 @@
+---
+version: 2
+#id: danishbits
+name: DanishBits
+identifier: danishbits
+description: DanishBits (DB) is a private Danish torrent tracker for MOVIES / TV / GENERAL.
+language: da-dk
+urls:
+  - https://danishbits.me/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS Key
+    help: "Go to your profile, Settings > RSS key, and copy the RSS Key (RID)"
+
+irc:
+  network: DanishBits
+  server: irc.danishbits.me
+  port: 6697
+  tls: true
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  channels:
+    - name: "#announce"
+      announcers:
+        - DanishBits
+      parse:
+        type: single
+        lines:
+          - pattern: '^(?:\[DanishBits\] )?NEW \| ID:\d+ \| Name:(?P<releaseName>.+?) \| Category:(?P<category>.*?) \| Type:(?P<releaseTags>.*?) \| Resolution:(?P<resolution>.*?) \| Size:(?P<torrentSize>.+?) \| Freeleech:\w+ \| FreeleechPercent:(?P<freeleechPercent>\d+) \| DoubleUpload:(?P<doubleUpload>\w+) \| Uploader:(?P<uploader>.*?) \| Link:(?P<baseUrl>https?://.+?/)torrents/(?P<torrentId>\d+)$'
+            tests:
+              - line: '[DanishBits] NEW | ID:1143 | Name:Faangat.paa.polisens.kamera.S01.Retail.DKSubs.1080p.WEB-DL.H.264.DDP2.0-TWASERiES | Category:TV | Type:WEB-DL | Resolution:1080p | Size:61.62 GiB | Freeleech:true | FreeleechPercent:100 | DoubleUpload:false | Uploader:Anonymous | Link:https://danishbits.me/torrents/1143'
+                expect:
+                  releaseName: Faangat.paa.polisens.kamera.S01.Retail.DKSubs.1080p.WEB-DL.H.264.DDP2.0-TWASERiES
+                  category: TV
+                  releaseTags: WEB-DL
+                  resolution: 1080p
+                  torrentSize: 61.62 GiB
+                  freeleechPercent: "100"
+                  doubleUpload: "false"
+                  uploader: Anonymous
+                  baseUrl: https://danishbits.me/
+                  torrentId: "1143"
+
+              - line: 'NEW | ID:1144 | Name:Some.Movie.2024.2160p.UHD.BluRay.REMUX.HDR.HEVC.DTS-HD.MA.5.1-GROUP | Category:Movies | Type:Remux | Resolution:2160p | Size:54.1 GiB | Freeleech:false | FreeleechPercent:0 | DoubleUpload:true | Uploader:someuser | Link:https://danishbits.me/torrents/1144'
+                expect:
+                  releaseName: Some.Movie.2024.2160p.UHD.BluRay.REMUX.HDR.HEVC.DTS-HD.MA.5.1-GROUP
+                  category: Movies
+                  releaseTags: Remux
+                  resolution: 2160p
+                  torrentSize: 54.1 GiB
+                  freeleechPercent: "0"
+                  doubleUpload: "true"
+                  uploader: someuser
+                  baseUrl: https://danishbits.me/
+                  torrentId: "1144"
+
+        mappings:
+          doubleUpload:
+            "true":
+              uploadVolumeFactor: 2
+
+        match:
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
