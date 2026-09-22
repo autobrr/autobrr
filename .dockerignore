@@ -1,31 +1,30 @@
-node_modules/
-.run
-.gitignore
+# VCS and tooling
+.git
 .github
+.gitignore
+.idea
+.run
+.claude
+.agents
 .dev
 dev/
-config.toml
-.goreleaser.yml
-Dockerfile
-ci.Dockerfile
-docker-compose.yml
-README.md
-CODE_OF_CONDUCT.md
-bin
 config
+.goreleaser.yml
+Makefile
+
+# Docker inputs that are not part of the build context
+Dockerfile
+distrib
+docker-compose.yml
+config.toml
+
+# Docs
+*.md
+docs
+
+# Build output and tests
+bin
 test
-#web/*
-#!web/public
-#!web/src
-#!web/dist*
-#!web/package.json
-#!web/yarn.lock
-#!web/.yarnrc.yml
-#!web/.yarn/releases
-#!web/.eslintrc.cjs
-#!web/postcss.config.cts
-#!web/tailwind.config.ts
-#!web/tsconfig.json
-#!web/index.html
-#!web/vite.config.ts
-#!web/build.go
+**/node_modules
+web/test
+web/vitest.config.ts
