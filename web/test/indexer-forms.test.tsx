@@ -111,6 +111,31 @@ test("changing the selected indexer clears its external identifier", async () =>
   expect((screen.getByRole("textbox", { name: "External Identifier" }) as HTMLInputElement).value).toBe("");
 });
 
+test("the external identifier hint follows the typed name of a generic feed", async () => {
+  vi.spyOn(APIClient.indexers, "getSchema").mockResolvedValue([
+    { ...rssIndexer, name: "Generic RSS", identifier: "rss" }
+  ]);
+  vi.spyOn(APIClient.proxy, "list").mockResolvedValue([]);
+
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <IndexerAddForm isOpen={true} toggle={() => {}} />
+    </QueryClientProvider>
+  );
+
+  const picker = document.querySelector("input[id^='react-select'][id$='-input']") as HTMLInputElement;
+  fireEvent.keyDown(picker, { key: "ArrowDown", keyCode: 40 });
+  fireEvent.click(await screen.findByText("Generic RSS"));
+
+  const externalIdentifier = screen.getByRole("textbox", { name: "External Identifier" }) as HTMLInputElement;
+  expect(externalIdentifier.placeholder).toBe("Generic RSS");
+
+  fireEvent.change(document.getElementById("name") as HTMLInputElement, { target: { value: "MyTracker" } });
+
+  expect(externalIdentifier.placeholder).toBe("MyTracker");
+  expect(screen.getByText("External Identifier for ARRs. If using Prowlarr set like: MyTracker (Prowlarr)")).toBeTruthy();
+});
+
 test("a feed indexer offers the proxy section and saves the toggle", async () => {
   vi.spyOn(APIClient.proxy, "list").mockResolvedValue([
     { id: 3, name: "Mullvad", enabled: true, type: "SOCKS5", addr: "socks5://127.0.0.1:1080" }

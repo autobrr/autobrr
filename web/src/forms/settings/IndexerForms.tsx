@@ -730,7 +730,7 @@ function IndexerAddFormPanel({ toggle }: IndexerAddFormPanelProps) {
             </div>
 
             {identifier !== "" && (
-              <IndexerExternalIdentifierField indexerName={indexer.name} />
+              <IndexerExternalIdentifierField fallbackName={indexer.name} />
             )}
 
             <SwitchGroupWide name="enabled" label={t("forms.indexer.enabled")} />
@@ -840,13 +840,21 @@ function IndexerIdentifierField({ data, setIndexer }: IndexerIdentifierFieldProp
   );
 }
 
-function IndexerExternalIdentifierField({ indexerName }: { indexerName: string }) {
+interface IndexerExternalIdentifierFieldProps {
+  fallbackName: string;
+}
+
+// Generic feed definitions are named "Generic RSS" etc., so the hint follows the typed name.
+function IndexerExternalIdentifierField({ fallbackName }: IndexerExternalIdentifierFieldProps) {
   const { t } = useTranslation("settings");
+  const name = useFormValue((v: { name?: string }) => v.name);
+  const indexerName = name || fallbackName;
 
   return (
     <TextFieldWide
       name="identifier_external"
       label={t("forms.indexer.externalIdentifier")}
+      placeholder={indexerName}
       help={t("forms.indexer.externalIdentifierHelp", { name: indexerName })}
       tooltip={
         <div>
@@ -1106,7 +1114,7 @@ export function IndexerUpdateForm({ isOpen, toggle, data: indexer }: UpdateFormP
             <IndexerNameField />
           </div>
 
-          <IndexerExternalIdentifierField indexerName={indexer.name} />
+          <IndexerExternalIdentifierField fallbackName={indexer.name} />
           <SwitchGroupWide name="enabled" label={t("forms.indexer.enabled")}/>
 
           {indexer.implementation == "irc" && (
