@@ -1,0 +1,91 @@
+---
+version: 2
+#id: materialize
+name: Materialize
+identifier: materialize
+description: Materialize (MAT) is a private tracker for 3D PRINTING MODELS
+language: en-us
+urls:
+  - https://materialize.is/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: gazelle
+settings:
+  - name: authkey
+    type: secret
+    required: true
+    label: Auth key
+    help: Right click DL on a torrent and get the authkey.
+
+  - name: torrent_pass
+    type: secret
+    required: true
+    label: Torrent pass
+    help: Right click DL on a torrent and get the torrent_pass.
+
+irc:
+  network: Materialize
+  server: irc.materialize.is
+  port: 6697
+  tls: true
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: true
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: true
+      label: NickServ Password
+      help: NickServ password
+
+  channels:
+    - name: "#materialize-announces"
+      announcers:
+        - MaterializeBridge
+      parse:
+        type: single
+        lines:
+          - pattern: '^(?P<category>.+?) - (?P<releaseName>.+?) - Size: (?P<torrentSize>[\d.]+ [KMGT]i?B) - Tags: (?P<tags>.*?) - (?P<baseUrl>https?:\/\/[^\/]+\/)torrents\?torrentid=(?P<torrentId>\d+)$'
+            tests:
+              - line: 'Model - Some Blade: That is Sharp (August 2026) - Size: 6.08 GiB - Tags: sharp.blade, jpg, lys, png, stl, car.cad, model, unsupported, presupported, webp, 2026, august.2026, 3d, link, august, blade, monthly.release - https://materialize.is/torrents?torrentid=6767'
+                expect:
+                  category: Model
+                  releaseName: 'Some Blade: That is Sharp (August 2026)'
+                  torrentSize: 6.08 GiB
+                  tags: sharp.blade, jpg, lys, png, stl, car.cad, model, unsupported, presupported, webp, 2026, august.2026, 3d, link, august, blade, monthly.release
+                  baseUrl: https://materialize.is/
+                  torrentId: "6767"
+
+              - line: 'Model - Y-Women Savage: Psylock  August 2026) - Size: 3.38 GiB - Tags: psylocke, jpg, lys, png, stl, car.cad, model, unsupported, presupported, webp, 2026, august.2026, 3d, link, august, y.women, monthly.release - https://materialize.is/torrents?torrentid=69696'
+                expect:
+                  category: Model
+                  releaseName: 'Y-Women Savage: Psylock  August 2026)'
+                  torrentSize: 3.38 GiB
+                  tags: psylocke, jpg, lys, png, stl, car.cad, model, unsupported, presupported, webp, 2026, august.2026, 3d, link, august, y.women, monthly.release
+                  baseUrl: https://materialize.is/
+                  torrentId: "69696"
+
+              - line: 'Model Pack - The Unknown Gallow: Carnival of the Unknown (September 2026) - Size: 8.49 GiB - Tags: jpg, lys, pdf, stl, the.dragon.lodge, model.pack, unsupported, pack, presupported, dragon, webp, 2026, link, models, it, september, september.2026, giant, rose, fire, town, carnival, puppet, monthly.release - https://materialize.is/torrents?torrentid=420420'
+                expect:
+                  category: Model Pack
+                  releaseName: 'The Unknown Gallow: Carnival of the Unknown (September 2026)'
+                  torrentSize: 8.49 GiB
+                  tags: jpg, lys, pdf, stl, the.dragon.lodge, model.pack, unsupported, pack, presupported, dragon, webp, 2026, link, models, it, september, september.2026, giant, rose, fire, town, carnival, puppet, monthly.release
+                  baseUrl: https://materialize.is/
+                  torrentId: "420420"
+
+        match:
+          infourl: "/torrents?torrentid={{ .torrentId }}"
+          downloadurl: "/torrents.php?action=download&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}&id={{ .torrentId }}"
