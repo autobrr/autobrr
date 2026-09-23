@@ -155,16 +155,11 @@ func TestInitIndexersNoDefinitionsRegistersConfiguredChannels(t *testing.T) {
 	h.InitIndexers(nil)
 
 	ch, found := h.channels.Get("#nordicbytes")
-	if !found {
-		t.Fatal("configured channel #nordicbytes was not registered")
-	}
-	if !ch.IsEnabled() || ch.ID != 1 || ch.Password != "secret" {
-		t.Errorf("configured channel #nordicbytes not configured: id=%d enabled=%v password=%q", ch.ID, ch.IsEnabled(), ch.Password)
-	}
-	if ch.StateMachine() == nil {
-		t.Error("configured channel #nordicbytes should have a state machine")
-	}
-	if ch.announceProcessor != nil {
-		t.Error("channel without a matching definition should have no announce processor")
-	}
+	require.True(t, found, "configured channel #nordicbytes was not registered")
+
+	assert.True(t, ch.IsEnabled())
+	assert.Equal(t, int64(1), ch.ID)
+	assert.Equal(t, "secret", ch.Password)
+	assert.NotNil(t, ch.StateMachine(), "configured channel #nordicbytes should have a state machine")
+	assert.Nil(t, ch.announceProcessor, "channel without a matching definition should have no announce processor")
 }
