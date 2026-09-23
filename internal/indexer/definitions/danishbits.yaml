@@ -32,17 +32,11 @@ irc:
       label: Nick
       help: Bot nick. Eg. user_bot
 
-    - name: auth.account
-      type: text
-      required: false
-      label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot.
-
-    - name: auth.password
+    - name: pass
       type: secret
-      required: false
-      label: NickServ Password
-      help: NickServ password
+      required: true
+      label: Network password (API key)
+      help: Your site API key
 
   channels:
     - name: "#announce"
@@ -51,37 +45,50 @@ irc:
       parse:
         type: single
         lines:
-          - pattern: '^(?:\[DanishBits\] )?NEW \| ID:\d+ \| Name:(?P<releaseName>.+?) \| Category:(?P<category>.*?) \| Type:(?P<releaseTags>.*?) \| Resolution:(?P<resolution>.*?) \| Size:(?P<torrentSize>.+?) \| Freeleech:\w+ \| FreeleechPercent:(?P<freeleechPercent>\d+) \| DoubleUpload:(?P<doubleUpload>\w+) \| Uploader:(?P<uploader>.*?) \| Link:(?P<baseUrl>https?://.+?/)torrents/(?P<torrentId>\d+)$'
+          - pattern: '^NEW \| (?P<category>.+?) \| (?P<releaseName>.+?) \| (?P<torrentSize>.+?)(?: \| (?P<freeleechPercent>\d+)% FL)? \| DU:(?P<doubleUpload>\d) \| (?P<uploader>.*?)(?: \| (?P<imdb>tt\d+)?,?(?P<tmdb>\d+)?)? \| (?P<baseUrl>https?://.+?/)torrents/(?P<torrentId>\d+)$'
             tests:
-              - line: '[DanishBits] NEW | ID:1143 | Name:Faangat.paa.polisens.kamera.S01.Retail.DKSubs.1080p.WEB-DL.H.264.DDP2.0-TWASERiES | Category:TV | Type:WEB-DL | Resolution:1080p | Size:61.62 GiB | Freeleech:true | FreeleechPercent:100 | DoubleUpload:false | Uploader:Anonymous | Link:https://danishbits.me/torrents/1143'
+              - line: 'NEW | TV | Faangat.paa.polisens.kamera.S01.Retail.DKSubs.1080p.WEB-DL.H.264.DDP2.0-TWASERiES | 61.62 GiB | 100% FL | DU:0 | Anonymous | tt10000,22424 | https://danishbits.me/torrents/1143'
                 expect:
-                  releaseName: Faangat.paa.polisens.kamera.S01.Retail.DKSubs.1080p.WEB-DL.H.264.DDP2.0-TWASERiES
                   category: TV
-                  releaseTags: WEB-DL
-                  resolution: 1080p
+                  releaseName: Faangat.paa.polisens.kamera.S01.Retail.DKSubs.1080p.WEB-DL.H.264.DDP2.0-TWASERiES
                   torrentSize: 61.62 GiB
                   freeleechPercent: "100"
-                  doubleUpload: "false"
+                  doubleUpload: "0"
                   uploader: Anonymous
+                  imdb: tt10000
+                  tmdb: "22424"
                   baseUrl: https://danishbits.me/
                   torrentId: "1143"
 
-              - line: 'NEW | ID:1144 | Name:Some.Movie.2024.2160p.UHD.BluRay.REMUX.HDR.HEVC.DTS-HD.MA.5.1-GROUP | Category:Movies | Type:Remux | Resolution:2160p | Size:54.1 GiB | Freeleech:false | FreeleechPercent:0 | DoubleUpload:true | Uploader:someuser | Link:https://danishbits.me/torrents/1144'
+              - line: 'NEW | Movies | Some.Movie.2024.2160p.UHD.BluRay.REMUX.HDR.HEVC.DTS-HD.MA.5.1-GROUP | 54.1 GiB | DU:1 | someuser | https://danishbits.me/torrents/1144'
                 expect:
-                  releaseName: Some.Movie.2024.2160p.UHD.BluRay.REMUX.HDR.HEVC.DTS-HD.MA.5.1-GROUP
                   category: Movies
-                  releaseTags: Remux
-                  resolution: 2160p
+                  releaseName: Some.Movie.2024.2160p.UHD.BluRay.REMUX.HDR.HEVC.DTS-HD.MA.5.1-GROUP
                   torrentSize: 54.1 GiB
-                  freeleechPercent: "0"
-                  doubleUpload: "true"
+                  freeleechPercent: ""
+                  doubleUpload: "1"
                   uploader: someuser
+                  imdb: ""
+                  tmdb: ""
                   baseUrl: https://danishbits.me/
                   torrentId: "1144"
 
+              - line: 'NEW | Movies | Some.Other.Movie.1999.1080p.BluRay.x264-GROUP | 8.2 GiB | 50% FL | DU:0 | someuser | tt0000001 | https://danishbits.me/torrents/1145'
+                expect:
+                  category: Movies
+                  releaseName: Some.Other.Movie.1999.1080p.BluRay.x264-GROUP
+                  torrentSize: 8.2 GiB
+                  freeleechPercent: "50"
+                  doubleUpload: "0"
+                  uploader: someuser
+                  imdb: tt0000001
+                  tmdb: ""
+                  baseUrl: https://danishbits.me/
+                  torrentId: "1145"
+
         mappings:
           doubleUpload:
-            "true":
+            "1":
               uploadVolumeFactor: 2
 
         match:
