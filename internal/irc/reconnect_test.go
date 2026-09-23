@@ -17,6 +17,8 @@ import (
 	"github.com/ergochat/irc-go/ircmsg"
 	"github.com/r3labs/sse/v2"
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type noopEventBus struct{}
@@ -170,36 +172,26 @@ func TestReconnectResetsChannelStateMachines(t *testing.T) {
 			ch, _ := h.channels.Get(tt.channel)
 
 			// sanity: the channel is monitored before the drop
-			if sm.CurrentState() != ChannelStateMonitoring {
-				t.Fatalf("precondition: state = %s, want Monitoring", sm.CurrentState())
-			}
+			require.Equal(t, ChannelStateMonitoring, sm.CurrentState(), "precondition")
 
 			// an unexpected disconnect (ircevent will auto-reconnect in-process)
 			h.onDisconnect(ircmsg.Message{})
 
 			// the channel must no longer be considered monitored
-			if ch.Monitoring {
-				t.Errorf("channel still Monitoring after disconnect")
-			}
+			assert.False(t, ch.Monitoring, "channel still Monitoring after disconnect")
 
 			// and the state machine must be back at Idle so a rejoin can run
-			if got := sm.CurrentState(); got != ChannelStateIdle {
-				t.Fatalf("state after disconnect = %s, want Idle (reconnect trap: channel would never rejoin)", got)
-			}
+			require.Equal(t, ChannelStateIdle, sm.CurrentState(), "state after disconnect (reconnect trap: channel would never rejoin)")
 
 			// the exact transition Start() performs on reconnect must be valid
 			// from the post-disconnect state; if it isn't, the channel is stuck
 			// and no JOIN/invite is ever re-sent.
 			from := sm.CurrentState()
-			if !sm.isValidTransition(from, tt.restartTo) {
-				t.Fatalf("reconnect trap: cannot restart join workflow (%s -> %s is invalid)", from, tt.restartTo)
-			}
+			require.Truef(t, sm.isValidTransition(from, tt.restartTo), "reconnect trap: cannot restart join workflow (%s -> %s is invalid)", from, tt.restartTo)
 
 			// the UI must be told the channel left Monitoring, otherwise the pill
 			// stays stale until the channel rejoins.
-			if !sseMock.hasStateEvent(tt.channel, "Idle") {
-				t.Errorf("expected a STATE=Idle SSE event for %s on disconnect, got %+v", tt.channel, sseMock.stateEvents())
-			}
+			assert.Truef(t, sseMock.hasStateEvent(tt.channel, "Idle"), "expected a STATE=Idle SSE event for %s on disconnect, got %+v", tt.channel, sseMock.stateEvents())
 		})
 	}
 }
@@ -214,16 +206,8 @@ func TestResetFromMonitoring(t *testing.T) {
 
 	sm.Reset()
 
-	if got := sm.CurrentState(); got != ChannelStateIdle {
-		t.Fatalf("Reset() from Monitoring left state = %s, want Idle", got)
-	}
-	if sm.authAttempts != 0 {
-		t.Errorf("Reset() left authAttempts = %d, want 0", sm.authAttempts)
-	}
-	if sm.joinAfterInvite {
-		t.Errorf("Reset() left joinAfterInvite = true, want false")
-	}
-	if !sseMock.hasStateEvent("#announce", "Idle") {
-		t.Errorf("Reset() did not broadcast STATE=Idle, got %+v", sseMock.stateEvents())
-	}
+	require.Equal(t, ChannelStateIdle, sm.CurrentState(), "Reset() from Monitoring")
+	assert.Zero(t, sm.authAttempts, "Reset() left authAttempts")
+	assert.False(t, sm.joinAfterInvite, "Reset() left joinAfterInvite set")
+	assert.Truef(t, sseMock.hasStateEvent("#announce", "Idle"), "Reset() did not broadcast STATE=Idle, got %+v", sseMock.stateEvents())
 }

@@ -2568,8 +2568,10 @@ func Test_checkSizeFilter(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.filter.RejectReasons = NewRejectionReasons()
 			got, err := tt.filter.CheckReleaseSize(tt.releaseSize)
-			if tt.wantErr != "" && assert.Error(t, err) {
-				assert.EqualErrorf(t, err, tt.wantErr, "Error should be: %v, got: %v", tt.wantErr, err)
+			if tt.wantErr != "" {
+				assert.EqualError(t, err, tt.wantErr)
+			} else {
+				assert.NoError(t, err)
 			}
 			assert.Equal(t, tt.want, got)
 		})

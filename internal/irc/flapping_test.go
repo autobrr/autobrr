@@ -5,7 +5,6 @@ package irc
 
 import (
 	"context"
-	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/ergochat/irc-go/ircevent"
 	"github.com/ergochat/irc-go/ircmsg"
+	"github.com/stretchr/testify/require"
 )
 
 type recordingEventBus struct {
@@ -51,20 +51,14 @@ func TestFlappingBreakerTripsOnFifthShortSession(t *testing.T) {
 	started := time.Date(2026, time.August, 13, 12, 0, 0, 0, time.UTC)
 
 	for i := range flappingStopThreshold - 1 {
-		if recordSessionEnd(h, time.Second, started.Add(time.Duration(i)*time.Minute)) {
-			t.Fatalf("breaker tripped after %d short sessions", i+1)
-		}
+		require.Falsef(t, recordSessionEnd(h, time.Second, started.Add(time.Duration(i)*time.Minute)), "breaker tripped after %d short sessions", i+1)
 	}
 
-	if !recordSessionEnd(h, time.Second, started.Add(4*time.Minute)) {
-		t.Fatal("breaker did not trip on the fifth short session")
-	}
+	require.True(t, recordSessionEnd(h, time.Second, started.Add(4*time.Minute)), "breaker did not trip on the fifth short session")
 
 	h.m.RLock()
 	defer h.m.RUnlock()
-	if len(h.shortSessionEnds) != 0 {
-		t.Fatalf("breaker did not reset after tripping: %v", h.shortSessionEnds)
-	}
+	require.Empty(t, h.shortSessionEnds, "breaker did not reset after tripping")
 }
 
 func TestFlappingBreakerResetsAfterHealthySession(t *testing.T) {
@@ -75,14 +69,10 @@ func TestFlappingBreakerResetsAfterHealthySession(t *testing.T) {
 		recordSessionEnd(h, time.Second, started.Add(time.Duration(i)*time.Minute))
 	}
 
-	if recordSessionEnd(h, flappingSessionMinLifetime, started.Add(4*time.Minute)) {
-		t.Fatal("healthy session tripped the breaker")
-	}
+	require.False(t, recordSessionEnd(h, flappingSessionMinLifetime, started.Add(4*time.Minute)), "healthy session tripped the breaker")
 
 	for i := range flappingStopThreshold - 1 {
-		if recordSessionEnd(h, time.Second, started.Add(time.Duration(i+5)*time.Minute)) {
-			t.Fatalf("pre-healthy short sessions leaked into the new streak at session %d", i+1)
-		}
+		require.Falsef(t, recordSessionEnd(h, time.Second, started.Add(time.Duration(i+5)*time.Minute)), "pre-healthy short sessions leaked into the new streak at session %d", i+1)
 	}
 }
 
@@ -95,15 +85,11 @@ func TestFlappingBreakerExpiresOldStreak(t *testing.T) {
 	}
 
 	windowStart := started.Add(flappingWindow)
-	if recordSessionEnd(h, time.Second, windowStart) {
-		t.Fatal("expired short sessions tripped the breaker")
-	}
+	require.False(t, recordSessionEnd(h, time.Second, windowStart), "expired short sessions tripped the breaker")
 
 	for i := 1; i < flappingStopThreshold; i++ {
 		tripped := recordSessionEnd(h, time.Second, windowStart.Add(time.Duration(i)*time.Minute))
-		if tripped != (i == flappingStopThreshold-1) {
-			t.Fatalf("new window session %d: tripped=%t", i+1, tripped)
-		}
+		require.Equalf(t, i == flappingStopThreshold-1, tripped, "new window session %d", i+1)
 	}
 }
 
@@ -119,14 +105,10 @@ func TestFlappingBreakerUsesRollingWindow(t *testing.T) {
 		started.Add(flappingWindow + time.Second),
 	}
 	for i, endedAt := range ends {
-		if recordSessionEnd(h, time.Second, endedAt) {
-			t.Fatalf("breaker tripped at session %d before five sessions fit in the rolling window", i+1)
-		}
+		require.Falsef(t, recordSessionEnd(h, time.Second, endedAt), "breaker tripped at session %d before five sessions fit in the rolling window", i+1)
 	}
 
-	if !recordSessionEnd(h, time.Second, started.Add(flappingWindow+2*time.Second)) {
-		t.Fatal("breaker did not trip when the newest five sessions fit in the rolling window")
-	}
+	require.True(t, recordSessionEnd(h, time.Second, started.Add(flappingWindow+2*time.Second)), "breaker did not trip when the newest five sessions fit in the rolling window")
 }
 
 func TestManualStopResetsAndDoesNotFeedFlappingBreaker(t *testing.T) {
@@ -146,13 +128,9 @@ func TestManualStopResetsAndDoesNotFeedFlappingBreaker(t *testing.T) {
 
 	h.m.RLock()
 	defer h.m.RUnlock()
-	if len(h.shortSessionEnds) != 0 {
-		t.Fatalf("manual stop left a flapping streak: %v", h.shortSessionEnds)
-	}
+	require.Empty(t, h.shortSessionEnds, "manual stop left a flapping streak")
 	for _, err := range h.connectionErrors {
-		if strings.Contains(err, "connection flapping") {
-			t.Fatalf("manual disconnect tripped the breaker: %q", err)
-		}
+		require.NotContains(t, err, "connection flapping", "manual disconnect tripped the breaker")
 	}
 }
 
@@ -173,26 +151,15 @@ func TestFlappingBreakerStopsNetworkAndEmitsEvent(t *testing.T) {
 
 	h.onDisconnect(ircmsg.Message{})
 
-	if !h.Stopped() {
-		t.Fatal("network remained running after the flapping threshold")
-	}
-	if !hasConnectError(h, "connection flapping") {
-		t.Fatalf("flapping reason was not surfaced: %v", h.connectionErrors)
-	}
-	if got := h.stateMachine.GetState(); got != StateError {
-		t.Fatalf("state=%s, want Error", got)
-	}
+	require.True(t, h.Stopped(), "network remained running after the flapping threshold")
+	require.Truef(t, hasConnectError(h, "connection flapping"), "flapping reason was not surfaced: %v", h.connectionErrors)
+	require.Equal(t, StateError, h.stateMachine.GetState())
 
 	emitted := bus.snapshot()
-	if len(emitted) != 1 || emitted[0].Type != events.IRCFlapping {
-		t.Fatalf("emitted=%v, want one IRC flapping event", emitted)
-	}
-	if !strings.Contains(emitted[0].Message, "TestNet stopped") {
-		t.Fatalf("emitted payload=%v", emitted[0])
-	}
-	if emitted[0].Network != "TestNet" {
-		t.Fatalf("network=%q, want TestNet", emitted[0].Network)
-	}
+	require.Len(t, emitted, 1)
+	require.Equal(t, events.IRCFlapping, emitted[0].Type)
+	require.Contains(t, emitted[0].Message, "TestNet stopped")
+	require.Equal(t, "TestNet", emitted[0].Network)
 }
 
 func TestStaleDisconnectCannotTripBreakerOnReplacement(t *testing.T) {
@@ -210,10 +177,7 @@ func TestStaleDisconnectCannotTripBreakerOnReplacement(t *testing.T) {
 
 	h.m.RLock()
 	defer h.m.RUnlock()
-	if h.client != replacement || h.clientState != ircLive {
-		t.Fatal("stale disconnect stopped the replacement client")
-	}
-	if len(h.shortSessionEnds) != flappingStopThreshold-1 {
-		t.Fatalf("stale disconnect changed breaker strikes: %v", h.shortSessionEnds)
-	}
+	require.Same(t, replacement, h.client, "stale disconnect stopped the replacement client")
+	require.Equal(t, ircLive, h.clientState, "stale disconnect stopped the replacement client")
+	require.Len(t, h.shortSessionEnds, flappingStopThreshold-1, "stale disconnect changed breaker strikes")
 }

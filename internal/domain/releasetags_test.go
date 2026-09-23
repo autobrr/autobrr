@@ -45,7 +45,7 @@ func TestParseReleaseTagString(t *testing.T) {
 		{name: "music_4", args: args{tags: "FLAC 24bit Lossless Log 100% Cue CD"}, want: ReleaseTags{Audio: []string{"24BIT Lossless", "Cue", "FLAC", "Log100", "Log"}, AudioBitrate: "24BIT Lossless", AudioFormat: "FLAC", Source: "CD", HasLog: true, LogScore: 100, HasCue: true}},
 		{name: "music_5", args: args{tags: "MP3 320 WEB"}, want: ReleaseTags{Audio: []string{"320", "MP3"}, AudioBitrate: "320", AudioFormat: "MP3", Source: "WEB"}},
 		{name: "music_6", args: args{tags: "FLAC Lossless Log (100%) Cue CD"}, want: ReleaseTags{Audio: []string{"Cue", "FLAC", "Lossless", "Log100", "Log"}, AudioBitrate: "Lossless", AudioFormat: "FLAC", Source: "CD", HasCue: true, HasLog: true, LogScore: 100}},
-    {name: "music_7", args: args{tags: "FLAC / Lossless / Log / Cue / CD"}, want: ReleaseTags{Audio: []string{"Cue", "FLAC", "Lossless", "Log"}, AudioBitrate: "Lossless", AudioFormat: "FLAC", Source: "CD", HasLog: true, HasCue: true}},
+		{name: "music_7", args: args{tags: "FLAC / Lossless / Log / Cue / CD"}, want: ReleaseTags{Audio: []string{"Cue", "FLAC", "Lossless", "Log"}, AudioBitrate: "Lossless", AudioFormat: "FLAC", Source: "CD", HasLog: true, HasCue: true}},
 		{name: "music_8", args: args{tags: "DSD / DSD64 / WEB"}, want: ReleaseTags{Audio: []string{"DSD", "DSD64"}, AudioBitrate: "DSD64", AudioFormat: "DSD", Source: "WEB"}},
 		{name: "music_9", args: args{tags: "DSD / DSD128 / WEB"}, want: ReleaseTags{Audio: []string{"128", "DSD", "DSD128"}, AudioBitrate: "DSD128", AudioFormat: "DSD", Source: "WEB"}},
 		{name: "music_10", args: args{tags: "DSD / DSD256 / WEB"}, want: ReleaseTags{Audio: []string{"256", "DSD", "DSD256"}, AudioBitrate: "DSD256", AudioFormat: "DSD", Source: "WEB"}},

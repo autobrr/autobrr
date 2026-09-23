@@ -13,6 +13,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func getMockNotification() domain.Notification {
@@ -62,7 +63,7 @@ func TestNotificationRepo_Store(t *testing.T) {
 			err := repo.Store(ctx, &notification)
 
 			// Verify
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, mockData.Name, notification.Name)
 			assert.Equal(t, mockData.Type, notification.Type)
 
@@ -85,7 +86,7 @@ func TestNotificationRepo_Update(t *testing.T) {
 		t.Run(fmt.Sprintf("Update_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Initial setup and Store
 			err := repo.Store(ctx, &mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, &mockData)
 
 			// Modify some fields
@@ -102,7 +103,7 @@ func TestNotificationRepo_Update(t *testing.T) {
 			err = repo.Update(ctx, updatedMockData)
 
 			// Verify
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, &mockData)
 			assert.Equal(t, updatedMockData.Name, newName)
 			assert.Equal(t, updatedMockData.Type, newType)
@@ -129,14 +130,14 @@ func TestNotificationRepo_Delete(t *testing.T) {
 
 			// Initial setup and Store
 			err := repo.Store(ctx, &notification)
-			assert.NoError(t, err)
-			assert.NotNil(t, notification)
+			require.NoError(t, err)
+			require.NotNil(t, notification)
 
 			// Execute Delete
 			err = repo.Delete(ctx, notification.ID)
 
 			// Verify
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Further verification: Attempt to fetch deleted notification, expect an error or a nil result
 			deletedNotification, err := repo.FindByID(ctx, notification.ID)
@@ -168,11 +169,11 @@ func TestNotificationRepo_Find(t *testing.T) {
 			}
 
 			err := repo.Store(ctx, &mockData1)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			err = repo.Store(ctx, &mockData2)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			err = repo.Store(ctx, &mockData3)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Setup query params
 			params := domain.NotificationQueryParams{
@@ -184,8 +185,8 @@ func TestNotificationRepo_Find(t *testing.T) {
 			notifications, totalCount, err := repo.Find(ctx, params)
 
 			// Verify
-			assert.NoError(t, err)
-			assert.Equal(t, 3, len(notifications)) // TODO: This should be 2 technically since limit is 2, but it's returning 3 because params are not being applied.
+			require.NoError(t, err)
+			assert.Len(t, notifications, 3) // TODO: This should be 2 technically since limit is 2, but it's returning 3 because params are not being applied.
 			assert.Equal(t, 3, totalCount)
 
 			// Cleanup
@@ -219,8 +220,8 @@ func TestNotificationRepo_FindByID(t *testing.T) {
 			notification, err := repo.FindByID(ctx, mockData.ID)
 
 			// Verify
-			assert.NoError(t, err)
-			assert.NotNil(t, notification)
+			require.NoError(t, err)
+			require.NotNil(t, notification)
 			assert.Equal(t, mockData.Name, notification.Name)
 			assert.Equal(t, mockData.Type, notification.Type)
 
@@ -249,15 +250,15 @@ func TestNotificationRepo_List(t *testing.T) {
 
 			for range 10 {
 				err := repo.Store(ctx, &mockData)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 
 			// Execute
 			notifications, err := repo.List(ctx)
 
 			// Verify
-			assert.NoError(t, err)
-			assert.Equal(t, 10, len(notifications))
+			require.NoError(t, err)
+			assert.Len(t, notifications, 10)
 
 			// Cleanup
 			for _, notification := range notifications {
@@ -283,7 +284,7 @@ func TestNotificationRepo_FilterNotificationLifecycle(t *testing.T) {
 				RunWith(db.Handler)
 
 			var filterID int
-			assert.NoError(t, filterQuery.QueryRowContext(ctx).Scan(&filterID))
+			require.NoError(t, filterQuery.QueryRowContext(ctx).Scan(&filterID))
 			t.Cleanup(func() {
 				query, args, err := db.squirrel.Delete("filter").Where("id = ?", filterID).ToSql()
 				if err == nil {
@@ -294,22 +295,22 @@ func TestNotificationRepo_FilterNotificationLifecycle(t *testing.T) {
 			notification := getMockNotification()
 			notification.Type = domain.NotificationTypeWebhook
 			notification.Webhook = "https://example.com/notifications"
-			assert.NoError(t, repo.Store(ctx, &notification))
+			require.NoError(t, repo.Store(ctx, &notification))
 
 			routes := []domain.FilterNotification{{
 				FilterID:       filterID,
 				NotificationID: notification.ID,
 				Events:         []string{},
 			}}
-			assert.NoError(t, repo.StoreFilterNotifications(ctx, filterID, routes))
+			require.NoError(t, repo.StoreFilterNotifications(ctx, filterID, routes))
 
 			stored, err := repo.ListFilterNotifications(ctx)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Contains(t, stored, routes[0])
 
-			assert.NoError(t, repo.Delete(ctx, notification.ID))
+			require.NoError(t, repo.Delete(ctx, notification.ID))
 			stored, err = repo.GetFilterNotifications(ctx, filterID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Empty(t, stored)
 		})
 	}

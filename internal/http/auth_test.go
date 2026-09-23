@@ -27,6 +27,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type authServiceMock struct {
@@ -323,26 +324,20 @@ func TestAuthHandlerLogin(t *testing.T) {
 		"username": "test",
 		"password": "pass",
 	})
-	if err != nil {
-		log.Fatalf("Error occurred: %v", err)
-	}
+	require.NoError(t, err)
 
 	client := newHttpTestClient()
 
 	// make request
 	resp, err := client.Post(testServer.URL+"/auth/login", "application/json", bytes.NewBuffer(reqBody))
-	if err != nil {
-		log.Fatalf("Error occurred: %v", err)
-	}
+	require.NoError(t, err)
 
 	defer resp.Body.Close()
 
 	// check for response, here we'll just check for 204 NoContent
 	assert.Equalf(t, http.StatusNoContent, resp.StatusCode, "login handler: unexpected http status")
 
-	if v := resp.Header.Get("Set-Cookie"); v == "" {
-		t.Errorf("handler returned no cookie")
-	}
+	assert.NotEmpty(t, resp.Header.Get("Set-Cookie"), "handler returned no cookie")
 }
 
 func TestAuthHandlerValidateOK(t *testing.T) {
@@ -380,32 +375,24 @@ func TestAuthHandlerValidateOK(t *testing.T) {
 		"username": "test",
 		"password": "pass",
 	})
-	if err != nil {
-		log.Fatalf("Error occurred: %v", err)
-	}
+	require.NoError(t, err)
 
 	client := newHttpTestClient()
 
 	// make request
 	resp, err := client.Post(testServer.URL+"/auth/login", "application/json", bytes.NewBuffer(reqBody))
-	if err != nil {
-		log.Fatalf("Error occurred: %v", err)
-	}
+	require.NoError(t, err)
 
 	defer resp.Body.Close()
 
 	// check for response, here we'll just check for 204 NoContent
 	assert.Equalf(t, http.StatusNoContent, resp.StatusCode, "login handler: bad response")
 
-	if v := resp.Header.Get("Set-Cookie"); v == "" {
-		assert.Equalf(t, "", v, "login handler: expected Set-Cookie header")
-	}
+	assert.NotEmpty(t, resp.Header.Get("Set-Cookie"), "login handler: expected Set-Cookie header")
 
 	// validate token
 	resp, err = client.Get(testServer.URL + "/auth/validate")
-	if err != nil {
-		log.Fatalf("Error occurred: %v", err)
-	}
+	require.NoError(t, err)
 
 	defer resp.Body.Close()
 
@@ -446,9 +433,7 @@ func TestAuthHandlerValidateBad(t *testing.T) {
 
 	// validate token
 	resp, err := client.Get(testServer.URL + "/auth/validate")
-	if err != nil {
-		log.Fatalf("Error occurred: %v", err)
-	}
+	require.NoError(t, err)
 
 	defer resp.Body.Close()
 
@@ -490,17 +475,13 @@ func TestAuthHandlerLoginBad(t *testing.T) {
 		"username": "test",
 		"password": "notmypass",
 	})
-	if err != nil {
-		log.Fatalf("Error occurred: %v", err)
-	}
+	require.NoError(t, err)
 
 	client := newHttpTestClient()
 
 	// make request
 	resp, err := client.Post(testServer.URL+"/auth/login", "application/json", bytes.NewBuffer(reqBody))
-	if err != nil {
-		log.Fatalf("Error occurred: %v", err)
-	}
+	require.NoError(t, err)
 
 	defer resp.Body.Close()
 
@@ -542,36 +523,24 @@ func TestAuthHandlerLogout(t *testing.T) {
 		"username": "test",
 		"password": "pass",
 	})
-	if err != nil {
-		log.Fatalf("Error occurred: %v", err)
-	}
+	require.NoError(t, err)
 
 	client := newHttpTestClient()
 
 	// make request
 	resp, err := client.Post(testServer.URL+"/auth/login", "application/json", bytes.NewBuffer(reqBody))
-	if err != nil {
-		log.Fatalf("Error occurred: %v", err)
-	}
+	require.NoError(t, err)
 
 	defer resp.Body.Close()
 
 	// check for response, here we'll just check for 204 NoContent
-	if status := resp.StatusCode; status != http.StatusNoContent {
-		t.Errorf("login: handler returned wrong status code: got %v want %v", status, http.StatusNoContent)
-	}
-
 	assert.Equalf(t, http.StatusNoContent, resp.StatusCode, "login handler: unexpected http status")
 
-	if v := resp.Header.Get("Set-Cookie"); v == "" {
-		t.Errorf("handler returned no cookie")
-	}
+	assert.NotEmpty(t, resp.Header.Get("Set-Cookie"), "handler returned no cookie")
 
 	// validate token
 	resp, err = client.Get(testServer.URL + "/auth/validate")
-	if err != nil {
-		log.Fatalf("Error occurred: %v", err)
-	}
+	require.NoError(t, err)
 
 	defer resp.Body.Close()
 
@@ -579,9 +548,7 @@ func TestAuthHandlerLogout(t *testing.T) {
 
 	// logout
 	resp, err = client.Post(testServer.URL+"/auth/logout", "application/json", nil)
-	if err != nil {
-		log.Fatalf("Error occurred: %v", err)
-	}
+	require.NoError(t, err)
 
 	defer resp.Body.Close()
 
