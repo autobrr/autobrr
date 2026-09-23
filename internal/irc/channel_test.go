@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/featureflags"
 
 	"github.com/ergochat/irc-go/ircmsg"
@@ -106,5 +107,14 @@ func TestChannel_OnMsg_SkipCleanMessage(t *testing.T) {
 				t.Errorf("history message = %q, broadcast = %q", history[0].Message, got.Message)
 			}
 		})
+	}
+}
+
+func TestChannel_QueueAnnounceLine_NoProcessor(t *testing.T) {
+	c := NewChannel(zerolog.Nop(), 1, "#nordicbytes", false, false, nil)
+
+	err := c.QueueAnnounceLine("[N]-[TV]-[WEB-DL]-[1080p]-[5.77 GiB]-[Some.Show.S01.1080p.WEB-DL.H.264-GROUP]")
+	if !errors.Is(err, domain.ErrIRCChannelNoAnnounceProcessor) {
+		t.Errorf("QueueAnnounceLine() error = %v, want %v", err, domain.ErrIRCChannelNoAnnounceProcessor)
 	}
 }

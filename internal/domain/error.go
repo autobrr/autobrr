@@ -22,4 +22,6 @@ var (
 	ErrNotificationNotFound           = errors.New("notification not found")
 	ErrExternalFilterTypeUnsupported  = errors.New("unsupported external filter type")
 	ErrIRCNetworkHandlerNotFound      = errors.New("could not find network handler")
+	ErrIRCChannelNotFound             = errors.New("could not find channel")
+	ErrIRCChannelNoAnnounceProcessor  = errors.New("channel has no announce processor")
 )

@@ -162,3 +162,29 @@ func TestInitIndexersSharedNetworkJoinsAllConfiguredChannels(t *testing.T) {
 		t.Errorf("handler should track exactly 2 channels, got %d", got)
 	}
 }
+
+// TestInitIndexersNoDefinitionsRegistersConfiguredChannels covers a network whose
+// server matches no indexer definition (e.g. an alias hostname): its configured
+// channels must still be registered, without an announce processor.
+func TestInitIndexersNoDefinitionsRegistersConfiguredChannels(t *testing.T) {
+	h, _ := newTestHandler()
+	h.network.Channels = []domain.IrcChannel{
+		{ID: 1, Name: "#NordicBytes", Enabled: true, Password: "secret"},
+	}
+
+	h.InitIndexers(nil)
+
+	ch, found := h.channels.Get("#nordicbytes")
+	if !found {
+		t.Fatal("configured channel #nordicbytes was not registered")
+	}
+	if !ch.IsEnabled() || ch.ID != 1 || ch.Password != "secret" {
+		t.Errorf("configured channel #nordicbytes not configured: id=%d enabled=%v password=%q", ch.ID, ch.IsEnabled(), ch.Password)
+	}
+	if ch.StateMachine() == nil {
+		t.Error("configured channel #nordicbytes should have a state machine")
+	}
+	if ch.announceProcessor != nil {
+		t.Error("channel without a matching definition should have no announce processor")
+	}
+}
