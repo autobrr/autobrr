@@ -486,7 +486,7 @@ func (s *Service) ManualProcessAnnounce(ctx context.Context, req *domain.IRCManu
 	// send to channels announce processor
 	channel, foundChannel := handler.channels.Get(req.Channel)
 	if !foundChannel {
-		return errors.Wrap(domain.ErrRecordNotFound, "could not find channel: %s", req.Channel)
+		return errors.Wrap(domain.ErrIRCChannelNotFound, "channel: %s", req.Channel)
 	}
 
 	if err := channel.QueueAnnounceLine(req.Message); err != nil {

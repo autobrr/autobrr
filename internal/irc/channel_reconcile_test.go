@@ -10,6 +10,8 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 
 	"github.com/ergochat/irc-go/ircmsg"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestUpdateChannelRejoinsOnPasswordChangeWhenNotMonitoring covers the +k fix:
@@ -22,12 +24,8 @@ func TestUpdateChannelRejoinsOnPasswordChangeWhenNotMonitoring(t *testing.T) {
 
 	h.UpdateChannel(domain.IrcChannel{Name: "#chan", Enabled: true, Password: "newkey"})
 
-	if got := ch.GetPassword(); got != "newkey" {
-		t.Errorf("password = %q, want %q", got, "newkey")
-	}
-	if !waitFor(func() bool { return sse.hasStateEvent("#chan", "Joining") }, time.Second) {
-		t.Fatal("password change on a non-monitoring channel should trigger a (re)join")
-	}
+	assert.Equal(t, "newkey", ch.GetPassword())
+	require.True(t, waitFor(func() bool { return sse.hasStateEvent("#chan", "Joining") }, time.Second), "password change on a non-monitoring channel should trigger a (re)join")
 }
 
 // TestUpdateChannelEnableJoins verifies enabling a disabled channel joins it.
@@ -39,12 +37,8 @@ func TestUpdateChannelEnableJoins(t *testing.T) {
 
 	h.UpdateChannel(domain.IrcChannel{Name: "#chan", Enabled: true})
 
-	if !ch.IsEnabled() {
-		t.Error("channel should be enabled")
-	}
-	if !waitFor(func() bool { return sse.hasStateEvent("#chan", "Joining") }, time.Second) {
-		t.Fatal("enabling a channel should trigger a join")
-	}
+	assert.True(t, ch.IsEnabled(), "channel should be enabled")
+	require.True(t, waitFor(func() bool { return sse.hasStateEvent("#chan", "Joining") }, time.Second), "enabling a channel should trigger a join")
 }
 
 // TestUpdateChannelDisableParts verifies disabling a monitored channel parts it.
@@ -55,15 +49,9 @@ func TestUpdateChannelDisableParts(t *testing.T) {
 
 	h.UpdateChannel(domain.IrcChannel{Name: "#chan", Enabled: false})
 
-	if ch.IsEnabled() {
-		t.Error("channel should be disabled")
-	}
-	if ch.IsMonitoring() {
-		t.Error("disabled channel should no longer be monitoring")
-	}
-	if !waitForState(sm, ChannelStateIdle, time.Second) {
-		t.Fatalf("disabled channel should reset to Idle, got %s", sm.CurrentState())
-	}
+	assert.False(t, ch.IsEnabled(), "channel should be disabled")
+	assert.False(t, ch.IsMonitoring(), "disabled channel should no longer be monitoring")
+	require.Truef(t, waitForState(sm, ChannelStateIdle, time.Second), "disabled channel should reset to Idle, got %s", sm.CurrentState())
 }
 
 // TestUpdateChannelPasswordWhileMonitoringDoesNotDisrupt verifies a password
@@ -76,16 +64,10 @@ func TestUpdateChannelPasswordWhileMonitoringDoesNotDisrupt(t *testing.T) {
 
 	h.UpdateChannel(domain.IrcChannel{Name: "#chan", Enabled: true, Password: "newkey"})
 
-	if got := ch.GetPassword(); got != "newkey" {
-		t.Errorf("new password should be stored, got %q", got)
-	}
+	assert.Equal(t, "newkey", ch.GetPassword(), "new password should be stored")
 	time.Sleep(50 * time.Millisecond)
-	if sm.CurrentState() != ChannelStateMonitoring {
-		t.Fatalf("monitoring channel should stay Monitoring, got %s", sm.CurrentState())
-	}
-	if sse.hasStateEvent("#chan", "Joining") || sse.hasStateEvent("#chan", "Idle") {
-		t.Fatal("a password change while monitoring must not part/rejoin the channel")
-	}
+	require.Equal(t, ChannelStateMonitoring, sm.CurrentState(), "monitoring channel should stay Monitoring")
+	require.False(t, sse.hasStateEvent("#chan", "Joining") || sse.hasStateEvent("#chan", "Idle"), "a password change while monitoring must not part/rejoin the channel")
 }
 
 // TestUpdateChannelNoChangeNoOp verifies an update with no config change is inert.
@@ -98,12 +80,8 @@ func TestUpdateChannelNoChangeNoOp(t *testing.T) {
 	h.UpdateChannel(domain.IrcChannel{ID: 1, Name: "#chan", Enabled: true, Password: "key"})
 
 	time.Sleep(50 * time.Millisecond)
-	if sm.CurrentState() != ChannelStateMonitoring {
-		t.Fatalf("unchanged channel should stay Monitoring, got %s", sm.CurrentState())
-	}
-	if sse.hasStateEvent("#chan", "Joining") || sse.hasStateEvent("#chan", "Idle") {
-		t.Fatal("a no-op update must not disrupt the channel")
-	}
+	require.Equal(t, ChannelStateMonitoring, sm.CurrentState(), "unchanged channel should stay Monitoring")
+	require.False(t, sse.hasStateEvent("#chan", "Joining") || sse.hasStateEvent("#chan", "Idle"), "a no-op update must not disrupt the channel")
 }
 
 // TestAddChannelRegistersBeforeJoin is a regression test for the add-channel
@@ -116,18 +94,10 @@ func TestAddChannelRegistersBeforeJoin(t *testing.T) {
 	h.AddChannel(domain.IrcChannel{Name: "#New-Announce", Enabled: true, Password: "secret"})
 
 	got, found := h.channels.Get("#new-announce")
-	if !found {
-		t.Fatal("AddChannel did not register the channel — its JOIN echo would be parted as unwanted")
-	}
-	if !got.Enabled {
-		t.Error("added channel should be enabled")
-	}
-	if got.Password != "secret" {
-		t.Errorf("added channel password = %q, want %q", got.Password, "secret")
-	}
-	if got.StateMachine() == nil {
-		t.Error("added channel should have a state machine")
-	}
+	require.True(t, found, "AddChannel did not register the channel — its JOIN echo would be parted as unwanted")
+	assert.True(t, got.Enabled, "added channel should be enabled")
+	assert.Equal(t, "secret", got.Password)
+	assert.NotNil(t, got.StateMachine(), "added channel should have a state machine")
 }
 
 // TestAddChannelDisabledDoesNotStart verifies a disabled channel is registered
@@ -138,14 +108,10 @@ func TestAddChannelDisabledDoesNotStart(t *testing.T) {
 	h.AddChannel(domain.IrcChannel{Name: "#chan", Enabled: false})
 
 	got, found := h.channels.Get("#chan")
-	if !found {
-		t.Fatal("disabled channel should still be registered")
-	}
-	if got.Enabled {
-		t.Error("channel should be disabled")
-	}
-	if sm := got.StateMachine(); sm != nil && sm.CurrentState() != ChannelStateIdle {
-		t.Errorf("disabled channel should stay Idle, got %s", sm.CurrentState())
+	require.True(t, found, "disabled channel should still be registered")
+	assert.False(t, got.Enabled, "channel should be disabled")
+	if sm := got.StateMachine(); sm != nil {
+		assert.Equal(t, ChannelStateIdle, sm.CurrentState(), "disabled channel should stay Idle")
 	}
 }
 
@@ -155,15 +121,13 @@ func TestRemoveChannelUnregisters(t *testing.T) {
 	h, _ := newTestHandler()
 	addMonitoredChannel(h, "#chan", "")
 
-	if _, found := h.channels.Get("#chan"); !found {
-		t.Fatal("precondition: channel should be registered")
-	}
+	_, found := h.channels.Get("#chan")
+	require.True(t, found, "precondition: channel should be registered")
 
 	h.RemoveChannel("#Chan") // mixed case on purpose
 
-	if _, found := h.channels.Get("#chan"); found {
-		t.Fatal("RemoveChannel did not unregister the channel; it would keep counting toward health")
-	}
+	_, found = h.channels.Get("#chan")
+	require.False(t, found, "RemoveChannel did not unregister the channel; it would keep counting toward health")
 }
 
 // TestHandleJoinDoesNotPartRegisteredChannel checks the flip side directly: once
@@ -183,7 +147,6 @@ func TestHandleJoinDoesNotPartRegisteredChannel(t *testing.T) {
 
 	h.handleJoin(msg) // must not panic and must leave the channel registered
 
-	if _, found := h.channels.Get("#known"); !found {
-		t.Fatal("registered channel was dropped by handleJoin")
-	}
+	_, found := h.channels.Get("#known")
+	require.True(t, found, "registered channel was dropped by handleJoin")
 }

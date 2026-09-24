@@ -108,7 +108,7 @@ func waitForTorrent(t *testing.T, dir string, timeout time.Duration) string {
 		time.Sleep(250 * time.Millisecond)
 	}
 
-	t.Fatalf("timed out waiting for a torrent in %s", dir)
+	require.FailNowf(t, "timed out waiting for a torrent", "dir: %s", dir)
 
 	return ""
 }

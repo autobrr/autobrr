@@ -14,6 +14,7 @@ import (
 
 	"github.com/moistari/rls"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func getMockRelease() *domain.Release {
@@ -95,15 +96,15 @@ func TestReleaseRepo_Store(t *testing.T) {
 			// Setup
 			mock := getMockDownloader()
 			err := downloadClientRepo.Store(ctx, &mock)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, mock)
 
 			err = filterRepo.Store(ctx, getMockFilter())
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			createdFilters, err := filterRepo.ListFilters(ctx)
-			assert.NoError(t, err)
-			assert.NotNil(t, createdFilters)
+			require.NoError(t, err)
+			require.NotEmpty(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
 			actionMockData.ClientID = mock.ID
@@ -111,19 +112,19 @@ func TestReleaseRepo_Store(t *testing.T) {
 
 			// Execute
 			err = repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			err = actionRepo.Store(ctx, actionMockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			releaseActionMockData.ReleaseID = mockData.ID
 			releaseActionMockData.ActionID = int64(actionMockData.ID)
 			releaseActionMockData.FilterID = int64(createdFilters[0].ID)
 
 			err = repo.StoreReleaseActionStatus(ctx, releaseActionMockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
-			assert.NotEqual(t, int64(0), mockData.ID)
+			assert.NotZero(t, mockData.ID)
 
 			// Cleanup
 			_ = repo.Delete(ctx, &domain.DeleteReleaseRequest{OlderThan: 0})
@@ -154,15 +155,15 @@ func TestReleaseRepo_StoreReleaseActionStatus(t *testing.T) {
 			// Setup
 			mock := getMockDownloader()
 			err := downloadClientRepo.Store(ctx, &mock)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, mock)
 
 			err = filterRepo.Store(ctx, getMockFilter())
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			createdFilters, err := filterRepo.ListFilters(ctx)
-			assert.NoError(t, err)
-			assert.NotNil(t, createdFilters)
+			require.NoError(t, err)
+			require.NotEmpty(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
 			actionMockData.ClientID = mock.ID
@@ -170,19 +171,19 @@ func TestReleaseRepo_StoreReleaseActionStatus(t *testing.T) {
 
 			// Execute
 			err = repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			err = actionRepo.Store(ctx, actionMockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			releaseActionMockData.ReleaseID = mockData.ID
 			releaseActionMockData.ActionID = int64(actionMockData.ID)
 			releaseActionMockData.FilterID = int64(createdFilters[0].ID)
 
 			err = repo.StoreReleaseActionStatus(ctx, releaseActionMockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
-			assert.NotEqual(t, int64(0), releaseActionMockData.ID)
+			assert.NotZero(t, releaseActionMockData.ID)
 
 			// Cleanup
 			_ = repo.Delete(ctx, &domain.DeleteReleaseRequest{OlderThan: 0})
@@ -213,15 +214,15 @@ func TestReleaseRepo_Find(t *testing.T) {
 			// Setup
 			mock := getMockDownloader()
 			err := downloadClientRepo.Store(ctx, &mock)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, mock)
 
 			err = filterRepo.Store(ctx, getMockFilter())
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			createdFilters, err := filterRepo.ListFilters(ctx)
-			assert.NoError(t, err)
-			assert.NotNil(t, createdFilters)
+			require.NoError(t, err)
+			require.NotEmpty(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
 			actionMockData.ClientID = mock.ID
@@ -229,7 +230,7 @@ func TestReleaseRepo_Find(t *testing.T) {
 
 			// Execute
 			err = repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Search with query params
 			queryParams := domain.ReleaseQueryParams{
@@ -244,22 +245,22 @@ func TestReleaseRepo_Find(t *testing.T) {
 			resp, err := repo.Find(ctx, queryParams)
 
 			// Verify
-			assert.NotNil(t, resp)
-			assert.NotEqual(t, int64(0), resp.TotalCount)
-			assert.True(t, resp.NextCursor >= 0)
+			require.NotNil(t, resp)
+			assert.NotZero(t, resp.TotalCount)
+			assert.GreaterOrEqual(t, resp.NextCursor, int64(0))
 
 			// Search by type
 			queryParams.Search = "type:movie"
 			resp, err = repo.Find(ctx, queryParams)
-			assert.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NoError(t, err)
+			require.NotNil(t, resp)
 			assert.Equal(t, uint64(1), resp.TotalCount)
 
 			// Search by type with no matches
 			queryParams.Search = "type:episode"
 			resp, err = repo.Find(ctx, queryParams)
-			assert.NoError(t, err)
-			assert.NotNil(t, resp)
+			require.NoError(t, err)
+			require.NotNil(t, resp)
 			assert.Equal(t, uint64(0), resp.TotalCount)
 
 			// Cleanup
@@ -290,15 +291,15 @@ func TestReleaseRepo_FindRecent(t *testing.T) {
 			// Setup
 			mock := getMockDownloader()
 			err := downloadClientRepo.Store(ctx, &mock)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, mock)
 
 			err = filterRepo.Store(ctx, getMockFilter())
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			createdFilters, err := filterRepo.ListFilters(ctx)
-			assert.NoError(t, err)
-			assert.NotNil(t, createdFilters)
+			require.NoError(t, err)
+			require.NotEmpty(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
 			actionMockData.ClientID = mock.ID
@@ -306,13 +307,13 @@ func TestReleaseRepo_FindRecent(t *testing.T) {
 
 			// Execute
 			err = repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			resp, err := repo.Find(ctx, domain.ReleaseQueryParams{Limit: 10})
 
 			// Verify
 			assert.NotNil(t, resp.Data)
-			assert.Lenf(t, resp.Data, 1, "Expected 1 release, got %d", len(resp.Data))
+			assert.Len(t, resp.Data, 1)
 
 			// Cleanup
 			_ = repo.Delete(ctx, &domain.DeleteReleaseRequest{OlderThan: 0})
@@ -342,31 +343,31 @@ func TestReleaseRepo_GetIndexerOptions(t *testing.T) {
 			// Setup
 			mock := getMockDownloader()
 			err := downloadClientRepo.Store(ctx, &mock)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, mock)
 
 			err = filterRepo.Store(ctx, getMockFilter())
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			createdFilters, err := filterRepo.ListFilters(ctx)
-			assert.NoError(t, err)
-			assert.NotNil(t, createdFilters)
+			require.NoError(t, err)
+			require.NotEmpty(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
 			actionMockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			err = repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			err = actionRepo.Store(ctx, actionMockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			releaseActionMockData.ReleaseID = mockData.ID
 			releaseActionMockData.ActionID = int64(actionMockData.ID)
 			releaseActionMockData.FilterID = int64(createdFilters[0].ID)
 
 			err = repo.StoreReleaseActionStatus(ctx, releaseActionMockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute
 			options, err := repo.GetIndexerOptions(ctx)
@@ -404,38 +405,38 @@ func TestReleaseRepo_GetActionStatusByReleaseID(t *testing.T) {
 			// Setup
 			mock := getMockDownloader()
 			err := downloadClientRepo.Store(ctx, &mock)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, mock)
 
 			err = filterRepo.Store(ctx, getMockFilter())
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			createdFilters, err := filterRepo.ListFilters(ctx)
-			assert.NoError(t, err)
-			assert.NotNil(t, createdFilters)
+			require.NoError(t, err)
+			require.NotEmpty(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
 			actionMockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			err = repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			err = actionRepo.Store(ctx, actionMockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			releaseActionMockData.ReleaseID = mockData.ID
 			releaseActionMockData.ActionID = int64(actionMockData.ID)
 			releaseActionMockData.FilterID = int64(createdFilters[0].ID)
 
 			err = repo.StoreReleaseActionStatus(ctx, releaseActionMockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute
 			actionStatus, err := repo.GetActionStatus(ctx, &domain.GetReleaseActionStatusRequest{Id: int(releaseActionMockData.ID)})
 
 			// Verify
-			assert.NoError(t, err)
-			assert.NotNil(t, actionStatus)
+			require.NoError(t, err)
+			require.NotNil(t, actionStatus)
 			assert.Equal(t, releaseActionMockData.ID, actionStatus.ID)
 
 			// Cleanup
@@ -482,38 +483,38 @@ func TestReleaseRepo_Get(t *testing.T) {
 			// Setup
 			mock := getMockDownloader()
 			err := downloadClientRepo.Store(ctx, &mock)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, mock)
 
 			err = filterRepo.Store(ctx, getMockFilter())
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			createdFilters, err := filterRepo.ListFilters(ctx)
-			assert.NoError(t, err)
-			assert.NotNil(t, createdFilters)
+			require.NoError(t, err)
+			require.NotEmpty(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
 			actionMockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			err = repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			err = actionRepo.Store(ctx, actionMockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			releaseActionMockData.ReleaseID = mockData.ID
 			releaseActionMockData.ActionID = int64(actionMockData.ID)
 			releaseActionMockData.FilterID = int64(createdFilters[0].ID)
 
 			err = repo.StoreReleaseActionStatus(ctx, releaseActionMockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute
 			release, err := repo.Get(ctx, &domain.GetReleaseRequest{Id: int(mockData.ID)})
 
 			// Verify
-			assert.NoError(t, err)
-			assert.NotNil(t, release)
+			require.NoError(t, err)
+			require.NotNil(t, release)
 			assert.Equal(t, mockData.ID, release.ID)
 			assert.Equal(t, mockData.Title, release.Title)
 			assert.Equal(t, mockData.NormalizedHash, release.NormalizedHash)
@@ -558,7 +559,7 @@ func TestReleaseRepo_Get(t *testing.T) {
 			}
 
 			err = repo.Store(ctx, episode)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			_, err = db.squirrel.
 				Update("release").
@@ -576,11 +577,11 @@ func TestReleaseRepo_Get(t *testing.T) {
 				Where("id = ?", episode.ID).
 				RunWith(db.Handler).
 				ExecContext(t.Context())
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			storedEpisode, err := repo.Get(ctx, &domain.GetReleaseRequest{Id: int(episode.ID)})
-			assert.NoError(t, err)
-			assert.NotNil(t, storedEpisode)
+			require.NoError(t, err)
+			require.NotNil(t, storedEpisode)
 			assert.Equal(t, episode.Season, storedEpisode.Season)
 			assert.Equal(t, episode.Episode, storedEpisode.Episode)
 			assert.Equal(t, episode.Type, storedEpisode.Type)
@@ -631,38 +632,38 @@ func TestReleaseRepo_Stats(t *testing.T) {
 			// Setup
 			mock := getMockDownloader()
 			err := downloadClientRepo.Store(ctx, &mock)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, mock)
 
 			err = filterRepo.Store(ctx, getMockFilter())
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			createdFilters, err := filterRepo.ListFilters(ctx)
-			assert.NoError(t, err)
-			assert.NotNil(t, createdFilters)
+			require.NoError(t, err)
+			require.NotEmpty(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
 			actionMockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			err = repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			err = actionRepo.Store(ctx, actionMockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			releaseActionMockData.ReleaseID = mockData.ID
 			releaseActionMockData.ActionID = int64(actionMockData.ID)
 			releaseActionMockData.FilterID = int64(createdFilters[0].ID)
 
 			err = repo.StoreReleaseActionStatus(ctx, releaseActionMockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute
 			stats, err := repo.Stats(ctx)
 
 			// Verify
-			assert.NoError(t, err)
-			assert.NotNil(t, stats)
+			require.NoError(t, err)
+			require.NotNil(t, stats)
 			assert.Equal(t, int64(1), stats.TotalCount)
 			assert.Equal(t, int64(1), stats.FilteredCount)
 			assert.Equal(t, int64(0), stats.FilterRejectedCount)
@@ -699,47 +700,47 @@ func TestReleaseRepo_StatsDashboard(t *testing.T) {
 			// Setup
 			mock := getMockDownloader()
 			err := downloadClientRepo.Store(ctx, &mock)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			err = filterRepo.Store(ctx, getMockFilter())
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			createdFilters, err := filterRepo.ListFilters(ctx)
-			assert.NoError(t, err)
-			assert.NotNil(t, createdFilters)
+			require.NoError(t, err)
+			require.NotEmpty(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
 			actionMockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			err = repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			err = actionRepo.Store(ctx, actionMockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			releaseActionMockData.ReleaseID = mockData.ID
 			releaseActionMockData.ActionID = int64(actionMockData.ID)
 			releaseActionMockData.FilterID = int64(createdFilters[0].ID)
 
 			err = repo.StoreReleaseActionStatus(ctx, releaseActionMockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			for _, days := range []int{30, 0} {
 				activity, err := repo.StatsActivity(ctx, days)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, days, activity.Days)
-				assert.NotEmpty(t, activity.Daily)
+				require.NotEmpty(t, activity.Daily)
 				today := activity.Daily[len(activity.Daily)-1]
 				assert.Equal(t, int64(1), today.MatchedCount)
 				assert.Equal(t, int64(1), today.PushApprovedCount)
 				assert.Equal(t, int64(0), today.PushRejectedCount)
 
 				volume, err := repo.StatsVolume(ctx, days)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.NotEmpty(t, volume.Daily)
 
 				heatmap, err := repo.StatsHeatmap(ctx, days)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Len(t, heatmap.Heatmap, 168)
 				var heatmapTotal int64
 				for _, count := range heatmap.Heatmap {
@@ -748,13 +749,13 @@ func TestReleaseRepo_StatsDashboard(t *testing.T) {
 				assert.Equal(t, int64(1), heatmapTotal)
 
 				indexers, err := repo.StatsTopIndexers(ctx, days)
-				assert.NoError(t, err)
-				assert.Len(t, indexers.Top, 1)
+				require.NoError(t, err)
+				require.Len(t, indexers.Top, 1)
 				assert.Equal(t, int64(1), indexers.Top[0].MatchedCount)
 				assert.Equal(t, int64(1), indexers.Top[0].PushApprovedCount)
 
 				filters, err := repo.StatsTopFilters(ctx, days)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.NotEmpty(t, filters.Top)
 			}
 
@@ -782,20 +783,20 @@ func TestReleaseRepo_Delete(t *testing.T) {
 		// Setup shared dependencies
 		mock := getMockDownloader()
 		err := downloadClientRepo.Store(ctx, &mock)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		err = filterRepo.Store(ctx, getMockFilter())
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		createdFilters, err := filterRepo.ListFilters(ctx)
-		assert.NoError(t, err)
-		assert.NotNil(t, createdFilters)
+		require.NoError(t, err)
+		require.NotEmpty(t, createdFilters)
 
 		actionMock := getMockAction()
 		actionMock.FilterID = createdFilters[0].ID
 		actionMock.ClientID = mock.ID
 		err = actionRepo.Store(ctx, actionMock)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		tests := []struct {
 			name              string
@@ -846,7 +847,7 @@ func TestReleaseRepo_Delete(t *testing.T) {
 						mockRel.Timestamp = time.Now().Add(-age)
 						mockRel.FilterID = createdFilters[0].ID
 						err := repo.Store(ctx, mockRel)
-						assert.NoError(t, err)
+						require.NoError(t, err)
 
 						ras := getMockReleaseActionStatus()
 						ras.ReleaseID = mockRel.ID
@@ -854,7 +855,7 @@ func TestReleaseRepo_Delete(t *testing.T) {
 						ras.FilterID = int64(createdFilters[0].ID)
 						ras.Status = domain.ReleasePushStatusApproved
 						err = repo.StoreReleaseActionStatus(ctx, ras)
-						assert.NoError(t, err)
+						require.NoError(t, err)
 						_ = i
 					}
 
@@ -865,14 +866,14 @@ func TestReleaseRepo_Delete(t *testing.T) {
 						mockRel.Indexer.Identifier = indexer
 						mockRel.FilterID = createdFilters[0].ID
 						err := repo.Store(ctx, mockRel)
-						assert.NoError(t, err)
+						require.NoError(t, err)
 
 						ras := getMockReleaseActionStatus()
 						ras.ReleaseID = mockRel.ID
 						ras.ActionID = int64(actionMock.ID)
 						ras.FilterID = int64(createdFilters[0].ID)
 						err = repo.StoreReleaseActionStatus(ctx, ras)
-						assert.NoError(t, err)
+						require.NoError(t, err)
 					}
 
 				case "Status_Filter":
@@ -888,7 +889,7 @@ func TestReleaseRepo_Delete(t *testing.T) {
 						mockRel := getMockRelease()
 						mockRel.FilterID = createdFilters[0].ID
 						err := repo.Store(ctx, mockRel)
-						assert.NoError(t, err)
+						require.NoError(t, err)
 
 						ras := getMockReleaseActionStatus()
 						ras.ReleaseID = mockRel.ID
@@ -896,7 +897,7 @@ func TestReleaseRepo_Delete(t *testing.T) {
 						ras.FilterID = int64(createdFilters[0].ID)
 						ras.Status = status
 						err = repo.StoreReleaseActionStatus(ctx, ras)
-						assert.NoError(t, err)
+						require.NoError(t, err)
 					}
 
 				case "Combined_Filters":
@@ -918,7 +919,7 @@ func TestReleaseRepo_Delete(t *testing.T) {
 						mockRel.Indexer.Identifier = td.indexer
 						mockRel.FilterID = createdFilters[0].ID
 						err := repo.Store(ctx, mockRel)
-						assert.NoError(t, err)
+						require.NoError(t, err)
 
 						ras := getMockReleaseActionStatus()
 						ras.ReleaseID = mockRel.ID
@@ -926,7 +927,7 @@ func TestReleaseRepo_Delete(t *testing.T) {
 						ras.FilterID = int64(createdFilters[0].ID)
 						ras.Status = td.status
 						err = repo.StoreReleaseActionStatus(ctx, ras)
-						assert.NoError(t, err)
+						require.NoError(t, err)
 					}
 
 				case "Delete_All":
@@ -935,25 +936,25 @@ func TestReleaseRepo_Delete(t *testing.T) {
 						mockRel := getMockRelease()
 						mockRel.FilterID = createdFilters[0].ID
 						err := repo.Store(ctx, mockRel)
-						assert.NoError(t, err)
+						require.NoError(t, err)
 
 						ras := getMockReleaseActionStatus()
 						ras.ReleaseID = mockRel.ID
 						ras.ActionID = int64(actionMock.ID)
 						ras.FilterID = int64(createdFilters[0].ID)
 						err = repo.StoreReleaseActionStatus(ctx, ras)
-						assert.NoError(t, err)
+						require.NoError(t, err)
 					}
 				}
 
 				// Execute
 				err := repo.Delete(ctx, tt.deleteReq)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				// Verify
 				releases, err := repo.Find(ctx, domain.ReleaseQueryParams{})
-				assert.NoError(t, err)
-				assert.Equal(t, tt.expectedRemaining, len(releases.Data), "Expected %d releases to remain, got %d", tt.expectedRemaining, len(releases.Data))
+				require.NoError(t, err)
+				assert.Len(t, releases.Data, tt.expectedRemaining)
 
 				// Cleanup
 				_ = repo.Delete(ctx, &domain.DeleteReleaseRequest{OlderThan: 0})
@@ -987,31 +988,31 @@ func TestReleaseRepo_CheckSmartEpisodeCanDownloadShow(t *testing.T) {
 			// Setup
 			mock := getMockDownloader()
 			err := downloadClientRepo.Store(ctx, &mock)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, mock)
 
 			err = filterRepo.Store(ctx, getMockFilter())
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			createdFilters, err := filterRepo.ListFilters(ctx)
-			assert.NoError(t, err)
-			assert.NotNil(t, createdFilters)
+			require.NoError(t, err)
+			require.NotEmpty(t, createdFilters)
 
 			actionMockData.FilterID = createdFilters[0].ID
 			actionMockData.ClientID = mock.ID
 			mockData.FilterID = createdFilters[0].ID
 
 			err = repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			err = actionRepo.Store(ctx, actionMockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			releaseActionMockData.ReleaseID = mockData.ID
 			releaseActionMockData.ActionID = int64(actionMockData.ID)
 			releaseActionMockData.FilterID = int64(createdFilters[0].ID)
 
 			err = repo.StoreReleaseActionStatus(ctx, releaseActionMockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			params := &domain.SmartEpisodeParams{
 				Title:   "Example.Torrent.Name",
@@ -1026,7 +1027,7 @@ func TestReleaseRepo_CheckSmartEpisodeCanDownloadShow(t *testing.T) {
 			canDownload, err := repo.CheckSmartEpisodeCanDownload(ctx, params)
 
 			// Verify
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.True(t, canDownload)
 
 			// Cleanup
@@ -1188,16 +1189,16 @@ func TestReleaseRepo_CheckIsDuplicateRelease(t *testing.T) {
 
 		// Setup
 		err := filterRepo.Store(ctx, filterMock)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		createdFilters, err := filterRepo.ListFilters(ctx)
-		assert.NoError(t, err)
-		assert.NotNil(t, createdFilters)
+		require.NoError(t, err)
+		require.NotEmpty(t, createdFilters)
 
 		actionMock.FilterID = filterMock.ID
 
 		err = actionRepo.Store(ctx, actionMock)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		type fields struct {
 			releaseTitles []string
@@ -1720,7 +1721,7 @@ func TestReleaseRepo_CheckIsDuplicateRelease(t *testing.T) {
 					mockRel.FilterID = filterMock.ID
 
 					err = releaseRepo.Store(ctx, mockRel)
-					assert.NoError(t, err)
+					require.NoError(t, err)
 
 					ras := &domain.ReleaseActionStatus{
 						ID:         0,
@@ -1737,11 +1738,11 @@ func TestReleaseRepo_CheckIsDuplicateRelease(t *testing.T) {
 					}
 
 					err = releaseRepo.StoreReleaseActionStatus(ctx, ras)
-					assert.NoError(t, err)
+					require.NoError(t, err)
 				}
 
 				releases, err := releaseRepo.Find(ctx, domain.ReleaseQueryParams{})
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Len(t, releases.Data, len(tt.fields.releaseTitles))
 
 				compareRel := domain.NewRelease(mockIndexer)
@@ -1751,7 +1752,7 @@ func TestReleaseRepo_CheckIsDuplicateRelease(t *testing.T) {
 				isDuplicate, err := releaseRepo.CheckIsDuplicateRelease(ctx, tt.fields.profile, compareRel)
 
 				// Verify
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, tt.isDuplicate, isDuplicate)
 
 				// Cleanup
@@ -1792,12 +1793,12 @@ func TestReleaseCleanupJobRepo_Store(t *testing.T) {
 		t.Run(fmt.Sprintf("Store_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Execute
 			err := repo.StoreCleanupJob(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotZero(t, mockData.ID)
 
 			// Verify
 			job, err := repo.FindCleanupJobByID(ctx, mockData.ID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, mockData.Name, job.Name)
 			assert.Equal(t, mockData.Enabled, job.Enabled)
 			assert.Equal(t, mockData.Schedule, job.Schedule)
@@ -1823,11 +1824,11 @@ func TestReleaseCleanupJobRepo_FindByID(t *testing.T) {
 		t.Run(fmt.Sprintf("FindByID_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
 			err := repo.StoreCleanupJob(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute
 			job, err := repo.FindCleanupJobByID(ctx, mockData.ID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, mockData.Name, job.Name)
 			assert.Equal(t, mockData.ID, job.ID)
 
@@ -1838,7 +1839,6 @@ func TestReleaseCleanupJobRepo_FindByID(t *testing.T) {
 		t.Run(fmt.Sprintf("FindByID_Fails_Not_Found [%s]", dbType), func(t *testing.T) {
 			// Execute
 			_, err := repo.FindCleanupJobByID(ctx, 99999)
-			assert.Error(t, err)
 			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
 		})
 	}
@@ -1862,15 +1862,15 @@ func TestReleaseCleanupJobRepo_List(t *testing.T) {
 			job3.Name = "Job 3"
 
 			err := repo.StoreCleanupJob(ctx, job1)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			err = repo.StoreCleanupJob(ctx, job2)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			err = repo.StoreCleanupJob(ctx, job3)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute
 			jobs, err := repo.ListCleanupJobs(ctx)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.GreaterOrEqual(t, len(jobs), 3)
 
 			// Verify - find our test jobs
@@ -1891,7 +1891,7 @@ func TestReleaseCleanupJobRepo_List(t *testing.T) {
 		t.Run(fmt.Sprintf("List_Empty_Table [%s]", dbType), func(t *testing.T) {
 			// Execute
 			jobs, err := repo.ListCleanupJobs(ctx)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, jobs)
 		})
 	}
@@ -1909,7 +1909,7 @@ func TestReleaseCleanupJobRepo_Update(t *testing.T) {
 		t.Run(fmt.Sprintf("Update_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
 			err := repo.StoreCleanupJob(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Update data
 			mockData.Name = "Updated Name"
@@ -1921,15 +1921,15 @@ func TestReleaseCleanupJobRepo_Update(t *testing.T) {
 
 			// Execute
 			err = repo.UpdateCleanupJob(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
 			updatedJob, err := repo.FindCleanupJobByID(ctx, mockData.ID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, "Updated Name", updatedJob.Name)
 			assert.Equal(t, "0 4 * * *", updatedJob.Schedule)
 			assert.Equal(t, 168, updatedJob.OlderThan)
-			assert.Equal(t, false, updatedJob.Enabled)
+			assert.False(t, updatedJob.Enabled)
 			assert.Equal(t, "hdt,blu", updatedJob.Indexers)
 			assert.Equal(t, "PUSH_APPROVED", updatedJob.Statuses)
 
@@ -1944,7 +1944,6 @@ func TestReleaseCleanupJobRepo_Update(t *testing.T) {
 
 			// Execute
 			err := repo.UpdateCleanupJob(ctx, nonExistingJob)
-			assert.Error(t, err)
 			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
 		})
 	}
@@ -1962,7 +1961,7 @@ func TestReleaseCleanupJobRepo_UpdateLastRun(t *testing.T) {
 		t.Run(fmt.Sprintf("UpdateLastRun_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
 			err := repo.StoreCleanupJob(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Update last run data
 			newLastRun := time.Now().Add(-1 * time.Hour)
@@ -1972,11 +1971,11 @@ func TestReleaseCleanupJobRepo_UpdateLastRun(t *testing.T) {
 
 			// Execute
 			err = repo.UpdateCleanupJobLastRun(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
 			updatedJob, err := repo.FindCleanupJobByID(ctx, mockData.ID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, domain.ReleaseCleanupStatusError, updatedJob.LastRunStatus)
 			assert.Equal(t, `{"error": "test error"}`, updatedJob.LastRunData)
 			assert.WithinDuration(t, newLastRun, updatedJob.LastRun, 2*time.Second)
@@ -1992,7 +1991,6 @@ func TestReleaseCleanupJobRepo_UpdateLastRun(t *testing.T) {
 
 			// Execute
 			err := repo.UpdateCleanupJobLastRun(ctx, nonExistingJob)
-			assert.Error(t, err)
 			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
 		})
 	}
@@ -2011,24 +2009,24 @@ func TestReleaseCleanupJobRepo_ToggleEnabled(t *testing.T) {
 			// Setup
 			mockData.Enabled = true
 			err := repo.StoreCleanupJob(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute - disable
 			err = repo.CleanupJobToggleEnabled(ctx, mockData.ID, false)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
 			job, err := repo.FindCleanupJobByID(ctx, mockData.ID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.False(t, job.Enabled)
 
 			// Execute - enable
 			err = repo.CleanupJobToggleEnabled(ctx, mockData.ID, true)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
 			job, err = repo.FindCleanupJobByID(ctx, mockData.ID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.True(t, job.Enabled)
 
 			// Cleanup
@@ -2038,7 +2036,6 @@ func TestReleaseCleanupJobRepo_ToggleEnabled(t *testing.T) {
 		t.Run(fmt.Sprintf("ToggleEnabled_Fails_Non_Existing_Job [%s]", dbType), func(t *testing.T) {
 			// Execute
 			err := repo.CleanupJobToggleEnabled(ctx, 99999, false)
-			assert.Error(t, err)
 			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
 		})
 	}
@@ -2056,22 +2053,20 @@ func TestReleaseCleanupJobRepo_Delete(t *testing.T) {
 		t.Run(fmt.Sprintf("Delete_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
 			err := repo.StoreCleanupJob(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute
 			err = repo.DeleteCleanupJob(ctx, mockData.ID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
 			_, err = repo.FindCleanupJobByID(ctx, mockData.ID)
-			assert.Error(t, err)
 			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
 		})
 
 		t.Run(fmt.Sprintf("Delete_Fails_Non_Existing_Job [%s]", dbType), func(t *testing.T) {
 			// Execute
 			err := repo.DeleteCleanupJob(ctx, 99999)
-			assert.Error(t, err)
 			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
 		})
 	}

@@ -43,7 +43,7 @@ func (p *MetacriticProcessor) Process(ctx context.Context) (*domain.FilterUpdate
 func (p *MetacriticProcessor) process(data *metacritic.ListResponse) (*domain.FilterUpdate, error) {
 	// process artist + album variants and append to releases
 	ts := NewTitleSet()
-	ts.matchReleases = p.list.MatchRelease
+	ts.matchReleases = true // hardcode match releases
 
 	for _, alb := range data.Albums {
 		artist := processTitle(alb.Artist, true)

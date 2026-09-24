@@ -101,7 +101,7 @@ func Test_client_GetTorrentByID(t *testing.T) {
 			},
 			args:    args{torrentID: "100002"},
 			want:    nil,
-			wantErr: false,
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -109,9 +109,10 @@ func Test_client_GetTorrentByID(t *testing.T) {
 			c := NewClient(tt.fields.APIKey, WithUrl(ts.URL))
 
 			got, err := c.GetTorrentByID(t.Context(), tt.args.torrentID)
-			if tt.wantErr && assert.Error(t, err) {
-				t.Logf("got err: %v", err)
-				assert.Equal(t, tt.wantErr, err)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 			}
 
 			assert.Equal(t, tt.want, got)

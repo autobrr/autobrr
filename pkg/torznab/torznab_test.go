@@ -28,7 +28,12 @@ func TestClient_FetchFeed(t *testing.T) {
 				return
 			}
 		}
-		payload, err := os.ReadFile("testdata/torznab_response.xml")
+		file := "testdata/torznab_response.xml"
+		if r.URL.Query().Get("t") == "caps" {
+			file = "testdata/caps_response.xml"
+		}
+
+		payload, err := os.ReadFile(file)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -64,8 +69,10 @@ func TestClient_FetchFeed(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := NewClient(Config{Host: tt.fields.Host, ApiKey: tt.fields.ApiKey})
 			_, err := c.FetchFeed(t.Context())
-			if tt.wantErr && assert.Error(t, err) {
-				assert.Equal(t, tt.wantErr, err)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 			}
 			//assert.Equal(t, tt.want, got)
 		})

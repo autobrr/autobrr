@@ -11,7 +11,6 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestClient_SendMessage(t *testing.T) {
@@ -24,7 +23,7 @@ func TestClient_SendMessage(t *testing.T) {
 		assert.Empty(t, r.URL.Query().Get("token"))
 		assert.Equal(t, "application/x-www-form-urlencoded", r.Header.Get("Content-Type"))
 
-		require.NoError(t, r.ParseForm())
+		assert.NoError(t, r.ParseForm())
 		assert.Equal(t, "Push Approved", r.PostForm.Get("title"))
 		assert.Equal(t, "New release: Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP\n", r.PostForm.Get("message"))
 
@@ -54,12 +53,10 @@ func TestClient_SendMessage_Error(t *testing.T) {
 	client := NewSender(zerolog.New(io.Discard), Config{Host: server.URL, Token: "mock-token", Name: "mock"})
 
 	err := client.SendMessage(t.Context(), &Message{Title: "Test", Message: "autobrr goes brr!!"})
-	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "check gotify application token")
-		assert.Contains(t, err.Error(), "unexpected status: 401")
-		assert.Contains(t, err.Error(), "Unauthorized")
-		assert.Contains(t, err.Error(), "you need to provide a valid access token")
-	}
+	assert.ErrorContains(t, err, "check gotify application token")
+	assert.ErrorContains(t, err, "unexpected status: 401")
+	assert.ErrorContains(t, err, "Unauthorized")
+	assert.ErrorContains(t, err, "you need to provide a valid access token")
 }
 
 func TestClient_SendMessage_ErrorRawBody(t *testing.T) {
@@ -74,8 +71,6 @@ func TestClient_SendMessage_ErrorRawBody(t *testing.T) {
 	client := NewSender(zerolog.New(io.Discard), Config{Host: server.URL, Token: "mock-token", Name: "mock"})
 
 	err := client.SendMessage(t.Context(), &Message{Title: "Test", Message: "autobrr goes brr!!"})
-	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "unexpected status: 502")
-		assert.Contains(t, err.Error(), "bad gateway")
-	}
+	assert.ErrorContains(t, err, "unexpected status: 502")
+	assert.ErrorContains(t, err, "bad gateway")
 }

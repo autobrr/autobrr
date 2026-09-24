@@ -19,6 +19,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // Mock releaseService for testing cleanup job and stats endpoints
@@ -206,15 +207,15 @@ func TestReleaseHandler_ListCleanupJobs(t *testing.T) {
 	defer testServer.Close()
 
 	resp, err := http.Get(testServer.URL + "/api/releases/cleanup-jobs")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 	var jobs []*domain.ReleaseCleanupJob
 	err = json.NewDecoder(resp.Body).Decode(&jobs)
-	assert.NoError(t, err)
-	assert.Len(t, jobs, 1)
+	require.NoError(t, err)
+	require.Len(t, jobs, 1)
 
 	// Verify ALL fields for returned job
 	assert.Equal(t, 1, jobs[0].ID)
@@ -245,14 +246,14 @@ func TestReleaseHandler_GetCleanupJob(t *testing.T) {
 	defer testServer.Close()
 
 	resp, err := http.Get(testServer.URL + "/api/releases/cleanup-jobs/1")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 	var job domain.ReleaseCleanupJob
 	err = json.NewDecoder(resp.Body).Decode(&job)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Verify ALL fields
 	assert.Equal(t, 1, job.ID)
@@ -274,7 +275,7 @@ func TestReleaseHandler_GetCleanupJob_NotFound(t *testing.T) {
 	defer testServer.Close()
 
 	resp, err := http.Get(testServer.URL + "/api/releases/cleanup-jobs/999")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
@@ -299,17 +300,17 @@ func TestReleaseHandler_StoreCleanupJob(t *testing.T) {
 	}
 
 	body, err := json.Marshal(jobData)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	resp, err := http.Post(testServer.URL+"/api/releases/cleanup-jobs", "application/json", bytes.NewBuffer(body))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusCreated, resp.StatusCode)
 
 	var created domain.ReleaseCleanupJob
 	err = json.NewDecoder(resp.Body).Decode(&created)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Verify ALL fields in response
 	assert.Equal(t, 1, created.ID) // First auto-generated ID
@@ -322,7 +323,7 @@ func TestReleaseHandler_StoreCleanupJob(t *testing.T) {
 
 	// Verify job was actually stored in service with all fields
 	storedJob, exists := service.cleanupJobs[created.ID]
-	assert.True(t, exists, "job should exist in service storage")
+	require.True(t, exists, "job should exist in service storage")
 	assert.Equal(t, 1, storedJob.ID)
 	assert.Equal(t, "New Job", storedJob.Name)
 	assert.False(t, storedJob.Enabled)
@@ -361,21 +362,21 @@ func TestReleaseHandler_UpdateCleanupJob(t *testing.T) {
 	}
 
 	body, err := json.Marshal(updateData)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	req, err := http.NewRequest(http.MethodPut, testServer.URL+"/api/releases/cleanup-jobs/1", bytes.NewBuffer(body))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 	var updated domain.ReleaseCleanupJob
 	err = json.NewDecoder(resp.Body).Decode(&updated)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Verify ALL fields in response
 	assert.Equal(t, 1, updated.ID)
@@ -412,14 +413,14 @@ func TestReleaseHandler_UpdateCleanupJob_NotFound(t *testing.T) {
 	}
 
 	body, err := json.Marshal(updateData)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	req, err := http.NewRequest(http.MethodPut, testServer.URL+"/api/releases/cleanup-jobs/999", bytes.NewBuffer(body))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
@@ -439,10 +440,10 @@ func TestReleaseHandler_DeleteCleanupJob(t *testing.T) {
 	defer testServer.Close()
 
 	req, err := http.NewRequest(http.MethodDelete, testServer.URL+"/api/releases/cleanup-jobs/1", nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	resp, err := http.DefaultClient.Do(req)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
@@ -461,10 +462,10 @@ func TestReleaseHandler_DeleteCleanupJob_NotFound(t *testing.T) {
 	defer testServer.Close()
 
 	req, err := http.NewRequest(http.MethodDelete, testServer.URL+"/api/releases/cleanup-jobs/999", nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	resp, err := http.DefaultClient.Do(req)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
@@ -486,14 +487,14 @@ func TestReleaseHandler_ToggleCleanupJobEnabled(t *testing.T) {
 
 	toggleData := map[string]bool{"enabled": true}
 	body, err := json.Marshal(toggleData)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	req, err := http.NewRequest(http.MethodPatch, testServer.URL+"/api/releases/cleanup-jobs/1/enabled", bytes.NewBuffer(body))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
@@ -513,14 +514,14 @@ func TestReleaseHandler_ToggleCleanupJobEnabled_NotFound(t *testing.T) {
 
 	toggleData := map[string]bool{"enabled": true}
 	body, err := json.Marshal(toggleData)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	req, err := http.NewRequest(http.MethodPatch, testServer.URL+"/api/releases/cleanup-jobs/999/enabled", bytes.NewBuffer(body))
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
@@ -540,7 +541,7 @@ func TestReleaseHandler_ForceRunCleanupJob(t *testing.T) {
 	defer testServer.Close()
 
 	resp, err := http.Post(testServer.URL+"/api/releases/cleanup-jobs/1/run", "application/json", nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
@@ -562,7 +563,7 @@ func TestReleaseHandler_ForceRunCleanupJob_NotFound(t *testing.T) {
 	defer testServer.Close()
 
 	resp, err := http.Post(testServer.URL+"/api/releases/cleanup-jobs/999/run", "application/json", nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
@@ -590,7 +591,7 @@ func TestReleaseHandler_StatsEndpoints(t *testing.T) {
 			defer testServer.Close()
 
 			resp, err := http.Get(testServer.URL + "/api/releases/stats/" + endpoint.path + "?days=90")
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			defer resp.Body.Close()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -598,7 +599,7 @@ func TestReleaseHandler_StatsEndpoints(t *testing.T) {
 
 			var payload map[string]any
 			err = json.NewDecoder(resp.Body).Decode(&payload)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.EqualValues(t, 90, payload["days"])
 			assert.NotNil(t, payload[endpoint.field])
 		})
@@ -614,7 +615,7 @@ func TestReleaseHandler_StatsEndpoints_DefaultDays(t *testing.T) {
 	defer testServer.Close()
 
 	resp, err := http.Get(testServer.URL + "/api/releases/stats/activity")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -630,7 +631,7 @@ func TestReleaseHandler_StatsEndpoints_AllTime(t *testing.T) {
 	defer testServer.Close()
 
 	resp, err := http.Get(testServer.URL + "/api/releases/stats/activity?days=0")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -648,7 +649,7 @@ func TestReleaseHandler_StatsEndpoints_InvalidDays(t *testing.T) {
 			defer testServer.Close()
 
 			resp, err := http.Get(testServer.URL + "/api/releases/stats/activity?days=" + days)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			defer resp.Body.Close()
 
 			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)

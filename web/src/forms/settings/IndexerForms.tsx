@@ -465,6 +465,7 @@ interface IndexerAddFeedValues {
 interface IndexerAddInitialValues {
   enabled: boolean;
   identifier: string;
+  identifier_external: string;
   implementation: string;
   name: string;
   base_url?: string;
@@ -658,6 +659,7 @@ function IndexerAddFormPanel({ toggle }: IndexerAddFormPanelProps) {
   const initialValues: IndexerAddInitialValues = {
     enabled: true,
     identifier: "",
+    identifier_external: "",
     implementation: "irc",
     name: "",
     use_proxy: false,
@@ -726,6 +728,10 @@ function IndexerAddFormPanel({ toggle }: IndexerAddFormPanelProps) {
 
               </div>
             </div>
+
+            {identifier !== "" && (
+              <IndexerExternalIdentifierField fallbackName={indexer.name} />
+            )}
 
             <SwitchGroupWide name="enabled" label={t("forms.indexer.enabled")} />
 
@@ -831,6 +837,35 @@ function IndexerIdentifierField({ data, setIndexer }: IndexerIdentifierFieldProp
         />
       )}
     </form.Field>
+  );
+}
+
+interface IndexerExternalIdentifierFieldProps {
+  fallbackName: string;
+}
+
+// Generic feed definitions are named "Generic RSS" etc., so the hint follows the typed name.
+function IndexerExternalIdentifierField({ fallbackName }: IndexerExternalIdentifierFieldProps) {
+  const { t } = useTranslation("settings");
+  const name = useFormValue((v: { name?: string }) => v.name);
+  const indexerName = name || fallbackName;
+
+  return (
+    <TextFieldWide
+      name="identifier_external"
+      label={t("forms.indexer.externalIdentifier")}
+      placeholder={indexerName}
+      help={t("forms.indexer.externalIdentifierHelp", { name: indexerName })}
+      tooltip={
+        <div>
+          <p>{t("forms.indexer.externalIdentifierTooltip1")}</p>
+          <br/>
+          <p>{t("forms.indexer.externalIdentifierTooltip2", { name: indexerName })}</p>
+          <br/>
+          <DocsLink href="https://autobrr.com/configuration/indexers#setup"/>
+        </div>
+      }
+    />
   );
 }
 
@@ -1079,20 +1114,7 @@ export function IndexerUpdateForm({ isOpen, toggle, data: indexer }: UpdateFormP
             <IndexerNameField />
           </div>
 
-          <TextFieldWide
-            name="identifier_external"
-            label={t("forms.indexer.externalIdentifier")}
-            help={t("forms.indexer.externalIdentifierHelp", { name: indexer.name })}
-            tooltip={
-              <div>
-                <p>{t("forms.indexer.externalIdentifierTooltip1")}</p>
-                <br/>
-                <p>{t("forms.indexer.externalIdentifierTooltip2", { name: indexer.name })}</p>
-                <br/>
-                <DocsLink href="https://autobrr.com/configuration/indexers#setup"/>
-              </div>
-            }
-          />
+          <IndexerExternalIdentifierField fallbackName={indexer.name} />
           <SwitchGroupWide name="enabled" label={t("forms.indexer.enabled")}/>
 
           {indexer.implementation == "irc" && (

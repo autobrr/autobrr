@@ -14,6 +14,7 @@ import (
 	"github.com/moistari/rls"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRSSJob_processItem(t *testing.T) {
@@ -78,7 +79,7 @@ func TestRSSJob_processItem(t *testing.T) {
 				ID:                              0,
 				FilterStatus:                    "PENDING",
 				Rejections:                      []string{},
-				Indexer:                         domain.IndexerMinimal{0, "Mock Feed", "mock-feed", "Mock Indexer"},
+				Indexer:                         domain.IndexerMinimal{Name: "Mock Feed", Identifier: "mock-feed", IdentifierExternal: "Mock Indexer"},
 				FilterName:                      "",
 				Protocol:                        "torrent",
 				Implementation:                  "RSS",
@@ -172,7 +173,7 @@ func TestRSSJob_processItem(t *testing.T) {
 				ID:                              0,
 				FilterStatus:                    "PENDING",
 				Rejections:                      []string{},
-				Indexer:                         domain.IndexerMinimal{0, "Mock Feed", "mock-feed", "Mock Indexer"},
+				Indexer:                         domain.IndexerMinimal{Name: "Mock Feed", Identifier: "mock-feed", IdentifierExternal: "Mock Indexer"},
 				FilterName:                      "",
 				Protocol:                        "torrent",
 				Implementation:                  "RSS",
@@ -267,7 +268,7 @@ func TestRSSJob_processItem(t *testing.T) {
 				ID:                              0,
 				FilterStatus:                    "PENDING",
 				Rejections:                      []string{},
-				Indexer:                         domain.IndexerMinimal{0, "Mock Feed", "mock-feed", "Mock Indexer"},
+				Indexer:                         domain.IndexerMinimal{Name: "Mock Feed", Identifier: "mock-feed", IdentifierExternal: "Mock Indexer"},
 				FilterName:                      "",
 				Protocol:                        "torrent",
 				Implementation:                  "RSS",
@@ -393,7 +394,7 @@ func TestRSSJob_processItem(t *testing.T) {
 				ID:                              0,
 				FilterStatus:                    "PENDING",
 				Rejections:                      []string{},
-				Indexer:                         domain.IndexerMinimal{0, "Mock Feed", "mock-feed", "Mock Indexer"},
+				Indexer:                         domain.IndexerMinimal{Name: "Mock Feed", Identifier: "mock-feed", IdentifierExternal: "Mock Indexer"},
 				FilterName:                      "",
 				Protocol:                        "torrent",
 				Implementation:                  "RSS",
@@ -484,7 +485,7 @@ func TestRSSJob_processItem(t *testing.T) {
 				ID:                              0,
 				FilterStatus:                    "PENDING",
 				Rejections:                      []string{},
-				Indexer:                         domain.IndexerMinimal{0, "Mock Feed", "mock-feed", "Mock Indexer"},
+				Indexer:                         domain.IndexerMinimal{Name: "Mock Feed", Identifier: "mock-feed", IdentifierExternal: "Mock Indexer"},
 				FilterName:                      "",
 				Protocol:                        "torrent",
 				Implementation:                  "RSS",
@@ -624,7 +625,7 @@ func TestRSSJob_processItemMagnet(t *testing.T) {
 			tt.item.Title = "Some.Release.Title.2022.09.22.720p.WEB.h264-GROUP"
 
 			got := j.processItem(tt.item)
-			assert.NotNil(t, got)
+			require.NotNil(t, got)
 
 			assert.Equal(t, tt.wantDownloadURL, got.DownloadURL, "download url")
 			assert.Equal(t, tt.wantMagnetURI, got.MagnetURI, "magnet uri")
@@ -730,15 +731,11 @@ func Test_readSizeFromDescription(t *testing.T) {
 			t.Parallel()
 
 			wantBytes, err := humanize.ParseBytes(tt.want)
-			if err != nil {
-				t.Fatalf("Failed to parse size string %q: %v", tt.want, err)
-			}
+			require.NoError(t, err)
 
 			r := &domain.Release{}
 			readSizeFromDescription(tt.str, r)
-			if r.Size != wantBytes {
-				t.Errorf("readSizeFromDescription(%q) got %v bytes, want %v bytes", tt.str, r.Size, wantBytes)
-			}
+			assert.Equal(t, wantBytes, r.Size)
 		})
 	}
 }

@@ -39,7 +39,7 @@ func newTestServer(t *testing.T, version int) *httptest.Server {
 			}
 
 			payload, err := os.ReadFile(file)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
@@ -113,17 +113,15 @@ func TestClient_Test(t *testing.T) {
 		ts := newTestServer(t, VersionV3)
 
 		_, err := newTestClient(ts.URL, VersionV2).Test(t.Context())
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "configured for Whisparr v2")
-		assert.Contains(t, err.Error(), "3.3.7.979")
+		assert.ErrorContains(t, err, "configured for Whisparr v2")
+		assert.ErrorContains(t, err, "3.3.7.979")
 	})
 
 	t.Run("v3 client against v2 server reports the mismatch", func(t *testing.T) {
 		ts := newTestServer(t, VersionV2)
 
 		_, err := newTestClient(ts.URL, VersionV3).Test(t.Context())
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "configured for Whisparr v3")
+		assert.ErrorContains(t, err, "configured for Whisparr v3")
 	})
 
 	t.Run("bad api key", func(t *testing.T) {
@@ -132,8 +130,7 @@ func TestClient_Test(t *testing.T) {
 		client := New(Config{Hostname: ts.URL, APIKey: "wrong", Version: VersionV2, Log: zerolog.Nop()})
 
 		_, err := client.Test(t.Context())
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "unauthorized")
+		assert.ErrorContains(t, err, "unauthorized")
 	})
 }
 
@@ -221,7 +218,7 @@ func TestClient_Push_temporarilyRejected(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v3/release/push", func(w http.ResponseWriter, r *http.Request) {
 		payload, err := os.ReadFile("testdata/release_push_temporarily_rejected_response.json")
-		require.NoError(t, err)
+		assert.NoError(t, err)
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)

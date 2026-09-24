@@ -12,6 +12,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func getMockUser() domain.User {
@@ -63,10 +64,10 @@ func TestUserRepo_Update(t *testing.T) {
 			Username: user.Username,
 			Password: user.Password,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		storedUser, err := repo.FindByUsername(ctx, user.Username)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		user.ID = storedUser.ID
 
 		t.Run(fmt.Sprintf("UpdateUser_Succeeds [%s]", dbType), func(t *testing.T) {
@@ -78,11 +79,11 @@ func TestUserRepo_Update(t *testing.T) {
 				PasswordNewHash: newPassword,
 			}
 			err := repo.Update(ctx, req)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
 			updatedUser, err := repo.FindByUsername(ctx, user.Username)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, newPassword, updatedUser.Password)
 
 			// Cleanup
@@ -103,18 +104,18 @@ func TestUserRepo_GetUserCount(t *testing.T) {
 		t.Run(fmt.Sprintf("GetUserCount_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
 			initialCount, err := repo.GetUserCount(ctx)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			user := getMockUser()
 			err = repo.Store(ctx, domain.CreateUserRequest{
 				Username: user.Username,
 				Password: user.Password,
 			})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
 			updatedCount, err := repo.GetUserCount(ctx)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, initialCount+1, updatedCount)
 
 			// Cleanup
@@ -140,12 +141,12 @@ func TestUserRepo_FindByUsername(t *testing.T) {
 				Username: userMockData.Username,
 				Password: userMockData.Password,
 			})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
 			user, err := repo.FindByUsername(ctx, userMockData.Username)
-			assert.NoError(t, err)
-			assert.NotNil(t, user)
+			require.NoError(t, err)
+			require.NotNil(t, user)
 			assert.Equal(t, userMockData.Username, user.Username)
 
 			// Cleanup
@@ -168,17 +169,16 @@ func TestUserRepo_Delete(t *testing.T) {
 			Username: user.Username,
 			Password: user.Password,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		t.Run(fmt.Sprintf("DeleteUser_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
 			err := repo.Delete(ctx, user.Username)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
 			_, err = repo.FindByUsername(ctx, user.Username)
-			assert.Error(t, err)
-			assert.Equal(t, domain.ErrRecordNotFound, err)
+			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
 		})
 	}
 }
