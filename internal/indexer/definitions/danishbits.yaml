@@ -30,7 +30,7 @@ irc:
       type: text
       required: true
       label: Nick
-      help: Bot nick. Eg. user_bot
+      help: Must be site username
 
     - name: pass
       type: secret
