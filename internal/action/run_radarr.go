@@ -47,8 +47,6 @@ func (s *Service) runRadarr(ctx context.Context, action *domain.Action, release 
 		MagnetUrl:        release.MagnetURI,
 		Size:             release.Size,
 		Indexer:          release.Indexer.GetExternalIdentifier(),
-		DownloadClientId: cfg.Settings.ExternalDownloadClientId,
-		DownloadClient:   cfg.Settings.ExternalDownloadClient,
 		DownloadProtocol: release.Protocol.String(),
 		Protocol:         release.Protocol.String(),
 		PublishDate:      time.Now().Format(time.RFC3339),
@@ -66,13 +64,7 @@ func (s *Service) runRadarr(ctx context.Context, action *domain.Action, release 
 		}
 	}
 
-	if action.ExternalDownloadClientID > 0 {
-		req.DownloadClientId = int(action.ExternalDownloadClientID)
-	}
-
-	if action.ExternalDownloadClient != "" {
-		req.DownloadClient = action.ExternalDownloadClient
-	}
+	req.DownloadClientId, req.DownloadClient = arrDownloadClient(cfg.Settings, action)
 
 	indexerFlags := radarr.BuildIndexerFlags(radarr.ReleaseMeta{
 		FreeleechPercent: release.FreeleechPercent,

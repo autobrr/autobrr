@@ -1,0 +1,4 @@
+{
+  "message": "Indexer with name 'IPTorrents' could not be found",
+  "description": "NzbDrone.Core.Indexers.ResolveIndexerException: Indexer with name 'IPTorrents' could not be found\n   at NzbDrone.Core.Indexers.IndexerFactory.ResolveIndexer(Nullable`1 id, String name)"
+}

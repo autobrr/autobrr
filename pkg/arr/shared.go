@@ -3,6 +3,10 @@
 
 package arr
 
+import (
+	"encoding/json"
+)
+
 type Tag struct {
 	ID    int
 	Label string
@@ -59,7 +63,7 @@ type QualityRevision struct {
 	IsRepack bool  `json:"isRepack,omitempty"`
 }
 
-// ErrorResponse represents an unhandled exception or API error returned by Servarr apps as a single JSON object.
+// ErrorResponse is the single error object Servarr apps return for API exceptions, as opposed to the array of validation failures.
 type ErrorResponse struct {
 	Message     string `json:"message"`
 	Description string `json:"description,omitempty"`
@@ -67,7 +71,7 @@ type ErrorResponse struct {
 	Detail      string `json:"detail,omitempty"`
 }
 
-func (e ErrorResponse) String() string {
+func (e *ErrorResponse) Error() string {
 	if e.Message != "" {
 		return e.Message
 	}
@@ -78,4 +82,18 @@ func (e ErrorResponse) String() string {
 		return e.Title
 	}
 	return e.Description
+}
+
+// ParseErrorResponse decodes body as a single error object, ok is false when it is not one.
+func ParseErrorResponse(body []byte) (*ErrorResponse, bool) {
+	var resp ErrorResponse
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return nil, false
+	}
+
+	if resp.Error() == "" {
+		return nil, false
+	}
+
+	return &resp, true
 }

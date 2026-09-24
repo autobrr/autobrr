@@ -9,6 +9,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/autobrr/autobrr/pkg/arr"
+	"github.com/autobrr/autobrr/pkg/errors"
+
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -241,12 +244,10 @@ func TestClient_Push_temporarilyRejected(t *testing.T) {
 	assert.Equal(t, []string{"Waiting for a better quality release"}, rejections)
 }
 
-func TestClient_Push_badRequest_errorObject(t *testing.T) {
-	zerolog.SetGlobalLevel(zerolog.Disabled)
-
+func TestClient_Push_indexerNotFound(t *testing.T) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v3/release/push", func(w http.ResponseWriter, r *http.Request) {
-		payload, err := os.ReadFile("testdata/release_push_error_object.json")
+		payload, err := os.ReadFile("testdata/release_push_indexer_not_found.json")
 		require.NoError(t, err)
 
 		w.Header().Set("Content-Type", "application/json")
@@ -266,8 +267,8 @@ func TestClient_Push_badRequest_errorObject(t *testing.T) {
 		DownloadProtocol: "torrent",
 	})
 
-	require.Error(t, err)
 	assert.Nil(t, rejections)
-	assert.Equal(t, "whisparr: Indexer with name 'IPTorrents' could not be found", err.Error())
+	_, ok := errors.AsType[*arr.ErrorResponse](err)
+	assert.True(t, ok)
+	assert.EqualError(t, err, "Indexer with name 'IPTorrents' could not be found")
 }
-
