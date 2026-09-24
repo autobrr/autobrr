@@ -103,6 +103,10 @@ func (c *Client) Push(ctx context.Context, release Release) ([]string, error) {
 		badRequestResponses := make([]*BadRequestResponse, 0)
 
 		if err = json.Unmarshal(res, &badRequestResponses); err != nil {
+			if errResp, ok := arr.ParseErrorResponse(res); ok {
+				return nil, errResp
+			}
+
 			return nil, errors.Wrap(err, "could not unmarshal data")
 		}
 

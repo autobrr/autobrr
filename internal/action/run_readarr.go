@@ -48,17 +48,9 @@ func (s *Service) runReadarr(ctx context.Context, action *domain.Action, release
 		DownloadProtocol: release.Protocol.String(),
 		Protocol:         release.Protocol.String(),
 		PublishDate:      time.Now().Format(time.RFC3339),
-		DownloadClientId: cfg.Settings.ExternalDownloadClientId,
-		DownloadClient:   cfg.Settings.ExternalDownloadClient,
 	}
 
-	if action.ExternalDownloadClientID > 0 {
-		req.DownloadClientId = int(action.ExternalDownloadClientID)
-	}
-
-	if action.ExternalDownloadClient != "" {
-		req.DownloadClient = action.ExternalDownloadClient
-	}
+	req.DownloadClientId, req.DownloadClient = arrDownloadClient(cfg.Settings, action)
 
 	rejections, err := client.Push(ctx, req)
 	if err != nil {
