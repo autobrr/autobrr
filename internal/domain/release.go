@@ -703,7 +703,7 @@ func (r *Release) ParseString(title string) {
 	r.Audio = rel.Audio
 	r.AudioChannels = rel.Channels
 	r.Codec = rel.Codec
-	r.Container = rel.Container
+	r.Container = cmp.Or(r.Container, rel.Container)
 	r.HDR = rel.HDR
 	if rel.Artist != "" {
 		r.Artists = rel.Artist

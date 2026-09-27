@@ -363,6 +363,36 @@ func TestIndexersParseAndFilter(t *testing.T) {
 			},
 			match: true,
 		},
+		{
+			name: "mam",
+			fields: fields{
+				identifier:         "myanonamouse",
+				identifierExternal: "MyAnonamouse",
+				settings: map[string]string{
+					"cookie": "mam_id: key;",
+				},
+			},
+			subTests: []subTest{
+				{
+					name: "announce_1",
+					args: args{
+						announceLines: []string{"The Long Game: A Playbook of the World's Most Enduring Companies By: Eric Becker [English] [Audiobook] [Non-Fiction] [m4b] [132.69 MiB] - Business/Money - https://www.myanonamouse.net/t/1262674 Normal"},
+						filters: []filterTest{
+							{
+								filter: &domain.Filter{
+									Name:            "filter_1",
+									MatchCategories: "Audiobook*",
+									Containers:      []string{"m4b"},
+								},
+								match: true,
+							},
+						},
+					},
+					match: false,
+				},
+			},
+			match: true,
+		},
 	}
 
 	for _, tt := range tests {
