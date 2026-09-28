@@ -124,7 +124,7 @@ export const PasswordFieldWide = ({
   defaultValue,
   help,
   required,
-  autoComplete,
+  autoComplete = "new-password",
   defaultVisible,
   tooltip,
   validate

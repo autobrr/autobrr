@@ -9,7 +9,7 @@ import { afterEach, expect, test, vi } from "vitest";
 
 import { useAppForm, fieldErrors } from "@hooks/form";
 import { NumberField, RegexField, SwitchGroup, TextField } from "@components/inputs";
-import { TextFieldWide } from "@components/inputs/input_wide";
+import { PasswordFieldWide, TextFieldWide } from "@components/inputs/input_wide";
 import { SlideOver } from "@components/panels";
 import "@app/i18n";
 
@@ -181,4 +181,16 @@ test("SlideOver validates with the flat error map and submits typed values", asy
     fireEvent.click(screen.getByText("Create"));
   });
   expect(onSubmit).toHaveBeenCalledWith({ name: "socks" });
+});
+
+test("PasswordFieldWide opts out of saved-login autofill", () => {
+  render(
+    <Harness defaultValues={{ cookie: "", pass: "" }} onSubmit={vi.fn()}>
+      <PasswordFieldWide name="cookie" label="Cookie" />
+      <PasswordFieldWide name="pass" label="Password" autoComplete="current-password" />
+    </Harness>
+  );
+
+  expect(screen.getByLabelText("Cookie").getAttribute("autocomplete")).toBe("new-password");
+  expect(screen.getByLabelText("Password").getAttribute("autocomplete")).toBe("current-password");
 });
