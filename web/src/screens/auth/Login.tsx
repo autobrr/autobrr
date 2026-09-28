@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import React, { useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryErrorResetBoundary } from "@tanstack/react-query";
 import { getRouteApi, useRouter } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form"
@@ -21,7 +21,7 @@ import { OpenIdIcon } from "@components/Icons";
 
 import Logo from "@app/logo.svg?react";
 import { AuthContext, AuthInfo } from "@utils/Context";
-import { classNames } from "@utils";
+import { classNames, IsErrorWithMessage, OIDCLoginChannel } from "@utils";
 import { useToggle } from "@hooks/hooks";
 
 type LoginFormFields = {
@@ -65,33 +65,48 @@ export const Login = () => {
         AuthContext.reset();
     }, [queryErrorResetBoundary]);
 
+    const validateOIDCSession = useCallback(() => {
+        APIClient.auth.validate().then((response: ValidateResponse) => {
+            setAuth({
+                isLoggedIn: true,
+                username: response.username || 'unknown',
+                authMethod: response.auth_method || 'oidc',
+                profilePicture: response.profile_picture,
+            });
+            router.invalidate();
+        }).catch((error) => {
+            toast.custom((toastInstance) => (
+                <Toast type="error" body={error.message || t("errors.oidcFailed")} t={toastInstance}/>
+            ));
+        });
+    }, [setAuth, router, t]);
+
     const oidcCallbackHandled = useRef(false);
     useEffect(() => {
-        // Check if this is an OIDC callback
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get('code');
         const state = urlParams.get('state');
 
         if (code && state && !oidcCallbackHandled.current) {
             oidcCallbackHandled.current = true;
-            // This is an OIDC callback, validate the session
-            APIClient.auth.validate().then((response: ValidateResponse) => {
-                // If validation succeeds, set the user as logged in
-                setAuth({
-                    isLoggedIn: true,
-                    username: response.username || 'unknown',
-                    authMethod: response.auth_method || 'oidc',
-                    profilePicture: response.profile_picture,
-                });
-                router.invalidate();
-            }).catch((error) => {
-                // If validation fails, show an error
-                toast.custom((toastInstance) => (
-                    <Toast type="error" body={error.message || t("errors.oidcFailed")} t={toastInstance}/>
-                ));
-            });
+            validateOIDCSession();
         }
-    }, [setAuth, router, t]);
+    }, [validateOIDCSession]);
+
+    const oidcPopup = useRef<Window | null>(null);
+    useEffect(() => {
+        const channel = new BroadcastChannel(OIDCLoginChannel);
+        channel.onmessage = () => {
+            const popup = oidcPopup.current;
+            if (!popup) {
+                return;
+            }
+            popup.close();
+            oidcPopup.current = null;
+            validateOIDCSession();
+        };
+        return () => channel.close();
+    }, [validateOIDCSession]);
 
     const loginMutation = useMutation({
         mutationFn: (data: LoginFormFields) => APIClient.auth.login(data.username, data.password, data.remember_me),
@@ -111,9 +126,29 @@ export const Login = () => {
         }
     });
 
-    const handleOIDCLogin = () => {
-        if (oidcConfig?.enabled && oidcConfig.authorizationUrl) {
+    const handleOIDCLogin = async () => {
+        if (!oidcConfig?.enabled || !oidcConfig.authorizationUrl) {
+            return;
+        }
+        // A Home Screen web app on iOS opens the identity provider in a sheet with separate cookies,
+        // so the callback cannot find the OIDC state. A window.open window keeps the app's cookies.
+        // iOS allows window.open only in the tap, so the popup opens before the config fetch.
+        const popup = window.matchMedia("(display-mode: standalone)").matches ? window.open("about:blank", "autobrr-oidc") : null;
+        if (!popup) {
             window.location.href = oidcConfig.authorizationUrl;
+            return;
+        }
+        oidcPopup.current = popup;
+        try {
+            // The callback consumes the stored state, so every attempt needs a new one.
+            const { authorizationUrl } = await APIClient.auth.getOIDCConfig();
+            popup.location.href = authorizationUrl;
+        } catch (error) {
+            popup.close();
+            oidcPopup.current = null;
+            toast.custom((toastInstance) => (
+                <Toast type="error" body={IsErrorWithMessage(error) ? error.message : t("errors.oidcFailed")} t={toastInstance}/>
+            ));
         }
     };
 

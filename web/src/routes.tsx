@@ -32,6 +32,7 @@ import {
   ProxiesQueryOptions
 } from "@api/queries";
 import { RingResizeSpinner } from "@components/Icons";
+import { OIDCLoginChannel } from "@utils";
 import { AuthContext } from "@utils/Context";
 import { queryClient } from "@api/QueryClient";
 
@@ -307,6 +308,10 @@ export const AuthRoute = createRoute({
         if (response.auth_method === 'oidc') {
           const oidcConfig = await context.queryClient.query({ ...OIDCConfigQueryOptions(), staleTime: "static" });
           issuerUrl = oidcConfig.issuerUrl;
+          // A BroadcastChannel still reaches the login page when the identity provider's COOP header removes window.opener.
+          const channel = new BroadcastChannel(OIDCLoginChannel);
+          channel.postMessage("login");
+          channel.close();
         }
         
         AuthContext.set({

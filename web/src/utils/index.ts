@@ -47,6 +47,9 @@ export function sseBaseUrl() {
   return `${window.location.origin}${baseUrl()}`;
 }
 
+// OIDCLoginChannel carries the signal from an OIDC login popup back to the login page that opened it.
+export const OIDCLoginChannel = "autobrr-oidc-login";
+
 export function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(" ");
 }
