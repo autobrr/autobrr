@@ -4,8 +4,9 @@
  */
 
 import { useTranslation } from "react-i18next";
+import { PlusIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
-import { useFormValue } from "@hooks/form";
+import { useFormContext, useFormValue } from "@hooks/form";
 import { DocsLink } from "@components/ExternalLink";
 import { WarningAlert } from "@components/alerts";
 import {
@@ -512,6 +513,110 @@ const FeedSpecific = () => {
     </CollapsibleSection>
   );
 }
+
+const CustomFields = () => {
+  const { t } = useTranslation("filters");
+  const form = useFormContext();
+  const values = useFormValue((v: Filter) => ({
+    custom_fields: v.custom_fields || [],
+    custom_fields_match_logic: v.custom_fields_match_logic || "ALL"
+  }));
+
+  const operatorOptions = [
+    { label: t("advanced.customFields.operators.equals"), value: "EQUALS" },
+    { label: t("advanced.customFields.operators.notEquals"), value: "NOT_EQUALS" },
+    { label: t("advanced.customFields.operators.exists"), value: "EXISTS" },
+    { label: t("advanced.customFields.operators.notExists"), value: "NOT_EXISTS" }
+  ];
+
+  const logicOptions = [
+    { label: t("advanced.customFields.logic.all"), value: "ALL" },
+    { label: t("advanced.customFields.logic.any"), value: "ANY" }
+  ];
+
+  const addRule = () => {
+    form.pushFieldValue("custom_fields", {
+      field: "",
+      operator: "EQUALS",
+      value: ""
+    } satisfies FilterCustomFieldRule);
+  };
+
+  return (
+    <CollapsibleSection
+      defaultOpen={values.custom_fields.length > 0}
+      title={t("advanced.customFields.title")}
+      subtitle={t("advanced.customFields.subtitle")}
+    >
+      <div className="sm:col-span-12">
+        <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
+          {t("advanced.customFields.description")}
+        </p>
+      </div>
+
+      <FilterLayout>
+        <Select
+          name="custom_fields_match_logic"
+          label={t("advanced.customFields.matchLogic")}
+          options={logicOptions}
+          columns={4}
+        />
+        <div className="col-span-12 sm:col-span-8 flex items-end justify-end">
+          <button
+            type="button"
+            className="inline-flex items-center px-3 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-hidden cursor-pointer"
+            onClick={addRule}
+          >
+            <PlusIcon className="w-4 h-4 mr-1" aria-hidden="true" />
+            {t("advanced.customFields.add")}
+          </button>
+        </div>
+      </FilterLayout>
+
+      {values.custom_fields.map((rule, index) => {
+        const needsValue = rule.operator !== "EXISTS" && rule.operator !== "NOT_EXISTS";
+
+        return (
+          <div
+            key={index}
+            className={classNames("sm:col-span-12", FilterLayoutClass, FilterTightGridGapClass)}
+          >
+            <TextField
+              name={`custom_fields[${index}].field`}
+              label={t("advanced.customFields.field")}
+              placeholder={t("advanced.customFields.fieldPlaceholder")}
+              columns={4}
+            />
+            <Select
+              name={`custom_fields[${index}].operator`}
+              label={t("advanced.customFields.operator")}
+              options={operatorOptions}
+              columns={3}
+            />
+            <TextField
+              name={`custom_fields[${index}].value`}
+              label={t("advanced.customFields.value")}
+              placeholder={needsValue ? t("advanced.customFields.valuePlaceholder") : ""}
+              disabled={!needsValue}
+              columns={4}
+            />
+            <div className="col-span-12 sm:col-span-1 flex items-end">
+              <button
+                type="button"
+                className="h-10 w-full inline-flex items-center justify-center rounded-md border border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 cursor-pointer"
+                aria-label={t("advanced.customFields.remove")}
+                onClick={() => form.removeFieldValue("custom_fields", index)}
+              >
+                <XMarkIcon className="w-5 h-5" aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+        );
+      })}
+    </CollapsibleSection>
+  );
+}
+
 const RawReleaseTags = () => {
   const { t } = useTranslation("filters");
   const values = useFormValue((v: Filter) => ({ except_release_tags: v.except_release_tags, match_release_tags: v.match_release_tags, use_regex_release_tags: v.use_regex_release_tags }));
@@ -593,6 +698,7 @@ export const Advanced = () => {
       <Language />
       <Origins />
       <FeedSpecific />
+      <CustomFields />
       <RawReleaseTags />
     </div>
   );
