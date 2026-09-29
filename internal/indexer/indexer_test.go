@@ -423,6 +423,48 @@ func TestIndexersParseAndFilter(t *testing.T) {
 			match: true,
 		},
 		{
+			name: "theoldschool",
+			fields: fields{
+				identifier:         "theoldschool",
+				identifierExternal: "TheOldSchool",
+				settings: map[string]string{
+					"rsskey": "key",
+				},
+			},
+			subTests: []subTest{
+				{
+					name: "announce_source_not_in_name",
+					args: args{
+						announceLines: []string{"[NEW] [Series] [Example.Show.S01E01.1080p.H264-GROUP] [WEB-DL] [487.27 MiB] [0%] par tester -> https://theoldschool.cc/torrents/00000"},
+						filters: []filterTest{
+							{
+								filter: &domain.Filter{
+									Name:    "filter_1",
+									Sources: []string{"WEB-DL"},
+								},
+								match: true,
+							},
+						},
+					},
+				},
+				{
+					name: "name_source_takes_priority",
+					args: args{
+						announceLines: []string{"[NEW] [Series] [Example.Show.S01E01.1080p.BluRay.H264-GROUP] [WEB-DL] [487.27 MiB] [0%] par tester -> https://theoldschool.cc/torrents/00000"},
+						filters: []filterTest{
+							{
+								filter: &domain.Filter{
+									Name:    "filter_1",
+									Sources: []string{"BluRay"},
+								},
+								match: true,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			name: "sharewood",
 			fields: fields{
 				identifier:         "sharewood",
