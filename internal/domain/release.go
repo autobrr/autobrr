@@ -693,7 +693,8 @@ func (r *Release) ParseString(title string) {
 	r.TorrentName = title
 
 	r.Source = rel.Source
-	r.Resolution = rel.Resolution
+	// announce values such as "1080p/i" are not normalized, so prefer the parsed one
+	r.Resolution = cmp.Or(rel.Resolution, r.Resolution)
 	r.Region = rel.Region
 
 	if rel.Language != nil {
