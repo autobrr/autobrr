@@ -246,8 +246,11 @@ func (s *Server) RequireAuthDisabledAllowedHost(next http.Handler) http.Handler 
 		}
 
 		if !s.isAllowedHost(r.Host) {
-			s.log.Warn().Str("host", r.Host).Str("url", r.URL.Path).Msg("auth disabled: rejected request, host not in authAllowedHosts or corsAllowedOrigins")
-			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+			s.log.Error().Str("host", r.Host).Str("url", r.URL.Path).Msg("auth disabled: rejected request, host not in authAllowedHosts or corsAllowedOrigins")
+			// The peer already passed the IP allowlist, so this is almost always a
+			// trusted client on an unlisted hostname; naming the fix beats a bare
+			// Forbidden page, and a rebinding attacker learns nothing new from it.
+			http.Error(w, "Forbidden: this hostname is not allowed while authentication is disabled, add it to authAllowedHosts in config.toml", http.StatusForbidden)
 			return
 		}
 

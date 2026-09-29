@@ -574,6 +574,9 @@ func TestRequireAuthDisabledAllowedHost_AllowsConfiguredHosts(t *testing.T) {
 			s.RequireAuthDisabledAllowedHost(okHandler()).ServeHTTP(rr, req)
 
 			assert.Equal(t, tt.want, rr.Code)
+			if tt.want == http.StatusForbidden {
+				assert.Contains(t, rr.Body.String(), "authAllowedHosts")
+			}
 		})
 	}
 }

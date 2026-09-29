@@ -283,7 +283,22 @@ export const LoginRoute = createRoute({
   validateSearch: z.object({
     redirect: z.optional(z.string()),
   }),
-  beforeLoad: async ({ context, navigate }) => {
+  beforeLoad: async ({ context, navigate, search }) => {
+    // With built-in auth disabled there is nothing to log in to, so bookmarks and
+    // stale tabs on /login continue into the app instead of a form that always fails.
+    const validation = await APIClient.auth.validate().catch(() => undefined);
+    if (validation?.auth_method === "disabled") {
+      AuthContext.set({
+        isLoggedIn: true,
+        username: validation.username || "unknown",
+        authMethod: validation.auth_method
+      });
+
+      // Only same-app paths; an absolute href would make this an open redirect.
+      const target = search.redirect?.startsWith("/") && !search.redirect.startsWith("//") ? search.redirect : "/";
+      throw redirect({ href: target });
+    }
+
     // First check if OIDC is enabled
     try {
       const oidcConfig = await context.queryClient.query({ ...OIDCConfigQueryOptions(), staleTime: "static" });
