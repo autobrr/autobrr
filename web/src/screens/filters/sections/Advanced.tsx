@@ -549,7 +549,12 @@ const CustomFields = () => {
 
   const selectedIndexerIds = new Set(values.indexers.map((indexer) => indexer.id));
   const selectedFeeds = (feedsQuery.data || [])
-    .filter((feed) => feed.type === "RSS" && selectedIndexerIds.has(feed.indexer.id) && Boolean(feed.last_run));
+    .filter((feed) =>
+      feed.type === "RSS" &&
+      selectedIndexerIds.has(feed.indexer.id) &&
+      Boolean(feed.last_run) &&
+      !feed.last_run.startsWith("0001-01-01")
+    );
   const latestFeedQueries = useQueries({
     queries: selectedFeeds.map((feed) => ({
       queryKey: FeedKeys.latest(feed.id),
