@@ -126,6 +126,12 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 
 	rls := domain.NewRelease(j.Feed.Indexer)
 	rls.Implementation = domain.ReleaseImplementationRSS
+	if len(item.Custom) > 0 {
+		rls.CustomFields = make(map[string]string, len(item.Custom))
+		for key, value := range item.Custom {
+			rls.CustomFields[key] = value
+		}
+	}
 
 	rls.ParseString(item.Title)
 
