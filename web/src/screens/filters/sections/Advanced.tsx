@@ -3,10 +3,12 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { PlusIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
 import { useFormContext, useFormValue } from "@hooks/form";
+import { FeedsQueryOptions } from "@api/queries";
 import { DocsLink } from "@components/ExternalLink";
 import { WarningAlert } from "@components/alerts";
 import {
@@ -514,13 +516,44 @@ const FeedSpecific = () => {
   );
 }
 
+const customFieldNamesFromFeedData = (data: string) => {
+  if (!data) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(data) as { items?: Array<{ custom?: Record<string, unknown> }> };
+    if (!Array.isArray(parsed.items)) {
+      return [];
+    }
+
+    return parsed.items.flatMap((item) =>
+      item.custom && typeof item.custom === "object" ? Object.keys(item.custom) : []
+    );
+  } catch {
+    return [];
+  }
+};
+
 const CustomFields = () => {
   const { t } = useTranslation("filters");
   const form = useFormContext();
   const values = useFormValue((v: Filter) => ({
     custom_fields: v.custom_fields || [],
-    custom_fields_match_logic: v.custom_fields_match_logic || "ALL"
+    custom_fields_match_logic: v.custom_fields_match_logic || "ALL",
+    indexers: v.indexers || []
   }));
+  const feedsQuery = useQuery(FeedsQueryOptions());
+
+  const selectedIndexerIds = new Set(values.indexers.map((indexer) => indexer.id));
+  const configuredFields = new Set(values.custom_fields.map((rule) => rule.field));
+  const detectedFields = Array.from(new Set(
+    (feedsQuery.data || [])
+      .filter((feed) => feed.type === "RSS" && selectedIndexerIds.has(feed.indexer.id))
+      .flatMap((feed) => customFieldNamesFromFeedData(feed.last_run_data))
+  ))
+    .filter((field) => !configuredFields.has(field))
+    .sort((a, b) => a.localeCompare(b));
 
   const operatorOptions = [
     { label: t("advanced.customFields.operators.equals"), value: "EQUALS" },
@@ -534,9 +567,9 @@ const CustomFields = () => {
     { label: t("advanced.customFields.logic.any"), value: "ANY" }
   ];
 
-  const addRule = () => {
+  const addRule = (field = "") => {
     form.pushFieldValue("custom_fields", {
-      field: "",
+      field,
       operator: "EQUALS",
       value: ""
     } satisfies FilterCustomFieldRule);
@@ -553,6 +586,28 @@ const CustomFields = () => {
           {t("advanced.customFields.description")}
         </p>
       </div>
+
+      {detectedFields.length > 0 && (
+        <div className="sm:col-span-12 mb-4">
+          <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+            {t("advanced.customFields.detected")}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {detectedFields.map((field) => (
+              <button
+                key={field}
+                type="button"
+                className="inline-flex items-center rounded-md border border-gray-300 dark:border-gray-650 px-2.5 py-1.5 text-xs font-mono text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-750 cursor-pointer"
+                title={t("advanced.customFields.addDetected", { field })}
+                onClick={() => addRule(field)}
+              >
+                <PlusIcon className="w-3.5 h-3.5 mr-1" aria-hidden="true" />
+                {field}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <FilterLayout>
         <Select
