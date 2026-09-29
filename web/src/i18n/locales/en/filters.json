@@ -283,6 +283,29 @@
       "countPlaceholder": "Takes any number (0 is infinite)",
       "seedersTooltip": "Number of {{type}} as specified by the respective unit. Only for Torznab"
     },
+    "customFields": {
+      "title": "Custom RSS fields",
+      "subtitle": "Match arbitrary fields exposed by RSS items.",
+      "description": "Use tracker-specific RSS item fields that autobrr does not map to built-in release properties. Field names are case-sensitive.",
+      "matchLogic": "Match logic",
+      "add": "Add rule",
+      "remove": "Remove rule",
+      "field": "Field",
+      "fieldPlaceholder": "eg. audio_pt",
+      "operator": "Operator",
+      "value": "Value",
+      "valuePlaceholder": "eg. 1",
+      "logic": {
+        "all": "ALL (AND)",
+        "any": "ANY (OR)"
+      },
+      "operators": {
+        "equals": "Equals",
+        "notEquals": "Does not equal",
+        "exists": "Exists",
+        "notExists": "Does not exist"
+      }
+    },
     "rawReleaseTags": {
       "title": "Raw Release Tags",
       "subtitlePrefix": "Advanced users only",
