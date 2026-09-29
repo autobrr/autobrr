@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/autobrr/autobrr/internal/domain"
+
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/hlog"
@@ -183,8 +185,8 @@ func (s *Server) RequireAuthDisabledIPAllowlist(next http.Handler) http.Handler 
 // while authentication is disabled. CORS cannot do that: it only controls whether
 // the browser may read the response, and rs/cors invokes the handler regardless of
 // origin, so a cross-site request still executes server-side. Requests without
-// browser markers (curl, API clients) pass untouched; the peer allowlist is their
-// only gate.
+// browser markers (curl, API clients) pass untouched. Fetch metadata is absent
+// over plain HTTP, so DNS rebinding is handled by RequireAuthDisabledAllowedHost.
 func (s *Server) RejectUntrustedBrowserRequests(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !s.config.Config.IsAuthDisabled() {
@@ -213,16 +215,6 @@ func (s *Server) RejectUntrustedBrowserRequests(next http.Handler) http.Handler 
 			return
 		}
 
-		// DNS-rebound requests look same-origin to the browser; only the Host
-		// header gives them away. Rebinding needs an attacker-controlled DNS name,
-		// so IP literals and localhost stay allowed, and clients without Sec-Fetch
-		// headers are not restricted.
-		if secFetchSite != "" && !s.isAllowedHost(r.Host) {
-			s.log.Warn().Str("host", r.Host).Str("url", r.URL.Path).Msg("auth disabled: rejected browser request, host not derived from corsAllowedOrigins")
-			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
-			return
-		}
-
 		switch r.Method {
 		case http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete:
 			// A cross-site HTML form can submit JSON inside a text/plain body with
@@ -241,27 +233,69 @@ func (s *Server) RejectUntrustedBrowserRequests(next http.Handler) http.Handler 
 	})
 }
 
-// isAllowedHost reports whether the Host of a browser request in auth-disabled
-// mode is an IP literal, localhost, or a host derived from corsAllowedOrigins.
+// RequireAuthDisabledAllowedHost rejects requests whose Host is not allowed
+// while authentication is disabled. A DNS-rebound browser is an allowlisted peer
+// sending a same-origin request; only the Host header gives it away, and over
+// plain HTTP it carries neither Origin nor Sec-Fetch-Site, so every request is
+// checked regardless of browser markers.
+func (s *Server) RequireAuthDisabledAllowedHost(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !s.config.Config.IsAuthDisabled() {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		if !s.isAllowedHost(r.Host) {
+			s.log.Warn().Str("host", r.Host).Str("url", r.URL.Path).Msg("auth disabled: rejected request, host not in authAllowedHosts or corsAllowedOrigins")
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+// isAllowedHost reports whether host is an IP literal, localhost, or a host from
+// authAllowedHosts, corsAllowedOrigins or the machine hostname. Rebinding needs a
+// DNS name the attacker controls, which rules out the first two.
 func (s *Server) isAllowedHost(host string) bool {
-	host = strings.ToLower(host)
+	host, err := domain.NormalizeHost(host)
+	if err != nil {
+		return false
+	}
 
-	if _, ok := s.authAllowedHosts[host]; ok {
+	if _, err := netip.ParseAddr(host); err == nil {
 		return true
 	}
 
-	bare := host
-	if h, _, err := net.SplitHostPort(host); err == nil {
-		bare = h
-	}
-
-	if bare == "localhost" {
+	if host == "localhost" || strings.HasSuffix(host, ".localhost") {
 		return true
 	}
 
-	_, err := netip.ParseAddr(strings.Trim(bare, "[]"))
+	_, ok := s.authAllowedHosts[host]
 
-	return err == nil
+	return ok
+}
+
+// RestrictAuthDisabledFraming limits which sites may frame autobrr while
+// authentication is disabled. With auth on, the SameSite=Lax session cookie
+// keeps a cross-site frame logged out; with auth off, any framing site would get
+// a fully working UI to clickjack.
+func (s *Server) RestrictAuthDisabledFraming(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !s.config.Config.IsAuthDisabled() {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		policy := s.authFrameAncestors
+		if policy == "" {
+			policy = "frame-ancestors 'self'"
+		}
+		w.Header().Set("Content-Security-Policy", policy)
+
+		next.ServeHTTP(w, r)
+	})
 }
 
 // LoggerMiddleware logs each request at trace level. Requests whose path exactly

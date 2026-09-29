@@ -8,10 +8,12 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/config"
+	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/web"
 
 	"github.com/alexedwards/scs/v2"
@@ -37,11 +39,12 @@ type Server struct {
 	// config.AuthAllowedPeerCIDRs, rather than on every request.
 	authAllowedPeerPrefixes []netip.Prefix
 
-	// authAllowedOrigins and authAllowedHosts are derived once at startup from
-	// config.CorsAllowedOrigins. While auth is disabled, browser requests to the
-	// API are enforced against them by RejectUntrustedBrowserRequests.
+	// authAllowedOrigins, authAllowedHosts and authFrameAncestors are derived once
+	// at startup from config.CorsAllowedOrigins and config.AuthAllowedHosts, and
+	// only enforced while auth is disabled.
 	authAllowedOrigins map[string]struct{}
 	authAllowedHosts   map[string]struct{}
+	authFrameAncestors string
 
 	// healthCheckPaths holds the exact resolved paths (base URL included) that are
 	// reachable from loopback while auth is disabled.
@@ -149,8 +152,8 @@ func NewServer(deps Deps) *Server {
 			srv.authAllowedPeerPrefixes = prefixes
 		}
 
-		if err := srv.buildAuthAllowedOriginSets(); err != nil {
-			srv.log.Error().Err(err).Msg("auth disabled: invalid corsAllowedOrigins, denying all browser requests")
+		if err := srv.buildAuthAllowlists(); err != nil {
+			srv.log.Error().Err(err).Msg("auth disabled: invalid corsAllowedOrigins or authAllowedHosts, denying requests by hostname")
 		}
 	}
 
@@ -162,22 +165,43 @@ func NewServer(deps Deps) *Server {
 	return srv
 }
 
-// buildAuthAllowedOriginSets derives the origin and host allowlists enforced by
-// RejectUntrustedBrowserRequests from the configured CORS origins.
-func (s *Server) buildAuthAllowedOriginSets() error {
+// buildAuthAllowlists derives the origin and host allowlists and the
+// frame-ancestors policy enforced while auth is disabled.
+func (s *Server) buildAuthAllowlists() error {
 	origins, err := s.config.Config.ParseAuthAllowedOrigins()
 	if err != nil {
 		return err
 	}
 
+	hosts, err := s.config.Config.ParseAuthAllowedHosts()
+	if err != nil {
+		return err
+	}
+
+	// The machine hostname is not attacker-controlled DNS, and admitting it
+	// keeps http://<hostname>:7474 working without configuration.
+	if name, err := os.Hostname(); err == nil {
+		if host, err := domain.NormalizeHost(name); err == nil {
+			hosts = append(hosts, host)
+		}
+	}
+
 	s.authAllowedOrigins = make(map[string]struct{}, len(origins))
-	s.authAllowedHosts = make(map[string]struct{}, len(origins))
+	s.authAllowedHosts = make(map[string]struct{}, len(origins)+len(hosts))
 	for _, origin := range origins {
 		s.authAllowedOrigins[origin] = struct{}{}
 		if _, host, ok := strings.Cut(origin, "://"); ok {
-			s.authAllowedHosts[host] = struct{}{}
+			if host, err := domain.NormalizeHost(host); err == nil {
+				s.authAllowedHosts[host] = struct{}{}
+			}
 		}
 	}
+
+	for _, host := range hosts {
+		s.authAllowedHosts[host] = struct{}{}
+	}
+
+	s.authFrameAncestors = strings.Join(append([]string{"frame-ancestors 'self'"}, origins...), " ")
 
 	return nil
 }
@@ -230,6 +254,8 @@ func (s *Server) Handler() http.Handler {
 	r.Use(hlog.RequestIDHandler("request_id", "X-Request-Id"))
 	// Must run before RealIP so forwarded headers cannot bypass the allowlist.
 	r.Use(s.RequireAuthDisabledIPAllowlist)
+	r.Use(s.RequireAuthDisabledAllowedHost)
+	r.Use(s.RestrictAuthDisabledFraming)
 	if s.config.Config.IsAuthDisabled() {
 		// RealIP rewrites r.RemoteAddr from forwarded headers it trusts from any
 		// peer, so it stays off in this mode. If the operator names the header their
@@ -264,8 +290,8 @@ func (s *Server) Handler() http.Handler {
 
 	// Create a separate router for API
 	apiRouter := chi.NewRouter()
-	// API only, so cross-site navigations to the web shell (e.g. dashboard
-	// iframes) keep working; their in-frame API calls are same-origin.
+	// API only, so cross-site navigations to the web shell keep working. Framing
+	// is limited separately by RestrictAuthDisabledFraming.
 	apiRouter.Use(s.RejectUntrustedBrowserRequests)
 	apiRouter.Route("/auth", newAuthHandler(encoder, s.log, s, s.config.Config, s.sessionManager, s.authService, s.oidcService).Routes)
 	apiRouter.Route("/healthz", newHealthHandler(encoder, s.db).Routes)

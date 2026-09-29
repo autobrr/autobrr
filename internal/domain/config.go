@@ -4,8 +4,10 @@
 package domain
 
 import (
+	"net"
 	"net/netip"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -66,6 +68,11 @@ type Config struct {
 	// is disabled. Entries match the immediate TCP peer autobrr sees (normally the
 	// reverse proxy or loopback), never a forwarded header or the end user's browser.
 	AuthAllowedPeerCIDRs []string `toml:"authAllowedPeerCIDRs"`
+
+	// AuthAllowedHosts lists extra hostnames a request's Host header may name while
+	// authentication is disabled, on top of IP literals, localhost, the machine
+	// hostname and the hosts of CorsAllowedOrigins. It blocks DNS rebinding.
+	AuthAllowedHosts []string `toml:"authAllowedHosts"`
 
 	// AuthClientIPHeader optionally names a header the reverse proxy overwrites on
 	// every request with the end user's IP (e.g. X-Real-IP). While authentication is
@@ -174,6 +181,69 @@ func (c *Config) ParseAuthAllowedOrigins() ([]string, error) {
 	return origins, nil
 }
 
+// ParseAuthAllowedHosts normalizes AuthAllowedHosts with NormalizeHost,
+// skipping blank entries.
+func (c *Config) ParseAuthAllowedHosts() ([]string, error) {
+	hosts := make([]string, 0, len(c.AuthAllowedHosts))
+
+	for _, entry := range c.AuthAllowedHosts {
+		if strings.TrimSpace(entry) == "" {
+			continue
+		}
+
+		host, err := NormalizeHost(entry)
+		if err != nil {
+			return nil, errors.Wrap(err, "invalid host in authAllowedHosts: %s", entry)
+		}
+
+		hosts = append(hosts, host)
+	}
+
+	return hosts, nil
+}
+
+// NormalizeHost reduces a Host header value or authAllowedHosts entry to a
+// lowercase hostname or unmapped IP address, without port, brackets or trailing dot.
+func NormalizeHost(host string) (string, error) {
+	host = strings.ToLower(strings.TrimSpace(host))
+	if h, port, err := net.SplitHostPort(host); err == nil {
+		if _, err := strconv.ParseUint(port, 10, 16); err != nil {
+			return "", errors.New("invalid port: %s", port)
+		}
+		host = h
+	}
+
+	if bare, ok := strings.CutPrefix(host, "["); ok {
+		host, ok = strings.CutSuffix(bare, "]")
+		if !ok {
+			return "", errors.New("unterminated IPv6 literal")
+		}
+	}
+
+	if addr, err := netip.ParseAddr(host); err == nil {
+		return addr.Unmap().WithZone("").String(), nil
+	}
+
+	host = strings.TrimSuffix(host, ".")
+	if host == "" || len(host) > 253 {
+		return "", errors.New("invalid hostname length")
+	}
+
+	for label := range strings.SplitSeq(host, ".") {
+		if label == "" || len(label) > 63 {
+			return "", errors.New("invalid hostname label length")
+		}
+
+		for _, r := range label {
+			if (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '-' && r != '_' {
+				return "", errors.New("invalid hostname character: '%c'", r)
+			}
+		}
+	}
+
+	return host, nil
+}
+
 // ValidateAuthDisabledConfig validates that disabling authentication is configured
 // safely. It is a no-op when auth is not disabled.
 func (c *Config) ValidateAuthDisabledConfig() error {
@@ -215,6 +285,10 @@ func (c *Config) ValidateAuthDisabledConfig() error {
 
 	if len(origins) == 0 {
 		return errors.New("corsAllowedOrigins must be set to explicit origins when authentication is disabled")
+	}
+
+	if _, err := c.ParseAuthAllowedHosts(); err != nil {
+		return err
 	}
 
 	if header := strings.TrimSpace(c.AuthClientIPHeader); header != "" && !httpguts.ValidHeaderFieldName(header) {

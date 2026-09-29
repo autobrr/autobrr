@@ -109,6 +109,41 @@ func TestConfig_ParseAuthAllowedOrigins(t *testing.T) {
 	}
 }
 
+func TestNormalizeHost(t *testing.T) {
+	tests := []struct {
+		name    string
+		host    string
+		want    string
+		wantErr bool
+	}{
+		{name: "hostname", host: "autobrr.example.com", want: "autobrr.example.com"},
+		{name: "hostname with port", host: "autobrr.example.com:7474", want: "autobrr.example.com"},
+		{name: "uppercase and trailing dot", host: "Autobrr.Example.COM.", want: "autobrr.example.com"},
+		{name: "single label", host: "autobrr:7474", want: "autobrr"},
+		{name: "ipv4 with port", host: "192.168.1.10:7474", want: "192.168.1.10"},
+		{name: "bracketed ipv6", host: "[::1]", want: "::1"},
+		{name: "bracketed ipv6 with port", host: "[::1]:7474", want: "::1"},
+		{name: "ipv4-mapped ipv6", host: "[::ffff:127.0.0.1]:7474", want: "127.0.0.1"},
+		{name: "empty", host: "", wantErr: true},
+		{name: "empty label", host: "autobrr..example.com", wantErr: true},
+		{name: "wildcard", host: "*.example.com", wantErr: true},
+		{name: "url", host: "https://autobrr.example.com", wantErr: true},
+		{name: "unterminated ipv6", host: "[::1", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NormalizeHost(tt.host)
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func TestConfig_ValidateAuthDisabledConfig(t *testing.T) {
 	t.Run("auth not disabled is always valid", func(t *testing.T) {
 		c := &Config{}
@@ -202,6 +237,17 @@ func TestConfig_ValidateAuthDisabledConfig(t *testing.T) {
 		assert.EqualError(t, c.ValidateAuthDisabledConfig(), "corsAllowedOrigins must be set to explicit origins when authentication is disabled")
 	})
 
+	t.Run("auth disabled with invalid allowed host is rejected", func(t *testing.T) {
+		c := &Config{
+			AuthDisabled:                true,
+			AuthDisabledAcknowledgement: AuthDisabledAcknowledgementValue,
+			AuthAllowedPeerCIDRs:        []string{"127.0.0.1/32"},
+			CorsAllowedOrigins:          "https://autobrr.example.com",
+			AuthAllowedHosts:            []string{"https://autobrr.example.com"},
+		}
+		assert.ErrorContains(t, c.ValidateAuthDisabledConfig(), "invalid host in authAllowedHosts: https://autobrr.example.com")
+	})
+
 	t.Run("auth disabled with invalid client ip header is rejected", func(t *testing.T) {
 		c := &Config{
 			AuthDisabled:                true,
@@ -219,6 +265,7 @@ func TestConfig_ValidateAuthDisabledConfig(t *testing.T) {
 			AuthDisabledAcknowledgement: AuthDisabledAcknowledgementValue,
 			AuthAllowedPeerCIDRs:        []string{"127.0.0.1/32", "192.168.0.0/16"},
 			CorsAllowedOrigins:          "https://autobrr.example.com",
+			AuthAllowedHosts:            []string{"autobrr", "autobrr.lan"},
 			AuthClientIPHeader:          "X-Real-IP",
 		}
 		assert.NoError(t, c.ValidateAuthDisabledConfig())

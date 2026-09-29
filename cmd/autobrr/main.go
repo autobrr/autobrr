@@ -136,6 +136,7 @@ func main() {
 			Bool("wildcard_bind", wildcardBind).
 			Str("cors_allowed_origins", cfg.Config.CorsAllowedOrigins).
 			Strs("authAllowedPeerCIDRs", cfg.Config.AuthAllowedPeerCIDRs).
+			Strs("authAllowedHosts", cfg.Config.AuthAllowedHosts).
 			Str("authClientIPHeader", cfg.Config.AuthClientIPHeader).
 			Msg("SECURITY: built-in authentication is DISABLED. Access is restricted only to the immediate network peer matching authAllowedPeerCIDRs. Ensure autobrr sits behind a reverse proxy that performs authentication.")
 

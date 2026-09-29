@@ -348,6 +348,7 @@ The following environment variables can be used:
 | `AUTOBRR__AUTH_DISABLED`                 | Disable built-in authentication (see [Disabling built-in authentication](#disabling-built-in-authentication)) | `false`     |
 | `AUTOBRR__AUTH_DISABLED_ACKNOWLEDGEMENT` | Must be `I_ACKNOWLEDGE_THIS_IS_A_BAD_IDEA` to disable authentication                                          | -           |
 | `AUTOBRR__AUTH_ALLOWED_PEER_CIDRS`       | Peer allowlist while auth is disabled, comma separated CIDRs or IPs                                           | -           |
+| `AUTOBRR__AUTH_ALLOWED_HOSTS`            | Extra Host header names allowed while auth is disabled, comma separated                                       | -           |
 | `AUTOBRR__AUTH_CLIENT_IP_HEADER`         | Proxy header to log client IPs from while auth is disabled                                                    | -           |
 | `AUTOBRR__METRICS_ENABLED`               | Enable Metrics server                                                                                         | `false`     |
 | `AUTOBRR__METRICS_HOST`                  | Metrics listen address                                                                                        | `127.0.0.1` |
@@ -416,10 +417,10 @@ authDisabledAcknowledgement = "I_ACKNOWLEDGE_THIS_IS_A_BAD_IDEA"
 # /32 or /128 entries. NOT the end user's address, and never a forwarded header.
 authAllowedPeerCIDRs = ["127.0.0.1/32", "::1/128"]
 # Every URL you access autobrr at (UI or API). Browser requests with any other
-# Origin or Host are rejected to block CSRF and DNS rebinding. Plain API clients
-# (curl, scripts, integrations) are unaffected; direct access by IP address or
-# localhost needs no entry.
+# Origin are rejected to block CSRF, and only these origins may frame autobrr.
 corsAllowedOrigins = "https://autobrr.example.com"
+# Optional: extra hostnames allowed in the Host header, see below.
+#authAllowedHosts = ["autobrr"]
 # Optional: a header your proxy overwrites on every request with the end user's
 # IP (e.g. X-Real-IP), used for access logs only.
 #authClientIPHeader = "X-Real-IP"
@@ -440,6 +441,7 @@ Things to be aware of:
 
 - Keep `host = "127.0.0.1"` (or an equally private bind) so the backend port cannot be reached without going through the proxy. A wildcard bind combined with a broad peer allowlist hands out admin access to the whole range - loopback, Docker network gateways, Kubernetes node addresses, and shared proxy or CDN ranges can all carry traffic from callers that are not your proxy.
 - Broad CIDRs are warned about at startup: every address in an allowlisted range has full administrative access, so list the exact proxy address instead of its subnet.
+- Every request, including from curl, scripts and integrations, must name an allowed hostname in its `Host` header, which blocks DNS rebinding. IP addresses, `localhost`, the machine hostname and the hosts in `corsAllowedOrigins` are always allowed. Add any other name to `authAllowedHosts`, for example `autobrr` when nginx proxies to `http://autobrr:7474` without `proxy_set_header Host $host`. Rejected requests are logged with the host they used.
 - While auth is disabled, mutating API requests must send `Content-Type: application/json`, and API key management is unavailable (an authless caller could otherwise mint a credential that outlives re-enabling auth). Existing API keys keep working after you re-enable authentication.
 - If you started with auth disabled and never created a user, re-enabling authentication exposes first-user onboarding to whoever reaches the login page first. Create the user right after re-enabling, or create one up front with `autobrrctl create-user`.
 - To re-enable authentication: remove the `authDisabled` settings, restart autobrr, then verify you are asked to log in.

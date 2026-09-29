@@ -146,10 +146,15 @@ checkForUpdates = true
 #
 # corsAllowedOrigins is REQUIRED in this mode and must list every URL you access
 # autobrr at (UI or API, comma separated, scheme://host[:port] - no wildcard).
-# Browser requests with any other Origin or Host are rejected to block cross-site
-# request forgery and DNS rebinding; plain API clients (curl, scripts) are only
-# subject to the peer allowlist. Direct access by IP or localhost needs no entry.
+# Browser requests with any other Origin are rejected to block cross-site request
+# forgery, and only these origins may embed autobrr in a frame.
 #corsAllowedOrigins = "https://autobrr.example.com"
+#
+# Every request, browser or not, must name an allowed hostname in its Host header
+# to block DNS rebinding. IP addresses, localhost, the machine hostname and the
+# hosts in corsAllowedOrigins are always allowed; list any other name clients or
+# your proxy use to reach autobrr (e.g. nginx's default proxy_pass Host "autobrr").
+#authAllowedHosts = ["autobrr"]
 #
 # Header the reverse proxy overwrites on EVERY request with the end user's IP,
 # used for access logs while authentication is disabled. Only safe with a header
@@ -324,6 +329,7 @@ func (c *AppConfig) defaults() {
 		AuthDisabled:                false,
 		AuthDisabledAcknowledgement: "",
 		AuthAllowedPeerCIDRs:        []string{},
+		AuthAllowedHosts:            []string{},
 		AuthClientIPHeader:          "",
 	}
 }
@@ -495,6 +501,10 @@ func (c *AppConfig) loadFromEnv() {
 
 	if v := GetEnvStr("AUTH_ALLOWED_PEER_CIDRS"); v != "" {
 		c.Config.AuthAllowedPeerCIDRs = splitEnvList(v)
+	}
+
+	if v := GetEnvStr("AUTH_ALLOWED_HOSTS"); v != "" {
+		c.Config.AuthAllowedHosts = splitEnvList(v)
 	}
 
 	if v := GetEnvStr("AUTH_CLIENT_IP_HEADER"); v != "" {

@@ -298,13 +298,13 @@ func TestLoggerMiddleware_FallsBackToRemoteAddr(t *testing.T) {
 	assert.Contains(t, buf.String(), `"remote_ip":"127.0.0.1:1234"`)
 }
 
-// newAuthDisabledTestServerWithOrigins mirrors NewServer's origin-set derivation
+// newAuthDisabledTestServerWithOrigins mirrors NewServer's allowlist derivation
 // on top of newAuthDisabledTestServer.
 func newAuthDisabledTestServerWithOrigins(cidrs []string, corsOrigins string) *Server {
 	s := newAuthDisabledTestServer(cidrs)
 	s.config.Config.CorsAllowedOrigins = corsOrigins
 
-	if err := s.buildAuthAllowedOriginSets(); err != nil {
+	if err := s.buildAuthAllowlists(); err != nil {
 		panic(err)
 	}
 
@@ -328,7 +328,8 @@ func TestRejectUntrustedBrowserRequests_PassThroughWhenAuthEnabled(t *testing.T)
 }
 
 func TestRejectUntrustedBrowserRequests_AllowsRequestsWithoutBrowserMarkers(t *testing.T) {
-	// curl-style API clients send no Origin or Sec-Fetch headers and any Host.
+	// curl-style API clients send no Origin or Sec-Fetch headers; their Host is
+	// checked by RequireAuthDisabledAllowedHost instead.
 	s := newAuthDisabledTestServerWithOrigins([]string{"127.0.0.1/32"}, "https://autobrr.example.com")
 
 	req := httptest.NewRequest(http.MethodGet, "/api/filters", nil)
@@ -420,40 +421,6 @@ func TestRejectUntrustedBrowserRequests_AllowsNonCrossSiteFetchValues(t *testing
 	}
 }
 
-func TestRejectUntrustedBrowserRequests_BlocksUnknownHostForBrowserRequests(t *testing.T) {
-	// DNS rebinding: the rebound request looks same-origin to the browser, but the
-	// Host header still names the attacker's domain.
-	s := newAuthDisabledTestServerWithOrigins([]string{"127.0.0.1/32"}, "https://autobrr.example.com")
-
-	req := httptest.NewRequest(http.MethodGet, "/api/filters", nil)
-	req.Host = "rebind.evil.example"
-	req.Header.Set("Sec-Fetch-Site", "same-origin")
-	rr := httptest.NewRecorder()
-
-	s.RejectUntrustedBrowserRequests(okHandler()).ServeHTTP(rr, req)
-
-	assert.Equal(t, http.StatusForbidden, rr.Code)
-}
-
-func TestRejectUntrustedBrowserRequests_AllowsIPLiteralAndLocalhostHosts(t *testing.T) {
-	// Rebinding requires an attacker-controlled DNS name, so direct-IP and
-	// localhost access needs no extra configuration.
-	for _, host := range []string{"192.168.1.10:7474", "[::1]:7474", "localhost:7474", "localhost"} {
-		t.Run(host, func(t *testing.T) {
-			s := newAuthDisabledTestServerWithOrigins([]string{"127.0.0.1/32"}, "https://autobrr.example.com")
-
-			req := httptest.NewRequest(http.MethodGet, "/api/filters", nil)
-			req.Host = host
-			req.Header.Set("Sec-Fetch-Site", "same-origin")
-			rr := httptest.NewRecorder()
-
-			s.RejectUntrustedBrowserRequests(okHandler()).ServeHTTP(rr, req)
-
-			assert.Equal(t, http.StatusOK, rr.Code)
-		})
-	}
-}
-
 func TestRejectUntrustedBrowserRequests_BlocksTextPlainMutation(t *testing.T) {
 	// A cross-site form can submit JSON in a text/plain body without a preflight.
 	s := newAuthDisabledTestServerWithOrigins([]string{"127.0.0.1/32"}, "https://autobrr.example.com")
@@ -504,4 +471,136 @@ func TestIsAuthenticated_BypassedWhenAuthDisabled(t *testing.T) {
 	s.IsAuthenticated(okHandler()).ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+}
+
+func TestRequireAuthDisabledAllowedHost_PassThroughWhenAuthEnabled(t *testing.T) {
+	s := &Server{
+		log:    zerolog.Nop(),
+		config: &config.AppConfig{Config: &domain.Config{}},
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/config", nil)
+	req.Host = "rebind.evil.example"
+	rr := httptest.NewRecorder()
+
+	s.RequireAuthDisabledAllowedHost(okHandler()).ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+}
+
+func TestRequireAuthDisabledAllowedHost_BlocksUnknownHostWithoutBrowserMarkers(t *testing.T) {
+	// DNS rebinding over plain HTTP: a same-origin fetch from the rebound page
+	// carries neither Origin nor Sec-Fetch-Site, and the peer is the victim's
+	// own loopback. Only the Host header names the attacker's domain.
+	s, buf := newAuthDisabledTestServerWithLog([]string{"127.0.0.1/32"})
+	s.config.Config.CorsAllowedOrigins = "https://autobrr.example.com"
+	if err := s.buildAuthAllowlists(); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, method := range []string{http.MethodGet, http.MethodPost} {
+		t.Run(method, func(t *testing.T) {
+			req := httptest.NewRequest(method, "/api/config", nil)
+			req.RemoteAddr = "127.0.0.1:5555"
+			req.Host = "rebind.evil.example:7474"
+			rr := httptest.NewRecorder()
+
+			s.RequireAuthDisabledAllowedHost(okHandler()).ServeHTTP(rr, req)
+
+			assert.Equal(t, http.StatusForbidden, rr.Code)
+		})
+	}
+
+	assert.Contains(t, buf.String(), `"host":"rebind.evil.example:7474"`)
+}
+
+func TestRequireAuthDisabledAllowedHost_AllowsIPLiteralAndLocalhostHosts(t *testing.T) {
+	// Rebinding requires an attacker-controlled DNS name, so direct-IP and
+	// localhost access needs no extra configuration.
+	hosts := []string{
+		"192.168.1.10:7474",
+		"192.168.1.10",
+		"[::1]:7474",
+		"[::ffff:127.0.0.1]:7474",
+		"localhost:7474",
+		"localhost",
+		"LOCALHOST.",
+		"autobrr.localhost:7474",
+	}
+
+	for _, host := range hosts {
+		t.Run(host, func(t *testing.T) {
+			s := newAuthDisabledTestServerWithOrigins([]string{"127.0.0.1/32"}, "https://autobrr.example.com")
+
+			req := httptest.NewRequest(http.MethodGet, "/api/config", nil)
+			req.Host = host
+			rr := httptest.NewRecorder()
+
+			s.RequireAuthDisabledAllowedHost(okHandler()).ServeHTTP(rr, req)
+
+			assert.Equal(t, http.StatusOK, rr.Code)
+		})
+	}
+}
+
+func TestRequireAuthDisabledAllowedHost_AllowsConfiguredHosts(t *testing.T) {
+	s := newAuthDisabledTestServer([]string{"127.0.0.1/32"})
+	s.config.Config.CorsAllowedOrigins = "https://autobrr.example.com:8443"
+	s.config.Config.AuthAllowedHosts = []string{"autobrr", "Autobrr.LAN"}
+	if err := s.buildAuthAllowlists(); err != nil {
+		t.Fatal(err)
+	}
+
+	tests := []struct {
+		host string
+		want int
+	}{
+		{host: "autobrr.example.com", want: http.StatusOK},
+		{host: "autobrr.example.com:8443", want: http.StatusOK},
+		{host: "AUTOBRR.example.com.", want: http.StatusOK},
+		{host: "autobrr:7474", want: http.StatusOK},
+		{host: "autobrr.lan", want: http.StatusOK},
+		{host: "sub.autobrr.example.com", want: http.StatusForbidden},
+		{host: "autobrr.example.com.evil.example", want: http.StatusForbidden},
+		{host: "", want: http.StatusForbidden},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.host, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, "/api/config", nil)
+			req.Host = tt.host
+			rr := httptest.NewRecorder()
+
+			s.RequireAuthDisabledAllowedHost(okHandler()).ServeHTTP(rr, req)
+
+			assert.Equal(t, tt.want, rr.Code)
+		})
+	}
+}
+
+func TestRestrictAuthDisabledFraming(t *testing.T) {
+	s := newAuthDisabledTestServerWithOrigins([]string{"127.0.0.1/32"}, "https://autobrr.example.com,https://dash.example.net")
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rr := httptest.NewRecorder()
+
+	s.RestrictAuthDisabledFraming(okHandler()).ServeHTTP(rr, req)
+
+	assert.Equal(t, "frame-ancestors 'self' https://autobrr.example.com https://dash.example.net", rr.Header().Get("Content-Security-Policy"))
+}
+
+func TestRestrictAuthDisabledFraming_PassThroughWhenAuthEnabled(t *testing.T) {
+	// Existing dashboard embeds keep working with auth on; the SameSite=Lax
+	// session cookie already keeps a cross-site frame logged out.
+	s := &Server{
+		log:    zerolog.Nop(),
+		config: &config.AppConfig{Config: &domain.Config{}},
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rr := httptest.NewRecorder()
+
+	s.RestrictAuthDisabledFraming(okHandler()).ServeHTTP(rr, req)
+
+	assert.Empty(t, rr.Header().Get("Content-Security-Policy"))
 }
