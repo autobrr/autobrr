@@ -508,6 +508,30 @@ func TestRunMigrationTest_Postgres(t *testing.T) {
 				assert.False(t, tls)
 			},
 		},
+		{
+			Name:                "NordicBytes IRC network migration: not migrated",
+			MigrationIndex:      87,
+			MigrationsUntilName: "87_add_filter_max_downloads_period",
+			MigrationToRun:      "88_irc_update_nordicbytes_network",
+			SetupData:           setupNordicBytesNotMigrated,
+			ValidateResult:      validateNordicBytesNotMigrated,
+		},
+		{
+			Name:                "NordicBytes IRC network migration: already migrated",
+			MigrationIndex:      87,
+			MigrationsUntilName: "87_add_filter_max_downloads_period",
+			MigrationToRun:      "88_irc_update_nordicbytes_network",
+			SetupData:           setupNordicBytesAlreadyMigrated,
+			ValidateResult:      validateNordicBytesAlreadyMigrated,
+		},
+		{
+			Name:                "NordicBytes IRC network migration: not used",
+			MigrationIndex:      87,
+			MigrationsUntilName: "87_add_filter_max_downloads_period",
+			MigrationToRun:      "88_irc_update_nordicbytes_network",
+			SetupData:           setupNordicBytesNotUsed,
+			ValidateResult:      validateNordicBytesNotUsed,
+		},
 	}
 
 	for _, tc := range tests {
