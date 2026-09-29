@@ -210,6 +210,12 @@ const actionSchema = z.object({
   }
 });
 
+const customFieldRuleSchema = z.object({
+  field: z.string().trim().min(1, { message: "Required" }),
+  operator: z.enum(["EQUALS", "NOT_EQUALS", "EXISTS", "NOT_EXISTS"]),
+  value: z.string()
+});
+
 const externalFilterSchema = z.object({
   enabled: z.boolean(),
   index: z.number(),
@@ -283,6 +289,8 @@ const schema = z.object({
   max_downloads_period: z.number().min(1).optional(),
   max_downloads_window_type: z.string().optional(),
   indexers: z.array(indexerSchema).min(1, { message: "Must select at least one indexer" }),
+  custom_fields: z.array(customFieldRuleSchema),
+  custom_fields_match_logic: z.enum(["ALL", "ANY"]),
   actions: z.array(actionSchema),
   external: z.array(externalFilterSchema)
 }).superRefine((value, ctx) => {
@@ -336,6 +344,8 @@ const filterFormValues = (filter: Filter): Filter => ({
   match_description: filter.match_description,
   except_description: filter.except_description,
   use_regex_description: filter.use_regex_description,
+  custom_fields: filter.custom_fields || [],
+  custom_fields_match_logic: filter.custom_fields_match_logic || "ALL",
   match_categories: filter.match_categories,
   except_categories: filter.except_categories,
   tags: filter.tags,
