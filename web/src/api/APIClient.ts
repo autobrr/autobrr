@@ -354,6 +354,10 @@ export const APIClient = {
       body: feed
     }),
     fetchCaps: (id: number) => appClient.Get<FeedCaps>(`api/feeds/${id}/caps`),
+    latest: async (id: number) => {
+      const response = await appClient.Get<Response>(`api/feeds/${id}/latest`);
+      return response.text();
+    },
     toggleEnable: (id: number, enabled: boolean) => appClient.Patch(`api/feeds/${id}/enabled`, {
       body: { enabled }
     }),
