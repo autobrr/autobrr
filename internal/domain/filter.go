@@ -105,6 +105,48 @@ type FilterQueryParams struct {
 	Search string
 }
 
+// FilterCustomFieldOperator defines how a custom feed field is compared.
+type FilterCustomFieldOperator string
+
+const (
+	FilterCustomFieldEquals    FilterCustomFieldOperator = "EQUALS"
+	FilterCustomFieldNotEquals FilterCustomFieldOperator = "NOT_EQUALS"
+	FilterCustomFieldExists    FilterCustomFieldOperator = "EXISTS"
+	FilterCustomFieldNotExists FilterCustomFieldOperator = "NOT_EXISTS"
+)
+
+// FilterCustomFieldMatchLogic defines whether all or any custom field rules must match.
+type FilterCustomFieldMatchLogic string
+
+const (
+	FilterCustomFieldMatchAll FilterCustomFieldMatchLogic = "ALL"
+	FilterCustomFieldMatchAny FilterCustomFieldMatchLogic = "ANY"
+)
+
+// FilterCustomFieldRule matches one arbitrary field exposed by a feed item.
+type FilterCustomFieldRule struct {
+	Field    string                    `json:"field"`
+	Operator FilterCustomFieldOperator `json:"operator"`
+	Value    string                    `json:"value,omitempty"`
+}
+
+func (r FilterCustomFieldRule) matches(fields map[string]string) bool {
+	value, exists := fields[r.Field]
+
+	switch r.Operator {
+	case FilterCustomFieldEquals:
+		return exists && value == r.Value
+	case FilterCustomFieldNotEquals:
+		return exists && value != r.Value
+	case FilterCustomFieldExists:
+		return exists
+	case FilterCustomFieldNotExists:
+		return !exists
+	default:
+		return false
+	}
+}
+
 type Filter struct {
 	ID                        int                          `json:"id"`
 	Name                      string                       `json:"name"`
@@ -177,6 +219,8 @@ type Filter struct {
 	MatchDescription          string                       `json:"match_description,omitempty"`
 	ExceptDescription         string                       `json:"except_description,omitempty"`
 	UseRegexDescription       bool                         `json:"use_regex_description,omitempty"`
+	CustomFields              []FilterCustomFieldRule      `json:"custom_fields,omitempty"`
+	CustomFieldsMatchLogic    FilterCustomFieldMatchLogic  `json:"custom_fields_match_logic,omitempty"`
 	MinSeeders                int                          `json:"min_seeders,omitempty"`
 	MaxSeeders                int                          `json:"max_seeders,omitempty"`
 	MinLeechers               int                          `json:"min_leechers,omitempty"`
@@ -298,6 +342,8 @@ type FilterUpdate struct {
 	MatchDescription          *string                       `json:"match_description,omitempty"`
 	ExceptDescription         *string                       `json:"except_description,omitempty"`
 	UseRegexDescription       *bool                         `json:"use_regex_description,omitempty"`
+	CustomFields              *[]FilterCustomFieldRule      `json:"custom_fields,omitempty"`
+	CustomFieldsMatchLogic    *FilterCustomFieldMatchLogic  `json:"custom_fields_match_logic,omitempty"`
 	Scene                     *bool                         `json:"scene,omitempty"`
 	Origins                   *[]string                     `json:"origins,omitempty"`
 	ExceptOrigins             *[]string                     `json:"except_origins,omitempty"`
@@ -376,6 +422,24 @@ func (f *Filter) Validate() error {
 		return errors.New("validation: invalid max downloads window type: %s", f.MaxDownloadsWindowType)
 	}
 
+	switch f.CustomFieldsMatchLogic {
+	case "", FilterCustomFieldMatchAll, FilterCustomFieldMatchAny:
+	default:
+		return errors.New("validation: invalid custom fields match logic: %s", f.CustomFieldsMatchLogic)
+	}
+
+	for i, rule := range f.CustomFields {
+		if strings.TrimSpace(rule.Field) == "" {
+			return errors.New("validation: custom field rule %d has an empty field name", i)
+		}
+
+		switch rule.Operator {
+		case FilterCustomFieldEquals, FilterCustomFieldNotEquals, FilterCustomFieldExists, FilterCustomFieldNotExists:
+		default:
+			return errors.New("validation: custom field rule %d has invalid operator: %s", i, rule.Operator)
+		}
+	}
+
 	for _, external := range f.External {
 		if external.Type == ExternalFilterTypeExec {
 			if external.ExecCmd != "" && external.Enabled {
@@ -443,7 +507,35 @@ func (f *Filter) Sanitize() error {
 	f.MatchRecordLabels = sanitize.FilterString(f.MatchRecordLabels)
 	f.ExceptRecordLabels = sanitize.FilterString(f.ExceptRecordLabels)
 
+	for i := range f.CustomFields {
+		f.CustomFields[i].Field = strings.TrimSpace(f.CustomFields[i].Field)
+	}
+
 	return nil
+}
+
+func (f *Filter) checkCustomFields(r *Release) bool {
+	logic := f.CustomFieldsMatchLogic
+	if logic == "" {
+		logic = FilterCustomFieldMatchAll
+	}
+
+	if logic == FilterCustomFieldMatchAny {
+		for _, rule := range f.CustomFields {
+			if rule.matches(r.CustomFields) {
+				return true
+			}
+		}
+		return false
+	}
+
+	for _, rule := range f.CustomFields {
+		if !rule.matches(r.CustomFields) {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (f *Filter) CheckFilter(r *Release) (*RejectionReasons, bool) {
@@ -719,6 +811,18 @@ func (f *Filter) CheckFilter(r *Release) (*RejectionReasons, bool) {
 		if f.ExceptDescription != "" && containsFuzzy(r.Description, f.ExceptDescription) {
 			f.RejectReasons.Add("except description", r.Description, f.ExceptDescription)
 		}
+	}
+
+	if len(f.CustomFields) > 0 && !f.checkCustomFields(r) {
+		fields := make([]string, 0, len(f.CustomFields))
+		for _, rule := range f.CustomFields {
+			fields = append(fields, rule.Field)
+		}
+		logic := f.CustomFieldsMatchLogic
+		if logic == "" {
+			logic = FilterCustomFieldMatchAll
+		}
+		f.RejectReasons.Add("custom fields: "+string(logic), "feed custom fields", fields)
 	}
 
 	// Min and Max Seeders/Leechers is only for Torznab feeds
