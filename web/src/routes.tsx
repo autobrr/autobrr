@@ -356,10 +356,11 @@ export const AuthRoute = createRoute({
     } else {
       // Reconcile the persisted auth method with the server so switching auth
       // modes in either direction can't leave stale UI behind for a session that
-      // was already marked logged in.
+      // was already marked logged in. The mode only changes across a restart, so
+      // an open tab must refetch once its cached config goes stale.
       let authMode: string | undefined;
       try {
-        const config = await context.queryClient.ensureQueryData(ConfigQueryOptions());
+        const config = await context.queryClient.query(ConfigQueryOptions());
         authMode = config.auth_mode;
       } catch (error) {
         console.debug("auth mode reconciliation failed:", error);
