@@ -77,6 +77,17 @@ func TestConfig_ParseAuthAllowedPeerCIDRs(t *testing.T) {
 	})
 }
 
+func TestConfig_ParseTrustedProxies(t *testing.T) {
+	c := &Config{TrustedProxies: []string{"10.0.0.0/8", "::1"}}
+	prefixes, err := c.ParseTrustedProxies()
+	assert.NoError(t, err)
+	assert.Len(t, prefixes, 2)
+
+	c = &Config{TrustedProxies: []string{"0.0.0.0/0"}}
+	_, err = c.ParseTrustedProxies()
+	assert.EqualError(t, err, "invalid CIDR in trustedProxies: 0.0.0.0/0 matches all addresses")
+}
+
 func TestConfig_ParseAuthAllowedOrigins(t *testing.T) {
 	tests := []struct {
 		name       string

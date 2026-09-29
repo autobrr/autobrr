@@ -350,6 +350,7 @@ The following environment variables can be used:
 | `AUTOBRR__AUTH_ALLOWED_PEER_CIDRS`       | Peer allowlist while auth is disabled, comma separated CIDRs or IPs                                           | -           |
 | `AUTOBRR__AUTH_ALLOWED_HOSTS`            | Extra Host header names allowed while auth is disabled, comma separated                                       | -           |
 | `AUTOBRR__AUTH_CLIENT_IP_HEADER`         | Proxy header to log client IPs from while auth is disabled                                                    | -           |
+| `AUTOBRR__TRUSTED_PROXIES`               | Reverse proxy CIDRs or IPs allowed to set `X-Forwarded-For`, comma separated. Unset trusts any peer           | -           |
 | `AUTOBRR__METRICS_ENABLED`               | Enable Metrics server                                                                                         | `false`     |
 | `AUTOBRR__METRICS_HOST`                  | Metrics listen address                                                                                        | `127.0.0.1` |
 | `AUTOBRR__METRICS_PORT`                  | Metrics listen port                                                                                           | `9074`      |

@@ -7,12 +7,14 @@ import (
 	"bytes"
 	"net/http"
 	"net/http/httptest"
+	"net/netip"
 	"strings"
 	"testing"
 
 	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/domain"
 
+	"github.com/alexedwards/scs/v2"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -606,4 +608,64 @@ func TestRestrictAuthDisabledFraming_PassThroughWhenAuthEnabled(t *testing.T) {
 	s.RestrictAuthDisabledFraming(okHandler()).ServeHTTP(rr, req)
 
 	assert.Empty(t, rr.Header().Get("Content-Security-Policy"))
+}
+
+func TestRealIPFromTrustedProxies(t *testing.T) {
+	trusted := []netip.Prefix{netip.MustParsePrefix("10.0.0.0/8"), netip.MustParsePrefix("::1/128")}
+
+	tests := []struct {
+		name       string
+		remoteAddr string
+		headers    map[string]string
+		want       string
+	}{
+		{"untrusted peer keeps its address", "203.0.113.5:1234", map[string]string{"X-Forwarded-For": "198.51.100.1"}, "203.0.113.5:1234"},
+		{"trusted peer resolves client", "10.0.0.2:1234", map[string]string{"X-Forwarded-For": "198.51.100.1"}, "198.51.100.1"},
+		{"trusted IPv6 peer resolves client", "[::1]:1234", map[string]string{"X-Forwarded-For": "198.51.100.1"}, "198.51.100.1"},
+		{"client supplied entries left of the proxy are ignored", "10.0.0.2:1234", map[string]string{"X-Forwarded-For": "192.0.2.66, 198.51.100.1"}, "198.51.100.1"},
+		{"trusted hops are skipped", "10.0.0.2:1234", map[string]string{"X-Forwarded-For": "198.51.100.1, 10.0.0.3"}, "198.51.100.1"},
+		{"all trusted chain keeps the peer", "10.0.0.2:1234", map[string]string{"X-Forwarded-For": "10.0.0.3"}, "10.0.0.2:1234"},
+		{"single IP headers are ignored", "10.0.0.2:1234", map[string]string{"X-Real-IP": "198.51.100.1", "True-Client-IP": "198.51.100.1"}, "10.0.0.2:1234"},
+		{"garbage entry fails closed", "10.0.0.2:1234", map[string]string{"X-Forwarded-For": "not-an-ip"}, "10.0.0.2:1234"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got string
+			handler := RealIPFromTrustedProxies(trusted)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				got = r.RemoteAddr
+			}))
+
+			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			req.RemoteAddr = tt.remoteAddr
+			for k, v := range tt.headers {
+				req.Header.Set(k, v)
+			}
+			handler.ServeHTTP(httptest.NewRecorder(), req)
+
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestNewServer_TrustedProxies(t *testing.T) {
+	newServer := func(cfg *domain.Config) *Server {
+		cfg.BaseURL = "/"
+		return NewServer(Deps{Log: zerolog.Nop(), Config: &config.AppConfig{Config: cfg}, SessionManager: scs.New()})
+	}
+
+	assert.Nil(t, newServer(&domain.Config{}).trustedProxyPrefixes, "unset keeps middleware.RealIP")
+	assert.Len(t, newServer(&domain.Config{TrustedProxies: []string{"10.0.0.2"}}).trustedProxyPrefixes, 1)
+
+	invalid := newServer(&domain.Config{TrustedProxies: []string{"garbage"}})
+	assert.NotNil(t, invalid.trustedProxyPrefixes, "invalid config must not fall back to trusting every peer")
+	assert.Empty(t, invalid.trustedProxyPrefixes)
+
+	disabled := newServer(&domain.Config{
+		AuthDisabled:                true,
+		AuthDisabledAcknowledgement: domain.AuthDisabledAcknowledgementValue,
+		AuthAllowedPeerCIDRs:        []string{"127.0.0.1"},
+		TrustedProxies:              []string{"10.0.0.2"},
+	})
+	assert.Nil(t, disabled.trustedProxyPrefixes, "ignored while auth is disabled")
 }

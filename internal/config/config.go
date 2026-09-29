@@ -162,6 +162,15 @@ checkForUpdates = true
 # CF-Connecting-IP with Cloudflare); leave empty to log the proxy address instead.
 #authClientIPHeader = ""
 
+# Trusted reverse proxies
+#
+# Addresses (CIDR or bare IP) of the reverse proxies in front of autobrr. When
+# set, X-Forwarded-For is only believed from these peers and is read right to
+# left past them, so clients cannot spoof their IP to dodge login rate limits
+# or fill the logs with fake addresses. When unset, forwarded headers are
+# trusted from any peer. Only used while authentication is enabled.
+#trustedProxies = ["127.0.0.1", "::1"]
+
 # Metrics
 #
 # Enable metrics endpoint
@@ -331,6 +340,7 @@ func (c *AppConfig) defaults() {
 		AuthAllowedPeerCIDRs:        []string{},
 		AuthAllowedHosts:            []string{},
 		AuthClientIPHeader:          "",
+		TrustedProxies:              []string{},
 	}
 }
 
@@ -509,6 +519,10 @@ func (c *AppConfig) loadFromEnv() {
 
 	if v := GetEnvStr("AUTH_CLIENT_IP_HEADER"); v != "" {
 		c.Config.AuthClientIPHeader = v
+	}
+
+	if v := GetEnvStr("TRUSTED_PROXIES"); v != "" {
+		c.Config.TrustedProxies = splitEnvList(v)
 	}
 }
 

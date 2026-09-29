@@ -153,6 +153,12 @@ func main() {
 			Msg("authDisabled is set but the acknowledgement is missing or invalid; authentication remains enabled. Set AUTOBRR__AUTH_DISABLED_ACKNOWLEDGEMENT (or authDisabledAcknowledgement) to acknowledgement_value to disable authentication.")
 	}
 
+	if !cfg.Config.IsAuthDisabled() {
+		if _, err := cfg.Config.ParseTrustedProxies(); err != nil {
+			log.Fatal().Err(err).Msg("invalid trustedProxies")
+		}
+	}
+
 	// session manager
 	sessionManager := scs.New()
 	switch db.Driver {

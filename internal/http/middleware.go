@@ -304,6 +304,50 @@ func (s *Server) RestrictAuthDisabledFraming(next http.Handler) http.Handler {
 // LoggerMiddleware logs each request at trace level. Requests whose path exactly
 // matches one of skipPaths (e.g. health-check endpoints) are not logged to keep
 // polling noise out of the logs.
+// RealIPFromTrustedProxies rewrites r.RemoteAddr to the client address from
+// X-Forwarded-For like middleware.RealIP, but only when the TCP peer is a
+// trusted proxy. The chain is read right to left past trusted hops, so a
+// client cannot pick its own address by sending the header itself.
+func RealIPFromTrustedProxies(trusted []netip.Prefix) func(http.Handler) http.Handler {
+	prefixes := make([]string, 0, len(trusted))
+	for _, p := range trusted {
+		prefixes = append(prefixes, p.String())
+	}
+
+	fromXFF := middleware.ClientIPFromXFF(prefixes...)
+
+	return func(next http.Handler) http.Handler {
+		rewrite := fromXFF(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if ip := middleware.GetClientIP(r.Context()); ip != "" {
+				r.RemoteAddr = ip
+			}
+
+			next.ServeHTTP(w, r)
+		}))
+
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			host, _, err := net.SplitHostPort(r.RemoteAddr)
+			if err != nil {
+				host = r.RemoteAddr
+			}
+
+			peer, err := netip.ParseAddr(host)
+			if err != nil {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			peer = peer.Unmap().WithZone("")
+			if !slices.ContainsFunc(trusted, func(p netip.Prefix) bool { return p.Contains(peer) }) {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			rewrite.ServeHTTP(w, r)
+		})
+	}
+}
+
 func LoggerMiddleware(logger *zerolog.Logger, skipPaths []string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {

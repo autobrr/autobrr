@@ -79,6 +79,12 @@ type Config struct {
 	// disabled it is resolved into the request context for access logs; it never
 	// affects the peer allowlist, which always checks the TCP peer.
 	AuthClientIPHeader string `toml:"authClientIPHeader"`
+
+	// TrustedProxies lists the reverse proxies allowed to report the client IP in
+	// X-Forwarded-For while authentication is enabled. Empty keeps the legacy
+	// behavior of trusting forwarded headers from any peer. Ignored while
+	// authentication is disabled, where the TCP peer is always used.
+	TrustedProxies []string `toml:"trustedProxies"`
 }
 
 // AuthDisabledAcknowledgementValue is the exact value AuthDisabledAcknowledgement
@@ -98,9 +104,19 @@ func (c *Config) IsAuthDisabled() bool {
 // peers. Entries with non-zero host bits (e.g. 192.168.1.5/24) and universal prefixes
 // (0.0.0.0/0, ::/0) are rejected to avoid ambiguous or all-address ranges.
 func (c *Config) ParseAuthAllowedPeerCIDRs() ([]netip.Prefix, error) {
-	prefixes := make([]netip.Prefix, 0, len(c.AuthAllowedPeerCIDRs))
+	return parsePeerPrefixes(c.AuthAllowedPeerCIDRs, "authAllowedPeerCIDRs")
+}
 
-	for _, entry := range c.AuthAllowedPeerCIDRs {
+// ParseTrustedProxies parses TrustedProxies with the same rules as
+// ParseAuthAllowedPeerCIDRs.
+func (c *Config) ParseTrustedProxies() ([]netip.Prefix, error) {
+	return parsePeerPrefixes(c.TrustedProxies, "trustedProxies")
+}
+
+func parsePeerPrefixes(entries []string, field string) ([]netip.Prefix, error) {
+	prefixes := make([]netip.Prefix, 0, len(entries))
+
+	for _, entry := range entries {
 		entry = strings.TrimSpace(entry)
 		if entry == "" {
 			continue
@@ -111,25 +127,25 @@ func (c *Config) ParseAuthAllowedPeerCIDRs() ([]netip.Prefix, error) {
 		if strings.Contains(entry, "/") {
 			p, err := netip.ParsePrefix(entry)
 			if err != nil {
-				return nil, errors.Wrap(err, "invalid CIDR in authAllowedPeerCIDRs: %s", entry)
+				return nil, errors.Wrap(err, "invalid CIDR in %s: %s", field, entry)
 			}
 
 			if p.Addr().Is4In6() {
 				if p.Bits() < 96 {
-					return nil, errors.New("invalid CIDR in authAllowedPeerCIDRs: %s is an ambiguous IPv4-mapped IPv6 range", entry)
+					return nil, errors.New("invalid CIDR in %s: %s is an ambiguous IPv4-mapped IPv6 range", field, entry)
 				}
 				p = netip.PrefixFrom(p.Addr().Unmap(), p.Bits()-96)
 			}
 
 			if p != p.Masked() {
-				return nil, errors.New("invalid CIDR in authAllowedPeerCIDRs: %s has non-zero host bits", entry)
+				return nil, errors.New("invalid CIDR in %s: %s has non-zero host bits", field, entry)
 			}
 
 			prefix = p
 		} else {
 			addr, err := netip.ParseAddr(entry)
 			if err != nil {
-				return nil, errors.Wrap(err, "invalid IP in authAllowedPeerCIDRs: %s", entry)
+				return nil, errors.Wrap(err, "invalid IP in %s: %s", field, entry)
 			}
 
 			addr = addr.Unmap()
@@ -143,7 +159,7 @@ func (c *Config) ParseAuthAllowedPeerCIDRs() ([]netip.Prefix, error) {
 		}
 
 		if prefix.Bits() == 0 {
-			return nil, errors.New("invalid CIDR in authAllowedPeerCIDRs: %s matches all addresses", entry)
+			return nil, errors.New("invalid CIDR in %s: %s matches all addresses", field, entry)
 		}
 
 		prefixes = append(prefixes, prefix)

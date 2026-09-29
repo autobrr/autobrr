@@ -39,6 +39,10 @@ type Server struct {
 	// config.AuthAllowedPeerCIDRs, rather than on every request.
 	authAllowedPeerPrefixes []netip.Prefix
 
+	// trustedProxyPrefixes is parsed once at startup from config.TrustedProxies
+	// and only used while auth is enabled.
+	trustedProxyPrefixes []netip.Prefix
+
 	// authAllowedOrigins, authAllowedHosts and authFrameAncestors are derived once
 	// at startup from config.CorsAllowedOrigins and config.AuthAllowedHosts, and
 	// only enforced while auth is disabled.
@@ -155,6 +159,16 @@ func NewServer(deps Deps) *Server {
 		if err := srv.buildAuthAllowlists(); err != nil {
 			srv.log.Error().Err(err).Msg("auth disabled: invalid corsAllowedOrigins or authAllowedHosts, denying requests by hostname")
 		}
+	} else if len(deps.Config.Config.TrustedProxies) > 0 {
+		prefixes, err := deps.Config.Config.ParseTrustedProxies()
+		if err != nil {
+			// an empty list trusts no peer, so forwarded headers are ignored rather
+			// than falling back to trusting everyone
+			srv.log.Error().Err(err).Msg("invalid trustedProxies, ignoring forwarded client IPs")
+			prefixes = []netip.Prefix{}
+		}
+
+		srv.trustedProxyPrefixes = prefixes
 	}
 
 	srv.healthCheckPaths = []string{
@@ -264,6 +278,8 @@ func (s *Server) Handler() http.Handler {
 		if header := strings.TrimSpace(s.config.Config.AuthClientIPHeader); header != "" {
 			r.Use(middleware.ClientIPFromHeader(header))
 		}
+	} else if s.trustedProxyPrefixes != nil {
+		r.Use(RealIPFromTrustedProxies(s.trustedProxyPrefixes))
 	} else {
 		r.Use(middleware.RealIP)
 	}
