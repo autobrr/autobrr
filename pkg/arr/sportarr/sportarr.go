@@ -80,6 +80,9 @@ func (c *Client) Test(ctx context.Context) (*SystemStatusResponse, error) {
 	if status == http.StatusUnauthorized {
 		return nil, errors.New("unauthorized: bad credentials")
 	}
+	if status != http.StatusOK {
+		return nil, errors.New("unexpected status code: %d", status)
+	}
 
 	c.logger(ctx).Trace().Int("status", status).Str("response", string(res)).Msg("sportarr system/status response")
 
