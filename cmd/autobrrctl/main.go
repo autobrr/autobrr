@@ -463,6 +463,8 @@ type FilterExport struct {
 	MatchDescription    string   `json:"match_description,omitempty"`
 	ExceptDescription   string   `json:"except_description,omitempty"`
 	UseRegexDescription bool     `json:"use_regex_description,omitempty"`
+	CustomFields        []domain.FilterCustomFieldRule `json:"custom_fields,omitempty"`
+	CustomFieldsMatchLogic domain.FilterCustomFieldMatchLogic `json:"custom_fields_match_logic,omitempty"`
 	Scene               bool     `json:"scene,omitempty"`
 	Origins             []string `json:"origins,omitempty"`
 	ExceptOrigins       []string `json:"except_origins,omitempty"`
@@ -563,6 +565,8 @@ func prepareFilterForExport(filter domain.Filter, externalFilters []domain.Filte
 		MatchDescription:       filter.MatchDescription,
 		ExceptDescription:      filter.ExceptDescription,
 		UseRegexDescription:    filter.UseRegexDescription,
+		CustomFields:           filter.CustomFields,
+		CustomFieldsMatchLogic: filter.CustomFieldsMatchLogic,
 		Scene:                  filter.Scene,
 		Origins:                filter.Origins,
 		ExceptOrigins:          filter.ExceptOrigins,
