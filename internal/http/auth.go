@@ -34,7 +34,15 @@ type authHandler struct {
 	server         *Server
 	sessionManager *scs.SessionManager
 	oidcHandler    *OIDCHandler
+	loginLimiter   *clientRateLimiter
 }
+
+// Only failed logins draw from the per-IP bucket, so someone who knows the
+// password is never locked out by their own logins.
+const (
+	loginFailureBurst    = 5
+	loginFailureInterval = 20 * time.Second
+)
 
 func newAuthHandler(encoder encoder, log zerolog.Logger, server *Server, config *domain.Config, sessionManager *scs.SessionManager, service authService, oidcService oidcService) *authHandler {
 	h := &authHandler{
@@ -45,6 +53,7 @@ func newAuthHandler(encoder encoder, log zerolog.Logger, server *Server, config 
 		oidcService:    oidcService,
 		sessionManager: sessionManager,
 		server:         server,
+		loginLimiter:   newClientRateLimiter(loginFailureInterval, loginFailureBurst),
 	}
 
 	if h.oidcService.IsEnabled() {
@@ -55,9 +64,11 @@ func newAuthHandler(encoder encoder, log zerolog.Logger, server *Server, config 
 }
 
 func (h *authHandler) Routes(r chi.Router) {
-	// serialize login attempts so credential brute forcing cannot fan out over
-	// parallel argon2 comparisons; matches the throttle on the OIDC routes
-	r.With(middleware.ThrottleBacklog(1, 1, time.Second)).Post("/login", h.login)
+	// One login at a time bounds argon2 memory (64 MiB per comparison) and makes
+	// the failure limiter's check-then-record in login atomic. The backlog is
+	// deep because rate limited requests are rejected before hashing, so a
+	// guessing client cannot hold the queue and lock everyone else out.
+	r.With(middleware.ThrottleBacklog(1, 64, 10*time.Second)).Post("/login", h.login)
 	r.Post("/onboard", h.onboard)
 	r.Get("/onboard", h.canOnboard)
 
@@ -90,6 +101,14 @@ func (h *authHandler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ip := clientIP(r.RemoteAddr)
+	if wait := h.loginLimiter.retryAfter(ip, time.Now()); wait > 0 {
+		h.log.Error().Str("remote_addr", r.RemoteAddr).Dur("retry_after", wait).Msg("login rate limited after repeated failures")
+		setRetryAfter(w, wait)
+		h.encoder.StatusError(w, http.StatusTooManyRequests, errors.New("too many failed login attempts"))
+		return
+	}
+
 	ctx := r.Context()
 	var data domain.UserLoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
@@ -98,10 +117,13 @@ func (h *authHandler) login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := h.service.Login(ctx, data.Username, data.Password); err != nil {
+		h.loginLimiter.record(ip, time.Now())
 		h.log.Error().Err(err).Str("username", data.Username).Str("remote_addr", r.RemoteAddr).Msg("failed login attempt")
 		h.encoder.StatusError(w, http.StatusForbidden, errors.New("could not login: bad credentials"))
 		return
 	}
+
+	h.loginLimiter.reset(ip)
 
 	if err := h.sessionManager.RenewToken(ctx); err != nil {
 		h.log.Error().Err(err).Str("username", data.Username).Str("remote_addr", r.RemoteAddr).Msg("failed to renew session token")

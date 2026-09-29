@@ -602,3 +602,43 @@ func TestRevokeOtherSessions_KeepsCurrentDestroysRest(t *testing.T) {
 		assert.False(t, found)
 	}
 }
+
+func TestAuthHandlerLoginRateLimitsFailures(t *testing.T) {
+	srv := NewServer(Deps{
+		Log:            zerolog.Nop(),
+		Config:         &config.AppConfig{Config: &domain.Config{BaseURL: "/"}},
+		SessionManager: scs.New(),
+	})
+	service := authServiceMock{users: map[string]*domain.User{
+		"test": {Username: "test", Password: "pass"},
+	}}
+	handler := newAuthHandler(encoder{}, zerolog.Nop(), srv, srv.config.Config, srv.sessionManager, service, &oidcAuthServiceMock{})
+	router := setupServer(srv)
+	router.Route("/auth", handler.Routes)
+
+	login := func(remoteAddr, password string) *httptest.ResponseRecorder {
+		t.Helper()
+
+		req := httptest.NewRequest(http.MethodPost, "/auth/login", strings.NewReader(`{"username":"test","password":"`+password+`"}`))
+		req.RemoteAddr = remoteAddr
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+
+		return rec
+	}
+
+	for range loginFailureBurst - 1 {
+		assert.Equal(t, http.StatusForbidden, login("192.0.2.1:1000", "wrong").Code)
+	}
+	assert.Equal(t, http.StatusNoContent, login("192.0.2.1:1001", "pass").Code, "success resets the failure count")
+
+	for range loginFailureBurst {
+		assert.Equal(t, http.StatusForbidden, login("192.0.2.1:1002", "wrong").Code)
+	}
+
+	rec := login("192.0.2.1:1003", "pass")
+	assert.Equal(t, http.StatusTooManyRequests, rec.Code, "correct password is refused while limited")
+	assert.NotEmpty(t, rec.Header().Get("Retry-After"))
+
+	assert.Equal(t, http.StatusNoContent, login("192.0.2.2:1000", "pass").Code, "other clients can still log in")
+}
