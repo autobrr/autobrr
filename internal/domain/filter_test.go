@@ -2697,3 +2697,114 @@ func TestFilter_IsPerfectFLAC(t *testing.T) {
 		})
 	}
 }
+
+func TestFilter_CheckCustomFields(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		logic  FilterCustomFieldMatchLogic
+		rules  []FilterCustomFieldRule
+		fields map[string]string
+		want   bool
+	}{
+		{
+			name:  "all matches",
+			logic: FilterCustomFieldMatchAll,
+			rules: []FilterCustomFieldRule{
+				{Field: "audio_pt", Operator: FilterCustomFieldEquals, Value: "1"},
+				{Field: "legenda_pt", Operator: FilterCustomFieldEquals, Value: "1"},
+			},
+			fields: map[string]string{"audio_pt": "1", "legenda_pt": "1"},
+			want:   true,
+		},
+		{
+			name:  "all rejects when one rule misses",
+			logic: FilterCustomFieldMatchAll,
+			rules: []FilterCustomFieldRule{
+				{Field: "audio_pt", Operator: FilterCustomFieldEquals, Value: "1"},
+				{Field: "legenda_pt", Operator: FilterCustomFieldEquals, Value: "1"},
+			},
+			fields: map[string]string{"audio_pt": "1"},
+			want:   false,
+		},
+		{
+			name:  "any accepts one matching rule",
+			logic: FilterCustomFieldMatchAny,
+			rules: []FilterCustomFieldRule{
+				{Field: "audio_pt", Operator: FilterCustomFieldEquals, Value: "1"},
+				{Field: "legenda_pt", Operator: FilterCustomFieldEquals, Value: "1"},
+			},
+			fields: map[string]string{"audio_pt": "0", "legenda_pt": "1"},
+			want:   true,
+		},
+		{
+			name:  "any rejects when no rules match",
+			logic: FilterCustomFieldMatchAny,
+			rules: []FilterCustomFieldRule{
+				{Field: "audio_pt", Operator: FilterCustomFieldEquals, Value: "1"},
+				{Field: "legenda_pt", Operator: FilterCustomFieldEquals, Value: "1"},
+			},
+			fields: map[string]string{"audio_pt": "0", "legenda_pt": "0"},
+			want:   false,
+		},
+		{
+			name:  "exists and not exists",
+			logic: FilterCustomFieldMatchAll,
+			rules: []FilterCustomFieldRule{
+				{Field: "audio_pt", Operator: FilterCustomFieldExists},
+				{Field: "dubbed", Operator: FilterCustomFieldNotExists},
+			},
+			fields: map[string]string{"audio_pt": ""},
+			want:   true,
+		},
+		{
+			name:  "not equals requires field to exist",
+			logic: FilterCustomFieldMatchAll,
+			rules: []FilterCustomFieldRule{
+				{Field: "audio_pt", Operator: FilterCustomFieldNotEquals, Value: "1"},
+			},
+			fields: map[string]string{},
+			want:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			filter := Filter{
+				Enabled:                true,
+				CustomFields:           tt.rules,
+				CustomFieldsMatchLogic: tt.logic,
+			}
+			_, got := filter.CheckFilter(&Release{CustomFields: tt.fields})
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestFilter_ValidateCustomFields(t *testing.T) {
+	t.Parallel()
+
+	valid := Filter{
+		Name:                   "custom fields",
+		CustomFieldsMatchLogic: FilterCustomFieldMatchAll,
+		CustomFields: []FilterCustomFieldRule{
+			{Field: "audio_pt", Operator: FilterCustomFieldEquals, Value: "1"},
+		},
+	}
+	assert.NoError(t, valid.Validate())
+
+	invalidLogic := valid
+	invalidLogic.CustomFieldsMatchLogic = "INVALID"
+	assert.Error(t, invalidLogic.Validate())
+
+	invalidOperator := valid
+	invalidOperator.CustomFields = []FilterCustomFieldRule{{Field: "audio_pt", Operator: "INVALID"}}
+	assert.Error(t, invalidOperator.Validate())
+
+	emptyField := valid
+	emptyField.CustomFields = []FilterCustomFieldRule{{Field: "   ", Operator: FilterCustomFieldExists}}
+	assert.Error(t, emptyField.Validate())
+}
