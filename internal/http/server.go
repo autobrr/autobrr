@@ -215,6 +215,12 @@ func (s *Server) buildAuthAllowlists() error {
 		s.authAllowedHosts[host] = struct{}{}
 	}
 
+	// rs/cors matches origins verbatim, so hand it the normalized list the Origin
+	// check uses. An empty list would make rs/cors allow every origin.
+	if len(origins) > 0 {
+		s.allowedOrigins = origins
+	}
+
 	s.authFrameAncestors = strings.Join(append([]string{"frame-ancestors 'self'"}, origins...), " ")
 
 	return nil

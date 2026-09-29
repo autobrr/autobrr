@@ -358,6 +358,22 @@ func TestRejectUntrustedBrowserRequests_AllowsAllowlistedOrigin(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rr.Code)
 }
 
+func TestRejectUntrustedBrowserRequests_AllowsOriginConfiguredWithDefaultPort(t *testing.T) {
+	s := newAuthDisabledTestServerWithOrigins([]string{"127.0.0.1/32"}, "https://autobrr.example.com:443, https://dash.example.net")
+
+	req := httptest.NewRequest(http.MethodPost, "/api/filters", strings.NewReader(`{}`))
+	req.Host = "autobrr.example.com"
+	req.Header.Set("Origin", "https://autobrr.example.com")
+	req.Header.Set("Sec-Fetch-Site", "same-origin")
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+
+	s.RejectUntrustedBrowserRequests(okHandler()).ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Equal(t, []string{"https://autobrr.example.com", "https://dash.example.net"}, s.allowedOrigins)
+}
+
 func TestRejectUntrustedBrowserRequests_BlocksDisallowedOrigin(t *testing.T) {
 	s := newAuthDisabledTestServerWithOrigins([]string{"127.0.0.1/32"}, "https://autobrr.example.com")
 

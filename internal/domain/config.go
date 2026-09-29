@@ -169,10 +169,10 @@ func parsePeerPrefixes(entries []string, field string) ([]netip.Prefix, error) {
 }
 
 // ParseAuthAllowedOrigins parses CorsAllowedOrigins into normalized
-// scheme://host[:port] origin values. While authentication is disabled the
-// configured origins are enforced server-side against the Origin and Host of
-// browser requests, so every entry must be a real origin: no wildcard, no bare
-// hostname, no path.
+// scheme://host[:port] origin values, dropping the scheme's default port. While
+// authentication is disabled the configured origins are enforced server-side
+// against the Origin and Host of browser requests, so every entry must be a real
+// origin: no wildcard, no bare hostname, no path.
 func (c *Config) ParseAuthAllowedOrigins() ([]string, error) {
 	origins := make([]string, 0)
 
@@ -191,7 +191,14 @@ func (c *Config) ParseAuthAllowedOrigins() ([]string, error) {
 			return nil, errors.New("invalid origin in corsAllowedOrigins: %s (expected http(s)://host[:port])", entry)
 		}
 
-		origins = append(origins, strings.ToLower(u.Scheme+"://"+u.Host))
+		// Browsers omit the scheme's default port from Origin, so an explicit one
+		// would never match.
+		host := u.Host
+		if (u.Scheme == "https" && u.Port() == "443") || (u.Scheme == "http" && u.Port() == "80") {
+			host = strings.TrimSuffix(host, ":"+u.Port())
+		}
+
+		origins = append(origins, strings.ToLower(u.Scheme+"://"+host))
 	}
 
 	return origins, nil
