@@ -51,7 +51,7 @@ irc:
       parse:
         type: single
         lines:
-          - pattern: ':\[N\]-\[(?P<category>.*)\]-\[(?P<releaseTags>.*)\]-\[(?P<resolution>.*)\]-\[(?P<torrentSize>.*)\]-\[(?P<releaseName>.*)\]-\[(?P<uploader>.*)\]-\[(?P<baseUrl>.*\/)(?:.*\/)(?P<torrentId>.*)\]-\[FL: (?P<freeleech>.*)\]-\[DU: (?P<doubleUpload>\d)\];'
+          - pattern: ':\[N\]-\[(?P<category>.*)\]-\[(?P<releaseTags>.*)\]-\[(?P<resolution>.*)\]-\[(?P<torrentSize>.*)\]-\[(?P<releaseName>.*)\]-\[(?P<uploader>.*)\]-\[(?P<baseUrl>.*\/)(?:.*\/)(?P<torrentId>.*)\]-\[FL: (?P<freeleech>.*)\]-\[DU: (?P<doubleUpload>\d*)\];'
             tests:
               - line: ':[N]-[Movies]-[Encode]-[720p]-[797 MiB]-[Some.Old.Movie.1972.720p.BluRay.x264.AAC-GROUP]-[Anonymous]-[https://nordicbytes.org/torrents/0000]-[FL: 0]-[DU: 0];'
                 expect:
