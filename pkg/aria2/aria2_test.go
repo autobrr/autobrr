@@ -65,12 +65,12 @@ func newTestServer(t *testing.T, result any) (*httptest.Server, *[]rpcCall) {
 		assert.Equal(t, "/jsonrpc", r.URL.Path)
 
 		var call rpcCall
-		require.NoError(t, json.NewDecoder(r.Body).Decode(&call))
+		assert.NoError(t, json.NewDecoder(r.Body).Decode(&call))
 
 		calls = append(calls, call)
 
 		w.Header().Set("Content-Type", "application/json")
-		require.NoError(t, json.NewEncoder(w).Encode(map[string]any{
+		assert.NoError(t, json.NewEncoder(w).Encode(map[string]any{
 			"id":      1,
 			"jsonrpc": "2.0",
 			"result":  result,
@@ -159,7 +159,7 @@ func TestClientTellActive(t *testing.T) {
 func TestClientRPCError(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		require.NoError(t, json.NewEncoder(w).Encode(map[string]any{
+		assert.NoError(t, json.NewEncoder(w).Encode(map[string]any{
 			"id":      1,
 			"jsonrpc": "2.0",
 			"error":   map[string]any{"code": 1, "message": "Unauthorized"},
@@ -171,6 +171,5 @@ func TestClientRPCError(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = c.GetVersion(t.Context())
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "Unauthorized")
+	assert.ErrorContains(t, err, "Unauthorized")
 }

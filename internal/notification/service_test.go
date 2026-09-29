@@ -326,7 +326,7 @@ func TestServiceSend(t *testing.T) {
 
 		select {
 		case <-sender.sent:
-			t.Fatal("unexpected notification")
+			require.FailNow(t, "unexpected notification")
 		default:
 		}
 	})
@@ -344,7 +344,7 @@ func TestServiceSend(t *testing.T) {
 		select {
 		case <-sender.sent:
 		case <-time.After(time.Second):
-			t.Fatal("notification was not sent")
+			require.FailNow(t, "notification was not sent")
 		}
 	})
 }

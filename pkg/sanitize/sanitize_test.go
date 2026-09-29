@@ -5,6 +5,8 @@ package sanitize
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestStringAndFilterString(t *testing.T) {
@@ -113,14 +115,10 @@ func TestStringAndFilterString(t *testing.T) {
 		},
 	}
 
-	for i, tt := range tests {
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := String(tt.input); got != tt.expectedString {
-				t.Errorf("%d String() = %q, want %q", i, got, tt.expectedString)
-			}
-			if got := FilterString(tt.input); got != tt.expectedFilter {
-				t.Errorf("%d FilterString() = %q, want %q", i, got, tt.expectedFilter)
-			}
+			assert.Equalf(t, tt.expectedString, String(tt.input), "String(%q)", tt.input)
+			assert.Equalf(t, tt.expectedFilter, FilterString(tt.input), "FilterString(%q)", tt.input)
 		})
 	}
 }

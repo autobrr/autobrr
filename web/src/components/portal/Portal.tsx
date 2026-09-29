@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useEffect, ReactNode } from "react";
+import { useEffect, useState, ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 interface PortalProps {
@@ -11,15 +11,15 @@ interface PortalProps {
 }
 
 export const Portal = ({children }: PortalProps) => {
-  const mount = document.getElementById("portal-root");
-  const el = document.createElement("div");
+  const [el] = useState(() => document.createElement("div"));
 
   useEffect(() => {
+    const mount = document.getElementById("portal-root");
     mount?.appendChild(el);
     return () => {
       mount?.removeChild(el);
     }
-  }, [el, mount]);
+  }, [el]);
 
   return createPortal(children, el)
 };

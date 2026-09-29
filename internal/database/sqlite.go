@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 
@@ -145,14 +145,13 @@ func (db *DB) startProgressLogger(op string) func() {
 	done := make(chan struct{})
 
 	go func() {
-		ticker := time.NewTicker(30 * time.Second)
-		defer ticker.Stop()
+		tick := time.Tick(30 * time.Second)
 
 		for {
 			select {
 			case <-done:
 				return
-			case <-ticker.C:
+			case <-tick:
 				db.log.Info().Msgf("%s still running, elapsed: %s", op, time.Since(start).Round(time.Second))
 			}
 		}
@@ -328,10 +327,10 @@ func (db *DB) cleanupSQLiteBackups() error {
 	}
 
 	// Sort backups by timestamp
-	sort.Slice(backups, func(i, j int) bool {
-		t1, _ := time.Parse(timeFormat, strings.TrimSuffix(strings.Split(backups[i], "_")[2], ".backup"))
-		t2, _ := time.Parse(timeFormat, strings.TrimSuffix(strings.Split(backups[j], "_")[2], ".backup"))
-		return t1.After(t2)
+	slices.SortFunc(backups, func(a, b string) int {
+		ta, _ := time.Parse(timeFormat, strings.TrimSuffix(strings.Split(a, "_")[2], ".backup"))
+		tb, _ := time.Parse(timeFormat, strings.TrimSuffix(strings.Split(b, "_")[2], ".backup"))
+		return tb.Compare(ta)
 	})
 
 	for i := 0; len(broken) != 0 && len(backups) == db.cfg.DatabaseMaxBackups && i < len(broken); i++ {

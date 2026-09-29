@@ -7,6 +7,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 	"time"
 
@@ -1455,10 +1457,7 @@ func (r *FilterRepo) StoreIndexerConnections(ctx context.Context, filterID int, 
 		uniqueIDs[indexer.ID] = struct{}{}
 	}
 
-	indexerIDs := make([]int64, 0, len(uniqueIDs))
-	for id := range uniqueIDs {
-		indexerIDs = append(indexerIDs, id)
-	}
+	indexerIDs := slices.Collect(maps.Keys(uniqueIDs))
 
 	if len(indexerIDs) > 0 {
 		connectedQuery, connectedArgs, err := r.db.squirrel.

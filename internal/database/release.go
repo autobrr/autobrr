@@ -1401,13 +1401,7 @@ func (repo *ReleaseRepo) Delete(ctx context.Context, req *domain.DeleteReleaseRe
 
 		// If PUSH_APPROVED is not in the delete list, exclude releases that have
 		// any approved action - a release pushed to at least one client must be kept.
-		approvedInList := false
-		for _, s := range req.ReleaseStatuses {
-			if s == string(domain.ReleasePushStatusApproved) {
-				approvedInList = true
-				break
-			}
-		}
+		approvedInList := slices.Contains(req.ReleaseStatuses, string(domain.ReleasePushStatusApproved))
 		if !approvedInList {
 			excludeSubQuery := sq.Select("release_id").From("release_action_status").Where(sq.Eq{"status": string(domain.ReleasePushStatusApproved)})
 			excludeText, excludeArgs, err := excludeSubQuery.ToSql()

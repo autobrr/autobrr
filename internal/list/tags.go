@@ -7,7 +7,7 @@ import "slices"
 
 import "github.com/autobrr/autobrr/pkg/arr"
 
-func containsTag(tags []*arr.Tag, titleTags []int, checkTags []string) bool {
+func containsTag(tags []arr.Tag, titleTags []int, checkTags []string) bool {
 	var tagLabels []string
 
 	// match tag id's with labels

@@ -4,7 +4,7 @@
  */
 
 import { CollapsibleSection, FilterHalfRow, FilterLayout, FilterSection } from "../_components";
-import { DownloadClientSelect, NumberField, SwitchGroup, TextAreaAutoResize } from "@components/inputs";
+import { DownloaderSelect, NumberField, SwitchGroup, TextAreaAutoResize } from "@components/inputs";
 import { useTranslation } from "react-i18next";
 
 export const Aria2 = ({ idx, action, clients }: ClientActionProps) => {
@@ -18,15 +18,15 @@ export const Aria2 = ({ idx, action, clients }: ClientActionProps) => {
     >
       <FilterLayout>
         <FilterHalfRow>
-          <DownloadClientSelect
-            name={`actions.${idx}.client_id`}
+          <DownloaderSelect
+            name={`actions[${idx}].client_id`}
             action={action}
             clients={clients}
           />
         </FilterHalfRow>
 
         <TextAreaAutoResize
-          name={`actions.${idx}.save_path`}
+          name={`actions[${idx}].save_path`}
           label={t("actionComponents.common.savePath")}
           placeholder={t("actionComponents.common.savePathPlaceholder")}
         />
@@ -35,7 +35,7 @@ export const Aria2 = ({ idx, action, clients }: ClientActionProps) => {
       <FilterLayout className="pb-6">
         <FilterHalfRow>
           <SwitchGroup
-            name={`actions.${idx}.paused`}
+            name={`actions[${idx}].paused`}
             label={t("actionComponents.common.addPaused")}
             description={t("actionComponents.common.addPausedDescription")}
           />
@@ -49,21 +49,21 @@ export const Aria2 = ({ idx, action, clients }: ClientActionProps) => {
       >
         <FilterHalfRow>
           <NumberField
-            name={`actions.${idx}.limit_download_speed`}
+            name={`actions[${idx}].limit_download_speed`}
             label={t("actionComponents.common.limitDownloadKib")}
             placeholder={t("actionComponents.common.numberNoLimit")}
           />
         </FilterHalfRow>
         <FilterHalfRow>
           <NumberField
-            name={`actions.${idx}.limit_upload_speed`}
+            name={`actions[${idx}].limit_upload_speed`}
             label={t("actionComponents.common.limitUploadKib")}
             placeholder={t("actionComponents.common.numberNoLimit")}
           />
         </FilterHalfRow>
         <FilterHalfRow>
           <NumberField
-            name={`actions.${idx}.limit_ratio`}
+            name={`actions[${idx}].limit_ratio`}
             label={t("actionComponents.common.ratioLimit")}
             placeholder={t("actionComponents.common.numberNoLimit")}
             step={0.25}
@@ -72,7 +72,7 @@ export const Aria2 = ({ idx, action, clients }: ClientActionProps) => {
         </FilterHalfRow>
         <FilterHalfRow>
           <NumberField
-            name={`actions.${idx}.limit_seed_time`}
+            name={`actions[${idx}].limit_seed_time`}
             label={t("actionComponents.common.seedTimeMinutes")}
             placeholder={t("actionComponents.common.numberNoLimit")}
           />

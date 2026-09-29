@@ -209,7 +209,7 @@ type WebhookData struct {
 type WebhookRelease struct {
 	Protocol         string       `json:"protocol,omitempty"`
 	Implementation   string       `json:"implementation,omitempty"`
-	Timestamp        time.Time    `json:"timestamp,omitempty"`
+	Timestamp        time.Time    `json:"timestamp"`
 	Type             string       `json:"type"`
 	AnnounceType     AnnounceType `json:"announce_type"`
 	Link             string       `json:"link,omitempty"`

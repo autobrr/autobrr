@@ -6,6 +6,7 @@ package domain
 import (
 	"bufio"
 	"bytes"
+	"cmp"
 	"context"
 	"crypto/md5"
 	"encoding/hex"
@@ -691,8 +692,9 @@ func (r *Release) ParseString(title string) {
 
 	r.TorrentName = title
 
-	r.Source = rel.Source
-	r.Resolution = rel.Resolution
+	r.Source = cmp.Or(rel.Source, r.Source)
+	// announce values such as "1080p/i" are not normalized, so prefer the parsed one
+	r.Resolution = cmp.Or(rel.Resolution, r.Resolution)
 	r.Region = rel.Region
 
 	if rel.Language != nil {
@@ -702,7 +704,7 @@ func (r *Release) ParseString(title string) {
 	r.Audio = rel.Audio
 	r.AudioChannels = rel.Channels
 	r.Codec = rel.Codec
-	r.Container = rel.Container
+	r.Container = cmp.Or(r.Container, rel.Container)
 	r.HDR = rel.HDR
 	if rel.Artist != "" {
 		r.Artists = rel.Artist
@@ -721,35 +723,15 @@ func (r *Release) ParseString(title string) {
 		r.MediaProcessing = "REMUX"
 	}
 
-	if r.Title == "" {
-		r.Title = rel.Title
-	}
+	r.Title = cmp.Or(r.Title, rel.Title)
 	r.SubTitle = rel.Subtitle
-
-	if r.Season == 0 {
-		r.Season = rel.Series
-	}
-	if r.Episode == 0 {
-		r.Episode = rel.Episode
-	}
-
-	if r.Year == 0 {
-		r.Year = rel.Year
-	}
-	if r.Month == 0 {
-		r.Month = rel.Month
-	}
-	if r.Day == 0 {
-		r.Day = rel.Day
-	}
-
-	if r.Group == "" {
-		r.Group = rel.Group
-	}
-
-	if r.Website == "" {
-		r.Website = rel.Collection
-	}
+	r.Season = cmp.Or(r.Season, rel.Series)
+	r.Episode = cmp.Or(r.Episode, rel.Episode)
+	r.Year = cmp.Or(r.Year, rel.Year)
+	r.Month = cmp.Or(r.Month, rel.Month)
+	r.Day = cmp.Or(r.Day, rel.Day)
+	r.Group = cmp.Or(r.Group, rel.Group)
+	r.Website = cmp.Or(r.Website, rel.Collection)
 
 	if rel.Cut != nil {
 		r.Cut = rel.Cut
@@ -1037,8 +1019,7 @@ func (r *Release) downloadTorrentFile(ctx context.Context) error {
 		meta, err := metainfo.Load(bodyReader)
 		if err != nil {
 			// explicitly check for unexpected content type that match html
-			var bse *bencode.SyntaxError
-			if errors.As(err, &bse) {
+			if _, ok := errors.AsType[*bencode.SyntaxError](err); ok {
 				// regular error so we can retry if we receive html first run
 				return errors.Wrap(err, "metainfo unexpected content type, got HTML expected a bencoded torrent. check indexer keys for %s - %s", r.Indexer.Name, r.TorrentName)
 			}
@@ -1290,6 +1271,10 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error 
 
 	if resolution, ok := getStringMapValue(varMap, "resolution"); ok {
 		r.Resolution = resolution
+	}
+
+	if source, ok := getStringMapValue(varMap, "source"); ok {
+		r.Source = source
 	}
 
 	if releaseGroup, ok := getStringMapValue(varMap, "releaseGroup"); ok {

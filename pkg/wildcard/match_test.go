@@ -178,9 +178,7 @@ func TestMatchSimple(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		if got := MatchSimple(tt.pattern, tt.name); got != tt.want {
-			t.Errorf("MatchSimple(%q, %q) = %v, want %v", tt.pattern, tt.name, got, tt.want)
-		}
+		assert.Equalf(t, tt.want, MatchSimple(tt.pattern, tt.name), "MatchSimple(%q, %q)", tt.pattern, tt.name)
 	}
 }
 
@@ -205,58 +203,55 @@ func TestMatchSliceSimple(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		if got := MatchSliceSimple(tt.patterns, tt.name); got != tt.want {
-			t.Errorf("MatchSliceSimple(%v, %q) = %v, want %v", tt.patterns, tt.name, got, tt.want)
-		}
+		assert.Equalf(t, tt.want, MatchSliceSimple(tt.patterns, tt.name), "MatchSliceSimple(%v, %q)", tt.patterns, tt.name)
 	}
+}
+
+var matchSliceCases = []struct {
+	patterns []string
+	name     string
+	want     bool
+}{
+	{[]string{"*", "test", "t?st"}, "test", true},
+	{[]string{"te?t", "t?st", "random"}, "tost", true},
+	{[]string{"te?t", "t?s?", "random"}, "tost", true},
+	{[]string{"te?t", "t??e?", "random"}, "toser", true},
+	{[]string{"*st", "n?st", "l*st"}, "list", true},
+	{[]string{"?", "??", "???"}, "t", true},
+	{[]string{"a", "b", "c"}, "d", false},
+	{[]string{}, "test", false},
+	{[]string{"*"}, "any", true},
+	{[]string{"abc", "def", "ghi"}, "ghi", true},
+	{[]string{"abc", "def", "ghi"}, "xyz", false},
+	{[]string{"abc*", "def*", "ghi*"}, "ghi-test", true},
+	{[]string{"abc?", "def?", "ghi?"}, "ghiz", true},
+	{[]string{"abc?", "def?", "ghi?"}, "ghizz", false},
+	{[]string{"a*?", "b*?", "c*?"}, "cwhatever", true},
+	{[]string{"a*?", "b*?", "c*?"}, "dwhatever", false},
+	{[]string{"*"}, "", true},
+	{[]string{"abc"}, "abc", true},
+	{[]string{"?bc"}, "abc", true},
+	{[]string{"abc*"}, "abcd", true},
+	{[]string{"guacamole", "The?Simpsons*"}, "The Simpsons S12", true},
+	{[]string{"guacamole*", "The?Sompsons*"}, "The Simpsons S12", false},
+	{[]string{"guac?mole*", "The?S?mpson"}, "The Simpsons S12", false},
+	{[]string{"guac?mole*", "The?S?mpson"}, "guacamole Tornado", true},
+	{[]string{"mole*", "The?S?mpson"}, "guacamole Tornado", false},
+	{[]string{"??**mole*", "The?S?mpson"}, "guacamole Tornado", true},
 }
 
 func TestMatchSlice(t *testing.T) {
 	t.Parallel()
-	tests := []struct {
-		patterns []string
-		name     string
-		want     bool
-	}{
-		{[]string{"*", "test", "t?st"}, "test", true},
-		{[]string{"te?t", "t?st", "random"}, "tost", true},
-		{[]string{"te?t", "t?s?", "random"}, "tost", true},
-		{[]string{"te?t", "t??e?", "random"}, "toser", true},
-		{[]string{"*st", "n?st", "l*st"}, "list", true},
-		{[]string{"?", "??", "???"}, "t", true},
-		{[]string{"a", "b", "c"}, "d", false},
-		{[]string{}, "test", false},
-		{[]string{"*"}, "any", true},
-		{[]string{"abc", "def", "ghi"}, "ghi", true},
-		{[]string{"abc", "def", "ghi"}, "xyz", false},
-		{[]string{"abc*", "def*", "ghi*"}, "ghi-test", true},
-		{[]string{"abc?", "def?", "ghi?"}, "ghiz", true},
-		{[]string{"abc?", "def?", "ghi?"}, "ghizz", false},
-		{[]string{"a*?", "b*?", "c*?"}, "cwhatever", true},
-		{[]string{"a*?", "b*?", "c*?"}, "dwhatever", false},
-		{[]string{"*"}, "", true},
-		{[]string{"abc"}, "abc", true},
-		{[]string{"?bc"}, "abc", true},
-		{[]string{"abc*"}, "abcd", true},
-		{[]string{"guacamole", "The?Simpsons*"}, "The Simpsons S12", true},
-		{[]string{"guacamole*", "The?Sompsons*"}, "The Simpsons S12", false},
-		{[]string{"guac?mole*", "The?S?mpson"}, "The Simpsons S12", false},
-		{[]string{"guac?mole*", "The?S?mpson"}, "guacamole Tornado", true},
-		{[]string{"mole*", "The?S?mpson"}, "guacamole Tornado", false},
-		{[]string{"??**mole*", "The?S?mpson"}, "guacamole Tornado", true},
-	}
 
-	for _, tt := range tests {
-		if got := MatchSlice(tt.patterns, tt.name); got != tt.want {
-			t.Errorf("MatchSlice(%v, %q) = %v, want %v", tt.patterns, tt.name, got, tt.want)
-		}
+	for _, tt := range matchSliceCases {
+		assert.Equalf(t, tt.want, MatchSlice(tt.patterns, tt.name), "MatchSlice(%v, %q)", tt.patterns, tt.name)
 	}
 }
 
-func Benchmark_Regex(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		b.StartTimer()
-		TestMatchSlice(nil)
-		b.StopTimer()
+func BenchmarkMatchSlice(b *testing.B) {
+	for b.Loop() {
+		for _, tt := range matchSliceCases {
+			MatchSlice(tt.patterns, tt.name)
+		}
 	}
 }

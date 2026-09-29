@@ -13,6 +13,12 @@ interface PreRenderedAsset {
   type: 'asset';
 }
 
+interface PreRenderedChunk {
+  name: string;
+  facadeModuleId: string | null;
+  type: 'chunk';
+}
+
 // https://vitejs.dev/config/
 export default ({ mode }: ConfigEnv) => {
   // early load .env file
@@ -135,7 +141,6 @@ export default ({ mode }: ConfigEnv) => {
     },
     build: {
       sourcemap: true,
-      chunkSizeWarningLimit: 1800,
       rollupOptions: {
         output: {
           assetFileNames: (chunkInfo: PreRenderedAsset) => {
@@ -143,27 +148,25 @@ export default ({ mode }: ConfigEnv) => {
               return "assets/[name][extname]";
             }
             return "assets/[name]-[hash][extname]";
+          },
+          chunkFileNames: (chunkInfo: PreRenderedChunk) => {
+            const locale = chunkInfo.facadeModuleId?.match(/\/i18n\/locales\/([^/]+)\/([^/]+)\.json$/);
+            if (locale) {
+              return `assets/locales/${locale[1]}-${locale[2]}-[hash].js`;
+            }
+            return "assets/[name]-[hash].js";
           }
         },
       }
     },
     experimental: {
-      renderBuiltUrl(filename: string, { hostId, hostType, type }: {
-        hostId: string,
-        hostType: 'js' | 'css' | 'html',
-        type: 'public' | 'asset'
-      }) {
-        // console.debug(filename, hostId, hostType, type)
+      renderBuiltUrl(filename: string, { hostType }: { hostType: "js" | "css" | "html" }) {
+        // Go only templates index.html. URLs emitted into JS (lazy chunks, modulepreload
+        // hints) must resolve relative to the importing chunk so the runtime base URL holds.
+        if (hostType === "js") {
+          return { relative: true };
+        }
         return '{{.AssetBaseUrl}}' + filename
-        // if (type === 'public') {
-        //   return 'https://www.domain.com/' + filename
-        // }
-        // else if (path.extname(hostId) === '.js') {
-        //   return { runtime: `window.__assetsPath(${JSON.stringify(filename)})` }
-        // }
-        // else {
-        //   return 'https://cdn.domain.com/assets/' + filename
-        // }
       }
     }
   });

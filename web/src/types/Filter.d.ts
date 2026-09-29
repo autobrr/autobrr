@@ -131,7 +131,7 @@ type ActionContentLayout = "ORIGINAL" | "SUBFOLDER_CREATE" | "SUBFOLDER_NONE" | 
 
 type ActionPriorityLayout = "MAX" | "MIN" | "";
 
-type ActionType = "TEST" | "EXEC" | "WATCH_FOLDER" | "WEBHOOK" | DownloadClientType;
+type ActionType = "TEST" | "EXEC" | "WATCH_FOLDER" | "WEBHOOK" | DownloaderType;
 
 type ExternalType = "EXEC" | "WEBHOOK";
 
@@ -159,6 +159,16 @@ interface ExternalFilter {
   webhook_retry_delay_seconds?: number;
   on_error: ExternalFilterOnError;
   filter_id?: number;
+}
+
+interface ExternalFilterTestResult {
+  type: ExternalType;
+  success: boolean;
+  status: number;
+  expect_status: number;
+  output: string;
+  error?: string;
+  duration_ms: number;
 }
 
 interface FilterDownloads {

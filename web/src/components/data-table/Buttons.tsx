@@ -17,6 +17,7 @@ export const TableButton = ({ children, className, disabled, onClick }: ButtonPr
   <button
     type="button"
     className={classNames(
+      "cursor-pointer disabled:cursor-not-allowed",
       className ?? "",
       "relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-800 text-sm font-medium rounded-md text-gray-700 dark:text-gray-500 bg-white dark:bg-gray-800 hover:bg-gray-50"
     )}

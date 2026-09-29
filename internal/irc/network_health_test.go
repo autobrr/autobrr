@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+
+	"github.com/stretchr/testify/require"
 )
 
 // healthEvents returns the decoded payloads of all published HEALTH events.
@@ -80,9 +82,7 @@ func TestAddConnectErrorDedups(t *testing.T) {
 	n := len(h.connectionErrors)
 	h.m.RUnlock()
 
-	if n != 1 {
-		t.Fatalf("duplicate network errors should be deduped, got %d", n)
-	}
+	require.Equal(t, 1, n, "duplicate network errors should be deduped")
 }
 
 // TestOnErrorFromDisconnectedTransitions verifies a fatal error that arrives while
@@ -100,12 +100,8 @@ func TestOnErrorFromDisconnectedTransitions(t *testing.T) {
 	h.addConnectError("banned from network: G-Lined")
 	h.stateMachine.OnError("banned from network: G-Lined")
 
-	if !waitFor(func() bool { return h.stateMachine.GetState() == StateError }, time.Second) {
-		t.Fatalf("OnError from Disconnected should reach Error, got %s", h.stateMachine.GetState())
-	}
-	if !waitFor(func() bool { return healthEventHasError(sse, h.network.ID, "G-Lined") }, time.Second) {
-		t.Fatal("OnError from Disconnected should broadcast the reason via a HEALTH event")
-	}
+	require.Truef(t, waitFor(func() bool { return h.stateMachine.GetState() == StateError }, time.Second), "OnError from Disconnected should reach Error, got %s", h.stateMachine.GetState())
+	require.True(t, waitFor(func() bool { return healthEventHasError(sse, h.network.ID, "G-Lined") }, time.Second), "OnError from Disconnected should broadcast the reason via a HEALTH event")
 }
 
 // TestReportStatusSurfacesErrorsWhenStopped is a regression test for the invisible
@@ -125,9 +121,8 @@ func TestReportStatusSurfacesErrorsWhenStopped(t *testing.T) {
 	var netw domain.IrcNetworkWithHealth
 	h.ReportStatus(&netw)
 
-	if len(netw.ConnectionErrors) == 0 || !strings.Contains(netw.ConnectionErrors[0], "nick in use") {
-		t.Fatalf("a stopped network must still surface its connection error, got %v", netw.ConnectionErrors)
-	}
+	require.NotEmpty(t, netw.ConnectionErrors, "a stopped network must still surface its connection error")
+	require.Contains(t, netw.ConnectionErrors[0], "nick in use")
 }
 
 // TestNetworkErrorBroadcastsHealthWithReason verifies the network-level failure
@@ -145,9 +140,7 @@ func TestNetworkErrorBroadcastsHealthWithReason(t *testing.T) {
 	h.addConnectError("authentication failed: nick in use and not authenticated")
 	h.stateMachine.OnError("nickserv authentication failed: nick in use")
 
-	if !waitFor(func() bool { return healthEventHasError(sse, h.network.ID, "nick in use") }, time.Second) {
-		t.Fatal("entering network Error should broadcast a HEALTH event carrying the connection error reason")
-	}
+	require.True(t, waitFor(func() bool { return healthEventHasError(sse, h.network.ID, "nick in use") }, time.Second), "entering network Error should broadcast a HEALTH event carrying the connection error reason")
 }
 
 // TestNetworkOperationalBroadcastsHealthy verifies that reaching an operational
@@ -163,12 +156,10 @@ func TestNetworkOperationalBroadcastsHealthy(t *testing.T) {
 	// no enabled default channels are unhealthy, so computeHealthy() is true here
 	h.stateMachine.transition(StateFullyOperational)
 
-	if !waitFor(func() bool {
+	require.True(t, waitFor(func() bool {
 		healthy, found := healthEventHealthy(sse, h.network.ID)
 		return found && healthy
-	}, time.Second) {
-		t.Fatal("reaching FullyOperational should broadcast a healthy HEALTH event")
-	}
+	}, time.Second), "reaching FullyOperational should broadcast a healthy HEALTH event")
 }
 
 // TestNetworkOperationalClearsStaleErrors is a regression test for sticky
@@ -189,11 +180,9 @@ func TestNetworkOperationalClearsStaleErrors(t *testing.T) {
 
 	h.stateMachine.transition(StateFullyOperational)
 
-	if !waitFor(func() bool {
+	require.True(t, waitFor(func() bool {
 		h.m.RLock()
 		defer h.m.RUnlock()
 		return len(h.connectionErrors) == 0
-	}, time.Second) {
-		t.Fatal("reaching FullyOperational should clear stale network-level errors")
-	}
+	}, time.Second), "reaching FullyOperational should clear stale network-level errors")
 }

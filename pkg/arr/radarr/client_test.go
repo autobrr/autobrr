@@ -4,7 +4,6 @@
 package radarr
 
 import (
-	"context"
 	"net/http/httptest"
 	"net/url"
 	"testing"
@@ -45,16 +44,16 @@ func TestClient_TransportErrorDoesNotLeakCredentials(t *testing.T) {
 	}{
 		{
 			name: "get",
-			call: func() error { _, err := c.Test(context.Background()); return err },
+			call: func() error { _, err := c.Test(t.Context()); return err },
 		},
 		{
 			name: "getJSON",
-			call: func() error { _, err := c.GetTags(context.Background()); return err },
+			call: func() error { _, err := c.GetTags(t.Context()); return err },
 		},
 		{
 			name: "postBody",
 			call: func() error {
-				_, err := c.Push(context.Background(), ReleasePushRequest{
+				_, err := c.Push(t.Context(), ReleasePushRequest{
 					Title:       "Movie 2024 1080p BluRay x264-GROUP",
 					DownloadUrl: "https://tracker.example/download/1?torrent_pass=" + leakPasskey,
 					Protocol:    "torrent",

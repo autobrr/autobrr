@@ -14,7 +14,8 @@ import { format } from "date-fns";
 
 import { ReleasesVolumeQueryOptions } from "@api/queries";
 import { humanFileSize } from "@utils";
-import { ChartCard, ChartError, ChartSkeleton, chartTheme, seriesColors, useIsDark } from "./charts";
+import { ChartCard, ChartError, ChartSkeleton } from "./charts";
+import { chartTheme, seriesColors, useIsDark } from "./chartTheme";
 
 const asDate = (value: string) => new Date(`${value}T00:00:00Z`);
 

@@ -22,6 +22,11 @@
     "exportJson": "JSON exportieren",
     "exportJsonDiscord": "JSON nach Discord exportieren",
     "toggle": "Umschalten",
+    "toggleAll": "Alle umschalten",
+    "toggleAllTitle": "Alle sichtbaren Filter umschalten",
+    "toggleAllEnabled": "Sichtbare Filter aktiviert: {{count}}",
+    "toggleAllDisabled": "Sichtbare Filter deaktiviert: {{count}}",
+    "toggleAllError": "Beim Umschalten der Filter ist ein Fehler aufgetreten.",
     "duplicate": "Duplizieren",
     "delete": "Löschen",
     "toggleSuccess": "{{name}} wurde erfolgreich {{state}}",
@@ -420,6 +425,19 @@
     "onErrorTooltip": "Auswählen, was bei einem Fehler für diesen externen Filter getan werden soll.",
     "remove": "Extern entfernen",
     "close": "Schließen",
+    "test": "Testen",
+    "testing": "Wird getestet",
+    "testResult": {
+      "dismiss": "Ausblenden",
+      "status": {
+        "EXEC": "Skript wurde mit Code {{status}} beendet (erwartet {{expected}}) in {{duration}} ms",
+        "WEBHOOK": "Webhook antwortete mit Status {{status}} (erwartet {{expected}}) in {{duration}} ms"
+      },
+      "error": {
+        "EXEC": "Skript fehlgeschlagen: {{error}}",
+        "WEBHOOK": "Webhook-Anfrage fehlgeschlagen: {{error}}"
+      }
+    },
     "types": {
       "EXEC": "Exec",
       "WEBHOOK": "Webhook"

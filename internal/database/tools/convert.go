@@ -168,7 +168,7 @@ func (c *SqliteToPostgresConverter) printConversionResult(startTime time.Time, a
 }
 
 func GetTables() []string {
-	return append([]string(nil), defaultTables...)
+	return slices.Clone(defaultTables)
 }
 
 func (c *SqliteToPostgresConverter) migrateTable(ctx context.Context, sqliteDB, postgresDB *sql.DB, table string, dry bool) ([]string, error) {
@@ -213,7 +213,7 @@ func (c *SqliteToPostgresConverter) migrateTable(ctx context.Context, sqliteDB, 
 
 	const batchSize = 1000
 	c.logger.Debug().Str("table", table).Int("batchSize", batchSize).Int64("rows", rowCount).Int("total_batches", int(rowCount/batchSize)).Msg("total batches")
-	var batch [][]interface{}
+	var batch [][]any
 	var rowsAffected int64
 
 	for rows.Next() {
@@ -249,7 +249,7 @@ func (c *SqliteToPostgresConverter) migrateTable(ctx context.Context, sqliteDB, 
 	return fkViolationMessages, nil
 }
 
-func (c *SqliteToPostgresConverter) insertBatch(ctx context.Context, db *sql.DB, table, colNames string, columns []*sql.ColumnType, batch [][]interface{}) (int64, []string) {
+func (c *SqliteToPostgresConverter) insertBatch(ctx context.Context, db *sql.DB, table, colNames string, columns []*sql.ColumnType, batch [][]any) (int64, []string) {
 	if len(batch) == 0 {
 		return 0, nil
 	}
@@ -258,7 +258,7 @@ func (c *SqliteToPostgresConverter) insertBatch(ctx context.Context, db *sql.DB,
 
 	// Build multi-row INSERT statement
 	var placeholders []string
-	var allValues []interface{}
+	var allValues []any
 	paramIndex := 1
 
 	for _, rowValues := range batch {
@@ -286,7 +286,7 @@ func (c *SqliteToPostgresConverter) insertBatch(ctx context.Context, db *sql.DB,
 	return int64(len(batch)), fkViolations
 }
 
-func (c *SqliteToPostgresConverter) insertBatchOneByOne(ctx context.Context, db *sql.DB, table, colNames string, columns []*sql.ColumnType, batch [][]interface{}) (int64, []string) {
+func (c *SqliteToPostgresConverter) insertBatchOneByOne(ctx context.Context, db *sql.DB, table, colNames string, columns []*sql.ColumnType, batch [][]any) (int64, []string) {
 	var fkViolations []string
 	var rowsAffected int64
 
@@ -327,9 +327,9 @@ func prepareColumns(columns []*sql.ColumnType) (colNames, colPlaceholders string
 	return
 }
 
-func prepareValues(columns []*sql.ColumnType) ([]interface{}, []interface{}) {
-	values := make([]interface{}, len(columns))
-	valuePtrs := make([]interface{}, len(columns))
+func prepareValues(columns []*sql.ColumnType) ([]any, []any) {
+	values := make([]any, len(columns))
+	valuePtrs := make([]any, len(columns))
 	for i := range values {
 		valuePtrs[i] = &values[i]
 	}

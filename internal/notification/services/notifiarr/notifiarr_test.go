@@ -14,7 +14,6 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // shortenRetryDelay must only be used in sequential tests: parallel tests are
@@ -40,8 +39,8 @@ func TestClient_SendMessage(t *testing.T) {
 		assert.Equal(t, "autobrr", r.Header.Get("User-Agent"))
 
 		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
-		require.NoError(t, json.Unmarshal(body, &got))
+		assert.NoError(t, err)
+		assert.NoError(t, json.Unmarshal(body, &got))
 
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"result":"success"}`))
@@ -79,8 +78,8 @@ func TestClient_SendMessage_RateLimitedThenSuccess(t *testing.T) {
 		}
 
 		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
-		require.NoError(t, json.Unmarshal(body, &got))
+		assert.NoError(t, err)
+		assert.NoError(t, json.Unmarshal(body, &got))
 
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"result":"success"}`))
@@ -140,10 +139,8 @@ func TestClient_SendMessage_RateLimitTooLong(t *testing.T) {
 	client.endpoint = server.URL
 
 	err := client.SendMessage(t.Context(), &Message{Event: "TEST"})
-	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "unexpected status: 429")
-		assert.Contains(t, err.Error(), "exceeds the retry budget")
-	}
+	assert.ErrorContains(t, err, "unexpected status: 429")
+	assert.ErrorContains(t, err, "exceeds the retry budget")
 	assert.Equal(t, int32(1), requests.Load())
 }
 
@@ -190,10 +187,8 @@ func TestClient_SendMessage_RateLimitHTTPDateTooLong(t *testing.T) {
 	client.endpoint = server.URL
 
 	err := client.SendMessage(t.Context(), &Message{Event: "TEST"})
-	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "unexpected status: 429")
-		assert.Contains(t, err.Error(), "exceeds the retry budget")
-	}
+	assert.ErrorContains(t, err, "unexpected status: 429")
+	assert.ErrorContains(t, err, "exceeds the retry budget")
 	assert.Equal(t, int32(1), requests.Load())
 }
 
@@ -213,11 +208,9 @@ func TestClient_SendMessage_UnauthorizedNoRetry(t *testing.T) {
 	client.endpoint = server.URL
 
 	err := client.SendMessage(t.Context(), &Message{Event: "TEST"})
-	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "unexpected status: 401")
-		assert.Contains(t, err.Error(), "invalid api key")
-		assert.Contains(t, err.Error(), "check notifiarr api key")
-	}
+	assert.ErrorContains(t, err, "unexpected status: 401")
+	assert.ErrorContains(t, err, "invalid api key")
+	assert.ErrorContains(t, err, "check notifiarr api key")
 	assert.Equal(t, int32(1), requests.Load())
 }
 
@@ -259,8 +252,6 @@ func TestClient_SendMessage_ServerErrorRetries(t *testing.T) {
 	client.endpoint = server.URL
 
 	err := client.SendMessage(t.Context(), &Message{Event: "TEST"})
-	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "unexpected status: 502")
-	}
+	assert.ErrorContains(t, err, "unexpected status: 502")
 	assert.Equal(t, int32(3), requests.Load())
 }

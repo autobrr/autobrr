@@ -10,6 +10,7 @@ import (
 
 	"github.com/moistari/rls"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMacros_Parse(t *testing.T) {
@@ -304,9 +305,10 @@ func TestMacros_Parse(t *testing.T) {
 
 			assert.Equal(t, currentTime.Year(), m.CurrentYear)
 
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Parse() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
 			}
 			assert.Equal(t, tt.want, got)
 		})

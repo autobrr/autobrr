@@ -59,7 +59,7 @@ type Statistics struct {
 type Artist struct {
 	ID                int64             `json:"id"`
 	Status            string            `json:"status,omitempty"`
-	LastInfoSync      time.Time         `json:"lastInfoSync,omitempty"`
+	LastInfoSync      time.Time         `json:"lastInfoSync"`
 	ArtistName        string            `json:"artistName,omitempty"`
 	ForeignArtistID   string            `json:"foreignArtistId,omitempty"`
 	TadbID            int64             `json:"tadbId,omitempty"`
@@ -77,7 +77,7 @@ type Artist struct {
 	Images            []*arr.Image      `json:"images,omitempty"`
 	Genres            []string          `json:"genres,omitempty"`
 	Tags              []int             `json:"tags,omitempty"`
-	Added             time.Time         `json:"added,omitempty"`
+	Added             time.Time         `json:"added"`
 	Ratings           *arr.Ratings      `json:"ratings,omitempty"`
 	Statistics        *Statistics       `json:"statistics,omitempty"`
 	LastAlbum         *Album            `json:"lastAlbum,omitempty"`
@@ -98,12 +98,12 @@ type Album struct {
 	ProfileID      int64            `json:"profileId"`
 	Duration       int              `json:"duration"`
 	AlbumType      string           `json:"albumType"`
-	SecondaryTypes []interface{}    `json:"secondaryTypes"`
+	SecondaryTypes []any            `json:"secondaryTypes"`
 	MediumCount    int              `json:"mediumCount"`
 	Ratings        *arr.Ratings     `json:"ratings"`
 	ReleaseDate    time.Time        `json:"releaseDate"`
 	Releases       []*AlbumRelease  `json:"releases"`
-	Genres         []interface{}    `json:"genres"`
+	Genres         []any            `json:"genres"`
 	Media          []*Media         `json:"media"`
 	Artist         *Artist          `json:"artist"`
 	Links          []*arr.Link      `json:"links"`

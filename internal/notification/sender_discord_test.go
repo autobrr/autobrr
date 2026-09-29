@@ -38,10 +38,10 @@ func TestDiscordBuildEmbed_RespectsEmbedLimits(t *testing.T) {
 	}
 
 	e, err := buildDiscordMessage(payload)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
-	assert.NotNil(t, e)
-	assert.NotNil(t, e.Embeds)
+	require.NotNil(t, e)
+	require.NotEmpty(t, e.Embeds)
 
 	embed := e.Embeds[0]
 

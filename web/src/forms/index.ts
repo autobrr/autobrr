@@ -5,7 +5,7 @@
 
 export { FilterAddForm } from "./filters/FilterAddForm";
 
-export { DownloadClientAddForm, DownloadClientUpdateForm } from "./settings/DownloadClientForms";
+export { DownloaderAddForm, DownloaderUpdateForm } from "./settings/DownloaderForms";
 export { IndexerAddForm, IndexerUpdateForm } from "./settings/IndexerForms";
 export { IrcNetworkAddForm, IrcNetworkUpdateForm } from "./settings/IrcForms";
 export { ListAddForm, ListUpdateForm } from "./settings/ListForms";

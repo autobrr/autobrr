@@ -11,6 +11,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/announce"
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/featureflags"
 
 	"github.com/ergochat/irc-go/ircmsg"
@@ -231,10 +232,8 @@ func (c *Channel) SetConnectionError(err string) {
 	c.m.Lock()
 	defer c.m.Unlock()
 
-	for _, existing := range c.ConnectionErrors {
-		if existing == err {
-			return
-		}
+	if slices.Contains(c.ConnectionErrors, err) {
+		return
 	}
 	c.ConnectionErrors = append(c.ConnectionErrors, err)
 }
@@ -383,6 +382,12 @@ func (c *Channel) SetTopic(topic string) {
 }
 
 func (c *Channel) QueueAnnounceLine(line string) error {
+	// user-defined channels, and channels on a network whose server matches no
+	// indexer definition, have no processor
+	if c.announceProcessor == nil {
+		return errors.Wrap(domain.ErrIRCChannelNoAnnounceProcessor, "channel: %s", c.Name)
+	}
+
 	if err := c.announceProcessor.AddLineToQueue(c.Name, line); err != nil {
 		c.log.Error().Err(err).Str("line", line).Msg("could not add line to queue")
 		return err

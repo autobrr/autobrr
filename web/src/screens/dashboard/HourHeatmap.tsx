@@ -12,7 +12,8 @@ import { tooltip } from "@tanstack/charts/tooltip";
 import { scaleBand, scaleQuantize } from "d3-scale";
 
 import { ReleasesHeatmapQueryOptions } from "@api/queries";
-import { ChartCard, ChartError, ChartSkeleton, chartTheme, sequentialRamp, useIsDark } from "./charts";
+import { ChartCard, ChartError, ChartSkeleton } from "./charts";
+import { chartTheme, sequentialRamp, useIsDark } from "./chartTheme";
 
 interface HeatmapDatum {
   hour: number;

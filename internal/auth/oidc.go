@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"time"
 
@@ -235,10 +236,5 @@ func (s *OIDCService) SupportsPKCE() bool {
 	if err := s.provider.Claims(&claims); err != nil {
 		return false
 	}
-	for _, method := range claims.CodeChallenges {
-		if method == "S256" {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(claims.CodeChallenges, "S256")
 }

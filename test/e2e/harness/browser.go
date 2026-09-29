@@ -41,10 +41,10 @@ func (a *App) newPage(session *http.Cookie) *UI {
 	a.t.Helper()
 
 	context, err := browser.NewContext(playwright.BrowserNewContextOptions{
-		BaseURL: playwright.String(a.BaseURL),
+		BaseURL: new(a.BaseURL),
 		// The UI picks its language from navigator.language and ships eight of
 		// them. Pin the locale so text-based assertions stay meaningful.
-		Locale: playwright.String("en-US"),
+		Locale: new("en-US"),
 	})
 	if err != nil {
 		a.t.Fatalf("harness: could not create browser context: %v", err)
@@ -56,9 +56,9 @@ func (a *App) newPage(session *http.Cookie) *UI {
 		err = context.AddCookies([]playwright.OptionalCookie{{
 			Name:     session.Name,
 			Value:    session.Value,
-			Domain:   playwright.String(u.Hostname()),
-			Path:     playwright.String("/"),
-			HttpOnly: playwright.Bool(true),
+			Domain:   new(u.Hostname()),
+			Path:     new("/"),
+			HttpOnly: new(true),
 		}})
 		if err != nil {
 			a.t.Fatalf("harness: could not set session cookie: %v", err)
@@ -69,9 +69,9 @@ func (a *App) newPage(session *http.Cookie) *UI {
 	// the difference between "a locator timed out" and being able to see what
 	// the page actually looked like at that moment.
 	err = context.Tracing().Start(playwright.TracingStartOptions{
-		Screenshots: playwright.Bool(true),
-		Snapshots:   playwright.Bool(true),
-		Sources:     playwright.Bool(true),
+		Screenshots: new(true),
+		Snapshots:   new(true),
+		Sources:     new(true),
 	})
 	if err != nil {
 		a.t.Fatalf("harness: could not start tracing: %v", err)
@@ -105,8 +105,8 @@ func (a *App) saveArtifacts(page playwright.Page, context playwright.BrowserCont
 
 	shot := base + ".png"
 	if _, err := page.Screenshot(playwright.PageScreenshotOptions{
-		Path:     playwright.String(shot),
-		FullPage: playwright.Bool(true),
+		Path:     new(shot),
+		FullPage: new(true),
 	}); err != nil {
 		a.t.Logf("harness: could not save screenshot: %v", err)
 	} else {

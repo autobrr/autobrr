@@ -103,11 +103,13 @@ func (s *APIService) AddClient(indexer string, settings map[string]string, proxy
 			return err
 		}
 
-		proxyClient, err := proxy.GetProxiedHTTPClient(p)
-		if err != nil {
-			return errors.Wrap(err, "could not get proxy client")
+		if p.Enabled {
+			proxyClient, err := proxy.GetProxiedHTTPClient(p)
+			if err != nil {
+				return errors.Wrap(err, "could not get proxy client")
+			}
+			proxyHttpClient = proxyClient
 		}
-		proxyHttpClient = proxyClient
 	}
 
 	subLogger := s.log.With().Str("indexer", indexer).Logger()
@@ -171,11 +173,13 @@ func (s *APIService) getClientForTest(req domain.IndexerTestApiRequest) (apiClie
 			return nil, err
 		}
 
-		proxyClient, err := proxy.GetProxiedHTTPClient(p)
-		if err != nil {
-			return nil, errors.Wrap(err, "could not get proxy client")
+		if p.Enabled {
+			proxyClient, err := proxy.GetProxiedHTTPClient(p)
+			if err != nil {
+				return nil, errors.Wrap(err, "could not get proxy client")
+			}
+			proxyHttpClient = proxyClient
 		}
-		proxyHttpClient = proxyClient
 	}
 
 	subLogger := s.log.With().Str("indexer", req.Identifier).Logger()

@@ -14,6 +14,7 @@ require (
 	github.com/alexedwards/scs/postgresstore v0.0.0-20250417082927-ab20b3feb5e9
 	github.com/alexedwards/scs/v2 v2.9.0
 	github.com/alphadose/haxmap v1.4.1
+	github.com/autobrr/go-cache v1.0.0-rc1
 	github.com/autobrr/go-deluge v1.4.0
 	github.com/autobrr/go-qbittorrent v1.18.0
 	github.com/autobrr/go-rtorrent v1.12.0

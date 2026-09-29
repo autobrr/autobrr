@@ -13,7 +13,6 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // shortenRetryDelay must only be used in sequential tests: parallel tests are
@@ -40,7 +39,7 @@ func TestClient_SendMessage(t *testing.T) {
 		assert.Equal(t, "Bearer mock-token", r.Header.Get("Authorization"))
 
 		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, "New release: Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP\n", string(body))
 
 		w.WriteHeader(http.StatusOK)
@@ -87,7 +86,7 @@ func TestClient_SendMessage_RateLimitedThenSuccess(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, "autobrr goes brr!!", string(body))
 
 		if requests.Add(1) == 1 {
@@ -147,10 +146,8 @@ func TestClient_SendMessage_RateLimitTooLong(t *testing.T) {
 	client := NewSender(zerolog.New(io.Discard), Config{Host: server.URL, Name: "mock"})
 
 	err := client.SendMessage(t.Context(), &Message{Title: "Test", Message: "autobrr goes brr!!"})
-	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "unexpected status: 429")
-		assert.Contains(t, err.Error(), "exceeds the retry budget")
-	}
+	assert.ErrorContains(t, err, "unexpected status: 429")
+	assert.ErrorContains(t, err, "exceeds the retry budget")
 	assert.Equal(t, int32(1), requests.Load())
 }
 
@@ -195,10 +192,8 @@ func TestClient_SendMessage_RateLimitHTTPDateTooLong(t *testing.T) {
 	client := NewSender(zerolog.New(io.Discard), Config{Host: server.URL, Name: "mock"})
 
 	err := client.SendMessage(t.Context(), &Message{Title: "Test", Message: "autobrr goes brr!!"})
-	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "unexpected status: 429")
-		assert.Contains(t, err.Error(), "exceeds the retry budget")
-	}
+	assert.ErrorContains(t, err, "unexpected status: 429")
+	assert.ErrorContains(t, err, "exceeds the retry budget")
 	assert.Equal(t, int32(1), requests.Load())
 }
 
@@ -216,9 +211,7 @@ func TestClient_SendMessage_ServerErrorRetries(t *testing.T) {
 	client := NewSender(zerolog.New(io.Discard), Config{Host: server.URL, Name: "mock"})
 
 	err := client.SendMessage(t.Context(), &Message{Title: "Test", Message: "autobrr goes brr!!"})
-	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "unexpected status: 500")
-	}
+	assert.ErrorContains(t, err, "unexpected status: 500")
 	assert.Equal(t, int32(3), requests.Load())
 }
 
@@ -237,10 +230,8 @@ func TestClient_SendMessage_UnauthorizedNoRetry(t *testing.T) {
 	client := NewSender(zerolog.New(io.Discard), Config{Host: server.URL, Token: "bad-token", Name: "mock"})
 
 	err := client.SendMessage(t.Context(), &Message{Title: "Test", Message: "autobrr goes brr!!"})
-	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "check access token or username/password")
-		assert.Contains(t, err.Error(), "unexpected status: 401")
-		assert.Contains(t, err.Error(), "unauthorized")
-	}
+	assert.ErrorContains(t, err, "check access token or username/password")
+	assert.ErrorContains(t, err, "unexpected status: 401")
+	assert.ErrorContains(t, err, "unauthorized")
 	assert.Equal(t, int32(1), requests.Load())
 }

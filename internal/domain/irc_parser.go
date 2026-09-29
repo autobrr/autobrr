@@ -2,6 +2,7 @@ package domain
 
 import (
 	"fmt"
+	"maps"
 	"regexp"
 	"strings"
 )
@@ -204,9 +205,7 @@ func mergeVars(data ...map[string]string) map[string]string {
 
 	for _, vars := range data {
 		// copy vars to new tmp map
-		for k, v := range vars {
-			tmpVars[k] = v
-		}
+		maps.Copy(tmpVars, vars)
 	}
 	return tmpVars
 }

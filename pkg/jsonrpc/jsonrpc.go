@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"maps"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -16,18 +17,18 @@ import (
 )
 
 type Client interface {
-	Call(method string, params ...interface{}) (*RPCResponse, error)
-	CallCtx(ctx context.Context, method string, params ...interface{}) (*RPCResponse, error)
+	Call(method string, params ...any) (*RPCResponse, error)
+	CallCtx(ctx context.Context, method string, params ...any) (*RPCResponse, error)
 }
 
 type RPCRequest struct {
-	JsonRPC string      `json:"jsonrpc"`
-	Method  string      `json:"method"`
-	Params  interface{} `json:"params"`
-	ID      int         `json:"id"`
+	JsonRPC string `json:"jsonrpc"`
+	Method  string `json:"method"`
+	Params  any    `json:"params"`
+	ID      int    `json:"id"`
 }
 
-func NewRequest(method string, params ...interface{}) *RPCRequest {
+func NewRequest(method string, params ...any) *RPCRequest {
 	return &RPCRequest{
 		JsonRPC: "2.0",
 		Method:  method,
@@ -37,16 +38,16 @@ func NewRequest(method string, params ...interface{}) *RPCRequest {
 }
 
 type RPCResponse struct {
-	JsonRPC string      `json:"jsonrpc"`
-	Result  interface{} `json:"result,omitempty"`
-	Error   *RPCError   `json:"error,omitempty"`
-	ID      int         `json:"id"`
+	JsonRPC string    `json:"jsonrpc"`
+	Result  any       `json:"result,omitempty"`
+	Error   *RPCError `json:"error,omitempty"`
+	ID      int       `json:"id"`
 }
 
 type RPCError struct {
-	Code    int         `json:"code"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Data    any    `json:"data,omitempty"`
 }
 
 func (e *RPCError) Error() string {
@@ -114,9 +115,7 @@ func NewClientWithOpts(endpoint string, opts *ClientOpts) Client {
 	}
 
 	if opts.Headers != nil {
-		for k, v := range opts.Headers {
-			c.headers[k] = v
-		}
+		maps.Copy(c.headers, opts.Headers)
 	}
 
 	c.basicUser = opts.BasicUser
@@ -125,7 +124,7 @@ func NewClientWithOpts(endpoint string, opts *ClientOpts) Client {
 	return c
 }
 
-func (c *rpcClient) Call(method string, params ...interface{}) (*RPCResponse, error) {
+func (c *rpcClient) Call(method string, params ...any) (*RPCResponse, error) {
 	request := RPCRequest{
 		ID:      1,
 		JsonRPC: "2.0",
@@ -136,7 +135,7 @@ func (c *rpcClient) Call(method string, params ...interface{}) (*RPCResponse, er
 	return c.doCall(context.TODO(), request)
 }
 
-func (c *rpcClient) CallCtx(ctx context.Context, method string, params ...interface{}) (*RPCResponse, error) {
+func (c *rpcClient) CallCtx(ctx context.Context, method string, params ...any) (*RPCResponse, error) {
 	request := RPCRequest{
 		ID:      1,
 		JsonRPC: "2.0",
@@ -147,7 +146,7 @@ func (c *rpcClient) CallCtx(ctx context.Context, method string, params ...interf
 	return c.doCall(ctx, request)
 }
 
-func (c *rpcClient) newRequest(ctx context.Context, req interface{}) (*http.Request, error) {
+func (c *rpcClient) newRequest(ctx context.Context, req any) (*http.Request, error) {
 	body, err := json.Marshal(req)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not marshal request")
@@ -209,8 +208,8 @@ func (c *rpcClient) doCall(ctx context.Context, request RPCRequest) (*RPCRespons
 	return rpcResponse, nil
 }
 
-func Params(params ...interface{}) interface{} {
-	var finalParams interface{}
+func Params(params ...any) any {
+	var finalParams any
 
 	// if params was nil skip this and p stays nil
 	if params != nil {
@@ -221,7 +220,7 @@ func Params(params ...interface{}) interface{} {
 				var typeOf reflect.Type
 
 				// traverse until nil or not a pointer type
-				for typeOf = reflect.TypeOf(params[0]); typeOf != nil && typeOf.Kind() == reflect.Ptr; typeOf = typeOf.Elem() {
+				for typeOf = reflect.TypeOf(params[0]); typeOf != nil && typeOf.Kind() == reflect.Pointer; typeOf = typeOf.Elem() {
 				}
 
 				if typeOf != nil {
@@ -253,7 +252,7 @@ func Params(params ...interface{}) interface{} {
 	return finalParams
 }
 
-func (r *RPCResponse) GetObject(toType interface{}) error {
+func (r *RPCResponse) GetObject(toType any) error {
 	js, err := json.Marshal(r.Result)
 	if err != nil {
 		return errors.Wrap(err, "could not marshal object")

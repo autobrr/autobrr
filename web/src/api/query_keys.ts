@@ -5,6 +5,17 @@
 
 import { ColumnFilter } from "@tanstack/react-table";
 
+export const LogKeys = {
+  all: ["logs"] as const,
+  files: () => [...LogKeys.all, "files"] as const
+};
+
+export const AuthKeys = {
+  all: ["auth"] as const,
+  oidcConfig: () => [...AuthKeys.all, "oidc-config"] as const,
+  canOnboard: () => [...AuthKeys.all, "can-onboard"] as const
+};
+
 export const SettingsKeys = {
   all: ["settings"] as const,
   updates: () => [...SettingsKeys.all, "updates"] as const,
@@ -59,13 +70,13 @@ export const ApiKeys = {
   detail: (id: string) => [...ApiKeys.details(), id] as const
 };
 
-export const DownloadClientKeys = {
-  all: ["download_clients"] as const,
-  lists: () => [...DownloadClientKeys.all, "list"] as const,
+export const DownloaderKeys = {
+  all: ["downloaders"] as const,
+  lists: () => [...DownloaderKeys.all, "list"] as const,
   // list: (indexers: string[], sortOrder: string) => [...clientKeys.lists(), { indexers, sortOrder }] as const,
-  details: () => [...DownloadClientKeys.all, "detail"] as const,
-  detail: (id: number) => [...DownloadClientKeys.details(), id] as const,
-  arrTags: (id: number) => [...DownloadClientKeys.details(), id, "arr-tags"] as const
+  details: () => [...DownloaderKeys.all, "detail"] as const,
+  detail: (id: number) => [...DownloaderKeys.details(), id] as const,
+  arrTags: (id: number) => [...DownloaderKeys.details(), id, "arr-tags"] as const
 };
 
 export const FeedKeys = {
@@ -92,7 +103,8 @@ export const IrcKeys = {
   lists: () => [...IrcKeys.all, "list"] as const,
   // list: (indexers: string[], sortOrder: string) => [...ircKeys.lists(), { indexers, sortOrder }] as const,
   details: () => [...IrcKeys.all, "detail"] as const,
-  detail: (id: number) => [...IrcKeys.details(), id] as const
+  detail: (id: number) => [...IrcKeys.details(), id] as const,
+  channelHistory: (networkId: number, channel: string) => [...IrcKeys.all, "channel-history", networkId, channel] as const
 };
 
 export const NotificationKeys = {
@@ -107,7 +119,8 @@ export const ProxyKeys = {
   all: ["proxy"] as const,
   lists: () => [...ProxyKeys.all, "list"] as const,
   details: () => [...ProxyKeys.all, "detail"] as const,
-  detail: (id: number) => [...ProxyKeys.details(), id] as const
+  detail: (id: number) => [...ProxyKeys.details(), id] as const,
+  usage: (id: number) => [...ProxyKeys.details(), id, "usage"] as const
 };
 
 export const ListKeys = {

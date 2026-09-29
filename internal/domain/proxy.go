@@ -32,6 +32,18 @@ func (p Proxy) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// ProxyUsage lists the entities configured to route their traffic through a proxy.
+type ProxyUsage struct {
+	Indexers    []ProxyUsageItem `json:"indexers"`
+	IrcNetworks []ProxyUsageItem `json:"irc_networks"`
+	Feeds       []ProxyUsageItem `json:"feeds"`
+}
+
+type ProxyUsageItem struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+}
+
 type ProxyType string
 
 const (

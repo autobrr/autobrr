@@ -3,20 +3,19 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useEffect, useRef } from "react";
-import { useFormikContext, FieldArray, FieldArrayRenderProps } from "formik";
+import { useRef } from "react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { ChevronRightIcon, InformationCircleIcon } from "@heroicons/react/24/solid";
 import { BellIcon } from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
 
-import { APIClient } from "@api/APIClient";
-import { NotificationKeys } from "@api/query_keys";
+import { NotificationsQueryOptions } from "@api/queries";
 import { Checkbox } from "@components/Checkbox";
 import { TitleSubtitle } from "@components/headings";
 import { EmptyListState } from "@components/emptystates";
 import { DeleteModal } from "@components/modals";
 import { Select } from "@components/inputs";
+import { useFormContext, useFormValue } from "@hooks/form";
 import { useToggle } from "@hooks/hooks";
 import { classNames } from "@utils";
 import { FilterSection, FilterLayout, FilterPage } from "./_components";
@@ -41,12 +40,10 @@ const NOTIFICATION_TYPE_MAP: Record<string, string> = {
 
 export function Notifications() {
   const { t } = useTranslation("filters");
-  const { values } = useFormikContext<Filter>();
+  const form = useFormContext();
+  const values = useFormValue((v: Filter) => ({ notifications: v.notifications }));
 
-  const { data: availableNotifications = [] } = useSuspenseQuery({
-    queryKey: NotificationKeys.lists(),
-    queryFn: () => APIClient.notifications.getAll()
-  });
+  const { data: availableNotifications = [] } = useSuspenseQuery(NotificationsQueryOptions());
   const enabledNotifications = availableNotifications.filter(notification => notification.enabled);
 
   const createNewNotification = (): FilterNotification => {
@@ -61,56 +58,51 @@ export function Notifications() {
     };
   };
 
+  const availableToAdd = enabledNotifications.filter(
+    n => !values.notifications?.some((sn: FilterNotification) => sn.notification_id === n.id)
+  );
+
+  const push = (item: FilterNotification) => form.pushFieldValue("notifications", item);
+  const remove = (index: number) => form.removeFieldValue("notifications", index);
+
   return (
     <div className="mt-5">
-      <FieldArray name="notifications">
-        {({ remove, push }: FieldArrayRenderProps) => {
-          const availableToAdd = enabledNotifications.filter(
-            n => !values.notifications?.some((sn: FilterNotification) => sn.notification_id === n.id)
-          );
+      <div className="-ml-4 -mt-4 mb-6 flex justify-between items-center flex-wrap sm:flex-nowrap">
+        <TitleSubtitle
+          className="ml-4 mt-4"
+          title={t("notificationsSection.title")}
+          subtitle={t("notificationsSection.subtitle")}
+        />
+        <div className="ml-4 mt-4 shrink-0">
+          {availableToAdd.length > 0 && (
+            <button
+              type="button"
+              className="relative inline-flex items-center px-4 py-2 border border-transparent transition shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 cursor-pointer"
+              onClick={() => push(createNewNotification())}
+            >
+              <BellIcon className="w-5 h-5 mr-1" aria-hidden="true" />
+              {t("notificationsSection.addNotification")}
+            </button>
+          )}
+        </div>
+      </div>
 
-          return (
-            <>
-              <div className="-ml-4 -mt-4 mb-6 flex justify-between items-center flex-wrap sm:flex-nowrap">
-                <TitleSubtitle
-                  className="ml-4 mt-4"
-                  title={t("notificationsSection.title")}
-                  subtitle={t("notificationsSection.subtitle")}
-                />
-                <div className="ml-4 mt-4 shrink-0">
-                  {availableToAdd.length > 0 && (
-                    <button
-                      type="button"
-                      className="relative inline-flex items-center px-4 py-2 border border-transparent transition shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                      onClick={() => push(createNewNotification())}
-                    >
-                      <BellIcon className="w-5 h-5 mr-1" aria-hidden="true" />
-                      {t("notificationsSection.addNotification")}
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {values.notifications && values.notifications.length > 0 ? (
-                <ul className="rounded-md">
-                  {values.notifications.map((notification: FilterNotification, index: number) => (
-                    <NotificationItem
-                      key={index}
-                      notification={notification}
-                      availableNotifications={availableNotifications}
-                      idx={index}
-                      remove={remove}
-                      initialEdit={values.notifications!.length === 1}
-                    />
-                  ))}
-                </ul>
-              ) : (
-                <EmptyListState text={t("notificationsSection.empty")} />
-              )}
-            </>
-          );
-        }}
-      </FieldArray>
+      {values.notifications && values.notifications.length > 0 ? (
+        <ul className="rounded-md">
+          {values.notifications.map((notification: FilterNotification, index: number) => (
+            <NotificationItem
+              key={notification.notification_id || `new-${index}`}
+              notification={notification}
+              availableNotifications={availableNotifications}
+              idx={index}
+              remove={remove}
+              initialEdit={values.notifications!.length === 1}
+            />
+          ))}
+        </ul>
+      ) : (
+        <EmptyListState text={t("notificationsSection.empty")} />
+      )}
     </div>
   );
 }
@@ -120,12 +112,13 @@ interface NotificationItemProps {
   availableNotifications: ServiceNotification[];
   idx: number;
   initialEdit: boolean;
-  remove: <T>(index: number) => T | undefined;
+  remove: (index: number) => void;
 }
 
 function NotificationItem({ notification, availableNotifications, idx, initialEdit, remove }: NotificationItemProps) {
   const { t } = useTranslation("filters");
-  const { values, setFieldValue } = useFormikContext<Filter>();
+  const form = useFormContext();
+  const values = useFormValue((v: Filter) => ({ notifications: v.notifications }));
   const cancelButtonRef = useRef(null);
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
   const [edit, toggleEdit] = useToggle(initialEdit);
@@ -139,18 +132,8 @@ function NotificationItem({ notification, availableNotifications, idx, initialEd
     const newEvents = checked
       ? [...currentEvents, event]
       : currentEvents.filter((e: string) => e !== event);
-    setFieldValue(`notifications.${idx}.events`, newEvents);
+    form.setFieldValue(`notifications[${idx}].events`, newEvents);
   };
-
-  const currentNotificationId = values.notifications?.[idx]?.notification_id;
-  useEffect(() => {
-    if (currentNotificationId) {
-      const notif = availableNotifications.find(n => n.id === currentNotificationId);
-      if (notif) {
-        setFieldValue(`notifications.${idx}.notification`, notif);
-      }
-    }
-  }, [currentNotificationId, availableNotifications, idx, setFieldValue, values.notifications]);
 
   const selectedNotification = availableNotifications.find(
     n => n.id === notification.notification_id
@@ -171,7 +154,7 @@ function NotificationItem({ notification, availableNotifications, idx, initialEd
           "flex items-center transition px-2 sm:px-6 rounded-md my-1 border border-gray-150 dark:border-gray-750 hover:bg-gray-200 dark:hover:bg-gray-850"
         )}
       >
-        <button className="px-4 py-4 w-full flex items-center" type="button" onClick={toggleEdit}>
+        <button className="px-4 py-4 w-full flex items-center cursor-pointer" type="button" onClick={toggleEdit}>
           <div className="min-w-0 flex-1 sm:flex sm:items-center sm:justify-between">
             <div className="flex text-sm truncate">
               <p className="font-medium text-dark-600 dark:text-gray-100 truncate">
@@ -214,11 +197,17 @@ function NotificationItem({ notification, availableNotifications, idx, initialEd
               <FilterLayout>
                 <div className="col-span-12">
                   <Select
-                    name={`notifications.${idx}.notification_id`}
+                    name={`notifications[${idx}].notification_id`}
                     label={t("notificationsSection.notificationService")}
                     optionDefaultText={t("notificationsSection.selectNotificationService")}
                     options={availableOptions}
                     tooltip={<div><p>{t("notificationsSection.notificationServiceTooltip")}</p></div>}
+                    onChange={(notificationId) => {
+                      const notif = availableNotifications.find((n) => n.id === notificationId);
+                      if (notif) {
+                        form.setFieldValue(`notifications[${idx}].notification`, notif, { dontUpdateMeta: true });
+                      }
+                    }}
                   />
                 </div>
 
@@ -233,9 +222,9 @@ function NotificationItem({ notification, availableNotifications, idx, initialEd
                       value={notification.events?.length === 0}
                       setValue={(disabled) => {
                         if (disabled) {
-                          setFieldValue(`notifications.${idx}.events`, []);
+                          form.setFieldValue(`notifications[${idx}].events`, []);
                         } else {
-                          setFieldValue(`notifications.${idx}.events`, ["PUSH_APPROVED"]);
+                          form.setFieldValue(`notifications[${idx}].events`, ["PUSH_APPROVED"]);
                         }
                       }}
                       label={t("notificationsSection.disableNotification")}
@@ -281,7 +270,7 @@ function NotificationItem({ notification, availableNotifications, idx, initialEd
             <div className="pt-6 pb-4 flex space-x-2 justify-between">
               <button
                 type="button"
-                className="inline-flex items-center justify-center px-4 py-2 rounded-md sm:text-sm bg-red-700 dark:bg-red-900 dark:hover:bg-red-700 hover:bg-red-800 text-white focus:outline-hidden"
+                className="inline-flex items-center justify-center px-4 py-2 rounded-md sm:text-sm bg-red-700 dark:bg-red-900 dark:hover:bg-red-700 hover:bg-red-800 text-white focus:outline-hidden cursor-pointer"
                 onClick={toggleDeleteModal}
               >
                 {t("notificationsSection.removeNotification")}
@@ -289,7 +278,7 @@ function NotificationItem({ notification, availableNotifications, idx, initialEd
 
               <button
                 type="button"
-                className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden"
+                className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden cursor-pointer"
                 onClick={toggleEdit}
               >
                 {t("notificationsSection.close")}

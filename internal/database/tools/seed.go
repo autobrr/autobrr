@@ -74,8 +74,7 @@ func (s *SQLiteSeeder) Seed() error {
 	}
 	defer db.Close()
 
-	sqlCommands := strings.Split(string(sqlFile), ";")
-	for _, cmd := range sqlCommands {
+	for cmd := range strings.SplitSeq(string(sqlFile), ";") {
 		if _, err := db.Exec(cmd); err != nil {
 			return fmt.Errorf("failed to execute SQL command: %v", err)
 		}

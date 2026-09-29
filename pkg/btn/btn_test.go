@@ -71,8 +71,10 @@ func TestAPI(t *testing.T) {
 			c := NewClient(tt.fields.APIKey, WithUrl(ts.URL))
 
 			got, err := c.TestAPI(t.Context())
-			if tt.wantErr && assert.Error(t, err) {
-				assert.Equal(t, tt.wantErr, err)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 			}
 
 			assert.Equal(t, tt.want, got)
@@ -91,15 +93,11 @@ func TestClient_GetTorrentByID(t *testing.T) {
 	key := "mock-key"
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			t.Errorf("Expected 'POST' reqeust, got '%v'", r.Method)
-		}
+		assert.Equal(t, http.MethodPost, r.Method)
 
 		defer r.Body.Close()
 		data, err := io.ReadAll(r.Body)
-		if err != nil {
-			t.Errorf("expected error to be nil got %v", err)
-		}
+		assert.NoError(t, err)
 
 		if !strings.Contains(string(data), "1555073") {
 			//t.Errorf(
@@ -162,7 +160,7 @@ func TestClient_GetTorrentByID(t *testing.T) {
 			},
 			args:    args{torrentID: "9555073"},
 			want:    nil,
-			wantErr: false,
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -170,8 +168,10 @@ func TestClient_GetTorrentByID(t *testing.T) {
 			c := NewClient(tt.fields.APIKey, WithUrl(ts.URL))
 
 			got, err := c.GetTorrentByID(t.Context(), tt.args.torrentID)
-			if tt.wantErr && assert.Error(t, err) {
-				assert.Equal(t, tt.wantErr, err)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 			}
 
 			assert.Equal(t, tt.want, got)

@@ -6,5 +6,5 @@
 interface ClientActionProps {
   idx: number;
   action: Action;
-  clients: DownloadClient[];
+  clients: Downloader[];
 }

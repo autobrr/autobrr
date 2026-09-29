@@ -668,9 +668,7 @@ func (sm *ChannelStateMachine) scheduleErrorRetry(attempt int) {
 // errorRetryDelay returns how long to wait before retrying from Error and
 // whether we should still try. The delay grows exponentially up to a cap.
 func (sm *ChannelStateMachine) errorRetryDelay(attempt int) (time.Duration, bool) {
-	if attempt < 1 {
-		attempt = 1
-	}
+	attempt = max(attempt, 1)
 	if attempt > maxErrorRetries {
 		return 0, false
 	}
@@ -686,13 +684,12 @@ func (sm *ChannelStateMachine) sendInviteCommand(cmd string) error {
 		return errors.New("invite command missing")
 	}
 
-	params := strings.SplitN(cmd, " ", 2)
-
-	if len(params) < 2 {
+	target, msg, ok := strings.Cut(cmd, " ")
+	if !ok {
 		return errors.New("invalid invite command")
 	}
 
-	if err := sm.handler.Send("PRIVMSG", params...); err != nil {
+	if err := sm.handler.Send("PRIVMSG", target, msg); err != nil {
 		return errors.Wrap(err, "failed to send invite command")
 	}
 
@@ -745,9 +742,7 @@ func (sm *ChannelStateMachine) broadcastStateChange(newState ChannelState) {
 //   - the next 60 minutes are 60 seconds,
 //   - and the next 5 days are 1 hour.
 func retryBackoff(attempt int) (time.Duration, bool) {
-	if attempt <= 0 {
-		attempt = 1
-	}
+	attempt = max(attempt, 1)
 
 	const (
 		firstPhaseAttempts  = 8   // 2 minutes @ 15s intervals

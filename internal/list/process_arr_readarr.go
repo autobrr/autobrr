@@ -5,112 +5,73 @@ package list
 
 import (
 	"context"
-	"sort"
-	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/stringutils"
 	"github.com/autobrr/autobrr/pkg/arr/readarr"
-	"github.com/autobrr/autobrr/pkg/errors"
-
 	"github.com/rs/zerolog"
 )
 
-func (s *Service) readarr(ctx context.Context, list *domain.List) error {
-	l := s.log.With().Str("list", list.Name).Str("type", "readarr").Int("client", list.ClientID).Logger()
-
-	l.Debug().Msg("gathering titles")
-
-	titles, err := s.processReadarr(ctx, list, &l)
-	if err != nil {
-		return err
-	}
-
-	l.Debug().Int("count", len(titles)).Msg("got filter titles")
-
-	if len(titles) == 0 {
-		l.Debug().Str("list", list.Name).Msg("no titles found to update")
-		return nil
-	}
-
-	joinedTitles := strings.Join(titles, ",")
-
-	l.Trace().Str("titles", joinedTitles).Int("count", len(titles)).Msg("found titles")
-
-	filterUpdate := domain.FilterUpdate{MatchReleases: &joinedTitles}
-
-	for _, filter := range list.Filters {
-		l.Debug().Int("filter_id", filter.ID).Msg("updating filter")
-
-		filterUpdate.ID = filter.ID
-
-		if err := s.filterSvc.UpdatePartial(ctx, filterUpdate); err != nil {
-			return errors.Wrap(err, "error updating filter: %v", filter.ID)
-		}
-
-		l.Debug().Int("filter_id", filter.ID).Msg("successfully updated filter")
-	}
-
-	return nil
+type ReadarrProcessor struct {
+	processorBase
+	client *readarr.Client
 }
 
-func (s *Service) processReadarr(ctx context.Context, list *domain.List, logger *zerolog.Logger) ([]string, error) {
-	downloadClient, err := s.downloadClientSvc.GetClient(ctx, int32(list.ClientID))
-	if err != nil {
-		return nil, errors.Wrap(err, "could not get client with id %d", list.ClientID)
+func NewReadarrProcessor(log zerolog.Logger, list *domain.List, client *readarr.Client) *ReadarrProcessor {
+	return &ReadarrProcessor{
+		log:    log,
+		list:   list,
+		client: client,
 	}
+}
 
-	if !downloadClient.Enabled {
-		return nil, errors.New("client %s %s not enabled", downloadClient.Type, downloadClient.Name)
-	}
-
-	client := downloadClient.Client.(*readarr.Client)
-
-	//var tags []*arr.Tag
-	//if len(list.TagsExclude) > 0 || len(list.TagsInclude) > 0 {
-	//	t, err := client.GetTags(ctx)
-	//	if err != nil {
-	//		logger.Debug().Msg("could not get tags")
-	//	}
-	//	tags = t
-	//}
-
-	books, err := client.GetBooks(ctx, "")
+func (p *ReadarrProcessor) Process(ctx context.Context) (*domain.FilterUpdate, error) {
+	books, err := p.client.GetBooks(ctx, "")
 	if err != nil {
 		return nil, err
 	}
 
-	logger.Debug().Int("count", len(books)).Msg("found books to process")
+	filter, err := p.process(books)
+	if err != nil {
+		return nil, err
+	}
 
-	var titles []string
+	return filter, nil
+}
+
+func (p *ReadarrProcessor) process(books []readarr.Book) (*domain.FilterUpdate, error) {
+	p.log.Debug().Int("count", len(books)).Msg("found books to process")
+
+	ts := NewTitleSet()
+	ts.matchReleases = p.list.MatchRelease
 	var processedTitles int
 
 	for _, book := range books {
-		if !list.ShouldProcessItem(book.Monitored) {
+		if !p.list.ShouldProcessItem(book.Monitored) {
 			continue
 		}
 
-		//if len(list.TagsInclude) > 0 {
-		//	if len(book.Tags) == 0 {
-		//		continue
-		//	}
-		//	if !containsTag(tags, book.Tags, list.TagsInclude) {
-		//		continue
-		//	}
-		//}
-		//
-		//if len(list.TagsExclude) > 0 {
-		//	if containsTag(tags, book.Tags, list.TagsExclude) {
-		//		continue
-		//	}
+		//if excludedByTags(p.list, tags, book.Tags) {
+		//	continue
 		//}
 
 		processedTitles++
 
-		titles = append(titles, processTitle(book.Title, list.MatchRelease)...)
+		ts.AddTitle(book.Title)
 	}
 
-	sort.Strings(titles)
-	logger.Debug().Int("total", len(books)).Int("processed", processedTitles).Int("created", len(titles)).Msg("processed items")
+	p.log.Debug().Int("total", len(books)).Int("processed", processedTitles).Int("created", ts.Len()).Msg("processed items")
 
-	return titles, nil
+	if ts.Len() == 0 {
+		p.log.Debug().Str("list", p.list.Name).Msg("no titles found to update")
+		return nil, nil
+	}
+
+	joinedTitles := ts.FilterString()
+
+	p.log.Trace().Str("titles", stringutils.TruncateStr(joinedTitles, 1024)).Int("count", ts.Len()).Msg("found titles")
+
+	filter := domain.FilterUpdate{MatchReleases: &joinedTitles}
+
+	return &filter, nil
 }

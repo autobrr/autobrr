@@ -103,8 +103,8 @@ func setupPGTestDB(t *testing.T) (*database.DB, func(), error) {
 // Test full migration sequence
 func TestFullMigrationSequencePostgres(t *testing.T) {
 	db, cleanup, err := setupPGTestDB(t)
-	defer cleanup()
 	require.NoError(t, err)
+	defer cleanup()
 
 	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""}, nil)
 

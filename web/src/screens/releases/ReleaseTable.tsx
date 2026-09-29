@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearch, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
@@ -182,47 +182,42 @@ export const ReleaseTable = () => {
     isLoading,
     error,
     data,
-    dataUpdatedAt,
   } = useQuery(ReleasesListQueryOptions(pagination.pageIndex * pagination.pageSize, pagination.pageSize, columnFilters));
 
-  const [modifiedData, setModifiedData] = useState<Release[]>([]);
   const [settings, setSettings] = SettingsContext.use();
 
-  useEffect(() => {
-    if (settings.incognitoMode && data?.data) {
-      const randomIsoNames = RandomLinuxIsos(data.data.length);
-      const randomTorrentSiteNames = RandomIsoTracker(data.data.length);
-      const newData: Release[] = data.data.map((item, index) => {
-        const siteName = randomTorrentSiteNames[index % randomTorrentSiteNames.length];
-        return {
-          ...item,
-          name: randomIsoNames[index],
-          indexer: {
-            id: 0,
-            name: siteName,
-            identifier: siteName,
-            identifier_external: siteName,
-          },
-          category: "Linux ISOs",
-          size: index % 2 === 0 ? 4566784529 : (index % 3 === 0 ? 7427019812 : 2312122455),
-          source: "",
-          container: "",
-          codec: "",
-          resolution: "",
-        };
-      });
-      setModifiedData(newData);
-    } else {
-      setModifiedData([]);
+  const displayData = useMemo(() => {
+    const releases = data?.data ?? [];
+    if (!settings.incognitoMode) {
+      return releases;
     }
-  }, [settings.incognitoMode, data?.data, dataUpdatedAt]);
+
+    const randomIsoNames = RandomLinuxIsos(releases.length);
+    const randomTorrentSiteNames = RandomIsoTracker(releases.length);
+    return releases.map((item, index) => {
+      const siteName = randomTorrentSiteNames[index % randomTorrentSiteNames.length];
+      return {
+        ...item,
+        name: randomIsoNames[index],
+        indexer: {
+          id: 0,
+          name: siteName,
+          identifier: siteName,
+          identifier_external: siteName,
+        },
+        category: "Linux ISOs",
+        size: index % 2 === 0 ? 4566784529 : (index % 3 === 0 ? 7427019812 : 2312122455),
+        source: "",
+        container: "",
+        codec: "",
+        resolution: "",
+      };
+    });
+  }, [settings.incognitoMode, data?.data]);
 
   const toggleReleaseNames = () => {
     setSettings(prev => ({ ...prev, incognitoMode: !prev.incognitoMode }));
   };
-
-  const defaultData = React.useMemo(() => [], [])
-  const displayData = settings.incognitoMode ? modifiedData : [...(data?.data ?? defaultData)];
 
   const tableInstance = useTable({
     features: dataTableFeatures,
@@ -437,7 +432,7 @@ export const ReleaseTable = () => {
               <div className="absolute -bottom-11 right-0 p-2">
                 <button
                   onClick={toggleReleaseNames}
-                  className="p-2 absolute bottom-0 right-0 bg-gray-750 text-white rounded-full opacity-10 hover:opacity-100 transition-opacity duration-300"
+                  className="p-2 absolute bottom-0 right-0 bg-gray-750 text-white rounded-full opacity-10 hover:opacity-100 transition-opacity duration-300 cursor-pointer"
                   aria-label={t("releaseTable.toggleView")}
                   title={t("releaseTable.goIncognito")}
                 >

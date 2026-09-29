@@ -16,7 +16,7 @@ The browser driver has to be installed once. It is ~150 MB and lands in
 `~/.cache/ms-playwright`:
 
 ```sh
-go run github.com/mxschmitt/playwright-go/cmd/playwright@v0.6100.0 install --with-deps chromium
+go run github.com/mxschmitt/playwright-go/cmd/playwright@v0.6201.1 install --with-deps chromium
 ```
 
 The tests serve the UI from the binary, so the frontend has to be built first:
@@ -51,7 +51,7 @@ the test output along with the autobrr and mock indexer logs. The trace is the
 useful one:
 
 ```sh
-go run github.com/mxschmitt/playwright-go/cmd/playwright@v0.6100.0 show-trace \
+go run github.com/mxschmitt/playwright-go/cmd/playwright@v0.6201.1 show-trace \
   test/e2e/artifacts/TestAddIndexer.trace.zip
 ```
 

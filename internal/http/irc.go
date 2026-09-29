@@ -225,12 +225,17 @@ func (h ircHandler) announceProcess(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.service.ManualProcessAnnounce(r.Context(), &data); err != nil {
-		if errors.Is(err, domain.ErrRecordNotFound) {
+		switch {
+		case errors.Is(err, domain.ErrIRCChannelNotFound):
+			h.encoder.NotFoundErr(w, errors.New("channel %s not found on network with id %d", data.Channel, data.NetworkId))
+		case errors.Is(err, domain.ErrRecordNotFound):
 			h.encoder.NotFoundErr(w, errors.New("network with id %d not found", data.NetworkId))
-			return
+		case errors.Is(err, domain.ErrIRCChannelNoAnnounceProcessor):
+			h.encoder.BadRequestErr(w, errors.New("channel %s is not an indexer announce channel on network with id %d", data.Channel, data.NetworkId))
+		default:
+			h.encoder.Error(w, err)
 		}
 
-		h.encoder.Error(w, err)
 		return
 	}
 

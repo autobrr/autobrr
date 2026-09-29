@@ -9,6 +9,7 @@ import (
 
 	"github.com/moistari/rls"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewWebhookEvent(t *testing.T) {
@@ -51,22 +52,22 @@ func TestNewWebhookEvent(t *testing.T) {
 	assert.Equal(t, "1.0", result.Version)
 
 	// Verify Data
-	assert.NotNil(t, result.Data)
+	require.NotNil(t, result.Data)
 
 	// Release Data
-	assert.NotNil(t, result.Data.Release)
+	require.NotNil(t, result.Data.Release)
 	assert.Equal(t, "Test.Release-Group", result.Data.Release.Name)
 	assert.Equal(t, "Test Release", result.Data.Release.Title)
 	assert.Equal(t, "1080p", result.Data.Release.Resolution)
 	assert.Equal(t, uint64(1234567), result.Data.Release.Size)
 
 	// Indexer Data
-	assert.NotNil(t, result.Data.Indexer)
+	require.NotNil(t, result.Data.Indexer)
 	assert.Equal(t, "MockIndexer", result.Data.Indexer.Name)
 	assert.Equal(t, "mock_indexer", result.Data.Indexer.Identifier)
 
 	// Filter Data
-	assert.NotNil(t, result.Data.Filter)
+	require.NotNil(t, result.Data.Filter)
 	assert.Equal(t, "TestFilter", result.Data.Filter.Name)
 	assert.Equal(t, 1, result.Data.Filter.ID)
 
@@ -89,11 +90,11 @@ func TestNewWebhookEvent_Action(t *testing.T) {
 	result := NewWebhookEvent(payload.Event, payload, id)
 
 	assert.Equal(t, WebhookEventActionApproved, result.Event)
-	assert.NotNil(t, result.Data.Action)
+	require.NotNil(t, result.Data.Action)
 	assert.Equal(t, "TestAction", result.Data.Action.Name)
 	assert.Equal(t, "EXEC", result.Data.Action.Type)
 
-	assert.NotNil(t, result.Data.Result)
+	require.NotNil(t, result.Data.Result)
 	assert.Equal(t, "PUSH_APPROVED", result.Data.Result.Status)
 }
 

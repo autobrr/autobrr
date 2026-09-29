@@ -13,17 +13,18 @@ import { ConfigQueryOptions } from "@api/queries";
 import { SettingsKeys } from "@api/query_keys";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
-import { LogLevelOptions, SelectOption } from "@domain/constants";
+import { LogLevelOptions } from "@domain/constants";
+import { MultiSelectOption } from "@components/inputs/select";
 
 import { Section, RowItem } from "./_components";
-import * as common from "@components/inputs/common";
+import { selectComponents, selectStyles, selectTheme } from "@components/inputs/select_props";
 import { LogFiles } from "@screens/Logs";
 
 type SelectWrapperProps = {
   id: string;
-  value: unknown;
-  onChange: any;
-  options: unknown[];
+  value?: string;
+  onChange: (value: string) => void;
+  options: MultiSelectOption[];
 };
 
 const SelectWrapper = ({ id, value, onChange, options }: SelectWrapperProps) => {
@@ -32,31 +33,16 @@ const SelectWrapper = ({ id, value, onChange, options }: SelectWrapperProps) => 
   return (
     <Select
       id={id}
-      components={{
-        Input: common.SelectInput,
-        Control: common.SelectControl,
-        Menu: common.SelectMenu,
-        Option: common.SelectOption,
-        IndicatorSeparator: common.IndicatorSeparator,
-        DropdownIndicator: common.DropdownIndicator
-      }}
+      components={selectComponents}
       placeholder={t("logsPage.chooseType")}
-      styles={{
-        singleValue: (base) => ({
-          ...base,
-          color: "unset"
-        })
-      }}
-      theme={(theme) => ({
-        ...theme,
-        spacing: {
-          ...theme.spacing,
-          controlHeight: 30,
-          baseUnit: 2
+      styles={selectStyles}
+      theme={selectTheme}
+      value={options.find((o) => o.value == value)}
+      onChange={(newValue: unknown) => {
+        if (newValue) {
+          onChange(String((newValue as MultiSelectOption).value));
         }
-      })}
-      value={value && options.find((o: any) => o.value == value)}
-      onChange={onChange}
+      }}
       options={options}
     />
   );
@@ -99,7 +85,7 @@ function LogSettings() {
                     id="log_level"
                     value={config?.log_level}
                     options={LogLevelOptions}
-                    onChange={(value: SelectOption) => setLogLevelUpdateMutation.mutate(value.value)}
+                    onChange={(value) => setLogLevelUpdateMutation.mutate(value)}
                   />
                 }
               />

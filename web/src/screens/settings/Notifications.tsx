@@ -13,7 +13,7 @@ import { NotificationsQueryOptions } from "@api/queries";
 import { EmptySimple } from "@components/emptystates";
 import { useToggle } from "@hooks/hooks";
 import { NotificationAddForm, NotificationUpdateForm } from "@forms/settings/NotificationForms";
-import { componentMapType } from "@forms/settings/DownloadClientForms";
+import { componentMapType } from "@forms/settings/DownloaderForms";
 import toast from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import {
@@ -43,7 +43,7 @@ function NotificationSettings() {
         <button
           type="button"
           onClick={toggleAddNotifications}
-          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 cursor-pointer"
         >
           <PlusIcon className="h-5 w-5 mr-1" />
           {t("listScreens.common.addNew")}

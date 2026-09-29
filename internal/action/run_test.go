@@ -36,8 +36,8 @@ func (f *fakeDownloadService) ResolveMagnetURI(_ context.Context, _ *domain.Rele
 	return nil
 }
 
-func newTestService(dl downloadService) *Service {
-	return &Service{log: zerolog.Nop(), downloadSvc: dl}
+func newTestService(dl rlsDownloadService) *Service {
+	return &Service{log: zerolog.Nop(), rlsDownloadSvc: dl}
 }
 
 // A release with several download client actions must only be fetched from the

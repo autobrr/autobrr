@@ -22,6 +22,11 @@
     "exportJson": "Экспортировать JSON",
     "exportJsonDiscord": "Экспортировать JSON в Discord",
     "toggle": "Переключить",
+    "toggleAll": "Переключить все",
+    "toggleAllTitle": "Переключить все видимые фильтры",
+    "toggleAllEnabled": "Включено видимых фильтров: {{count}}",
+    "toggleAllDisabled": "Отключено видимых фильтров: {{count}}",
+    "toggleAllError": "При переключении фильтров произошла ошибка.",
     "duplicate": "Дублировать",
     "delete": "Удалить",
     "toggleSuccess": "{{name}} был успешно {{state}}",
@@ -420,6 +425,19 @@
     "onErrorTooltip": "Выберите действие при ошибке этого внешнего фильтра.",
     "remove": "Удалить внешний",
     "close": "Закрыть",
+    "test": "Проверить",
+    "testing": "Проверка",
+    "testResult": {
+      "dismiss": "Закрыть",
+      "status": {
+        "EXEC": "Скрипт завершился с кодом {{status}} (ожидалось {{expected}}) за {{duration}} мс",
+        "WEBHOOK": "Вебхук ответил статусом {{status}} (ожидалось {{expected}}) за {{duration}} мс"
+      },
+      "error": {
+        "EXEC": "Ошибка скрипта: {{error}}",
+        "WEBHOOK": "Ошибка запроса к вебхуку: {{error}}"
+      }
+    },
     "types": {
       "EXEC": "Выполнение",
       "WEBHOOK": "Webhook"

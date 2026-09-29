@@ -31,6 +31,32 @@ const (
 	ListTypeAniList    ListType = "ANILIST"
 )
 
+func (l ListType) String() string {
+	return string(l)
+}
+
+func (l ListType) Valid() bool {
+	return l.ArrClient() || l.RegularList()
+}
+
+func (l ListType) ArrClient() bool {
+	switch l {
+	case ListTypeRadarr, ListTypeSonarr, ListTypeLidarr, ListTypeReadarr, ListTypeWhisparr, ListTypeWhisparrV3, ListTypeSportarr:
+		return true
+	default:
+		return false
+	}
+}
+
+func (l ListType) RegularList() bool {
+	switch l {
+	case ListTypeMDBList, ListTypeMetacritic, ListTypePlaintext, ListTypeTrakt, ListTypeSteam, ListTypeAniList:
+		return true
+	default:
+		return false
+	}
+}
+
 type ListRefreshStatus string
 
 const (
@@ -82,15 +108,15 @@ func (l *List) Validate() error {
 		return errors.New("type is required")
 	}
 
-	if !l.ListTypeArr() && !l.ListTypeList() {
+	if !l.Type.Valid() {
 		return errors.New("invalid list type: %s", l.Type)
 	}
 
-	if l.ListTypeArr() && l.ClientID == 0 {
+	if l.Type.ArrClient() && l.ClientID == 0 {
 		return errors.New("arr client id is required")
 	}
 
-	if l.ListTypeList() {
+	if l.Type.RegularList() {
 		if l.URL == "" {
 			return errors.New("list url is required")
 		}
@@ -106,14 +132,6 @@ func (l *List) Validate() error {
 	}
 
 	return nil
-}
-
-func (l *List) ListTypeArr() bool {
-	return l.Type == ListTypeRadarr || l.Type == ListTypeSonarr || l.Type == ListTypeLidarr || l.Type == ListTypeReadarr || l.Type == ListTypeWhisparr || l.Type == ListTypeWhisparrV3 || l.Type == ListTypeSportarr
-}
-
-func (l *List) ListTypeList() bool {
-	return l.Type == ListTypeMDBList || l.Type == ListTypeMetacritic || l.Type == ListTypePlaintext || l.Type == ListTypeTrakt || l.Type == ListTypeSteam || l.Type == ListTypeAniList
 }
 
 func (l *List) ShouldProcessItem(monitored bool) bool {

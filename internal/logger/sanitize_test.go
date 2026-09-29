@@ -6,8 +6,10 @@ package logger
 import (
 	"bytes"
 	"os"
-	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSanitizeLogFile(t *testing.T) {
@@ -212,38 +214,27 @@ func TestSanitizeLogFile(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			// Create a temporary file with sample log data
 			tmpFile, err := os.CreateTemp("", "test-log-*.log")
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
 			defer os.Remove(tmpFile.Name())
 
 			// Write the test case input to the temporary file
 			_, err = tmpFile.WriteString(testCase.input + "\n")
-			if err != nil {
-				tmpFile.Close()
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
 			err = tmpFile.Close()
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
 
 			// Create a bytes.Buffer to store the sanitized content
 			sanitizedContent := &bytes.Buffer{}
 
 			// Call SanitizeLogFile on the temporary file
 			err = SanitizeLogFile(tmpFile.Name(), sanitizedContent)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
 
 			// Read the content of the sanitized content
 			sanitizedData := sanitizedContent.String()
 
 			// Check if the sanitized data matches the expected content
-			if !strings.Contains(sanitizedData, testCase.expected+"\n") {
-				t.Errorf("Sanitized data does not match expected data\nExpected:\n%s\nActual:\n%s", testCase.expected, sanitizedData)
-			}
+			assert.Contains(t, sanitizedData, testCase.expected+"\n")
 		})
 	}
 }

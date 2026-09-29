@@ -84,7 +84,7 @@ type Series struct {
 	Tags       []int        `json:"tags,omitempty"`
 	Images     []*arr.Image `json:"images,omitempty"`
 	Ratings    *arr.Ratings `json:"ratings,omitempty"`
-	Added      time.Time    `json:"added,omitempty"`
+	Added      time.Time    `json:"added"`
 	Ended      bool         `json:"ended,omitempty"`
 	Monitored  bool         `json:"monitored"`
 }
@@ -114,7 +114,7 @@ type Movie struct {
 	Tags            []int               `json:"tags,omitempty"`
 	Images          []*arr.Image        `json:"images,omitempty"`
 	Ratings         *arr.Ratings        `json:"ratings,omitempty"`
-	Added           time.Time           `json:"added,omitempty"`
+	Added           time.Time           `json:"added"`
 	HasFile         bool                `json:"hasFile,omitempty"`
 	IsAvailable     bool                `json:"isAvailable,omitempty"`
 	Monitored       bool                `json:"monitored"`

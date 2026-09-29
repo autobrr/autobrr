@@ -52,7 +52,9 @@ export const Checkbox = ({
       name={name}
       checked={value}
       onChange={(newValue) => {
-        !disabled && setValue(newValue);
+        if (!disabled) {
+          setValue(newValue);
+        }
       }}
       className={classNames(
         disabled

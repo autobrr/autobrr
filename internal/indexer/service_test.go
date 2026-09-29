@@ -13,6 +13,7 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type stubIndexerRepo struct {
@@ -73,6 +74,10 @@ func (r *stubIndexerRepo) ListDeprecations(_ context.Context) ([]domain.IndexerD
 type stubEventBus struct{}
 
 func (s *stubEventBus) EmitIndexer(_ context.Context, _ events.IndexerChangeEvent) {}
+
+func (s *stubEventBus) OnProxy(_ func(context.Context, events.ProxyChangeEvent) error) func() {
+	return func() {}
+}
 
 func TestServiceUpdate_SecretSettings(t *testing.T) {
 	t.Parallel()
@@ -138,8 +143,8 @@ func TestServiceUpdate_SecretSettings(t *testing.T) {
 				return
 			}
 
-			assert.NoError(t, err)
-			assert.NotNil(t, repo.updated)
+			require.NoError(t, err)
+			require.NotNil(t, repo.updated)
 			assert.Equal(t, tt.wantUpdated, repo.updated.Settings)
 		})
 	}

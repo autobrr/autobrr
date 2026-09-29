@@ -34,7 +34,7 @@ to {
   opacity: 1;
 }`;
 
-export const AnimatedIconWrapper = styled('div')`
+const AnimatedIconWrapper = styled('div')`
   position: relative;
   transform: scale(0.6);
   opacity: 0.4;

@@ -22,7 +22,7 @@ func TestIndexerYamlSecretSettings(t *testing.T) {
 	t.Parallel()
 	s := &Service{definitions: map[string]domain.IndexerDefinition{}}
 	err := s.LoadIndexerDefinitions()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	for _, d := range s.definitions {
 		for _, setting := range d.Settings {
@@ -37,7 +37,7 @@ func TestIndexerYamlExpectations(t *testing.T) {
 	t.Parallel()
 	s := &Service{definitions: map[string]domain.IndexerDefinition{}}
 	err := s.LoadIndexerDefinitions()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	for _, d := range s.definitions {
 		if d.IRC == nil {

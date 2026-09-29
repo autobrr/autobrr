@@ -5,7 +5,6 @@
 
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useFormikContext } from "formik";
 import { useTranslation } from "react-i18next";
 
 import { APIClient } from "@api/APIClient";
@@ -16,9 +15,10 @@ import { SlideOver } from "@components/panels";
 import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import { SelectFieldBasic } from "@components/inputs/select_wide";
 import { sleep } from "@utils";
-import { ImplementationBadges } from "@screens/settings/Indexer";
+import { ImplementationBadge } from "@screens/settings/Indexer";
 import { FeedDownloadTypeOptions } from "@domain/constants";
 import { UpdateFormProps } from "@forms/_shared";
+import { useFormContext, useFormValue } from "@hooks/form";
 import { extractCategoryTreeFromCaps, flattenCategoryIds, parseCapabilitiesPayload } from "@utils/caps";
 
 interface InitialValues {
@@ -59,7 +59,7 @@ export function FeedUpdateForm({ isOpen, toggle, data}: UpdateFormProps<Feed>) {
     }
   });
 
-  const onSubmit = (formData: unknown) => mutation.mutate(formData as Feed);
+  const onSubmit = (formData: InitialValues) => mutation.mutate(formData as Feed);
 
   const deleteMutation = useMutation({
     mutationFn: (feedID: number) => APIClient.feeds.delete(feedID),
@@ -156,7 +156,7 @@ export function FeedUpdateForm({ isOpen, toggle, data}: UpdateFormProps<Feed>) {
                 </label>
               </div>
               <div className="flex justify-end sm:col-span-2">
-                {ImplementationBadges[feed.type.toLowerCase()]}
+                <ImplementationBadge implementation={feed.type} />
               </div>
             </div>
 
@@ -191,9 +191,7 @@ function WarningLabel() {
 
 function FormFieldsTorznab({ feedID }: { feedID: number }) {
   const { t } = useTranslation("settings");
-  const {
-    values: { interval }
-  } = useFormikContext<InitialValues>();
+  const interval = useFormValue((v: InitialValues) => v.interval);
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5">
@@ -233,9 +231,7 @@ function FormFieldsTorznab({ feedID }: { feedID: number }) {
 
 function FormFieldsNewznab({ feedID }: { feedID: number }) {
   const { t } = useTranslation("settings");
-  const {
-    values: { interval }
-  } = useFormikContext<InitialValues>();
+  const interval = useFormValue((v: InitialValues) => v.interval);
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5">
@@ -273,9 +269,7 @@ function FormFieldsNewznab({ feedID }: { feedID: number }) {
 
 function FormFieldsRSS() {
   const { t } = useTranslation("settings");
-  const {
-    values: { interval }
-  } = useFormikContext<InitialValues>();
+  const interval = useFormValue((v: InitialValues) => v.interval);
 
   return (
     <div className="border-t border-gray-200 dark:border-gray-700 py-5">
@@ -304,21 +298,23 @@ function FormFieldsRSS() {
 
 function FeedCategoriesSection({ feedID }: { feedID: number }) {
   const { t } = useTranslation("settings");
-  const { values, setFieldValue } = useFormikContext<InitialValues>();
+  const form = useFormContext();
+  const values = useFormValue((v: InitialValues) => ({ capabilities: v.capabilities, categories: v.categories }));
   const capsPayload = useMemo(() => parseCapabilitiesPayload(values.capabilities), [values.capabilities]);
   const categoriesTree = useMemo(() => extractCategoryTreeFromCaps(capsPayload), [capsPayload]);
   const hasCaps = Boolean(values.capabilities);
+  const selectedCategories = useMemo(() => new Set(values.categories ?? []), [values.categories]);
 
   const fetchCapsMutation = useMutation({
     mutationFn: () => APIClient.feeds.fetchCaps(feedID),
     onSuccess: (caps) => {
-      const nextCategories = flattenCategoryIds(extractCategoryTreeFromCaps(caps));
+      const nextCategories = new Set(flattenCategoryIds(extractCategoryTreeFromCaps(caps)));
       const selected = values.categories ?? [];
 
-      setFieldValue("capabilities", caps ?? null);
-      setFieldValue(
+      form.setFieldValue("capabilities", caps ?? null);
+      form.setFieldValue(
         "categories",
-        selected.filter((id) => nextCategories.includes(id))
+        selected.filter((id) => nextCategories.has(id))
       );
     },
     onError: (error: unknown) => {
@@ -330,27 +326,27 @@ function FeedCategoriesSection({ feedID }: { feedID: number }) {
   const toggleCategory = (id: number) => {
     const selected = values.categories ?? [];
     if (selected.includes(id)) {
-      setFieldValue(
+      form.setFieldValue(
         "categories",
         selected.filter((category) => category !== id)
       );
       return;
     }
 
-    setFieldValue("categories", [...selected, id]);
+    form.setFieldValue("categories", [...selected, id]);
   };
 
   const toggleParentCategory = (id: number, childIds: number[]) => {
     const selected = values.categories ?? [];
     if (selected.includes(id)) {
-      setFieldValue(
+      form.setFieldValue(
         "categories",
         selected.filter((category) => category !== id)
       );
       return;
     }
 
-    setFieldValue(
+    form.setFieldValue(
       "categories",
       [...selected.filter((category) => !childIds.includes(category)), id]
     );
@@ -379,21 +375,21 @@ function FeedCategoriesSection({ feedID }: { feedID: number }) {
         <div className="px-4 pt-4 pb-2 space-y-3 overflow-y-auto">
           {categoriesTree.map((category) => {
             const childIds = category.subcategories.map((sub) => sub.id);
-            const isParentSelected = (values.categories ?? []).includes(category.id);
+            const isParentSelected = selectedCategories.has(category.id);
 
             return (
               <div key={category.id} className="space-y-2">
                 <label
-                  className="flex items-center justify-between gap-3 text-sm text-gray-700 dark:text-gray-200"
+                  className="flex items-center justify-between gap-3 text-sm text-gray-700 dark:text-gray-200 cursor-pointer"
                   onClick={(event) => event.stopPropagation()}
                 >
                   <span className="flex items-center gap-3">
                     <input
                       type="checkbox"
-                      checked={(values.categories ?? []).includes(category.id)}
+                      checked={selectedCategories.has(category.id)}
                       onChange={() => toggleParentCategory(category.id, childIds)}
                       onClick={(event) => event.stopPropagation()}
-                      className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800"
+                      className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 cursor-pointer"
                     />
                     <span className="font-medium truncate">{category.name}</span>
                   </span>
@@ -403,13 +399,13 @@ function FeedCategoriesSection({ feedID }: { feedID: number }) {
                 {category.subcategories.map((subCategory) => (
                   <label
                     key={subCategory.id}
-                    className="flex items-center justify-between gap-3 pl-6 text-sm text-gray-700 dark:text-gray-200"
+                    className="flex items-center justify-between gap-3 pl-6 text-sm text-gray-700 dark:text-gray-200 cursor-pointer"
                     onClick={(event) => event.stopPropagation()}
                   >
                     <span className="flex items-center gap-3">
                       <input
                         type="checkbox"
-                        checked={(values.categories ?? []).includes(subCategory.id)}
+                        checked={selectedCategories.has(subCategory.id)}
                         onChange={() => toggleCategory(subCategory.id)}
                         onClick={(event) => event.stopPropagation()}
                         disabled={isParentSelected}

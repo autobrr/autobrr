@@ -64,6 +64,7 @@ test/mockindexer/feeds/*
 test/mockindexer/files/*
 test/e2e/artifacts/
 cpu.pprof
+PR_DESCRIPTION.md
 
 # Preserve files
 !.gitkeep

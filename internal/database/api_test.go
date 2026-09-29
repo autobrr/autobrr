@@ -12,6 +12,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPIRepo_Store(t *testing.T) {
@@ -25,7 +26,7 @@ func TestAPIRepo_Store(t *testing.T) {
 		t.Run(fmt.Sprintf("Store_Succeeds_With_Valid_Key [%s]", dbType), func(t *testing.T) {
 			key := &domain.APIKey{Name: "TestKey", Key: "123", Scopes: []string{"read", "write"}}
 			err := repo.Store(ctx, key)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotZero(t, key.CreatedAt)
 			// Cleanup
 			_ = repo.Delete(ctx, key.Key)
@@ -43,7 +44,7 @@ func TestAPIRepo_Store(t *testing.T) {
 			key := &domain.APIKey{Key: "789", Scopes: []string{}}
 			err1 := repo.Store(ctx, key)
 			err2 := repo.Store(ctx, key)
-			assert.NoError(t, err1)
+			require.NoError(t, err1)
 			assert.Error(t, err2) // Should fail when trying to insert a duplicate key
 			// Cleanup
 			_ = repo.Delete(ctx, key.Key)
@@ -86,16 +87,16 @@ func TestAPIRepo_GetAllAPIKeys(t *testing.T) {
 			key := &domain.APIKey{Name: "TestKey", Key: "123", Scopes: []string{"read", "write"}}
 			_ = repo.Store(ctx, key)
 			keys, err := repo.GetAllAPIKeys(ctx)
-			assert.NoError(t, err)
-			assert.Greater(t, len(keys), 0)
+			require.NoError(t, err)
+			assert.NotEmpty(t, keys)
 			// Cleanup
 			_ = repo.Delete(ctx, key.Key)
 		})
 
 		t.Run(fmt.Sprintf("GetKeys_Returns_Empty_If_No_Keys [%s]", dbType), func(t *testing.T) {
 			keys, err := repo.GetAllAPIKeys(ctx)
-			assert.NoError(t, err)
-			assert.Equal(t, 0, len(keys))
+			require.NoError(t, err)
+			assert.Empty(t, keys)
 		})
 	}
 }
@@ -112,7 +113,7 @@ func TestAPIRepo_GetKey(t *testing.T) {
 			key := &domain.APIKey{Name: "TestKey", Key: "123", Scopes: []string{"read", "write"}}
 			_ = repo.Store(ctx, key)
 			apiKey, err := repo.GetKey(ctx, key.Key)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, apiKey)
 			// Cleanup
 			_ = repo.Delete(ctx, key.Key)

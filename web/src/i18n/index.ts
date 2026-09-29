@@ -1,4 +1,4 @@
-import i18n from "i18next";
+import i18n, { type BackendModule, type ResourceKey } from "i18next";
 import { initReactI18next } from "react-i18next";
 
 import authEn from "./locales/en/auth.json";
@@ -6,41 +6,28 @@ import commonEn from "./locales/en/common.json";
 import optionsEn from "./locales/en/options.json";
 import settingsEn from "./locales/en/settings.json";
 import filtersEn from "./locales/en/filters.json";
-import authZhCN from "./locales/zh-CN/auth.json";
-import commonZhCN from "./locales/zh-CN/common.json";
-import optionsZhCN from "./locales/zh-CN/options.json";
-import settingsZhCN from "./locales/zh-CN/settings.json";
-import filtersZhCN from "./locales/zh-CN/filters.json";
-import authRu from "./locales/ru/auth.json";
-import commonRu from "./locales/ru/common.json";
-import optionsRu from "./locales/ru/options.json";
-import settingsRu from "./locales/ru/settings.json";
-import filtersRu from "./locales/ru/filters.json";
-import authNo from "./locales/no/auth.json";
-import commonNo from "./locales/no/common.json";
-import optionsNo from "./locales/no/options.json";
-import settingsNo from "./locales/no/settings.json";
-import filtersNo from "./locales/no/filters.json";
-import authDe from "./locales/de/auth.json";
-import commonDe from "./locales/de/common.json";
-import optionsDe from "./locales/de/options.json";
-import settingsDe from "./locales/de/settings.json";
-import filtersDe from "./locales/de/filters.json";
-import authFr from "./locales/fr/auth.json";
-import commonFr from "./locales/fr/common.json";
-import optionsFr from "./locales/fr/options.json";
-import settingsFr from "./locales/fr/settings.json";
-import filtersFr from "./locales/fr/filters.json";
-import authEs from "./locales/es/auth.json";
-import commonEs from "./locales/es/common.json";
-import optionsEs from "./locales/es/options.json";
-import settingsEs from "./locales/es/settings.json";
-import filtersEs from "./locales/es/filters.json";
-import authCs from "./locales/cs/auth.json";
-import commonCs from "./locales/cs/common.json";
-import optionsCs from "./locales/cs/options.json";
-import settingsCs from "./locales/cs/settings.json";
-import filtersCs from "./locales/cs/filters.json";
+
+// Only English is bundled; every other locale is fetched on demand as its own chunk.
+const localeModules = import.meta.glob<{ default: ResourceKey }>([
+  "./locales/*/*.json",
+  "!./locales/en/*.json"
+]);
+
+const lazyLocaleBackend: BackendModule = {
+  type: "backend",
+  init() {},
+  read(language, namespace, callback) {
+    const load = localeModules[`./locales/${language}/${namespace}.json`];
+    if (!load) {
+      callback(null, {});
+      return;
+    }
+
+    load()
+      .then((module) => callback(null, module.default))
+      .catch((err: unknown) => callback(err as Error, false));
+  }
+};
 
 export const supportedLanguages = ["en", "de", "cs", "es", "fr", "ru", "no", "zh-CN"] as const;
 export type Language = (typeof supportedLanguages)[number];
@@ -93,7 +80,7 @@ export const getInitialLanguage = (): Language => {
   return "en";
 };
 
-void i18n.use(initReactI18next).init({
+void i18n.use(initReactI18next).use(lazyLocaleBackend).init({
   resources: {
     en: {
       common: commonEn,
@@ -101,57 +88,9 @@ void i18n.use(initReactI18next).init({
       options: optionsEn,
       settings: settingsEn,
       filters: filtersEn
-    },
-    "zh-CN": {
-      common: commonZhCN,
-      auth: authZhCN,
-      options: optionsZhCN,
-      settings: settingsZhCN,
-      filters: filtersZhCN
-    },
-    ru: {
-      common: commonRu,
-      auth: authRu,
-      options: optionsRu,
-      settings: settingsRu,
-      filters: filtersRu
-    },
-    no: {
-      common: commonNo,
-      auth: authNo,
-      options: optionsNo,
-      settings: settingsNo,
-      filters: filtersNo
-    },
-    de: {
-      common: commonDe,
-      auth: authDe,
-      options: optionsDe,
-      settings: settingsDe,
-      filters: filtersDe
-    },
-    fr: {
-      common: commonFr,
-      auth: authFr,
-      options: optionsFr,
-      settings: settingsFr,
-      filters: filtersFr
-    },
-    es: {
-      common: commonEs,
-      auth: authEs,
-      options: optionsEs,
-      settings: settingsEs,
-      filters: filtersEs
-    },
-    cs: {
-      common: commonCs,
-      auth: authCs,
-      options: optionsCs,
-      settings: settingsCs,
-      filters: filtersCs
     }
   },
+  partialBundledLanguages: true,
   lng: getInitialLanguage(),
   fallbackLng: "en",
   supportedLngs: supportedLanguages,

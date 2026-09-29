@@ -171,7 +171,7 @@ func Test(t *testing.T) {
 				APIKey:  "",
 			},
 			want:    false,
-			wantErr: false,
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -180,8 +180,10 @@ func Test(t *testing.T) {
 
 			got, err := c.TestAPI(t.Context())
 
-			if tt.wantErr && assert.Error(t, err) {
-				assert.Equal(t, tt.wantErr, err)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 			}
 			assert.Equalf(t, tt.want, got, "Test()")
 		})

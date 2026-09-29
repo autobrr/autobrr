@@ -3,12 +3,18 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+import { lazy } from "react";
+
+import type { DashboardConfigType } from "@utils/Context";
+
 import { FilteredTile, ApprovedTile, RejectedTile, ErroredTile } from "./StatTiles";
-import { ActivityChart } from "./ActivityChart";
-import { VolumeChart } from "./VolumeChart";
-import { HourHeatmap } from "./HourHeatmap";
 import { TopIndexers, TopFilters } from "./TopLists";
 import { ActivityTable } from "./ActivityTable";
+
+// The chart widgets carry @tanstack/react-charts and d3, so they load on demand.
+const ActivityChart = lazy(() => import("./ActivityChart").then((m) => ({ default: m.ActivityChart })));
+const VolumeChart = lazy(() => import("./VolumeChart").then((m) => ({ default: m.VolumeChart })));
+const HourHeatmap = lazy(() => import("./HourHeatmap").then((m) => ({ default: m.HourHeatmap })));
 
 export interface DashboardWidgetDef {
   id: string;
@@ -90,3 +96,30 @@ export const DASHBOARD_WIDGETS: DashboardWidgetDef[] = [
     Component: ActivityTable
   }
 ];
+
+export interface WidgetLayout {
+  def: DashboardWidgetDef;
+  hidden: boolean;
+}
+
+export const resolveLayout = (config: DashboardConfigType): WidgetLayout[] => {
+  const byId = new Map(DASHBOARD_WIDGETS.map((def) => [def.id, def]));
+  const seen = new Set<string>();
+  const layout: WidgetLayout[] = [];
+
+  // Preserve the saved order while dropping removed widgets and appending new ones.
+  for (const entry of config.widgets) {
+    const def = byId.get(entry.id);
+    if (def && !seen.has(entry.id)) {
+      seen.add(entry.id);
+      layout.push({ def, hidden: entry.hidden });
+    }
+  }
+  for (const def of DASHBOARD_WIDGETS) {
+    if (!seen.has(def.id)) {
+      layout.push({ def, hidden: false });
+    }
+  }
+
+  return layout;
+};

@@ -79,7 +79,7 @@ func NewClient(config Config) *Client {
 	}
 
 	if config.Timeout > 0 {
-		httpClient.Timeout = time.Second * config.Timeout
+		httpClient.Timeout = config.Timeout
 	}
 
 	return &Client{

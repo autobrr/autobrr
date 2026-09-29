@@ -67,6 +67,7 @@ type releaseService interface {
 
 type eventBus interface {
 	OnIndexer(handler func(ctx context.Context, event events.IndexerChangeEvent) error) func()
+	OnProxy(handler func(ctx context.Context, event events.ProxyChangeEvent) error) func()
 }
 
 type feedInstance struct {
@@ -157,6 +158,21 @@ func (s *Service) setupEventListeners() {
 		case events.IndexerDeleted:
 			if err := s.onIndexerDeleted(ctx, event); err != nil {
 				s.log.Error().Err(err).Int("indexer_id", int(event.Indexer.ID)).Msg("could not clean up feed for deleted indexer")
+			}
+		}
+
+		return nil
+	})
+
+	s.eventBus.OnProxy(func(ctx context.Context, event events.ProxyChangeEvent) error {
+		if event.Usage == nil {
+			return nil
+		}
+
+		// a fresh sync rebuilds each job from the current row and proxy settings
+		for _, item := range event.Usage.Feeds {
+			if err := s.syncFeedJob(ctx, int(item.ID)); err != nil {
+				s.log.Error().Err(err).Int64("feed_id", item.ID).Int64("proxy_id", event.ProxyID).Msg("could not reconcile feed job for changed proxy")
 			}
 		}
 
@@ -473,7 +489,7 @@ func (s *Service) testRSS(ctx context.Context, feed *domain.Feed) error {
 
 func (s *Service) testTorznab(ctx context.Context, feed *domain.Feed, subLogger zerolog.Logger) error {
 	// setup torznab Client
-	c := torznab.NewClient(torznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, TLSSkipVerify: feed.TLSSkipVerify, Log: subLogger})
+	c := torznab.NewClient(torznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, Timeout: time.Duration(feed.Timeout) * time.Second, TLSSkipVerify: feed.TLSSkipVerify, Log: subLogger})
 
 	// add proxy if enabled and exists
 	if feed.UseProxy && feed.Proxy != nil {
@@ -488,6 +504,9 @@ func (s *Service) testTorznab(ctx context.Context, feed *domain.Feed, subLogger 
 			}
 		}
 
+		if feed.Timeout > 0 {
+			proxyClient.Timeout = time.Duration(feed.Timeout) * time.Second
+		}
 		c.WithHTTPClient(proxyClient)
 
 		s.log.Debug().Str("proxy", feed.Proxy.Name).Str("feed", feed.Name).Msg("using proxy for feed")
@@ -506,7 +525,7 @@ func (s *Service) testTorznab(ctx context.Context, feed *domain.Feed, subLogger 
 
 func (s *Service) testNewznab(ctx context.Context, feed *domain.Feed, subLogger zerolog.Logger) error {
 	// setup newznab Client
-	c := newznab.NewClient(newznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, TLSSkipVerify: feed.TLSSkipVerify, Log: subLogger})
+	c := newznab.NewClient(newznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, Timeout: time.Duration(feed.Timeout) * time.Second, TLSSkipVerify: feed.TLSSkipVerify, Log: subLogger})
 
 	// add proxy if enabled and exists
 	if feed.UseProxy && feed.Proxy != nil {
@@ -521,6 +540,9 @@ func (s *Service) testNewznab(ctx context.Context, feed *domain.Feed, subLogger 
 			}
 		}
 
+		if feed.Timeout > 0 {
+			proxyClient.Timeout = time.Duration(feed.Timeout) * time.Second
+		}
 		c.WithHTTPClient(proxyClient)
 
 		s.log.Debug().Str("proxy", feed.Proxy.Name).Str("feed", feed.Name).Msg("using proxy for feed")

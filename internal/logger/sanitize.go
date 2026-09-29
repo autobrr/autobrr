@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"os"
 	"regexp"
@@ -224,7 +225,7 @@ func SanitizeLogFile(filePath string, output io.Writer) error {
 		}
 
 		if err != nil {
-			if err != io.EOF {
+			if !errors.Is(err, io.EOF) {
 				log.Error().Err(err).Msg("error reading line from input file")
 			}
 			break

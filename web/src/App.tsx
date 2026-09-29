@@ -21,7 +21,7 @@ declare module '@tanstack/react-router' {
 }
 
 export function App() {
-  const settings = SettingsContext.useValue();
+  const language = SettingsContext.useSelector((s) => s.language);
 
   useEffect(() => {
     const themeMediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -39,9 +39,9 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    void i18n.changeLanguage(settings.language);
-    document.documentElement.lang = settings.language;
-  }, [settings.language]);
+    void i18n.changeLanguage(language);
+    document.documentElement.lang = language;
+  }, [language]);
 
   return (
     <QueryClientProvider client={queryClient}>

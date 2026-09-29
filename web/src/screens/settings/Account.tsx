@@ -4,17 +4,17 @@
  */
 
 import { useMutation } from "@tanstack/react-query";
-import { Form, Formik } from "formik";
+import { useSelector } from "@tanstack/react-form";
 import { UserIcon } from "@heroicons/react/24/solid";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faOpenid } from "@fortawesome/free-brands-svg-icons";
 import { useTranslation } from "react-i18next";
 
 import { APIClient } from "@api/APIClient";
+import { fieldErrors, useAppForm } from "@hooks/form";
 import { Section } from "./_components";
 import { PasswordField, TextField } from "@components/inputs";
 import toast from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
+import { OpenIdIcon } from "@components/Icons";
 import { AuthContext } from "@utils/Context";
 
 const AccountSettings = () => {
@@ -80,6 +80,29 @@ function Credentials() {
     }
   });
 
+  const form = useAppForm({
+    defaultValues: {
+      username: username,
+      newUsername: "",
+      oldPassword: "",
+      newPassword: "",
+      confirmPassword: ""
+    },
+    validators: {
+      onChange: ({ value }) => fieldErrors(validate(value))
+    },
+    onSubmit: ({ value }) => {
+      updateUserMutation.mutate({
+        username_current: value.username,
+        username_new: value.newUsername,
+        password_current: value.oldPassword,
+        password_new: value.newPassword,
+      });
+    }
+  });
+
+  const newPassword = useSelector(form.store, (state) => state.values.newPassword);
+
   const separatorClass = "mb-6";
 
   return (
@@ -89,74 +112,61 @@ function Credentials() {
       noLeftPadding
     >
       <div className="px-2 pb-0 sm:pb-6 bg-white dark:bg-gray-800">
-        <Formik
-          initialValues={{
-            username: username,
-            newUsername: "",
-            oldPassword: "",
-            newPassword: "",
-            confirmPassword: ""
-          }}
-          onSubmit={(data) => {
-            updateUserMutation.mutate({
-              username_current: data.username,
-              username_new: data.newUsername,
-              password_current: data.oldPassword,
-              password_new: data.newPassword,
-            });
-          }}
-          validate={validate}
-        >
-          {({ values }) => (
-            <Form>
-              <div className="flex flex-col sm:grid sm:grid-cols-2 gap-x-10 pt-2">
+        <form.AppForm>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              form.handleSubmit();
+            }}
+          >
+            <div className="flex flex-col sm:grid sm:grid-cols-2 gap-x-10 pt-2">
+              <div className={separatorClass}>
+                <TextField name="username" label={t("account.currentUsername")} autoComplete="username" disabled />
+              </div>
+              <div className={separatorClass}>
+                <TextField name="newUsername" label={t("account.newUsername")} tooltip={
+                  <div>
+                    <p>{t("account.optional")}</p>
+                  </div>
+                } />
+              </div>
+
+              <hr className="col-span-2 mb-6 border-t border-gray-300 dark:border-gray-750" />
+
+              <div className={separatorClass}>
+                <PasswordField name="oldPassword" placeholder={t("account.required")} label={t("account.currentPassword")} autoComplete="current-password" required tooltip={
+                  <div>
+                    <p>{t("account.requiredIfUpdatingCredentials")}</p>
+                  </div>
+                } />
+              </div>
+              <div>
                 <div className={separatorClass}>
-                  <TextField name="username" label={t("account.currentUsername")} autoComplete="username" disabled />
-                </div>
-                <div className={separatorClass}>
-                  <TextField name="newUsername" label={t("account.newUsername")} tooltip={
+                  <PasswordField name="newPassword" label={t("account.newPassword")} autoComplete="new-password" tooltip={
                     <div>
                       <p>{t("account.optional")}</p>
                     </div>
                   } />
                 </div>
-
-                <hr className="col-span-2 mb-6 border-t border-gray-300 dark:border-gray-750" />
-
-                <div className={separatorClass}>
-                  <PasswordField name="oldPassword" placeholder={t("account.required")} label={t("account.currentPassword")} autoComplete="current-password" required tooltip={
-                    <div>
-                      <p>{t("account.requiredIfUpdatingCredentials")}</p>
-                    </div>
-                  } />
-                </div>
-                <div>
+                {newPassword && (
                   <div className={separatorClass}>
-                    <PasswordField name="newPassword" label={t("account.newPassword")} autoComplete="new-password" tooltip={
-                      <div>
-                        <p>{t("account.optional")}</p>
-                      </div>
-                    } />
+                    <PasswordField name="confirmPassword" label={t("account.confirmNewPassword")} autoComplete="new-password" />
                   </div>
-                  {values.newPassword && (
-                    <div className={separatorClass}>
-                      <PasswordField name="confirmPassword" label={t("account.confirmNewPassword")} autoComplete="new-password" />
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  className="mt-4 w-auto flex items-center py-2 px-4 transition rounded-md shadow-xs text-sm font-medium text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                >
-                  <UserIcon className="w-4 h-4 mr-1" />
-                  {t("account.save")}
-                </button>
-              </div>
-            </Form>
-          )}
-        </Formik>
+            </div>
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                className="mt-4 w-auto flex items-center py-2 px-4 transition rounded-md shadow-xs text-sm font-medium text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 cursor-pointer"
+              >
+                <UserIcon className="w-4 h-4 mr-1" />
+                {t("account.save")}
+              </button>
+            </div>
+          </form>
+        </form.AppForm>
       </div>
     </Section>
   );
@@ -184,7 +194,7 @@ function OIDCAccount() {
       titleElement={
         <div className="flex items-center space-x-2">
           <span className="text-gray-700 dark:text-gray-300 font-bold">{t("account.oidcTitle")}</span>
-          <FontAwesomeIcon icon={faOpenid} className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+          <OpenIdIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
         </div>
       }
       title={t("account.oidcTitle")}
@@ -203,11 +213,7 @@ function OIDCAccount() {
               />
             ) : (
               <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-700 transition duration-200">
-                <FontAwesomeIcon 
-                  icon={faOpenid} 
-                  className="h-16 w-16 text-gray-500 dark:text-gray-400" 
-                  aria-hidden="true"
-                />
+                <OpenIdIcon className="h-16 w-16 text-gray-500 dark:text-gray-400" />
               </div>
             )}
           </div>
@@ -216,7 +222,7 @@ function OIDCAccount() {
               {auth.username}
             </h3>
             <div className="mt-1 flex items-center text-sm text-gray-500 dark:text-gray-400">
-              <FontAwesomeIcon icon={faOpenid} className="mr-1.5 h-4 w-4 flex-shrink-0" />
+              <OpenIdIcon className="mr-1.5 h-4 w-4 flex-shrink-0" />
               <p>{t("account.authenticatedViaOidc")}</p>
             </div>
             {auth.issuerUrl && (

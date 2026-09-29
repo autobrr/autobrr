@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Dispatch, FC, Fragment, MouseEventHandler, useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { Dispatch, FC, Fragment, MouseEventHandler, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from "react-i18next";
 import {
@@ -94,6 +94,67 @@ const FilterListReducer = (state: FilterListState, action: Actions): FilterListS
   }
 };
 
+const ToggleAllFiltersCheckbox = ({ filters }: { filters: Filter[] }) => {
+  const { t } = useTranslation("filters");
+  const queryClient = useQueryClient();
+  const checkboxRef = useRef<HTMLInputElement>(null);
+
+  const allEnabled = useMemo(() => filters.length > 0 && filters.every(f => f.enabled), [filters]);
+  const someEnabled = useMemo(() => filters.some(f => f.enabled), [filters]);
+
+  useEffect(() => {
+    if (checkboxRef.current) {
+      checkboxRef.current.checked = allEnabled;
+      checkboxRef.current.indeterminate = someEnabled && !allEnabled;
+    }
+  }, [filters, allEnabled, someEnabled]);
+
+  const mutation = useMutation({
+    mutationFn: async (enable: boolean) => {
+      // Using Promise.all to run toggles in parallel
+      await Promise.all(filters.map(filter =>
+        APIClient.filters.toggleEnable(filter.id, enable)
+      ));
+    },
+    onSuccess: (_, enable) => {
+      queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: FilterKeys.details() });
+      toast.custom((toastInstance) => (
+        <Toast
+          type="success"
+          body={t(enable ? "list.toggleAllEnabled" : "list.toggleAllDisabled", { count: filters.length })}
+          t={toastInstance}
+        />
+      ));
+    },
+    onError: (err) => {
+      console.error("Failed to toggle all filters", err);
+      toast.custom((toastInstance) => <Toast type="error" body={t("list.toggleAllError")} t={toastInstance} />);
+    }
+  });
+
+  const handleToggleAll = () => {
+    const enable = !allEnabled;
+    mutation.mutate(enable);
+  };
+
+  return (
+    <span className="flex justify-center items-center gap-2 border-b-2 border-transparent">
+      <input
+        type="checkbox"
+        ref={checkboxRef}
+        className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 cursor-pointer disabled:cursor-not-allowed"
+        onChange={handleToggleAll}
+        disabled={mutation.isPending || filters.length === 0}
+        title={t("list.toggleAllTitle")}
+      />
+      <div className="py-2 flex flex-col overflow-hidden w-full justify-center text-xs font-medium text-gray-600 dark:text-gray-400">
+        {t("list.toggleAll")}
+      </div>
+    </span>
+  );
+};
+
 export function Filters() {
   const { t } = useTranslation("filters");
   const [createFilterIsOpen, setCreateFilterIsOpen] = useState(false);
@@ -117,7 +178,7 @@ export function Filters() {
           {({ open }) => (
             <>
               <button
-                className="relative inline-flex items-center px-4 py-2 shadow-xs text-sm font-medium rounded-l-md transition text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
+                className="relative inline-flex items-center px-4 py-2 shadow-xs text-sm font-medium rounded-l-md transition text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 cursor-pointer"
                 onClick={(e: { stopPropagation: () => void; }) => {
                   if (!open) {
                     e.stopPropagation();
@@ -128,7 +189,7 @@ export function Filters() {
                 <PlusIcon className="h-5 w-5 mr-1" />
                 {t("list.create")}
               </button>
-              <MenuButton className="relative inline-flex items-center px-2 py-2 border-l border-spacing-1 dark:border-black shadow-xs text-sm font-medium rounded-r-md transition text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500">
+              <MenuButton className="relative inline-flex items-center px-2 py-2 border-l border-spacing-1 dark:border-black shadow-xs text-sm font-medium rounded-r-md transition text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 cursor-pointer">
                 <ChevronDownIcon className="h-5 w-5" />
               </MenuButton>
               <Transition
@@ -147,6 +208,7 @@ export function Filters() {
                       <button
                         type="button"
                         className={classNames(
+                          "cursor-pointer",
                           active ? "bg-gray-50 dark:bg-gray-600" : "",
                           "flex items-center w-full text-left py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-200 rounded-md focus:outline-hidden"
                         )}
@@ -170,18 +232,13 @@ export function Filters() {
 }
 
 function filteredData(data: Filter[], status: string) {
-  let filtered: Filter[];
-
-  const enabledItems = data?.filter(f => f.enabled);
-  const disabledItems = data?.filter(f => !f.enabled);
-
-  if (status === "enabled") {
-    filtered = enabledItems;
-  } else if (status === "disabled") {
-    filtered = disabledItems;
-  } else {
-    filtered = data;
+  const enabledItems: Filter[] = [];
+  const disabledItems: Filter[] = [];
+  for (const filter of data) {
+    (filter.enabled ? enabledItems : disabledItems).push(filter);
   }
+
+  const filtered = status === "enabled" ? enabledItems : status === "disabled" ? disabledItems : data;
 
   return {
     all: data,
@@ -191,27 +248,20 @@ function filteredData(data: Filter[], status: string) {
   };
 }
 
-function FilterList({ toggleCreateFilter }: any) {
+function FilterList({ toggleCreateFilter }: { toggleCreateFilter: () => void }) {
   const { t } = useTranslation("filters");
-  const filterListState = FilterListContext.useValue();
-
-  const [{ indexerFilter, sortOrder, status }, dispatchFilter] = useReducer(
-    FilterListReducer,
-    filterListState
-  );
+  const { indexerFilter, sortOrder, status } = FilterListContext.useValue();
+  const dispatchFilter: Dispatch<Actions> = (action) => {
+    FilterListContext.set(FilterListReducer(FilterListContext.get(), action));
+  };
 
   const { isLoading: isLoadingFilters, data: filtersData, error: filtersError } = useQuery(FiltersQueryOptions(indexerFilter, sortOrder));
-
-  useEffect(() => {
-    FilterListContext.set({ indexerFilter, sortOrder, status });
-  }, [indexerFilter, sortOrder, status]);
+  const filtered = useMemo(() => filteredData(filtersData ?? [], status), [filtersData, status]);
 
   if (filtersError) {
     // TODO: Better error handling
     return <p>{t("list.loadError")}</p>;
   }
-
-  const filtered = filteredData(filtersData ?? [], status);
 
   return (
     <div className="max-w-(--breakpoint-xl) mx-auto pb-12 px-2 sm:px-6 lg:px-8 relative">
@@ -221,9 +271,11 @@ function FilterList({ toggleCreateFilter }: any) {
             <StatusButton data={filtered.all} label={t("list.statusAll")} value="" currentValue={status} dispatch={dispatchFilter} />
             <StatusButton data={filtered.enabled} label={t("list.statusEnabled")} value="enabled" currentValue={status} dispatch={dispatchFilter} />
             <StatusButton data={filtered.disabled} label={t("list.statusDisabled")} value="disabled" currentValue={status} dispatch={dispatchFilter} />
+            <ToggleAllFiltersCheckbox filters={filtered.filtered} />
           </div>
 
           <div className="flex items-center gap-5">
+
             <div className="hidden md:flex"><IndexerSelectFilter dispatch={dispatchFilter} /></div>
             <SortSelectFilter dispatch={dispatchFilter} />
           </div>
@@ -268,6 +320,7 @@ const StatusButton = ({ data, label, value, currentValue, dispatch }: StatusButt
   return (
     <button
       className={classNames(
+        "cursor-pointer",
         "py-4 pb-4 text-left text-xs tracking-wider transition border-b-2",
         currentValue === value
           ? "font-bold  border-blue-500 dark:text-gray-100 text-gray-950"
@@ -392,7 +445,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
         title={t("list.removeTitle", { name: filter.name })}
         text={t("list.removeText")}
       />
-      <MenuButton className="px-4 py-2">
+      <MenuButton className="px-4 py-2 cursor-pointer">
         <EllipsisHorizontalIcon
           className="w-5 h-5 text-gray-700 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-400"
           aria-hidden="true"
@@ -440,6 +493,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
               {({ active }) => (
                 <button
                   className={classNames(
+                    "cursor-pointer",
                     active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
                     "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
                   )}
@@ -459,6 +513,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
               {({ active }) => (
                 <button
                   className={classNames(
+                    "cursor-pointer",
                     active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
                     "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
                   )}
@@ -479,6 +534,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
               {({ active }) => (
                 <button
                   className={classNames(
+                    "cursor-pointer",
                     active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
                     "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
                   )}
@@ -499,6 +555,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
               {({ active }) => (
                 <button
                   className={classNames(
+                    "cursor-pointer",
                     active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
                     "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
                   )}
@@ -521,6 +578,7 @@ const FilterItemDropdown = ({ filter, onToggle }: FilterItemDropdownProps) => {
               {({ active }) => (
                 <button
                   className={classNames(
+                    "cursor-pointer",
                     active ? "bg-red-600 text-white" : "text-gray-900 dark:text-gray-300",
                     "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
                   )}
@@ -809,7 +867,7 @@ const ListboxFilter = ({
 );
 
 // a unique option from a list
-const IndexerSelectFilter = ({ dispatch }: any) => {
+const IndexerSelectFilter = ({ dispatch }: { dispatch: Dispatch<Actions> }) => {
   const { t } = useTranslation("filters");
   const filterListState = FilterListContext.useValue();
 
@@ -873,7 +931,7 @@ const FilterOption = ({ label, value }: FilterOptionProps) => (
   </ListboxOption>
 );
 
-export const SortSelectFilter = ({ dispatch }: any) => {
+export const SortSelectFilter = ({ dispatch }: { dispatch: Dispatch<Actions> }) => {
   const { t } = useTranslation("filters");
   const filterListState = FilterListContext.useValue();
 

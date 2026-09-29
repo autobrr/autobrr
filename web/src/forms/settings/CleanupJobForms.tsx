@@ -3,25 +3,27 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Field as FormikField, type FieldProps } from "formik";
 import { MultiSelect as RMSC } from "react-multi-select-component";
 import { format } from "date-fns";
 import { useTranslation } from "react-i18next";
 
 import { APIClient } from "@api/APIClient";
 import { ReleaseKeys } from "@api/query_keys";
+import { IndexersQueryOptions } from "@api/queries";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
+import { useFormContext } from "@hooks/form";
 import { DurationFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import { SlideOver } from "@components/panels";
 import { AddFormProps, UpdateFormProps } from "@forms/_shared";
 import { classNames } from "@utils";
-import { getPushStatusOptions } from "@domain/constants";
+import { getPushStatusOptions, OptionBasic } from "@domain/constants";
 
 export function CleanupJobAddForm({isOpen, toggle}: AddFormProps) {
   const { t } = useTranslation(["options", "settings"]);
-  const pushStatusOptions = getPushStatusOptions(t);
+  const pushStatusOptions = useMemo(() => getPushStatusOptions(t), [t]);
   const queryClient = useQueryClient();
 
   const addMutation = useMutation({
@@ -36,7 +38,7 @@ export function CleanupJobAddForm({isOpen, toggle}: AddFormProps) {
     }
   });
 
-  const onSubmit = (data: unknown) => addMutation.mutate(data as ReleaseCleanupJob);
+  const onSubmit = (data: Partial<ReleaseCleanupJob>) => addMutation.mutate(data as ReleaseCleanupJob);
 
   const initialValues: Partial<ReleaseCleanupJob> = {
     name: "",
@@ -47,13 +49,9 @@ export function CleanupJobAddForm({isOpen, toggle}: AddFormProps) {
     statuses: ""
   };
 
-  const {data: indexerOptions} = useQuery<IndexerDefinition[], Error, { identifier: string; name: string; }[]>({
-    queryKey: ['indexers'],
-    queryFn: () => APIClient.indexers.getAll(),
-    select: data => data.map(indexer => ({
-      identifier: indexer.identifier,
-      name: indexer.name
-    })),
+  const {data: indexerOptions} = useQuery({
+    ...IndexersQueryOptions(),
+    select: (data) => data.map((indexer) => ({ value: indexer.identifier, label: indexer.name }))
   });
 
   return (
@@ -96,37 +94,11 @@ export function CleanupJobAddForm({isOpen, toggle}: AddFormProps) {
               {t("settings:forms.cleanupJob.indexersOptional")}
             </label>
             <div className="col-span-2">
-              <FormikField name="indexers">
-                {({field, form}: FieldProps) => (
-                  <div
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.nativeEvent.stopImmediatePropagation();
-                    }}
-                  >
-                    <RMSC
-                      options={indexerOptions?.map(opt => ({value: opt.identifier, label: opt.name})) || []}
-                      value={
-                        !field.value || field.value === '' || !indexerOptions
-                          ? []
-                          : field.value
-                            .split(',')
-                            .filter(Boolean)
-                            .map((v: string) => {
-                              const option = indexerOptions.find(opt => opt.identifier === v);
-                              return option ? {value: option.identifier, label: option.name} : null;
-                            })
-                            .filter((item: { value: string; label: string } | null): item is { value: string; label: string } => item !== null)
-                      }
-                      onChange={(selected: { value: string; label: string }[]) => {
-                        const indexerString = selected.map(s => s.value).join(',');
-                        form.setFieldValue("indexers", indexerString);
-                      }}
-                      labelledBy="cleanup-job-add-indexers"
-                    />
-                  </div>
-                )}
-              </FormikField>
+              <MultiSelectField
+                name="indexers"
+                options={indexerOptions ?? []}
+                labelledBy="cleanup-job-add-indexers"
+              />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 {t("settings:forms.cleanupJob.leaveEmptyIndexers")}
               </p>
@@ -138,37 +110,11 @@ export function CleanupJobAddForm({isOpen, toggle}: AddFormProps) {
               {t("settings:forms.cleanupJob.statusesOptional")}
             </label>
             <div className="col-span-2">
-              <FormikField name="statuses">
-                {({field, form}: FieldProps) => (
-                  <div
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      e.nativeEvent.stopImmediatePropagation();
-                    }}
-                  >
-                    <RMSC
-                      options={pushStatusOptions}
-                      value={
-                        !field.value || field.value === ''
-                          ? []
-                          : field.value
-                            .split(',')
-                            .filter(Boolean)
-                            .map((v: string) => {
-                              const option = pushStatusOptions.find(opt => opt.value === v);
-                              return option ? {value: option.value, label: option.label} : null;
-                            })
-                            .filter((item: { value: string; label: string } | null): item is { value: string; label: string } => item !== null)
-                      }
-                      onChange={(selected: { value: string; label: string }[]) => {
-                        const statusString = selected.map(s => s.value).join(',');
-                        form.setFieldValue("statuses", statusString);
-                      }}
-                      labelledBy="cleanup-job-add-statuses"
-                    />
-                  </div>
-                )}
-              </FormikField>
+              <MultiSelectField
+                name="statuses"
+                options={pushStatusOptions}
+                labelledBy="cleanup-job-add-statuses"
+              />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 {t("settings:forms.cleanupJob.leaveEmptyStatuses")}
               </p>
@@ -182,7 +128,7 @@ export function CleanupJobAddForm({isOpen, toggle}: AddFormProps) {
 
 export function CleanupJobUpdateForm({isOpen, toggle, data: job}: UpdateFormProps<ReleaseCleanupJob>) {
   const { t } = useTranslation(["options", "settings"]);
-  const pushStatusOptions = getPushStatusOptions(t);
+  const pushStatusOptions = useMemo(() => getPushStatusOptions(t), [t]);
   const queryClient = useQueryClient();
 
   const updateMutation = useMutation({
@@ -197,7 +143,7 @@ export function CleanupJobUpdateForm({isOpen, toggle, data: job}: UpdateFormProp
     }
   });
 
-  const onSubmit = (data: unknown) => updateMutation.mutate(data as ReleaseCleanupJob);
+  const onSubmit = (data: ReleaseCleanupJob) => updateMutation.mutate(data);
 
   const deleteMutation = useMutation({
     mutationFn: (jobId: number) => APIClient.release.cleanupJobs.delete(jobId),
@@ -229,13 +175,9 @@ export function CleanupJobUpdateForm({isOpen, toggle, data: job}: UpdateFormProp
   };
 
   // Get indexer options for multi-select
-  const {data: indexerOptions} = useQuery<IndexerDefinition[], Error, { identifier: string; name: string; }[]>({
-    queryKey: ['indexers'],
-    queryFn: () => APIClient.indexers.getAll(),
-    select: data => data.map(indexer => ({
-      identifier: indexer.identifier,
-      name: indexer.name
-    })),
+  const {data: indexerOptions} = useQuery({
+    ...IndexersQueryOptions(),
+    select: (data) => data.map((indexer) => ({ value: indexer.identifier, label: indexer.name }))
   });
 
   return (
@@ -280,39 +222,11 @@ export function CleanupJobUpdateForm({isOpen, toggle, data: job}: UpdateFormProp
               {t("settings:forms.cleanupJob.indexersOptional")}
             </label>
             <div className="col-span-2">
-              <FormikField name="indexers">
-                {({field, form}: FieldProps) => {
-                  const computedValue = !field.value || field.value === '' || !indexerOptions
-                    ? []
-                    : field.value
-                      .split(',')
-                      .filter(Boolean)
-                      .map((v: string) => {
-                        const option = indexerOptions.find(opt => opt.identifier === v);
-                        return option ? {value: option.identifier, label: option.name} : null;
-                      })
-                      .filter((item: { value: string; label: string } | null): item is { value: string; label: string } => item !== null);
-
-                  return (
-                    <div
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        e.nativeEvent.stopImmediatePropagation();
-                      }}
-                    >
-                      <RMSC
-                        options={indexerOptions?.map(opt => ({value: opt.identifier, label: opt.name})) || []}
-                        value={computedValue}
-                        onChange={(selected: { value: string; label: string }[]) => {
-                          const indexerString = selected.map(s => s.value).join(',');
-                          form.setFieldValue("indexers", indexerString);
-                        }}
-                        labelledBy="cleanup-job-edit-indexers"
-                      />
-                    </div>
-                  );
-                }}
-              </FormikField>
+              <MultiSelectField
+                name="indexers"
+                options={indexerOptions ?? []}
+                labelledBy="cleanup-job-edit-indexers"
+              />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 {t("settings:forms.cleanupJob.leaveEmptyIndexers")}
               </p>
@@ -324,39 +238,11 @@ export function CleanupJobUpdateForm({isOpen, toggle, data: job}: UpdateFormProp
               {t("settings:forms.cleanupJob.statusesOptional")}
             </label>
             <div className="col-span-2">
-              <FormikField name="statuses">
-                {({field, form}: FieldProps) => {
-                  const computedValue = !field.value || field.value === ''
-                    ? []
-                    : field.value
-                      .split(',')
-                      .filter(Boolean)
-                      .map((v: string) => {
-                        const option = pushStatusOptions.find(opt => opt.value === v);
-                        return option ? {value: option.value, label: option.label} : null;
-                      })
-                      .filter((item: { value: string; label: string } | null): item is { value: string; label: string } => item !== null);
-
-                  return (
-                    <div
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        e.nativeEvent.stopImmediatePropagation();
-                      }}
-                    >
-                      <RMSC
-                        options={pushStatusOptions}
-                        value={computedValue}
-                        onChange={(selected: { value: string; label: string }[]) => {
-                          const statusString = selected.map(s => s.value).join(',');
-                          form.setFieldValue("statuses", statusString);
-                        }}
-                        labelledBy="cleanup-job-edit-statuses"
-                      />
-                    </div>
-                  );
-                }}
-              </FormikField>
+              <MultiSelectField
+                name="statuses"
+                options={pushStatusOptions}
+                labelledBy="cleanup-job-edit-statuses"
+              />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 {t("settings:forms.cleanupJob.leaveEmptyStatuses")}
               </p>
@@ -397,3 +283,44 @@ export function CleanupJobUpdateForm({isOpen, toggle, data: job}: UpdateFormProp
     </SlideOver>
   );
 }
+
+interface MultiSelectFieldProps {
+  name: string;
+  options: OptionBasic[];
+  labelledBy: string;
+}
+
+const MultiSelectField = ({ name, options, labelledBy }: MultiSelectFieldProps) => {
+  const form = useFormContext();
+
+  return (
+    <form.Field name={name}>
+      {(field) => {
+        const value: string = field.state.value ?? "";
+        const selectedOptions = value
+          .split(",")
+          .filter(Boolean)
+          .map((v) => options.find((opt) => opt.value === v))
+          .filter((opt): opt is OptionBasic => opt !== undefined);
+
+        return (
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              e.nativeEvent.stopImmediatePropagation();
+            }}
+          >
+            <RMSC
+              options={options}
+              value={selectedOptions}
+              onChange={(selected: OptionBasic[]) => {
+                field.handleChange(selected.map((s) => s.value).join(","));
+              }}
+              labelledBy={labelledBy}
+            />
+          </div>
+        );
+      }}
+    </form.Field>
+  );
+};

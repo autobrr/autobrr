@@ -6,11 +6,10 @@
 import { Fragment } from "react";
 import { UserIcon } from "@heroicons/react/24/solid";
 import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faOpenid } from "@fortawesome/free-brands-svg-icons";
 import { useTranslation } from "react-i18next";
 
 import { classNames } from "@utils";
+import { OpenIdIcon } from "@components/Icons";
 
 import { RightNavProps } from "./_shared";
 
@@ -69,6 +68,7 @@ export const RightNav = (props: RightNavProps) => {
             <>
               <MenuButton
                 className={classNames(
+                  "cursor-pointer",
                   open ? "bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-white" : "hover:text-gray-900 dark:hover:text-white",
                   "text-gray-600 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-800 px-3 py-2 rounded-2xl text-sm font-medium",
                   "max-w-xs rounded-full flex items-center text-sm px-3 py-2",
@@ -91,11 +91,7 @@ export const RightNav = (props: RightNavProps) => {
                         />
                       </div>
                     ) : (
-                      <FontAwesomeIcon
-                        icon={faOpenid}
-                        className="inline ml-1 h-4 w-4 text-gray-500 dark:text-gray-500"
-                        aria-hidden="true"
-                      />
+                      <OpenIdIcon className="inline ml-1 h-4 w-4 text-gray-500 dark:text-gray-500" />
                     )
                   ) : (
                     <UserIcon
@@ -169,7 +165,7 @@ export const RightNav = (props: RightNavProps) => {
                             props.logoutMutation();
                           }}
                           className={classNames(
-                            active
+                            "cursor-pointer",active
                               ? "bg-gray-100 dark:bg-gray-600"
                               : "",
                             "flex items-center transition rounded-b-md w-full px-2 py-2 text-sm text-gray-900 dark:text-gray-200 text-left"

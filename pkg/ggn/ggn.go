@@ -185,7 +185,7 @@ type TorrentResponse struct {
 
 type Response struct {
 	Status   string          `json:"status"`
-	Response TorrentResponse `json:"response,omitempty"`
+	Response TorrentResponse `json:"response"`
 	Error    string          `json:"error,omitempty"`
 }
 

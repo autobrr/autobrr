@@ -28,7 +28,7 @@ func TestEventBus_CallerPointsAtCallSite(t *testing.T) {
 	})
 	defer unregister()
 
-	bus.EmitAppUpdate(t.Context(), AppUpdateEvent{Event: Event{Type: ApplicationUpdate}, NewVersion: "v1.7.0"})
+	bus.EmitAppUpdate(t.Context(), AppUpdateEvent{Type: ApplicationUpdate, NewVersion: "v1.7.0"})
 
 	lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
 	require.NotEmpty(t, lines)
@@ -60,7 +60,7 @@ func TestEventBus_EmitSurvivesCallerCancellation(t *testing.T) {
 	})
 	defer unregister()
 
-	bus.EmitAppUpdate(ctx, AppUpdateEvent{Event: Event{Type: ApplicationUpdate}, NewVersion: "v1.7.0"})
+	bus.EmitAppUpdate(ctx, AppUpdateEvent{Type: ApplicationUpdate, NewVersion: "v1.7.0"})
 
 	assert.Equal(t, 1, received)
 }

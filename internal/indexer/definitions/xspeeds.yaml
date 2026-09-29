@@ -22,7 +22,7 @@ settings:
 
 irc:
   network: XSpeeds
-  server: irc.xspeeds.eu
+  server: 85.17.118.208
   port: 6697
   tls: true
   settings:

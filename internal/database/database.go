@@ -69,8 +69,8 @@ func NewDB(cfg *domain.Config, log zerolog.Logger) (*DB, error) {
 			return db, nil
 		} else if strings.HasPrefix(cfg.DatabaseDSN, "file:") || cfg.DatabaseDSN == ":memory:" || strings.HasSuffix(cfg.DatabaseDSN, ".db") {
 			db.Driver = DriverSQLite
-			if strings.HasPrefix(cfg.DatabaseDSN, "file:") && strings.HasSuffix(cfg.DatabaseDSN, ".db") {
-				db.DSN = strings.TrimPrefix(cfg.DatabaseDSN, "file:")
+			if dsn, ok := strings.CutPrefix(cfg.DatabaseDSN, "file:"); ok && strings.HasSuffix(dsn, ".db") {
+				db.DSN = dsn
 			} else {
 				db.DSN = cfg.DatabaseDSN
 			}

@@ -7,9 +7,11 @@ import (
 	"context"
 	"net/http"
 	"net/url"
+	"sync"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
@@ -24,20 +26,30 @@ type proxyRepo interface {
 	Delete(ctx context.Context, id int64) error
 	FindByID(ctx context.Context, id int64) (*domain.Proxy, error)
 	ToggleEnabled(ctx context.Context, id int64, enabled bool) error
+	Usage(ctx context.Context, id int64) (*domain.ProxyUsage, error)
+}
+
+type eventBus interface {
+	EmitProxy(ctx context.Context, event events.ProxyChangeEvent)
 }
 
 type Service struct {
-	log zerolog.Logger
+	log      zerolog.Logger
+	eventBus eventBus
 
-	repo  proxyRepo
+	repo proxyRepo
+
+	// cache is read from irc handler, feed and download goroutines while http handlers write it
+	m     sync.RWMutex
 	cache map[int64]*domain.Proxy
 }
 
-func NewService(log zerolog.Logger, repo proxyRepo) *Service {
+func NewService(log zerolog.Logger, eventBus eventBus, repo proxyRepo) *Service {
 	return &Service{
-		log:   log.With().Str("module", "proxy").Logger(),
-		repo:  repo,
-		cache: make(map[int64]*domain.Proxy),
+		log:      log.With().Str("module", "proxy").Logger(),
+		eventBus: eventBus,
+		repo:     repo,
+		cache:    make(map[int64]*domain.Proxy),
 	}
 }
 
@@ -51,7 +63,7 @@ func (s *Service) Store(ctx context.Context, proxy *domain.Proxy) error {
 		return err
 	}
 
-	s.cache[proxy.ID] = proxy
+	s.setCached(proxy)
 
 	return nil
 }
@@ -74,53 +86,98 @@ func (s *Service) Update(ctx context.Context, proxy *domain.Proxy) error {
 		return err
 	}
 
-	s.cache[proxy.ID] = proxy
+	s.setCached(proxy)
 
-	// TODO update IRC handlers
+	s.publishEventProxyUpdated(ctx, proxy.ID)
 
 	return nil
 }
 
 func (s *Service) FindByID(ctx context.Context, id int64) (*domain.Proxy, error) {
-	if proxy, ok := s.cache[id]; ok {
+	if proxy, ok := s.cached(id); ok {
 		return proxy, nil
 	}
 
 	return s.repo.FindByID(ctx, id)
 }
 
+func (s *Service) cached(id int64) (*domain.Proxy, bool) {
+	s.m.RLock()
+	defer s.m.RUnlock()
+
+	proxy, ok := s.cache[id]
+	return proxy, ok
+}
+
+func (s *Service) setCached(proxy *domain.Proxy) {
+	s.m.Lock()
+	s.cache[proxy.ID] = proxy
+	s.m.Unlock()
+}
+
+func (s *Service) evict(id int64) {
+	s.m.Lock()
+	delete(s.cache, id)
+	s.m.Unlock()
+}
+
 func (s *Service) List(ctx context.Context) ([]domain.Proxy, error) {
 	return s.repo.List(ctx)
 }
 
+func (s *Service) Usage(ctx context.Context, id int64) (*domain.ProxyUsage, error) {
+	return s.repo.Usage(ctx, id)
+}
+
 func (s *Service) ToggleEnabled(ctx context.Context, id int64, enabled bool) error {
-	err := s.repo.ToggleEnabled(ctx, id, enabled)
-	if err != nil {
+	if err := s.repo.ToggleEnabled(ctx, id, enabled); err != nil {
 		return err
 	}
 
-	v, ok := s.cache[id]
-	if !ok {
-		v.Enabled = !enabled
-		s.cache[id] = v
-	}
+	// consumers hold the cached pointer, so evict instead of mutating it in place
+	s.evict(id)
 
-	// TODO update IRC handlers
+	s.publishEventProxyUpdated(ctx, id)
 
 	return nil
 }
 
 func (s *Service) Delete(ctx context.Context, id int64) error {
-	err := s.repo.Delete(ctx, id)
+	usage, err := s.repo.Usage(ctx, id)
 	if err != nil {
 		return err
 	}
 
-	delete(s.cache, id)
+	if err := s.repo.Delete(ctx, id); err != nil {
+		return err
+	}
 
-	// TODO update IRC handlers
+	s.evict(id)
+
+	s.publishEventProxy(ctx, events.ProxyDeleted, id, usage)
 
 	return nil
+}
+
+// publishEventProxyUpdated snapshots the proxy's consumers and emits the update. The write has
+// already committed, so a failed snapshot is logged instead of failing a request whose change
+// stuck; consumers pick the change up on their next reload or restart.
+func (s *Service) publishEventProxyUpdated(ctx context.Context, id int64) {
+	usage, err := s.repo.Usage(ctx, id)
+	if err != nil {
+		s.log.Error().Err(err).Int64("proxy_id", id).Msg("could not find proxy usage, consumers not reconciled")
+		return
+	}
+
+	s.publishEventProxy(ctx, events.ProxyUpdated, id, usage)
+}
+
+func (s *Service) publishEventProxy(ctx context.Context, eventType events.EventType, id int64, usage *domain.ProxyUsage) {
+	s.eventBus.EmitProxy(ctx, events.ProxyChangeEvent{
+		Type:    eventType,
+		ProxyID: id,
+		Usage:   usage,
+	})
 }
 
 func (s *Service) Test(ctx context.Context, proxy *domain.Proxy) error {

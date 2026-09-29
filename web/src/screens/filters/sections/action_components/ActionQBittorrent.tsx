@@ -11,7 +11,7 @@ import { ActionContentLayoutOptions, ActionPriorityOptions } from "@domain/const
 
 import { CollapsibleSection, FilterHalfRow, FilterLayout, FilterSection, FilterWideGridGapClass } from "../_components";
 import {
-  DownloadClientSelect,
+  DownloaderSelect,
   NumberField,
   Select,
   SwitchGroup,
@@ -30,8 +30,8 @@ export const QBittorrent = ({ idx, action, clients }: ClientActionProps) => {
     >
       <FilterLayout>
         <FilterHalfRow>
-          <DownloadClientSelect
-            name={`actions.${idx}.client_id`}
+          <DownloaderSelect
+            name={`actions[${idx}].client_id`}
             action={action}
             clients={clients}
           />
@@ -40,7 +40,7 @@ export const QBittorrent = ({ idx, action, clients }: ClientActionProps) => {
 
       <FilterLayout>
         <TextField
-          name={`actions.${idx}.category`}
+          name={`actions[${idx}].category`}
           label={t("actionComponents.common.category")}
           columns={6}
           placeholder={t("actionComponents.common.categoryPlaceholder")}
@@ -53,7 +53,7 @@ export const QBittorrent = ({ idx, action, clients }: ClientActionProps) => {
         />
 
         <TextField
-          name={`actions.${idx}.tags`}
+          name={`actions[${idx}].tags`}
           label={t("actionComponents.qbittorrent.tags")}
           columns={6}
           placeholder={t("actionComponents.qbittorrent.tagsPlaceholder")}
@@ -69,7 +69,7 @@ export const QBittorrent = ({ idx, action, clients }: ClientActionProps) => {
       <FilterLayout className="pb-6">
         <FilterHalfRow>
           <TextAreaAutoResize
-            name={`actions.${idx}.save_path`}
+            name={`actions[${idx}].save_path`}
             label={t("actionComponents.common.savePath")}
             placeholder={t("actionComponents.qbittorrent.savePathPlaceholder")}
             tooltip={
@@ -84,7 +84,7 @@ export const QBittorrent = ({ idx, action, clients }: ClientActionProps) => {
         </FilterHalfRow>
         <FilterHalfRow>
           <TextAreaAutoResize
-            name={`actions.${idx}.download_path`}
+            name={`actions[${idx}].download_path`}
             label={t("actionComponents.qbittorrent.downloadPath")}
             placeholder={t("actionComponents.qbittorrent.downloadPathPlaceholder")}
             tooltip={
@@ -106,7 +106,7 @@ export const QBittorrent = ({ idx, action, clients }: ClientActionProps) => {
       >
         <FilterHalfRow>
           <SwitchGroup
-            name={`actions.${idx}.ignore_rules`}
+            name={`actions[${idx}].ignore_rules`}
             label={t("actionComponents.qbittorrent.ignoreRules")}
             description={
               <p>
@@ -116,14 +116,14 @@ export const QBittorrent = ({ idx, action, clients }: ClientActionProps) => {
             className="py-2 pb-4"
           />
           <Select
-            name={`actions.${idx}.content_layout`}
+            name={`actions[${idx}].content_layout`}
             label={t("actionComponents.qbittorrent.contentLayout")}
             optionDefaultText={t("actionComponents.qbittorrent.contentLayoutDefault")}
             options={ActionContentLayoutOptions}
             className="py-2 pb-4"
           />
           <Select
-            name={`actions.${idx}.priority`}
+            name={`actions[${idx}].priority`}
             label={t("actionComponents.qbittorrent.priority")}
             optionDefaultText={t("actionComponents.qbittorrent.priorityDefault")}
             options={ActionPriorityOptions}
@@ -137,18 +137,18 @@ export const QBittorrent = ({ idx, action, clients }: ClientActionProps) => {
 
         <FilterHalfRow>
           <SwitchGroup
-            name={`actions.${idx}.paused`}
+            name={`actions[${idx}].paused`}
             label={t("actionComponents.common.addPaused")}
             description={t("actionComponents.common.addPausedDescription")}
           />
           <SwitchGroup
-            name={`actions.${idx}.skip_hash_check`}
+            name={`actions[${idx}].skip_hash_check`}
             label={t("actionComponents.common.skipHashCheck")}
             description={t("actionComponents.common.skipHashCheckDescription")}
             className="pt-4 sm:pt-4"
           />
           <SwitchGroup
-            name={`actions.${idx}.first_last_piece_prio`}
+            name={`actions[${idx}].first_last_piece_prio`}
             label={t("actionComponents.qbittorrent.firstLastPiece")}
             description={t("actionComponents.qbittorrent.firstLastPieceDescription")}
             className="pt-6 sm:pt-10"
@@ -162,12 +162,12 @@ export const QBittorrent = ({ idx, action, clients }: ClientActionProps) => {
       >
         <FilterLayout>
           <NumberField
-            name={`actions.${idx}.limit_download_speed`}
+            name={`actions[${idx}].limit_download_speed`}
             label={t("actionComponents.common.limitDownloadKib")}
             placeholder={t("actionComponents.common.numberNoLimit")}
           />
           <NumberField
-            name={`actions.${idx}.limit_upload_speed`}
+            name={`actions[${idx}].limit_upload_speed`}
             label={t("actionComponents.common.limitUploadKib")}
             placeholder={t("actionComponents.common.numberNoLimit")}
           />
@@ -175,14 +175,14 @@ export const QBittorrent = ({ idx, action, clients }: ClientActionProps) => {
 
         <FilterLayout>
           <NumberField
-            name={`actions.${idx}.limit_ratio`}
+            name={`actions[${idx}].limit_ratio`}
             label={t("actionComponents.common.ratioLimit")}
             placeholder={t("actionComponents.common.numberNoLimit")}
             step={0.25}
             isDecimal
           />
           <NumberField
-            name={`actions.${idx}.limit_seed_time`}
+            name={`actions[${idx}].limit_seed_time`}
             label={t("actionComponents.common.seedTimeMinutes")}
             placeholder={t("actionComponents.common.numberNoLimit")}
           />
@@ -197,26 +197,26 @@ export const QBittorrent = ({ idx, action, clients }: ClientActionProps) => {
       >
         <FilterHalfRow>
           <SwitchGroup
-            name={`actions.${idx}.reannounce_skip`}
+            name={`actions[${idx}].reannounce_skip`}
             label={t("actionComponents.common.disableReannounce")}
             description={t("actionComponents.common.disableReannounceDescription")}
             className="pt-2 pb-4"
           />
           <NumberField
-            name={`actions.${idx}.reannounce_interval`}
+            name={`actions[${idx}].reannounce_interval`}
             label={t("actionComponents.common.reannounceInterval")}
             placeholder={t("actionComponents.common.reannounceIntervalPlaceholder")}
           />
         </FilterHalfRow>
         <FilterHalfRow>
           <SwitchGroup
-            name={`actions.${idx}.reannounce_delete`}
+            name={`actions[${idx}].reannounce_delete`}
             label={t("actionComponents.common.deleteStalled")}
             description={t("actionComponents.common.deleteStalledDescription")}
             className="pt-2 pb-4"
           />
           <NumberField
-            name={`actions.${idx}.reannounce_max_attempts`}
+            name={`actions[${idx}].reannounce_max_attempts`}
             label={t("actionComponents.common.reannounceMaxAttempts")}
           />
         </FilterHalfRow>

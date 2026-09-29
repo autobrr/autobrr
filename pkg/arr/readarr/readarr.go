@@ -77,8 +77,13 @@ func (c *Client) Test(ctx context.Context) (*SystemStatusResponse, error) {
 		return nil, errors.Wrap(err, "could not make Test")
 	}
 
-	if status == http.StatusUnauthorized {
+	switch status {
+	case http.StatusOK:
+		break
+	case http.StatusUnauthorized:
 		return nil, errors.New("unauthorized: bad credentials")
+	default:
+		return nil, errors.New("unexpected status code: %d", status)
 	}
 
 	c.logger(ctx).Trace().Int("status", status).Str("response", string(res)).Msg("readarr system/status response")
@@ -103,6 +108,10 @@ func (c *Client) Push(ctx context.Context, release Release) ([]string, error) {
 		badRequestResponses := make([]*BadRequestResponse, 0)
 
 		if err = json.Unmarshal(res, &badRequestResponses); err != nil {
+			if errResp, ok := arr.ParseErrorResponse(res); ok {
+				return nil, errResp
+			}
+
 			return nil, errors.Wrap(err, "could not unmarshal data")
 		}
 
@@ -146,8 +155,8 @@ func (c *Client) GetBooks(ctx context.Context, gridID string) ([]Book, error) {
 	return data, nil
 }
 
-func (c *Client) GetTags(ctx context.Context) ([]*arr.Tag, error) {
-	data := make([]*arr.Tag, 0)
+func (c *Client) GetTags(ctx context.Context) ([]arr.Tag, error) {
+	data := make([]arr.Tag, 0)
 	err := c.getJSON(ctx, "tag", nil, &data)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not get tags")

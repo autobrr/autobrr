@@ -3,7 +3,11 @@
 
 package domain
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
 
 func TestIRCAuthValidate(t *testing.T) {
 	tests := []struct {
@@ -26,8 +30,11 @@ func TestIRCAuthValidate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.auth.Validate(); (err != nil) != tt.wantErr {
-				t.Fatalf("Validate() error = %v, wantErr %v", err, tt.wantErr)
+			err := tt.auth.Validate()
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -50,9 +57,7 @@ func TestIRCAuthNickServEnabled(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.auth.NickServEnabled(); got != tt.want {
-				t.Fatalf("NickServEnabled() = %v, want %v", got, tt.want)
-			}
+			require.Equal(t, tt.want, tt.auth.NickServEnabled())
 		})
 	}
 }

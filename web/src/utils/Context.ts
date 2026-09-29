@@ -83,29 +83,35 @@ const DashboardConfigDefaults: DashboardConfigType = {
   widgets: []
 };
 
+// Reads throw in some private-browsing modes and parse can fail on hand-edited storage.
+const readStored = (key: string): Record<string, unknown> | undefined => {
+  try {
+    const storage = localStorage.getItem(key);
+    if (!storage) {
+      return undefined;
+    }
+
+    const json = JSON.parse(storage);
+    if (json === null || typeof json !== "object") {
+      console.warn(`JSON localStorage value for '${key}' context state is not an object`);
+      return undefined;
+    }
+
+    return json;
+  } catch (e) {
+    console.error(`Failed to read ${key} context state: ${e}`);
+    return undefined;
+  }
+};
+
 // eslint-disable-next-line
 function ContextMerger<T extends {}>(
   key: string,
   defaults: T,
-  ctxState: StateWithValue<T>
+  ctxState: StateWithValue<T>,
+  stored: Record<string, unknown> | undefined = readStored(key)
 ) {
-  let values = structuredClone(defaults);
-
-  const storage = localStorage.getItem(key);
-  if (storage) {
-    try {
-      const json = JSON.parse(storage);
-      if (json === null) {
-        console.warn(`JSON localStorage value for '${key}' context state is null`);
-      } else {
-        values = { ...values, ...json };
-      }
-    } catch (e) {
-      console.error(`Failed to merge ${key} context state: ${e}`);
-    }
-  }
-
-  ctxState.set(values);
+  ctxState.set({ ...structuredClone(defaults), ...stored });
 }
 
 const AuthKey = "autobrr_user_auth";
@@ -115,15 +121,12 @@ const DashboardKey = "autobrr_dashboard";
 
 export const InitializeGlobalContext = () => {
   // Migrate old darkTheme boolean to new theme setting
-  const storage = localStorage.getItem(SettingsKey);
-  if (storage) {
+  const storedSettings = readStored(SettingsKey);
+  if (storedSettings && "darkTheme" in storedSettings && !("theme" in storedSettings)) {
+    storedSettings.theme = storedSettings.darkTheme ? "dark" : "light";
+    delete storedSettings.darkTheme;
     try {
-      const json = JSON.parse(storage);
-      if (json && "darkTheme" in json && !("theme" in json)) {
-        json.theme = json.darkTheme ? "dark" : "light";
-        delete json.darkTheme;
-        localStorage.setItem(SettingsKey, JSON.stringify(json));
-      }
+      localStorage.setItem(SettingsKey, JSON.stringify(storedSettings));
     } catch {
       // ignore migration errors
     }
@@ -133,7 +136,8 @@ export const InitializeGlobalContext = () => {
   ContextMerger<SettingsType>(
     SettingsKey,
     SettingsContextDefaults,
-    SettingsContext
+    SettingsContext,
+    storedSettings
   );
   ContextMerger<FilterListState>(
     FilterListKey,

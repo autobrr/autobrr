@@ -103,18 +103,6 @@ func (h *authHandler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set cookie options
-	h.sessionManager.Cookie.HttpOnly = true
-	h.sessionManager.Cookie.SameSite = http.SameSiteLaxMode
-	h.sessionManager.Cookie.Path = h.config.BaseURL
-
-	// autobrr does not support serving on TLS / https, so this is only available behind reverse proxy.
-	// When forwarded protocol is https we mark the cookie as Secure, but keep SameSite=Lax so OIDC
-	// callbacks returning from a different domain still include the session cookie.
-	if r.Header.Get("X-Forwarded-Proto") == "https" {
-		h.sessionManager.Cookie.Secure = true
-	}
-
 	if err := h.sessionManager.RenewToken(ctx); err != nil {
 		h.log.Error().Err(err).Str("username", data.Username).Str("remote_addr", r.RemoteAddr).Msg("failed to renew session token")
 		h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not renew session token"))
@@ -221,7 +209,7 @@ func (h *authHandler) validate(w http.ResponseWriter, r *http.Request) {
 	authMethod := h.sessionManager.GetString(ctx, "auth_method")
 	profilePicture := h.sessionManager.GetString(ctx, "profile_picture")
 
-	response := map[string]interface{}{
+	response := map[string]any{
 		"username":    username,
 		"auth_method": authMethod,
 	}

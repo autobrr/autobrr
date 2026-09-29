@@ -119,8 +119,7 @@ func (c *Client) SendMessage(ctx context.Context, message *Message) error {
 		retry.Attempts(3),
 		retry.Delay(retryDelay),
 		retry.DelayType(func(n uint, err error, config *retry.Config) time.Duration {
-			var rle *rateLimitError
-			if errors.As(err, &rle) && rle.delay > 0 {
+			if rle, ok := errors.AsType[*rateLimitError](err); ok && rle.delay > 0 {
 				return rle.delay
 			}
 
@@ -148,8 +147,7 @@ func (c *Client) send(ctx context.Context, endpoint string, jsonData []byte) err
 
 	res, err := c.httpClient.Do(req)
 	if err != nil {
-		var urlErr *url.Error
-		if errors.As(err, &urlErr) {
+		if urlErr, ok := errors.AsType[*url.Error](err); ok {
 			return errors.Wrap(urlErr.Err, "client request error")
 		}
 

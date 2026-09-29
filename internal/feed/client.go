@@ -4,6 +4,7 @@
 package feed
 
 import (
+	"cmp"
 	"context"
 	"net/http"
 	"net/http/cookiejar"
@@ -71,11 +72,7 @@ func (c *RSSParser) ParseURLWithContext(ctx context.Context, feedURL string) (fe
 		return nil, err
 	}
 
-	userAgent := c.userAgent
-	if userAgent == "" {
-		userAgent = "Gofeed/1.0"
-	}
-	req.Header.Set("User-Agent", userAgent)
+	req.Header.Set("User-Agent", cmp.Or(c.userAgent, "Gofeed/1.0"))
 
 	if c.cookie != "" {
 		// set raw cookie as header

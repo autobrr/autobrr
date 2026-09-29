@@ -1,6 +1,9 @@
 package featureflags
 
-import "sync"
+import (
+	"maps"
+	"sync"
+)
 
 type Manager struct {
 	mu    sync.RWMutex
@@ -50,9 +53,7 @@ func (m *Manager) GetAll() map[string]bool {
 	defer m.mu.RUnlock()
 
 	res := make(map[string]bool, len(m.flags))
-	for k, v := range m.flags {
-		res[k] = v
-	}
+	maps.Copy(res, m.flags)
 	return res
 }
 

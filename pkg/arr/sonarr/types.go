@@ -78,7 +78,7 @@ type Series struct {
 	SortTitle         string            `json:"sortTitle,omitempty"`
 	Status            string            `json:"status,omitempty"`
 	Overview          string            `json:"overview,omitempty"`
-	PreviousAiring    time.Time         `json:"previousAiring,omitempty"`
+	PreviousAiring    time.Time         `json:"previousAiring"`
 	Network           string            `json:"network,omitempty"`
 	Images            []*arr.Image      `json:"images,omitempty"`
 	Seasons           []*Season         `json:"seasons,omitempty"`
@@ -90,7 +90,7 @@ type Series struct {
 	TvdbID            int64             `json:"tvdbId,omitempty"`
 	TvRageID          int64             `json:"tvRageId,omitempty"`
 	TvMazeID          int64             `json:"tvMazeId,omitempty"`
-	FirstAired        time.Time         `json:"firstAired,omitempty"`
+	FirstAired        time.Time         `json:"firstAired"`
 	SeriesType        string            `json:"seriesType,omitempty"`
 	CleanTitle        string            `json:"cleanTitle,omitempty"`
 	ImdbID            string            `json:"imdbId,omitempty"`
@@ -99,10 +99,10 @@ type Series struct {
 	Certification     string            `json:"certification,omitempty"`
 	Genres            []string          `json:"genres,omitempty"`
 	Tags              []int             `json:"tags,omitempty"`
-	Added             time.Time         `json:"added,omitempty"`
+	Added             time.Time         `json:"added"`
 	Ratings           *arr.Ratings      `json:"ratings,omitempty"`
 	Statistics        *Statistics       `json:"statistics,omitempty"`
-	NextAiring        time.Time         `json:"nextAiring,omitempty"`
+	NextAiring        time.Time         `json:"nextAiring"`
 	AirTime           string            `json:"airTime,omitempty"`
 	Ended             bool              `json:"ended,omitempty"`
 	SeasonFolder      bool              `json:"seasonFolder,omitempty"`

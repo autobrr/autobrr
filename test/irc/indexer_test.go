@@ -13,6 +13,8 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/test/irc/harness"
 	"github.com/autobrr/autobrr/test/irc/ircd"
+
+	"github.com/stretchr/testify/require"
 )
 
 type authKind int
@@ -114,12 +116,8 @@ func runIndexer(t *testing.T, tr indexer) {
 	srv.Announce(tr.channel, "Announcer", "New torrent: "+name+" in Movies")
 
 	rls, ok := inst.Releases.Wait(5 * time.Second)
-	if !ok {
-		t.Fatalf("%s: no release produced from announce on %s", tr.indexer, tr.channel)
-	}
-	if rls.TorrentName != name {
-		t.Fatalf("%s: release name = %q, want %q", tr.indexer, rls.TorrentName, name)
-	}
+	require.Truef(t, ok, "%s: no release produced from announce on %s", tr.indexer, tr.channel)
+	require.Equalf(t, name, rls.TorrentName, "%s: release name", tr.indexer)
 }
 
 func authFor(kind authKind) domain.IRCAuth {

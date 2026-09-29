@@ -13,6 +13,8 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/test/irc/harness"
 	"github.com/autobrr/autobrr/test/irc/ircd"
+
+	"github.com/stretchr/testify/require"
 )
 
 // TestConnectJoinAnnounce is the vertical-slice smoke test: a None-auth network
@@ -41,12 +43,8 @@ func TestConnectJoinAnnounce(t *testing.T) {
 	srv.Announce("#test", "announcer", "New torrent: Some.Release.2024.1080p.BluRay.x264-GRP in Movies")
 
 	rls, ok := inst.Releases.Wait(5 * time.Second)
-	if !ok {
-		t.Fatal("no release produced from announce")
-	}
-	if rls.TorrentName != "Some.Release.2024.1080p.BluRay.x264-GRP" {
-		t.Fatalf("unexpected release name: %q", rls.TorrentName)
-	}
+	require.True(t, ok, "no release produced from announce")
+	require.Equal(t, "Some.Release.2024.1080p.BluRay.x264-GRP", rls.TorrentName)
 }
 
 // ---- auth
@@ -131,14 +129,10 @@ func TestBannedAtRegistrationAbortsReconnectFast(t *testing.T) {
 
 	// without the short-circuit, Run would block ~15s on the reconnect backoff
 	// before the retry loop noticed the Stop()
-	if elapsed > 10*time.Second {
-		t.Fatalf("Run blocked %s on a fatal ban; reconnect backoff was not short-circuited", elapsed)
-	}
+	require.LessOrEqual(t, elapsed, 10*time.Second, "Run blocked on a fatal ban; reconnect backoff was not short-circuited")
 
 	inst.WaitForNetworkError("G-Lined", 5*time.Second)
-	if !inst.Handler.Stopped() {
-		t.Fatal("handler should be stopped after a connect-time ban")
-	}
+	require.True(t, inst.Handler.Stopped(), "handler should be stopped after a connect-time ban")
 }
 
 // ---- kick
@@ -156,9 +150,7 @@ func TestKickDoesNotRejoin(t *testing.T) {
 	inst := harness.Start(t, net, harness.Defs(def))
 	inst.WaitForMonitoring("#k", 10*time.Second)
 
-	if got := srv.JoinCount("#k"); got != 1 {
-		t.Fatalf("expected 1 join before kick, got %d", got)
-	}
+	require.Equal(t, 1, srv.JoinCount("#k"), "join count before kick")
 
 	srv.Kick("#k", "autobrr", "chanop", "you were naughty")
 
@@ -166,9 +158,7 @@ func TestKickDoesNotRejoin(t *testing.T) {
 
 	// give any (unwanted) rejoin attempt time to happen, then assert none did
 	time.Sleep(500 * time.Millisecond)
-	if got := srv.JoinCount("#k"); got != 1 {
-		t.Fatalf("kicked channel must not auto-rejoin; join count = %d", got)
-	}
+	require.Equal(t, 1, srv.JoinCount("#k"), "kicked channel must not auto-rejoin")
 }
 
 // ---- modes
@@ -186,9 +176,7 @@ func TestChannelKeyMissingErrors(t *testing.T) {
 	inst := harness.Start(t, net, harness.Defs(def))
 
 	inst.WaitForState("#locked", "Error", 10*time.Second)
-	if reason := inst.LastError("#locked"); !strings.Contains(reason, "+k") {
-		t.Fatalf("expected a +k (bad key) reason, got %q", reason)
-	}
+	require.Contains(t, inst.LastError("#locked"), "+k", "expected a +k (bad key) reason")
 }
 
 // TestChannelKeyProvidedJoins verifies supplying the channel password lets the
@@ -216,9 +204,7 @@ func TestInviteOnlyWithoutInviteErrors(t *testing.T) {
 	inst := harness.Start(t, net, harness.Defs(def))
 
 	inst.WaitForState("#invonly", "Error", 10*time.Second)
-	if reason := inst.LastError("#invonly"); !strings.Contains(reason, "+i") {
-		t.Fatalf("expected a +i (invite-only) reason, got %q", reason)
-	}
+	require.Contains(t, inst.LastError("#invonly"), "+i", "expected a +i (invite-only) reason")
 }
 
 // ---- invite
@@ -259,9 +245,7 @@ func TestInviteRejectedParks(t *testing.T) {
 	inst := harness.Start(t, net, harness.Defs(def))
 
 	inst.WaitForState("#inv", "InviteFailed", 15*time.Second)
-	if reason := inst.LastError("#inv"); !strings.Contains(reason, "Invalid IRCKEY") {
-		t.Fatalf("expected the bot's rejection reason to be surfaced, got %q", reason)
-	}
+	require.Contains(t, inst.LastError("#inv"), "Invalid IRCKEY", "expected the bot's rejection reason to be surfaced")
 }
 
 // TestInviteBotAbsentRetries verifies the counterpart: when the gatekeeper is not
@@ -281,9 +265,7 @@ func TestInviteBotAbsentRetries(t *testing.T) {
 	// an absent bot routes into the invite backoff loop
 	inst.WaitForState("#inv", "AwaitingInviteBot", 15*time.Second)
 	// and must NOT have parked in InviteFailed
-	if inst.LastError("#inv") != "" && strings.Contains(strings.ToLower(inst.LastError("#inv")), "rejected") {
-		t.Fatalf("absent bot must not surface a rejection error")
-	}
+	require.NotContains(t, strings.ToLower(inst.LastError("#inv")), "rejected", "absent bot must not surface a rejection error")
 }
 
 // TestInviteLateAcceptRecovers verifies a bot that first rejects (parking the
@@ -334,9 +316,7 @@ func TestInvitePositiveAckForceJoin(t *testing.T) {
 	// the whole network must report healthy (reached operational), not just the channel
 	inst.WaitForHealthy(15 * time.Second)
 
-	if reason := inst.LastError("#inv"); reason != "" {
-		t.Fatalf("a positive-ack force-join must not surface an error, got %q", reason)
-	}
+	require.Empty(t, inst.LastError("#inv"), "a positive-ack force-join must not surface an error")
 }
 
 // TestInviteRejectThenLateForceJoinRecovers exercises the network-recovery fix end
