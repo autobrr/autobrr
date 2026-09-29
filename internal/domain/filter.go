@@ -127,7 +127,7 @@ const (
 type FilterCustomFieldRule struct {
 	Field    string                    `json:"field"`
 	Operator FilterCustomFieldOperator `json:"operator"`
-	Value    string                    `json:"value,omitempty"`
+	Value    string                    `json:"value"`
 }
 
 func (r FilterCustomFieldRule) matches(fields map[string]string) bool {
