@@ -3,12 +3,14 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { PlusIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
 import { useFormContext, useFormValue } from "@hooks/form";
 import { FeedsQueryOptions } from "@api/queries";
+import { APIClient } from "@api/APIClient";
+import { FeedKeys } from "@api/query_keys";
 import { DocsLink } from "@components/ExternalLink";
 import { WarningAlert } from "@components/alerts";
 import {
@@ -546,11 +548,22 @@ const CustomFields = () => {
   const feedsQuery = useQuery(FeedsQueryOptions());
 
   const selectedIndexerIds = new Set(values.indexers.map((indexer) => indexer.id));
+  const selectedFeeds = (feedsQuery.data || [])
+    .filter((feed) => feed.type === "RSS" && selectedIndexerIds.has(feed.indexer.id) && Boolean(feed.last_run));
+  const latestFeedQueries = useQueries({
+    queries: selectedFeeds.map((feed) => ({
+      queryKey: FeedKeys.latest(feed.id),
+      queryFn: () => APIClient.feeds.latest(feed.id),
+      retry: false,
+      staleTime: 60_000
+    }))
+  });
+
   const configuredFields = new Set(values.custom_fields.map((rule) => rule.field));
   const detectedFields = Array.from(new Set(
-    (feedsQuery.data || [])
-      .filter((feed) => feed.type === "RSS" && selectedIndexerIds.has(feed.indexer.id))
-      .flatMap((feed) => customFieldNamesFromFeedData(feed.last_run_data))
+    latestFeedQueries.flatMap((query) =>
+      query.data ? customFieldNamesFromFeedData(query.data) : []
+    )
   ))
     .filter((field) => !configuredFields.has(field))
     .sort((a, b) => a.localeCompare(b));
