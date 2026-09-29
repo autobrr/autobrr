@@ -50,12 +50,24 @@ func windowTypeOrFixed(w domain.FilterMaxDownloadsWindowType) domain.FilterMaxDo
 }
 
 func marshalCustomFieldRules(rules []domain.FilterCustomFieldRule) (string, error) {
+	if rules == nil {
+		rules = []domain.FilterCustomFieldRule{}
+	}
+
 	data, err := json.Marshal(rules)
 	if err != nil {
 		return "", errors.Wrap(err, "could not marshal custom field rules")
 	}
 
 	return string(data), nil
+}
+
+func customFieldLogicOrAll(logic domain.FilterCustomFieldMatchLogic) domain.FilterCustomFieldMatchLogic {
+	if logic == "" {
+		return domain.FilterCustomFieldMatchAll
+	}
+
+	return logic
 }
 
 func unmarshalCustomFieldRules(raw sql.NullString) ([]domain.FilterCustomFieldRule, error) {
@@ -959,6 +971,7 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 	// normalize on the struct so the caller echoes what gets stored
 	filter.MaxDownloadsPeriod = clampPeriod(filter.MaxDownloadsPeriod)
 	filter.MaxDownloadsWindowType = windowTypeOrFixed(filter.MaxDownloadsWindowType)
+	filter.CustomFieldsMatchLogic = customFieldLogicOrAll(filter.CustomFieldsMatchLogic)
 
 	customFields, err := marshalCustomFieldRules(filter.CustomFields)
 	if err != nil {
@@ -1131,6 +1144,7 @@ func (r *FilterRepo) Update(ctx context.Context, filter *domain.Filter) error {
 	// normalize on the struct so the caller echoes what gets stored
 	filter.MaxDownloadsPeriod = clampPeriod(filter.MaxDownloadsPeriod)
 	filter.MaxDownloadsWindowType = windowTypeOrFixed(filter.MaxDownloadsWindowType)
+	filter.CustomFieldsMatchLogic = customFieldLogicOrAll(filter.CustomFieldsMatchLogic)
 
 	customFields, err := marshalCustomFieldRules(filter.CustomFields)
 	if err != nil {
@@ -1311,7 +1325,7 @@ func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpda
 		q = q.Set("custom_fields", customFields)
 	}
 	if filter.CustomFieldsMatchLogic != nil {
-		q = q.Set("custom_fields_match_logic", filter.CustomFieldsMatchLogic)
+		q = q.Set("custom_fields_match_logic", customFieldLogicOrAll(*filter.CustomFieldsMatchLogic))
 	}
 	if filter.Scene != nil {
 		q = q.Set("scene", filter.Scene)
