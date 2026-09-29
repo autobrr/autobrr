@@ -4,6 +4,7 @@
 package indexer
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -12,6 +13,37 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestIndexerAnnounceSource(t *testing.T) {
+	t.Parallel()
+
+	var def *domain.IndexerDefinition
+	require.NoError(t, OpenAndDecodeDefinition("./definitions/theoldschool.yaml", &def))
+	def.Prepare()
+	def.SettingsMap = map[string]string{"rsskey": "key"}
+
+	channel := def.IRC.Channels[0]
+	for _, tt := range []struct {
+		name   string
+		title  string
+		source string
+	}{
+		{"source absent from title", "Example.Show.S01E01.1080p.H264-GROUP", "WEB-DL"},
+		{"source in title takes priority", "Example.Show.S01E01.1080p.BluRay.H264-GROUP", "BluRay"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			line := fmt.Sprintf("[NEW] [Series] [%s] [WEB-DL] [487.27 MiB] [0%%] par tester -> https://theoldschool.cc/torrents/00000", tt.title)
+			vars := map[string]string{}
+			matched, err := channel.Parse.Lines[0].ParseLine(vars, line, false)
+			require.NoError(t, err)
+			require.True(t, matched)
+
+			release := domain.NewRelease(domain.IndexerMinimal{})
+			require.NoError(t, channel.Parse.Parse(def, channel.Name, vars, release))
+			assert.Equal(t, tt.source, release.Source)
+		})
+	}
+}
 
 func TestIndexersParseAndFilter(t *testing.T) {
 	t.Parallel()
