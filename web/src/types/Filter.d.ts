@@ -29,6 +29,8 @@ interface Filter {
   match_description: string;
   except_description: string;
   use_regex_description: boolean;
+  custom_fields: FilterCustomFieldRule[];
+  custom_fields_match_logic: FilterCustomFieldMatchLogic;
   scene: boolean;
   origins: string[];
   except_origins: string[];
@@ -87,6 +89,16 @@ interface Filter {
   downloads?: FilterDownloads;
   release_profile_duplicate_id?: number;
   notifications?: FilterNotification[];
+}
+
+type FilterCustomFieldOperator = "EQUALS" | "NOT_EQUALS" | "EXISTS" | "NOT_EXISTS";
+
+type FilterCustomFieldMatchLogic = "ALL" | "ANY";
+
+interface FilterCustomFieldRule {
+  field: string;
+  operator: FilterCustomFieldOperator;
+  value: string;
 }
 
 interface Action {
