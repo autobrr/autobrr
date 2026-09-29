@@ -85,6 +85,11 @@ func getMockFilter() *domain.Filter {
 		MatchDescription:     "Anime, x264",
 		ExceptDescription:    "Anime, x264",
 		UseRegexDescription:  true,
+		CustomFields: []domain.FilterCustomFieldRule{
+			{Field: "audio_pt", Operator: domain.FilterCustomFieldEquals, Value: "1"},
+			{Field: "legenda_pt", Operator: domain.FilterCustomFieldEquals, Value: "1"},
+		},
+		CustomFieldsMatchLogic: domain.FilterCustomFieldMatchAll,
 	}
 }
 
@@ -474,6 +479,8 @@ func TestFilterRepo_FindByID(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, filter)
 			assert.Equal(t, createdFilters[0].ID, filter.ID)
+			assert.Equal(t, mockData.CustomFields, filter.CustomFields)
+			assert.Equal(t, mockData.CustomFieldsMatchLogic, filter.CustomFieldsMatchLogic)
 
 			// Cleanup
 			_ = repo.Delete(ctx, createdFilters[0].ID)
