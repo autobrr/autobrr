@@ -224,8 +224,6 @@
       "matchPlaceholder": "eg. tag1,tag2",
       "matchTooltip": "Comma separated list of tags to match.",
       "matchLogic": "Match logic",
-      "detected": "Detected fields in selected RSS feeds",
-      "addDetected": "Add {{field}} as a rule",
       "matchLogicDefault": "any",
       "matchLogicTooltip": "Logic used to match filter tags.",
       "except": "Except tags",
