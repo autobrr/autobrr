@@ -76,5 +76,5 @@ irc:
                   torrentId: "67890"
 
         match:
-          infourl: "/torrents.php?id={{ .groupId }}"
+          infourl: "/torrents.php?id={{ .groupId }}&torrentid={{ .torrentId }}"
           downloadurl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
