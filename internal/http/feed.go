@@ -24,6 +24,7 @@ type feedService interface {
 	ToggleEnabled(ctx context.Context, id int, enabled bool) error
 	Test(ctx context.Context, feed *domain.Feed) error
 	GetLastRunData(ctx context.Context, id int) (string, error)
+	GetCustomFieldNames(ctx context.Context, id int) ([]string, error)
 	ForceRun(ctx context.Context, id int) error
 	FetchCaps(ctx context.Context, feed *domain.Feed) (*domain.FeedCapabilities, error)
 	FetchCapsByID(ctx context.Context, id int) (*domain.FeedCapabilities, error)
@@ -53,6 +54,7 @@ func (h feedHandler) Routes(r chi.Router) {
 		r.Delete("/", h.delete)
 		r.Delete("/cache", h.deleteCache)
 		r.Patch("/enabled", h.toggleEnabled)
+		r.Get("/custom-fields", h.customFields)
 		r.Get("/latest", h.latestRun)
 		r.Post("/forcerun", h.forceRun)
 		r.Get("/caps", h.capsByID)
@@ -271,6 +273,27 @@ func (h feedHandler) deleteCache(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.encoder.NoContent(w)
+}
+
+func (h feedHandler) customFields(w http.ResponseWriter, r *http.Request) {
+	feedID, err := parseURLParamInt(r, "feedID")
+	if err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
+
+	fields, err := h.service.GetCustomFieldNames(r.Context(), feedID)
+	if err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("could not find feed with id %d", feedID))
+			return
+		}
+
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusOK, fields)
 }
 
 func (h feedHandler) latestRun(w http.ResponseWriter, r *http.Request) {

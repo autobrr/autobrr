@@ -85,7 +85,7 @@ export const FeedKeys = {
   // list: (indexers: string[], sortOrder: string) => [...feedKeys.lists(), { indexers, sortOrder }] as const,
   details: () => [...FeedKeys.all, "detail"] as const,
   detail: (id: number) => [...FeedKeys.details(), id] as const,
-  latest: (id: number) => [...FeedKeys.detail(id), "latest"] as const
+  customFields: (id: number) => [...FeedKeys.detail(id), "custom-fields"] as const
 };
 
 export const IndexerKeys = {

@@ -6,8 +6,10 @@ package feed
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
 	"sync"
 	"time"
 
@@ -841,6 +843,47 @@ func (s *Service) GetLastRunData(ctx context.Context, id int) (string, error) {
 	}
 
 	return feed, nil
+}
+
+// GetCustomFieldNames returns the distinct custom RSS item field names from the
+// latest stored feed payload without exposing item contents or field values.
+func (s *Service) GetCustomFieldNames(ctx context.Context, id int) ([]string, error) {
+	data, err := s.repo.GetLastRunDataByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	if data == "" {
+		return []string{}, nil
+	}
+
+	var parsed struct {
+		Items []struct {
+			Custom map[string]json.RawMessage `json:"custom"`
+		} `json:"items"`
+	}
+
+	if err := json.Unmarshal([]byte(data), &parsed); err != nil {
+		return nil, errors.Wrap(err, "could not parse latest feed data")
+	}
+
+	unique := make(map[string]struct{})
+	for _, item := range parsed.Items {
+		for field := range item.Custom {
+			if field != "" {
+				unique[field] = struct{}{}
+			}
+		}
+	}
+
+	fields := make([]string, 0, len(unique))
+	for field := range unique {
+		fields = append(fields, field)
+	}
+
+	sort.Strings(fields)
+
+	return fields, nil
 }
 
 func (s *Service) ForceRun(ctx context.Context, id int) error {

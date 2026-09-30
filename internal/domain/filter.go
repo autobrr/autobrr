@@ -401,6 +401,43 @@ type FilterUpdate struct {
 	Notifications             []FilterNotification          `json:"notifications,omitempty"`
 }
 
+func validateCustomFields(rules []FilterCustomFieldRule, logic FilterCustomFieldMatchLogic) error {
+	switch logic {
+	case "", FilterCustomFieldMatchAll, FilterCustomFieldMatchAny:
+	default:
+		return errors.New("validation: invalid custom fields match logic: %s", logic)
+	}
+
+	for i, rule := range rules {
+		if strings.TrimSpace(rule.Field) == "" {
+			return errors.New("validation: custom field rule %d has an empty field name", i)
+		}
+
+		switch rule.Operator {
+		case FilterCustomFieldEquals, FilterCustomFieldNotEquals, FilterCustomFieldExists, FilterCustomFieldNotExists:
+		default:
+			return errors.New("validation: custom field rule %d has invalid operator: %s", i, rule.Operator)
+		}
+	}
+
+	return nil
+}
+
+// ValidateCustomFields validates custom-field values supplied by a partial update.
+func (f FilterUpdate) ValidateCustomFields() error {
+	var rules []FilterCustomFieldRule
+	if f.CustomFields != nil {
+		rules = *f.CustomFields
+	}
+
+	var logic FilterCustomFieldMatchLogic
+	if f.CustomFieldsMatchLogic != nil {
+		logic = *f.CustomFieldsMatchLogic
+	}
+
+	return validateCustomFields(rules, logic)
+}
+
 func (f *Filter) Validate() error {
 	if f.Name == "" {
 		return errors.New("validation: name can't be empty")
@@ -422,22 +459,8 @@ func (f *Filter) Validate() error {
 		return errors.New("validation: invalid max downloads window type: %s", f.MaxDownloadsWindowType)
 	}
 
-	switch f.CustomFieldsMatchLogic {
-	case "", FilterCustomFieldMatchAll, FilterCustomFieldMatchAny:
-	default:
-		return errors.New("validation: invalid custom fields match logic: %s", f.CustomFieldsMatchLogic)
-	}
-
-	for i, rule := range f.CustomFields {
-		if strings.TrimSpace(rule.Field) == "" {
-			return errors.New("validation: custom field rule %d has an empty field name", i)
-		}
-
-		switch rule.Operator {
-		case FilterCustomFieldEquals, FilterCustomFieldNotEquals, FilterCustomFieldExists, FilterCustomFieldNotExists:
-		default:
-			return errors.New("validation: custom field rule %d has invalid operator: %s", i, rule.Operator)
-		}
+	if err := validateCustomFields(f.CustomFields, f.CustomFieldsMatchLogic); err != nil {
+		return err
 	}
 
 	for _, external := range f.External {

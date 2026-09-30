@@ -23,12 +23,17 @@ import (
 
 type testFeedRepo struct {
 	*database.FeedRepo
-	item domain.Feed
+	item        domain.Feed
+	lastRunData string
 }
 
 func (r *testFeedRepo) FindOne(context.Context, domain.FindOneParams) (*domain.Feed, error) {
 	item := r.item
 	return &item, nil
+}
+
+func (r *testFeedRepo) GetLastRunDataByID(context.Context, int) (string, error) {
+	return r.lastRunData, nil
 }
 
 type testProxyRepo struct {
@@ -39,6 +44,20 @@ type testProxyRepo struct {
 func (r *testProxyRepo) FindByID(context.Context, int64) (*domain.Proxy, error) {
 	item := r.item
 	return &item, nil
+}
+
+func TestServiceGetCustomFieldNames(t *testing.T) {
+	log := zerolog.Nop()
+	bus := events.NewEventBus(log)
+	repo := &testFeedRepo{
+		lastRunData: `{"items":[{"custom":{"audio_pt":"1","hash":"secret"}},{"custom":{"legenda_pt":"1","audio_pt":""}},{"title":"no custom"}]}`,
+	}
+	service := feed.NewService(log, bus, repo, nil, nil, nil, nil)
+
+	fields, err := service.GetCustomFieldNames(t.Context(), 1)
+
+	require.NoError(t, err)
+	assert.Equal(t, []string{"audio_pt", "hash", "legenda_pt"}, fields)
 }
 
 func TestServiceTestTimeout(t *testing.T) {

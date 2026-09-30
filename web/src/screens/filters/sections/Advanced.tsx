@@ -518,25 +518,6 @@ const FeedSpecific = () => {
   );
 }
 
-const customFieldNamesFromFeedData = (data: string) => {
-  if (!data) {
-    return [];
-  }
-
-  try {
-    const parsed = JSON.parse(data) as { items?: Array<{ custom?: Record<string, unknown> }> };
-    if (!Array.isArray(parsed.items)) {
-      return [];
-    }
-
-    return parsed.items.flatMap((item) =>
-      item.custom && typeof item.custom === "object" ? Object.keys(item.custom) : []
-    );
-  } catch {
-    return [];
-  }
-};
-
 const CustomFields = () => {
   const { t } = useTranslation("filters");
   const form = useFormContext();
@@ -555,10 +536,10 @@ const CustomFields = () => {
       Boolean(feed.last_run) &&
       !feed.last_run.startsWith("0001-01-01")
     );
-  const latestFeedQueries = useQueries({
+  const customFieldQueries = useQueries({
     queries: selectedFeeds.map((feed) => ({
-      queryKey: FeedKeys.latest(feed.id),
-      queryFn: () => APIClient.feeds.latest(feed.id),
+      queryKey: FeedKeys.customFields(feed.id),
+      queryFn: () => APIClient.feeds.customFields(feed.id),
       retry: false,
       staleTime: 60_000
     }))
@@ -566,9 +547,7 @@ const CustomFields = () => {
 
   const configuredFields = new Set(values.custom_fields.map((rule) => rule.field));
   const detectedFields = Array.from(new Set(
-    latestFeedQueries.flatMap((query) =>
-      query.data ? customFieldNamesFromFeedData(query.data) : []
-    )
+    customFieldQueries.flatMap((query) => query.data || [])
   ))
     .filter((field) => !configuredFields.has(field))
     .sort((a, b) => a.localeCompare(b));
