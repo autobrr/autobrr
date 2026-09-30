@@ -452,23 +452,23 @@ type FilterExport struct {
 	MaxDownloadsWindowType string `json:"max_downloads_window_type,omitempty"`
 
 	// Release matching fields
-	MatchReleases       string   `json:"match_releases,omitempty"`
-	ExceptReleases      string   `json:"except_releases,omitempty"`
-	UseRegex            bool     `json:"use_regex,omitempty"`
-	MatchReleaseGroups  string   `json:"match_release_groups,omitempty"`
-	ExceptReleaseGroups string   `json:"except_release_groups,omitempty"`
-	MatchReleaseTags    string   `json:"match_release_tags,omitempty"`
-	ExceptReleaseTags   string   `json:"except_release_tags,omitempty"`
-	UseRegexReleaseTags bool     `json:"use_regex_release_tags,omitempty"`
-	MatchDescription    string   `json:"match_description,omitempty"`
-	ExceptDescription   string   `json:"except_description,omitempty"`
-	UseRegexDescription bool     `json:"use_regex_description,omitempty"`
-	CustomFields        []domain.FilterCustomFieldRule `json:"custom_fields,omitempty"`
+	MatchReleases          string                             `json:"match_releases,omitempty"`
+	ExceptReleases         string                             `json:"except_releases,omitempty"`
+	UseRegex               bool                               `json:"use_regex,omitempty"`
+	MatchReleaseGroups     string                             `json:"match_release_groups,omitempty"`
+	ExceptReleaseGroups    string                             `json:"except_release_groups,omitempty"`
+	MatchReleaseTags       string                             `json:"match_release_tags,omitempty"`
+	ExceptReleaseTags      string                             `json:"except_release_tags,omitempty"`
+	UseRegexReleaseTags    bool                               `json:"use_regex_release_tags,omitempty"`
+	MatchDescription       string                             `json:"match_description,omitempty"`
+	ExceptDescription      string                             `json:"except_description,omitempty"`
+	UseRegexDescription    bool                               `json:"use_regex_description,omitempty"`
+	CustomFields           []domain.FilterCustomFieldRule     `json:"custom_fields,omitempty"`
 	CustomFieldsMatchLogic domain.FilterCustomFieldMatchLogic `json:"custom_fields_match_logic,omitempty"`
-	Scene               bool     `json:"scene,omitempty"`
-	Origins             []string `json:"origins,omitempty"`
-	ExceptOrigins       []string `json:"except_origins,omitempty"`
-	AnnounceTypes       []string `json:"announce_types,omitempty"`
+	Scene                  bool                               `json:"scene,omitempty"`
+	Origins                []string                           `json:"origins,omitempty"`
+	ExceptOrigins          []string                           `json:"except_origins,omitempty"`
+	AnnounceTypes          []string                           `json:"announce_types,omitempty"`
 
 	// Media-specific fields
 	Freeleech        bool     `json:"freeleech,omitempty"`
