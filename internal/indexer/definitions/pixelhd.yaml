@@ -11,26 +11,25 @@ privacy: private
 protocol: torrent
 supports:
   - irc
-  - rss
-# source: subLiME
+# source: gazelle
 settings:
   - name: authkey
     type: secret
     required: true
     label: Auth key
-    help: Right click DL on a torrent and get the authkey.
+    help: Your Authkey from your PixelHD profile or torrent download link.
 
   - name: torrent_pass
     type: secret
     required: true
     label: Torrent pass
-    help: Right click DL on a torrent and get the torrent_pass.
+    help: Your Passkey (torrent_pass) from your PixelHD profile.
 
 irc:
   network: PixelHD
   server: irc.pixelhd.me
-  port: 6667
-  tls: false
+  port: 6697
+  tls: true
   settings:
     - name: nick
       type: text
@@ -62,32 +61,20 @@ irc:
       announcers:
         - LiMEY_
       parse:
-        type: multi
+        type: single
         lines:
-          - pattern: '^New torrent uploaded!$'
-            ignore: true
+          - pattern: '^\[(?P<category>[^\]]+)\] (?P<releaseName>[^\s]+)(?: \[(?P<tags>[^\]]+)\])? - (?P<torrentSize>[0-9.]+\s+[KMGT]B) - (?P<baseUrl>https?:\/\/.*\/)torrents\.php\?id=(?P<groupId>\d+) - https?:\/\/.*\/torrents\.php\?action=download&id=(?P<torrentId>\d+)$'
             tests:
-              - line: "New torrent uploaded!"
-                expect: { }
-
-          - pattern: 'Title: (?P<releaseName>.*) \| Year: (?P<year>.*) \| URL: (?P<baseUrl>https?:\/\/.*\/).+id=(?P<torrentId>.+)'
-            tests:
-              - line: 'Title: Dragons Forever | Year: 1988 | URL: https://pixelhd.me/torrents.php?torrentid=23001'
+              - line: "[Movie] The.Matrix.1999.1080p.BluRay.x264-PxHD [action, sci-fi] - 4.37 GB - https://pixelhd.me/torrents.php?id=12345 - https://pixelhd.me/torrents.php?action=download&id=67890"
                 expect:
-                  releaseName: Dragons Forever
-                  year: "1988"
-                  baseUrl: https://pixelhd.me/
-                  torrentId: "23001"
-
-          - pattern: 'Uploader: (?P<uploader>.*) \| Release Group: (?P<releaseGroup>.*) \| Format: (?P<container>.*) \| Genre\(s\): (?P<tags>.*)'
-            tests:
-              - line: 'Uploader: Anon | Release Group: Px4K | Format: MP4 | Genre(s): action,comedy,romance'
-                expect:
-                  uploader: Anon
-                  releaseGroup: Px4K
-                  container: MP4
-                  tags: action,comedy,romance
+                  category: Movie
+                  releaseName: The.Matrix.1999.1080p.BluRay.x264-PxHD
+                  tags: "action, sci-fi"
+                  torrentSize: 4.37 GB
+                  baseUrl: "https://pixelhd.me/"
+                  groupId: "12345"
+                  torrentId: "67890"
 
         match:
-          infourl: "/torrents.php?torrentid={{ .torrentId }}"
+          infourl: "/torrents.php?id={{ .groupId }}"
           downloadurl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"
