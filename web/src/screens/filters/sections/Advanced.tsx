@@ -631,6 +631,7 @@ const CustomFields = () => {
         <Select
           name="custom_fields_match_logic"
           label={t("advanced.customFields.matchLogic")}
+          optionDefaultText={t("advanced.customFields.matchLogicDefault")}
           options={logicOptions}
           columns={4}
         />
@@ -638,7 +639,7 @@ const CustomFields = () => {
           <button
             type="button"
             className="inline-flex items-center px-3 py-2 rounded-md text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-hidden cursor-pointer"
-            onClick={addRule}
+            onClick={() => addRule()}
           >
             <PlusIcon className="w-4 h-4 mr-1" aria-hidden="true" />
             {t("advanced.customFields.add")}
@@ -663,6 +664,7 @@ const CustomFields = () => {
             <Select
               name={`custom_fields[${index}].operator`}
               label={t("advanced.customFields.operator")}
+              optionDefaultText={t("advanced.customFields.operatorDefault")}
               options={operatorOptions}
               columns={3}
             />
