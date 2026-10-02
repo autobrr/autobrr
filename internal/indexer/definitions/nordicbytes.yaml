@@ -21,8 +21,8 @@ settings:
     help: "Click the cog icon in the top right corner, RSS key is located in the sidebar."
 
 irc:
-  network: P2P-Network
-  server: irc.p2p-network.net
+  network: Nordicbytes
+  server: irc.nordicbytes.org
   port: 6697
   tls: true
   settings:
@@ -32,20 +32,8 @@ irc:
       label: Nick
       help: Username of bot must be set to username|bot.
 
-    - name: auth.account
-      type: text
-      required: false
-      label: NickServ Account
-      help: NickServ account. Make sure to group your user and bot.
-
-    - name: auth.password
-      type: secret
-      required: false
-      label: NickServ Password
-      help: NickServ password
-
   channels:
-    - name: "#nordicbytes"
+    - name: "#announce"
       announcers:
         - "NordicBytes"
       parse:
