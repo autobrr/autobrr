@@ -124,7 +124,7 @@ export const PasswordFieldWide = ({
   defaultValue,
   help,
   required,
-  autoComplete,
+  autoComplete = "new-password",
   defaultVisible,
   tooltip,
   validate
@@ -166,6 +166,89 @@ export const PasswordFieldWide = ({
                   required={required}
                   autoComplete={autoComplete}
                   data-1p-ignore
+                />
+                <div className="absolute inset-y-0 right-0 px-3 flex items-center cursor-pointer" onClick={toggleVisibility}>
+                  {!isVisible ? <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" /> : <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" />}
+                </div>
+              </div>
+              {help && (
+                <p className="mt-2 text-sm text-gray-500" id={`${name}-description`}>{help}</p>
+              )}
+              <ErrorField meta={field.state.meta} classNames="block text-red-500 mt-2" />
+            </>
+          )}
+        </form.Field>
+      </div>
+    </div>
+  );
+};
+
+interface SecretFieldWideProps {
+  name: string;
+  label?: string;
+  placeholder?: string;
+  defaultValue?: string;
+  help?: string;
+  required?: boolean;
+  defaultVisible?: boolean;
+  tooltip?: JSX.Element;
+  validate?: FieldValidator;
+}
+
+// Masked with CSS instead of type="password" so browsers and password managers never
+// treat the field as a login and autofill or save credentials into it (#2706).
+export const SecretFieldWide = ({
+  name,
+  label,
+  placeholder,
+  defaultValue,
+  help,
+  required,
+  defaultVisible,
+  tooltip,
+  validate
+}: SecretFieldWideProps) => {
+  const [isVisible, toggleVisibility] = useToggle(defaultVisible);
+  const form = useFormContext();
+
+  return (
+    <div className="space-y-1 p-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4">
+      <div>
+        <label htmlFor={name} className="flex ml-px text-sm font-medium text-gray-900 dark:text-white sm:mt-px sm:pt-2">
+          <div className="flex">
+            {tooltip ? (
+              <DocsTooltip label={label}>{tooltip}</DocsTooltip>
+            ) : label}
+            <RequiredField required={required} />
+          </div>
+        </label>
+      </div>
+      <div className="sm:col-span-2">
+        <form.Field name={name} validators={fieldValidators(validate)}>
+          {(field) => (
+            <>
+              <div className="relative">
+                <input
+                  id={name}
+                  name={name}
+                  value={field.state.value ? field.state.value : defaultValue ?? ""}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  type="text"
+                  className={classNames(
+                    fieldHasError(field.state.meta)
+                      ? "border-red-500 focus:ring-red-500 focus:border-red-500"
+                      : "border-gray-300 dark:border-gray-700 focus:ring-blue-500 dark:focus:ring-blue-500 focus:border-blue-500 dark:focus:border-blue-500",
+                    "block w-full shadow-xs sm:text-sm rounded-md border py-2.5 bg-gray-100 dark:bg-gray-850 dark:text-gray-100 overflow-hidden pr-8",
+                    isVisible ? "" : "[-webkit-text-security:disc]"
+                  )}
+                  placeholder={placeholder}
+                  required={required}
+                  autoComplete="off"
+                  spellCheck={false}
+                  data-1p-ignore
+                  data-bwignore
+                  data-lpignore="true"
                 />
                 <div className="absolute inset-y-0 right-0 px-3 flex items-center cursor-pointer" onClick={toggleVisibility}>
                   {!isVisible ? <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" /> : <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-500" aria-hidden="true" />}
