@@ -1286,12 +1286,12 @@ func (f *Filter) CheckReleaseSize(releaseSize uint64) (bool, error) {
 	}
 
 	if minBytes != nil && releaseSize <= *minBytes {
-		f.RejectReasons.Addf("release size", "release size %d bytes is smaller than filter min size %d bytes", releaseSize, *minBytes)
+		f.RejectReasons.Addf("release size", "release size %[2]d bytes is smaller than filter min size %[3]d bytes", releaseSize, *minBytes)
 		return false, nil
 	}
 
 	if maxBytes != nil && releaseSize >= *maxBytes {
-		f.RejectReasons.Addf("release size", "release size %d bytes is larger than filter max size %d bytes", releaseSize, *maxBytes)
+		f.RejectReasons.Addf("release size", "release size %[2]d bytes is larger than filter max size %[3]d bytes", releaseSize, *maxBytes)
 		return false, nil
 	}
 

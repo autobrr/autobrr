@@ -100,6 +100,7 @@ interface IndexerFeed {
 interface IndexerParse {
   type: string;
   forcesizeunit: boolean;
+  sizeunits: string;
   skipcleanmessage: boolean;
   lines: IndexerParseLines[];
   match: IndexerParseMatch;

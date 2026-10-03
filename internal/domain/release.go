@@ -1083,8 +1083,23 @@ func (r *Release) HasMagnetUri() bool {
 
 const MagnetURIPrefix = "magnet:?"
 
+// toBinarySizeUnit rewrites a decimal unit label to its binary form, so "7.63 GB" becomes "7.63 GiB".
+func toBinarySizeUnit(size string) string {
+	size = strings.TrimSpace(size)
+	lower := strings.ToLower(size)
+	if len(lower) < 2 || !strings.HasSuffix(lower, "b") || strings.HasSuffix(lower, "ib") {
+		return size
+	}
+
+	if !strings.ContainsRune("kmgtpe", rune(lower[len(lower)-2])) {
+		return size
+	}
+
+	return size[:len(size)-1] + "iB"
+}
+
 // MapVars map vars from regex captures to fields on release
-func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error {
+func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string, sizeUnits SizeUnits) error {
 	releaseName, ok := getStringMapValueAlt(varMap, "releaseName", "torrentName")
 	if !ok {
 		return errors.New("failed parsing required field: torrentName or releaseName")
@@ -1205,6 +1220,10 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error 
 		// handling for indexer who doesn't explicitly set which size unit is used like (AR)
 		if forceSizeUnit != "" {
 			torrentSize = fmt.Sprintf("%s %s", torrentSize, forceSizeUnit)
+		}
+
+		if sizeUnits == SizeUnitsBinary {
+			torrentSize = toBinarySizeUnit(torrentSize)
 		}
 
 		size, parseErr := humanize.ParseBytes(torrentSize)
