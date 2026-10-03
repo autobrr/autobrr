@@ -1084,6 +1084,7 @@ func (r *Release) HasMagnetUri() bool {
 const MagnetURIPrefix = "magnet:?"
 
 // toBinarySizeUnit rewrites a decimal unit label to its binary form, so "7.63 GB" becomes "7.63 GiB".
+// Bare unit letters like "7.63 G" are left alone and still parse as decimal.
 func toBinarySizeUnit(size string) string {
 	size = strings.TrimSpace(size)
 	lower := strings.ToLower(size)
