@@ -9,7 +9,7 @@ import { afterEach, expect, test, vi } from "vitest";
 
 import { useAppForm, fieldErrors } from "@hooks/form";
 import { NumberField, RegexField, SwitchGroup, TextField } from "@components/inputs";
-import { PasswordFieldWide, TextFieldWide } from "@components/inputs/input_wide";
+import { PasswordFieldWide, SecretFieldWide, TextFieldWide } from "@components/inputs/input_wide";
 import { SlideOver } from "@components/panels";
 import "@app/i18n";
 
@@ -193,4 +193,20 @@ test("PasswordFieldWide opts out of saved-login autofill", () => {
 
   expect(screen.getByLabelText("Cookie").getAttribute("autocomplete")).toBe("new-password");
   expect(screen.getByLabelText("Password").getAttribute("autocomplete")).toBe("current-password");
+});
+
+test("SecretFieldWide masks a plain text input so browsers never treat it as a login", () => {
+  render(
+    <Harness defaultValues={{ cookie: "" }} onSubmit={vi.fn()}>
+      <SecretFieldWide name="cookie" label="Cookie" />
+    </Harness>
+  );
+
+  const input = screen.getByLabelText("Cookie");
+  expect(input.getAttribute("type")).toBe("text");
+  expect(input.getAttribute("autocomplete")).toBe("off");
+  expect(input.className).toContain("[-webkit-text-security:disc]");
+
+  fireEvent.click(input.nextElementSibling!);
+  expect(input.className).not.toContain("[-webkit-text-security:disc]");
 });
