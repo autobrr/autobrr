@@ -249,7 +249,7 @@ func fsFile(w http.ResponseWriter, r *http.Request, file string, filesystem fs.F
 	http.ServeContent(w, r, file, stat.ModTime(), reader)
 }
 
-var validWebRoutes = []string{"filters", "releases", "settings", "logs", "onboard", "login", "logout"}
+var validWebRoutes = []string{"filters", "releases", "settings", "logs", "notifications", "onboard", "login", "logout"}
 
 func validWebRoute(route string) bool {
 	if route == "" || route == "/" {

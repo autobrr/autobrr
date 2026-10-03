@@ -150,6 +150,14 @@ export const NotificationsQueryOptions = () =>
     queryFn: () => APIClient.notifications.getAll()
   });
 
+export const NotificationInboxQueryOptions = (params: InboxQueryParams) =>
+  queryOptions({
+    queryKey: NotificationKeys.inbox.list(params),
+    queryFn: () => APIClient.notifications.inbox.list(params),
+    placeholderData: keepPreviousData,
+    throwOnError: false
+  });
+
 export const LogFilesQueryOptions = () =>
   queryOptions({
     queryKey: LogKeys.files(),

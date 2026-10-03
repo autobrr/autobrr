@@ -165,7 +165,8 @@
     "PUSHOVER": "Pushover",
     "SHOUTRRR": "Shoutrrr",
     "TELEGRAM": "Telegram",
-    "WEBHOOK": "Webhook"
+    "WEBHOOK": "Webhook",
+    "BUILTIN": "Integriert"
   },
   "event": {
     "PUSH_REJECTED": {

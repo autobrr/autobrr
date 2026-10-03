@@ -659,6 +659,19 @@ func TestRunMigrationTest_SQLite(t *testing.T) {
 			},
 			want: "",
 		},
+		{
+			name:   "notification inbox migration seeds the built-in notification",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "notification inbox migration seeds the built-in notification",
+				MigrationIndex:      98,
+				MigrationsUntilName: "98_irc_update_nordicbytes_network",
+				MigrationToRun:      "99_add_notification_inbox",
+				SetupData:           setupBuiltinNotificationExisting,
+				ValidateResult:      validateBuiltinNotificationKeepsExisting,
+			},
+			want: "",
+		},
 	}
 
 	for _, tt := range tests {
@@ -706,6 +719,9 @@ func TestFullMigrationSequenceSQLite(t *testing.T) {
 
 	err := migrate.Migrate()
 	require.NoError(t, err)
+
+	// A fresh install only applies the base schema, so it must seed the built-in notification too.
+	validateBuiltinNotification(db.Handler, t)
 
 	//// Verify current schema version
 	//var version int
