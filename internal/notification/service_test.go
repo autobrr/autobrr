@@ -697,8 +697,12 @@ func TestServiceBuiltinNotification(t *testing.T) {
 			Rejections:   []string{"error pushing to client"},
 		}))
 
-		require.Len(t, inbox.messages, 1)
-		msg := inbox.messages[0]
+		inbox.mu.Lock()
+		messages := append([]*domain.InboxMessage(nil), inbox.messages...)
+		inbox.mu.Unlock()
+
+		require.Len(t, messages, 1)
+		msg := messages[0]
 		assert.Equal(t, "Push Error", msg.Title)
 		assert.Empty(t, msg.Message)
 		assert.Equal(t, "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP", msg.ReleaseName)
@@ -707,7 +711,11 @@ func TestServiceBuiltinNotification(t *testing.T) {
 		assert.Equal(t, "Sonarr", msg.ActionClient)
 		assert.Equal(t, []string{"error pushing to client"}, msg.Rejections)
 
-		require.Len(t, publisher.events, 1)
-		assert.Equal(t, "NOTIFICATION", string(publisher.events[0].Event))
+		publisher.mu.Lock()
+		published := append([]*sse.Event(nil), publisher.events...)
+		publisher.mu.Unlock()
+
+		require.Len(t, published, 1)
+		assert.Equal(t, "NOTIFICATION", string(published[0].Event))
 	})
 }
