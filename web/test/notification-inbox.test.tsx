@@ -1,0 +1,319 @@
+/*
+ * Copyright (c) 2021 - 2026, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
+import type { ReactNode } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { createMemoryHistory, createRootRouteWithContext, createRoute, createRouter, RouterProvider } from "@tanstack/react-router";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, expect, test, vi } from "vitest";
+import { z } from "zod/mini";
+
+import { APIClient } from "@api/APIClient";
+import { NotificationUpdateForm } from "@forms/settings/NotificationForms";
+import { NotificationInbox } from "@screens/NotificationInbox";
+import { InboxMenu } from "@components/header/InboxMenu";
+import "@app/i18n";
+
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
+
+const emptyFields = {
+  message: "",
+  release_name: "",
+  indexer: "",
+  filter_name: "",
+  filter_id: 0,
+  action: "",
+  action_client: "",
+  rejections: [],
+  url: ""
+};
+
+const messages: InboxMessage[] = [
+  {
+    ...emptyFields,
+    id: 2,
+    event: "PUSH_ERROR",
+    title: "Push Error",
+    release_name: "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
+    indexer: "MockIndexer",
+    filter_name: "TV",
+    filter_id: 4,
+    action: "Send to Sonarr",
+    action_client: "Sonarr",
+    rejections: ["error pushing to client"],
+    read_at: null,
+    created_at: new Date().toISOString()
+  },
+  {
+    ...emptyFields,
+    id: 1,
+    event: "IRC_DISCONNECTED",
+    title: "IRC Disconnected",
+    message: "P2P-Network",
+    read_at: new Date().toISOString(),
+    created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+  }
+];
+
+const renderInbox = (path = "/notifications", component: () => ReactNode = NotificationInbox) => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const root = createRootRouteWithContext<{ queryClient: QueryClient }>()();
+  const auth = createRoute({ getParentRoute: () => root, id: "auth" });
+  const authenticated = createRoute({ getParentRoute: () => auth, id: "authenticated-routes" });
+  const inbox = createRoute({
+    getParentRoute: () => authenticated,
+    path: "notifications",
+    component,
+    validateSearch: (search) => z.object({
+      page: z.optional(z.number()),
+      pageSize: z.optional(z.number()),
+      unread: z.optional(z.boolean()),
+      event: z.optional(z.enum(["PUSH_ERROR", "PUSH_REJECTED", "PUSH_APPROVED", "IRC_DISCONNECTED", "IRC_RECONNECTED", "APP_UPDATE_AVAILABLE"]))
+    }).parse(search)
+  });
+  const router = createRouter({
+    routeTree: root.addChildren([auth.addChildren([authenticated.addChildren([inbox])])]),
+    history: createMemoryHistory({ initialEntries: [path] }),
+    context: { queryClient }
+  });
+
+  render(
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
+  );
+};
+
+const response = (overrides: Partial<InboxResponse> = {}): InboxResponse => ({
+  data: messages,
+  count: 2,
+  all_count: 2,
+  unread_count: 1,
+  ...overrides
+});
+
+test("inbox shows tab counts and asks for unread messages", async () => {
+  const list = vi.spyOn(APIClient.notifications.inbox, "list").mockResolvedValue(response());
+
+  renderInbox();
+
+  const unreadTab = await screen.findByRole("button", { name: /^Unread\s*1$/ });
+  expect(screen.getByRole("button", { name: /^All\s*2$/ }).getAttribute("aria-pressed")).toBe("true");
+  expect(list).toHaveBeenLastCalledWith({ limit: 25, offset: 0, unread: false, event: undefined });
+
+  list.mockResolvedValue(response({ data: [], count: 0, unread_count: 0 }));
+  await act(async () => {
+    fireEvent.click(unreadTab);
+  });
+
+  expect(list).toHaveBeenLastCalledWith({ limit: 25, offset: 0, unread: true, event: undefined });
+  expect(await screen.findByText("Show all notifications")).toBeTruthy();
+});
+
+test("selected messages can be marked read and deleted in bulk", async () => {
+  vi.spyOn(APIClient.notifications.inbox, "list").mockResolvedValue(response());
+  const markRead = vi.spyOn(APIClient.notifications.inbox, "markRead").mockResolvedValue(undefined as never);
+  const remove = vi.spyOn(APIClient.notifications.inbox, "delete").mockResolvedValue(undefined as never);
+
+  renderInbox();
+
+  await screen.findByText("P2P-Network");
+  fireEvent.click(screen.getByLabelText("Select P2P-Network"));
+  expect(screen.getByText("1 of 2 selected")).toBeTruthy();
+
+  fireEvent.click(screen.getByLabelText("Select all on this page"));
+  expect(screen.getByText("2 of 2 selected")).toBeTruthy();
+
+  fireEvent.click(screen.getAllByRole("button", { name: "Mark as read" })[0]);
+  const markDialog = await screen.findByRole("dialog");
+  expect(within(markDialog).getByText("Mark 2 selected notifications as read?")).toBeTruthy();
+  expect(markRead).not.toHaveBeenCalled();
+
+  await act(async () => {
+    fireEvent.click(within(markDialog).getByRole("button", { name: "Mark as read" }));
+  });
+  expect(markRead.mock.calls[0][0]).toEqual([2, 1]);
+  expect(await screen.findByRole("button", { name: /^All\s*2$/ })).toBeTruthy();
+
+  fireEvent.click(screen.getByLabelText("Select P2P-Network"));
+  fireEvent.click(screen.getAllByRole("button", { name: "Delete" })[0]);
+  const deleteDialog = await screen.findByRole("dialog");
+  expect(within(deleteDialog).getByText("Delete this notification? This cannot be undone.")).toBeTruthy();
+
+  await act(async () => {
+    fireEvent.click(within(deleteDialog).getByRole("button", { name: "Delete" }));
+  });
+  expect(remove.mock.calls[0][0]).toEqual([1]);
+});
+
+test("row actions do nothing when the confirmation is cancelled", async () => {
+  vi.spyOn(APIClient.notifications.inbox, "list").mockResolvedValue(response());
+  const markRead = vi.spyOn(APIClient.notifications.inbox, "markRead").mockResolvedValue(undefined as never);
+  const remove = vi.spyOn(APIClient.notifications.inbox, "delete").mockResolvedValue(undefined as never);
+
+  renderInbox();
+
+  await screen.findByText("P2P-Network");
+  const rows = screen.getAllByRole("listitem");
+
+  fireEvent.click(within(rows[0]).getByRole("button", { name: "Mark as read" }));
+  expect(within(await screen.findByRole("dialog")).getByText("Mark this notification as read?")).toBeTruthy();
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+  });
+
+  fireEvent.click(within(rows[1]).getByRole("button", { name: "Delete" }));
+  await act(async () => {
+    fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Cancel" }));
+  });
+
+  expect(markRead).not.toHaveBeenCalled();
+  expect(remove).not.toHaveBeenCalled();
+});
+
+test("mark all as read and clear all ask first and close after confirming", async () => {
+  vi.spyOn(APIClient.notifications.inbox, "list").mockResolvedValue(response());
+  const markRead = vi.spyOn(APIClient.notifications.inbox, "markRead").mockResolvedValue(undefined as never);
+  const deleteAll = vi.spyOn(APIClient.notifications.inbox, "deleteAll").mockResolvedValue(undefined as never);
+
+  renderInbox();
+
+  await screen.findByText("P2P-Network");
+  fireEvent.click(screen.getByRole("button", { name: "Mark all as read" }));
+  const markDialog = await screen.findByRole("dialog");
+  expect(within(markDialog).getByText("Every unread notification will be marked as read.")).toBeTruthy();
+  await act(async () => {
+    fireEvent.click(within(markDialog).getByRole("button", { name: "Mark all as read" }));
+  });
+  expect(markRead.mock.calls[0][0]).toEqual([]);
+
+  fireEvent.click(screen.getByRole("button", { name: "More actions" }));
+  fireEvent.click(await screen.findByRole("menuitem", { name: "Clear all" }));
+  const clearDialog = await screen.findByRole("dialog");
+  expect(within(clearDialog).getByText("Clear notifications")).toBeTruthy();
+  await act(async () => {
+    fireEvent.click(within(clearDialog).getByRole("button", { name: "Clear all" }));
+  });
+
+  expect(deleteAll).toHaveBeenCalledTimes(1);
+  await vi.waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+});
+
+test("shift-click selects and clears a range of messages", async () => {
+  const rows: InboxMessage[] = ["Alpha", "Bravo", "Charlie", "Delta", "Echo"].map((name, idx) => ({
+    ...emptyFields,
+    id: 10 - idx,
+    event: "IRC_DISCONNECTED",
+    title: "IRC Disconnected",
+    message: name,
+    read_at: null,
+    created_at: new Date().toISOString()
+  }));
+  vi.spyOn(APIClient.notifications.inbox, "list").mockResolvedValue(response({ data: rows, count: 5, all_count: 5, unread_count: 5 }));
+
+  renderInbox();
+
+  const checkbox = async (name: string) => await screen.findByLabelText(`Select ${name}`) as HTMLInputElement;
+  const checked = async () => Promise.all(["Alpha", "Bravo", "Charlie", "Delta", "Echo"].map(async (name) => (await checkbox(name)).checked));
+
+  fireEvent.click(await checkbox("Bravo"));
+  fireEvent.click(await checkbox("Delta"), { shiftKey: true });
+  expect(await checked()).toEqual([false, true, true, true, false]);
+  expect(screen.getByText("3 of 5 selected")).toBeTruthy();
+
+  fireEvent.click(await checkbox("Echo"), { shiftKey: true });
+  expect(await checked()).toEqual([false, true, true, true, true]);
+
+  fireEvent.click(await checkbox("Charlie"), { shiftKey: true });
+  expect(await checked()).toEqual([false, true, false, false, false]);
+});
+
+test("rows link the release and filter", async () => {
+  vi.spyOn(APIClient.notifications.inbox, "list").mockResolvedValue(response());
+
+  renderInbox();
+
+  const release = (await screen.findByText("Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP")).closest("a");
+  expect(release?.getAttribute("href")).toBe("/releases?q=Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP");
+  expect(screen.getByText("TV").closest("a")?.getAttribute("href")).toBe("/filters/4");
+  expect(screen.getByText("Send to Sonarr (Sonarr)")).toBeTruthy();
+  expect(screen.getByText("error pushing to client")).toBeTruthy();
+  expect(screen.getByText("IRC Disconnected")).toBeTruthy();
+});
+
+test("pagination only shows when there is more than one page", async () => {
+  const list = vi.spyOn(APIClient.notifications.inbox, "list").mockResolvedValue(response());
+
+  renderInbox();
+
+  await screen.findByText("P2P-Network");
+  expect(screen.queryByRole("navigation", { name: "Pagination" })).toBeNull();
+
+  cleanup();
+  list.mockResolvedValue(response({ count: 60, all_count: 60 }));
+  renderInbox();
+
+  const nav = await screen.findByRole("navigation", { name: "Pagination" });
+  expect(nav.textContent).toContain("123");
+
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "2" }));
+  });
+  expect(list).toHaveBeenLastCalledWith({ limit: 25, offset: 25, unread: false, event: undefined });
+});
+
+test("mark all as read mentions hidden messages when an event filter is active", async () => {
+  vi.spyOn(APIClient.notifications.inbox, "list").mockResolvedValue(response());
+
+  renderInbox("/notifications?event=%22PUSH_ERROR%22");
+
+  await screen.findByText("P2P-Network");
+  expect(screen.getByText("Event type: Push Error")).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "Mark all as read" }));
+  expect(within(await screen.findByRole("dialog")).getByText(/including ones hidden by the current filter/)).toBeTruthy();
+});
+
+test("the bell menu closes before asking to mark messages read", async () => {
+  vi.spyOn(APIClient.notifications.inbox, "list").mockResolvedValue(response());
+  const markRead = vi.spyOn(APIClient.notifications.inbox, "markRead").mockResolvedValue(undefined as never);
+
+  renderInbox("/notifications", InboxMenu);
+
+  fireEvent.click(await screen.findByTitle("Notifications"));
+  fireEvent.click(await screen.findByRole("button", { name: "Mark all as read" }));
+
+  const dialog = await screen.findByRole("dialog");
+  await vi.waitFor(() => expect(screen.queryByText("View all notifications")).toBeNull());
+  expect(markRead).not.toHaveBeenCalled();
+
+  await act(async () => {
+    fireEvent.click(within(dialog).getByRole("button", { name: "Mark all as read" }));
+  });
+  expect(markRead.mock.calls[0][0]).toEqual([]);
+});
+
+test("the built-in notification can not change type or be removed", () => {
+  const builtin: ServiceNotification = {
+    id: 1,
+    name: "Built-in",
+    enabled: true,
+    type: "BUILTIN",
+    events: ["PUSH_ERROR"]
+  };
+
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <NotificationUpdateForm isOpen={true} toggle={() => {}} data={builtin} />
+    </QueryClientProvider>
+  );
+
+  expect(screen.queryByText("Type")).toBeNull();
+  expect(screen.queryByText("Remove")).toBeNull();
+  expect(screen.getByText("Browser notifications")).toBeTruthy();
+  expect(screen.queryByText("New Release")).toBeNull();
+});

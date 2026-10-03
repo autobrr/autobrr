@@ -165,7 +165,8 @@
       "PUSHOVER": "Pushover",
       "SHOUTRRR": "Shoutrrr",
       "TELEGRAM": "Telegram",
-      "WEBHOOK": "Webhook"
+      "WEBHOOK": "Webhook",
+      "BUILTIN": "Vestavěné"
     },
     "event": {
       "PUSH_REJECTED": {

@@ -248,6 +248,18 @@ export const LogsRoute = createRoute({
   component: lazyRouteComponent(() => import("@screens/Logs"), "Logs")
 });
 
+export const NotificationInboxRoute = createRoute({
+  getParentRoute: () => AuthIndexRoute,
+  path: 'notifications',
+  component: lazyRouteComponent(() => import("@screens/NotificationInbox"), "NotificationInbox"),
+  validateSearch: (search) => z.object({
+    page: z.optional(z.number()),
+    pageSize: z.optional(z.number()),
+    unread: z.optional(z.boolean()),
+    event: z.optional(z.enum(['PUSH_ERROR', 'PUSH_REJECTED', 'PUSH_APPROVED', 'IRC_DISCONNECTED', 'IRC_RECONNECTED', 'APP_UPDATE_AVAILABLE'])),
+  }).parse(search),
+});
+
 export const OnboardRoute = createRoute({
   getParentRoute: () => RootRoute,
   path: 'onboard',
@@ -346,7 +358,7 @@ export const RootRoute = createRootRouteWithContext<{
 
 const filterRouteTree = FiltersRoute.addChildren([FilterIndexRoute, FilterGetByIdRoute.addChildren([FilterGeneralRoute, FilterMoviesTvRoute, FilterMusicRoute, FilterBooksRoute, FilterAdvancedRoute, FilterExternalRoute, FilterActionsRoute, FilterNotificationsRoute])])
 const settingsRouteTree = SettingsRoute.addChildren([SettingsIndexRoute, SettingsLogRoute, SettingsIndexersRoute, SettingsIrcRoute, SettingsListsRoute, SettingsFeedsRoute, SettingsClientsRoute, SettingsNotificationsRoute, SettingsApiRoute, SettingsProxiesRoute, SettingsReleasesRoute, SettingsAccountRoute])
-const authenticatedTree = AuthRoute.addChildren([AuthIndexRoute.addChildren([DashboardRoute, filterRouteTree, ReleasesRoute, settingsRouteTree, LogsRoute])])
+const authenticatedTree = AuthRoute.addChildren([AuthIndexRoute.addChildren([DashboardRoute, filterRouteTree, ReleasesRoute, settingsRouteTree, LogsRoute, NotificationInboxRoute])])
 const routeTree = RootRoute.addChildren([
   authenticatedTree,
   LoginRoute,

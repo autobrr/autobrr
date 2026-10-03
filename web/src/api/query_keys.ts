@@ -112,7 +112,12 @@ export const NotificationKeys = {
   lists: () => [...NotificationKeys.all, "list"] as const,
   details: () => [...NotificationKeys.all, "detail"] as const,
   detail: (id: number) => [...NotificationKeys.details(), id] as const,
-  pushoverSounds: (apiToken: string) => [...NotificationKeys.all, "pushover-sounds", apiToken] as const
+  pushoverSounds: (apiToken: string) => [...NotificationKeys.all, "pushover-sounds", apiToken] as const,
+  inbox: {
+    all: () => [...NotificationKeys.all, "inbox"] as const,
+    lists: () => [...NotificationKeys.inbox.all(), "list"] as const,
+    list: (params: InboxQueryParams) => [...NotificationKeys.inbox.lists(), params] as const
+  }
 };
 
 export const ProxyKeys = {
