@@ -36,6 +36,7 @@ export const DashboardGrid = () => {
   const [editing, setEditing] = useState(false);
 
   const layout = useMemo(() => resolveLayout(config), [config]);
+  const incognitoLabel = t(settings.incognitoMode ? "releaseTable.exitIncognito" : "releaseTable.goIncognito");
 
   const persist = (next: WidgetLayout[]) => {
     DashboardConfigContext.set({
@@ -55,8 +56,8 @@ export const DashboardGrid = () => {
             type="button"
             onClick={() => setSettings((current) => ({ ...current, incognitoMode: !current.incognitoMode }))}
             className="inline-flex size-9 items-center justify-center rounded-md text-gray-500 transition-colors duration-200 ease-in-out hover:bg-gray-100 hover:text-gray-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500 dark:hover:bg-gray-800 dark:hover:text-gray-200 cursor-pointer"
-            aria-label={t("releaseTable.goIncognito")}
-            title={t("releaseTable.goIncognito")}
+            aria-label={incognitoLabel}
+            title={incognitoLabel}
           >
             {settings.incognitoMode ? (
               <SolidEyeIcon className="size-4" aria-hidden="true" />

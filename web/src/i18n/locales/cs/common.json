@@ -126,7 +126,8 @@
       "pageOf": "Stránka {{page}} z {{total}}",
       "pagination": "Navigace",
       "toggleView": "Změnit zobrazení",
-      "goIncognito": "Přejít do anonymního režimu"
+      "goIncognito": "Přejít do anonymního režimu",
+      "exitIncognito": "Ukončit anonymní režim"
     },
     "releaseSearch": {
       "title": "Releasy",

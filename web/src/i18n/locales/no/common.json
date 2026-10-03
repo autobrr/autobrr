@@ -126,7 +126,8 @@
     "pageOf": "Side {{page}} av {{total}}",
     "pagination": "Paginering",
     "toggleView": "Bytt visning",
-    "goIncognito": "Gå inkognito"
+    "goIncognito": "Gå inkognito",
+    "exitIncognito": "Avslutt inkognito"
   },
   "releaseSearch": {
     "title": "Utgivelser",

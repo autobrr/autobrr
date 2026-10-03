@@ -126,7 +126,8 @@
     "pageOf": "Page {{page}} of {{total}}",
     "pagination": "Pagination",
     "toggleView": "Toggle view",
-    "goIncognito": "Go incognito"
+    "goIncognito": "Go incognito",
+    "exitIncognito": "Exit incognito"
   },
   "releaseSearch": {
     "title": "Releases",
