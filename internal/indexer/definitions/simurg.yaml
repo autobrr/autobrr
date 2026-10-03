@@ -58,10 +58,11 @@ irc:
       parse:
         type: single
         lines:
-          - pattern: '^NEW \| Category=(?P<category>.*?) \| Leech=(?P<leechEnum>Normal|Freeleech|Naturaleech) \| Tags=(?P<releaseTags>.* \/ (?P<language>[^|]+?)) \| Size=(?P<torrentSize>.*?) \| Name=(?P<releaseName>.*?) \| URL=(?P<baseUrl>https?:\/\/[^\/]+\/)torrents\.php\?id=(?P<groupId>\d+)&torrentid=(?P<torrentId>\d+)$'
+          - pattern: '^(?P<announceTypeEnum>NEW|PROMO) \| Category=(?P<category>.*?) \| Leech=(?P<leechEnum>Normal|Freeleech|Naturaleech) \| Tags=(?P<releaseTags>.* \/ (?P<language>[^|]+?)) \| Size=(?P<torrentSize>.*?) \| Name=(?P<releaseName>.*?) \| URL=(?P<baseUrl>https?:\/\/[^\/]+\/)torrents\.php\?id=(?P<groupId>\d+)&torrentid=(?P<torrentId>\d+)$'
             tests:
               - line: 'NEW | Category=E-Book | Leech=Freeleech | Tags=PDF / OCR / Turkish | Size=2.48 MiB | Name=Example Turkish Book by Example Author | URL=https://simurg.world/torrents.php?id=1001&torrentid=2001'
                 expect:
+                  announceTypeEnum: NEW
                   category: E-Book
                   leechEnum: Freeleech
                   releaseTags: PDF / OCR / Turkish
@@ -74,6 +75,7 @@ irc:
 
               - line: 'NEW | Category=Magazine | Leech=Freeleech | Tags=PDF / Scan / English | Size=461.16 MiB | Name=Example Magazine - 1954 Complete Year | URL=https://simurg.world/torrents.php?id=1002&torrentid=2002'
                 expect:
+                  announceTypeEnum: NEW
                   category: Magazine
                   leechEnum: Freeleech
                   releaseTags: PDF / Scan / English
@@ -86,6 +88,7 @@ irc:
 
               - line: 'NEW | Category=Audiobook | Leech=Normal | Tags=MP3 / English | Size=1.20 GiB | Name=Example Audiobook | URL=https://simurg.world/torrents.php?id=1003&torrentid=2003'
                 expect:
+                  announceTypeEnum: NEW
                   category: Audiobook
                   leechEnum: Normal
                   releaseTags: MP3 / English
@@ -98,6 +101,7 @@ irc:
 
               - line: 'NEW | Category=Comics & Manga | Leech=Naturaleech | Tags=CBZ / English | Size=850.00 MiB | Name=Example Comic | URL=https://simurg.world/torrents.php?id=1004&torrentid=2004'
                 expect:
+                  announceTypeEnum: NEW
                   category: Comics & Manga
                   leechEnum: Naturaleech
                   releaseTags: CBZ / English
@@ -108,7 +112,26 @@ irc:
                   groupId: "1004"
                   torrentId: "2004"
 
+              - line: 'PROMO | Category=E-Book | Leech=Freeleech | Tags=EPUB / English | Size=3.10 MiB | Name=Example Promoted Book by Example Author | URL=https://simurg.world/torrents.php?id=1005&torrentid=2005'
+                expect:
+                  announceTypeEnum: PROMO
+                  category: E-Book
+                  leechEnum: Freeleech
+                  releaseTags: EPUB / English
+                  language: English
+                  torrentSize: 3.10 MiB
+                  releaseName: Example Promoted Book by Example Author
+                  baseUrl: https://simurg.world/
+                  groupId: "1005"
+                  torrentId: "2005"
+
         mappings:
+          announceTypeEnum:
+            NEW:
+              announceType: NEW
+            PROMO:
+              announceType: PROMO
+
           leechEnum:
             Normal:
               downloadVolumeFactor: 1
