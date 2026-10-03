@@ -620,6 +620,45 @@ func TestRunMigrationTest_SQLite(t *testing.T) {
 			},
 			want: "",
 		},
+		{
+			name:   "NordicBytes IRC network migration: not migrated",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "NordicBytes IRC network migration: not migrated",
+				MigrationIndex:      97,
+				MigrationsUntilName: "97_add_filter_max_downloads_period",
+				MigrationToRun:      "98_irc_update_nordicbytes_network",
+				SetupData:           setupNordicBytesNotMigrated,
+				ValidateResult:      validateNordicBytesNotMigrated,
+			},
+			want: "",
+		},
+		{
+			name:   "NordicBytes IRC network migration: already migrated",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "NordicBytes IRC network migration: already migrated",
+				MigrationIndex:      97,
+				MigrationsUntilName: "97_add_filter_max_downloads_period",
+				MigrationToRun:      "98_irc_update_nordicbytes_network",
+				SetupData:           setupNordicBytesAlreadyMigrated,
+				ValidateResult:      validateNordicBytesAlreadyMigrated,
+			},
+			want: "",
+		},
+		{
+			name:   "NordicBytes IRC network migration: not used",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "NordicBytes IRC network migration: not used",
+				MigrationIndex:      97,
+				MigrationsUntilName: "97_add_filter_max_downloads_period",
+				MigrationToRun:      "98_irc_update_nordicbytes_network",
+				SetupData:           setupNordicBytesNotUsed,
+				ValidateResult:      validateNordicBytesNotUsed,
+			},
+			want: "",
+		},
 	}
 
 	for _, tt := range tests {

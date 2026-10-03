@@ -21,8 +21,8 @@ settings:
     help: "Click the cog icon in the top right corner, RSS key is located in the sidebar."
 
 irc:
-  network: P2P-Network
-  server: irc.p2p-network.net
+  network: NordicBytes
+  server: irc.nordicbytes.org
   port: 6697
   tls: true
   settings:
@@ -45,13 +45,13 @@ irc:
       help: NickServ password
 
   channels:
-    - name: "#nordicbytes"
+    - name: "#announce"
       announcers:
         - "NordicBytes"
       parse:
         type: single
         lines:
-          - pattern: ':\[N\]-\[(?P<category>.*)\]-\[(?P<releaseTags>.*)\]-\[(?P<resolution>.*)\]-\[(?P<torrentSize>.*)\]-\[(?P<releaseName>.*)\]-\[(?P<uploader>.*)\]-\[(?P<baseUrl>.*\/)(?:.*\/)(?P<torrentId>.*)\]-\[FL: (?P<freeleech>.*)\]-\[DU: .*\];'
+          - pattern: ':\[N\]-\[(?P<category>.*)\]-\[(?P<releaseTags>.*)\]-\[(?P<resolution>.*)\]-\[(?P<torrentSize>.*)\]-\[(?P<releaseName>.*)\]-\[(?P<uploader>.*)\]-\[(?P<baseUrl>.*\/)(?:.*\/)(?P<torrentId>.*)\]-\[FL: (?P<freeleech>.*)\]-\[DU: (?P<doubleUpload>\d*)\];'
             tests:
               - line: ':[N]-[Movies]-[Encode]-[720p]-[797 MiB]-[Some.Old.Movie.1972.720p.BluRay.x264.AAC-GROUP]-[Anonymous]-[https://nordicbytes.org/torrents/0000]-[FL: 0]-[DU: 0];'
                 expect:
@@ -64,6 +64,12 @@ irc:
                   baseUrl: https://nordicbytes.org/
                   torrentId: "0000"
                   freeleech: "0"
+                  doubleUpload: "0"
+
+        mappings:
+          doubleUpload:
+            "1":
+              uploadVolumeFactor: 2
 
         match:
           infourl: "/torrents/{{ .torrentId }}"
