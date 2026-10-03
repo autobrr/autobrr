@@ -6,6 +6,7 @@ package filter
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -36,8 +37,9 @@ func (s *indexerSvcStub) List(_ context.Context) ([]domain.Indexer, error) {
 // through the embedded nil interface, so reaching persistence fails the test.
 type filterRepoStub struct {
 	filterRepo
-	filter  *domain.Filter
-	updated *domain.Filter
+	filter         *domain.Filter
+	updated        *domain.Filter
+	partialUpdated *domain.FilterUpdate
 }
 
 func (s *filterRepoStub) FindByID(_ context.Context, filterID int) (*domain.Filter, error) {
@@ -49,6 +51,11 @@ func (s *filterRepoStub) FindByID(_ context.Context, filterID int) (*domain.Filt
 
 func (s *filterRepoStub) Update(_ context.Context, filter *domain.Filter) error {
 	s.updated = filter
+	return nil
+}
+
+func (s *filterRepoStub) UpdatePartial(_ context.Context, filter domain.FilterUpdate) error {
+	s.partialUpdated = &filter
 	return nil
 }
 
@@ -184,6 +191,93 @@ func TestService_UpdatePartial_MissingFilterWinsOverUnknownIndexer(t *testing.T)
 		Indexers: []domain.Indexer{{ID: 99}},
 	})
 	assert.ErrorIs(t, err, domain.ErrRecordNotFound)
+}
+
+func TestService_UpdatePartial_ValidatesCustomFieldsBeforePersisting(t *testing.T) {
+	blankField := []domain.FilterCustomFieldRule{
+		{Field: "   ", Operator: domain.FilterCustomFieldEquals, Value: "1"},
+	}
+	invalidOperator := []domain.FilterCustomFieldRule{
+		{Field: "audio_pt", Operator: domain.FilterCustomFieldOperator("INVALID"), Value: "1"},
+	}
+	invalidLogic := domain.FilterCustomFieldMatchLogic("INVALID")
+
+	tests := []struct {
+		name         string
+		customFields *[]domain.FilterCustomFieldRule
+		matchLogic   *domain.FilterCustomFieldMatchLogic
+	}{
+		{name: "blank field", customFields: &blankField},
+		{name: "invalid operator", customFields: &invalidOperator},
+		{name: "invalid logic", matchLogic: &invalidLogic},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := &filterRepoStub{filter: &domain.Filter{ID: 1}}
+			svc := &Service{
+				log:  zerolog.Nop(),
+				repo: repo,
+			}
+
+			err := svc.UpdatePartial(t.Context(), domain.FilterUpdate{
+				ID:                     1,
+				CustomFields:           tt.customFields,
+				CustomFieldsMatchLogic: tt.matchLogic,
+			})
+
+			require.Error(t, err)
+			assert.Nil(t, repo.partialUpdated)
+		})
+	}
+}
+
+func TestService_UpdatePartial_SanitizesCustomFieldNames(t *testing.T) {
+	rules := []domain.FilterCustomFieldRule{
+		{Field: " audio_pt ", Operator: domain.FilterCustomFieldEquals, Value: "1"},
+	}
+	logic := domain.FilterCustomFieldMatchAll
+	repo := &filterRepoStub{filter: &domain.Filter{ID: 1}}
+	svc := &Service{
+		log:  zerolog.Nop(),
+		repo: repo,
+	}
+
+	err := svc.UpdatePartial(t.Context(), domain.FilterUpdate{
+		ID:                     1,
+		CustomFields:           &rules,
+		CustomFieldsMatchLogic: &logic,
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, repo.partialUpdated)
+	require.NotNil(t, repo.partialUpdated.CustomFields)
+	assert.Equal(t, "audio_pt", (*repo.partialUpdated.CustomFields)[0].Field)
+	assert.Equal(t, "1", (*repo.partialUpdated.CustomFields)[0].Value)
+}
+
+func TestRedactedFilterLogData_OmitsCustomFieldValues(t *testing.T) {
+	const secret = "tracker-secret-value"
+
+	filter := &domain.Filter{
+		ID:   1,
+		Name: "filter",
+		CustomFields: []domain.FilterCustomFieldRule{
+			{
+				Field:    "audio_pt",
+				Operator: domain.FilterCustomFieldEquals,
+				Value:    secret,
+			},
+		},
+	}
+
+	data, err := json.Marshal(redactedFilterLogData(filter))
+
+	require.NoError(t, err)
+	assert.NotContains(t, string(data), secret)
+	assert.Contains(t, string(data), "audio_pt")
+	assert.Contains(t, string(data), "=")
+	assert.Equal(t, secret, filter.CustomFields[0].Value)
 }
 
 func TestService_Update_ValidatesNotificationsBeforePersisting(t *testing.T) {

@@ -633,6 +633,40 @@ func TestRSSJob_processItemMagnet(t *testing.T) {
 	}
 }
 
+
+func TestRSSJob_processItemRetainsExtensionFields(t *testing.T) {
+	t.Parallel()
+
+	job := &RSSJob{
+		Feed: &domain.Feed{Indexer: domain.IndexerMinimal{Name: "Mock Feed", Identifier: "mock-feed"}},
+		URL:  "https://example.invalid/rss",
+		Log:  zerolog.Nop(),
+	}
+
+	item := &gofeed.Item{
+		Title: "Movie.2026.1080p.WEB-DL-GROUP",
+		Link:  "https://example.invalid/download/1",
+		Extensions: map[string]map[string][]gofeed.Extension{
+			"tracker": {
+				"audio_pt": {{Name: "audio_pt", Value: "1"}},
+				"empty":    {{Name: "empty", Value: ""}},
+			},
+			"torznab": {
+				"attr": {{Name: "attr", Attrs: map[string]string{"name": "seeders", "value": "5"}}},
+			},
+		},
+	}
+
+	release := job.processItem(item)
+	require.NotNil(t, release)
+	assert.Equal(t, "1", release.CustomFields["tracker:audio_pt"])
+	assert.Contains(t, release.CustomFields, "tracker:empty")
+	assert.Equal(t, "", release.CustomFields["tracker:empty"])
+	assert.Equal(t, "5", release.CustomFields["torznab:attr@seeders"])
+	assert.Equal(t, "seeders", release.CustomFields["torznab:attr@name"])
+	assert.Equal(t, "5", release.CustomFields["torznab:attr@value"])
+}
+
 func Test_isMaxAge(t *testing.T) {
 	t.Parallel()
 	type args struct {
@@ -738,4 +772,38 @@ func Test_readSizeFromDescription(t *testing.T) {
 			assert.Equal(t, wantBytes, r.Size)
 		})
 	}
+}
+
+func TestRSSJob_processItemRetainsCustomFields(t *testing.T) {
+	t.Parallel()
+
+	job := &RSSJob{
+		Feed: &domain.Feed{
+			Indexer: domain.IndexerMinimal{
+				Name:       "Mock Feed",
+				Identifier: "mock-feed",
+			},
+		},
+		URL: "https://example.invalid/rss",
+		Log: zerolog.Nop(),
+	}
+
+	item := &gofeed.Item{
+		Title: "Movie.2026.1080p.WEB-DL-GROUP",
+		Link:  "https://example.invalid/download/1",
+		Custom: map[string]string{
+			"audio_pt":   "1",
+			"legenda_pt": "1",
+			"hash":       "abc123",
+		},
+	}
+
+	release := job.processItem(item)
+	require.NotNil(t, release)
+	assert.Equal(t, "1", release.CustomFields["audio_pt"])
+	assert.Equal(t, "1", release.CustomFields["legenda_pt"])
+	assert.Equal(t, "abc123", release.CustomFields["hash"])
+
+	item.Custom["audio_pt"] = "0"
+	assert.Equal(t, "1", release.CustomFields["audio_pt"], "release must retain its own copy of the feed fields")
 }
