@@ -692,7 +692,7 @@ func (r *Release) ParseString(title string) {
 
 	r.TorrentName = title
 
-	r.Source = rel.Source
+	r.Source = cmp.Or(rel.Source, r.Source)
 	// announce values such as "1080p/i" are not normalized, so prefer the parsed one
 	r.Resolution = cmp.Or(rel.Resolution, r.Resolution)
 	r.Region = rel.Region
@@ -1271,6 +1271,10 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error 
 
 	if resolution, ok := getStringMapValue(varMap, "resolution"); ok {
 		r.Resolution = resolution
+	}
+
+	if source, ok := getStringMapValue(varMap, "source"); ok {
+		r.Source = source
 	}
 
 	if releaseGroup, ok := getStringMapValue(varMap, "releaseGroup"); ok {

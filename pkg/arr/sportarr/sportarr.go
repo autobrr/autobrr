@@ -77,8 +77,13 @@ func (c *Client) Test(ctx context.Context) (*SystemStatusResponse, error) {
 		return nil, errors.Wrap(err, "could not make Test")
 	}
 
-	if status == http.StatusUnauthorized {
+	switch status {
+	case http.StatusOK:
+		break
+	case http.StatusUnauthorized:
 		return nil, errors.New("unauthorized: bad credentials")
+	default:
+		return nil, errors.New("unexpected status code: %d", status)
 	}
 
 	c.logger(ctx).Trace().Int("status", status).Str("response", string(res)).Msg("sportarr system/status response")
