@@ -126,7 +126,8 @@
     "pageOf": "Страница {{page}} из {{total}}",
     "pagination": "Пагинация",
     "toggleView": "Переключить вид",
-    "goIncognito": "Режим инкогнито"
+    "goIncognito": "Режим инкогнито",
+    "exitIncognito": "Выйти из режима инкогнито"
   },
   "releaseSearch": {
     "title": "Релизы",

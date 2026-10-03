@@ -126,7 +126,8 @@
     "pageOf": "Página {{page}} de {{total}}",
     "pagination": "Paginación",
     "toggleView": "Cambiar vista",
-    "goIncognito": "Modo incógnito"
+    "goIncognito": "Modo incógnito",
+    "exitIncognito": "Salir del modo incógnito"
   },
   "releaseSearch": {
     "title": "Lanzamientos",

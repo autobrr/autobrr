@@ -126,7 +126,8 @@
     "pageOf": "Page {{page}} sur {{total}}",
     "pagination": "Pagination",
     "toggleView": "Changer la vue",
-    "goIncognito": "Mode incognito"
+    "goIncognito": "Mode incognito",
+    "exitIncognito": "Quitter le mode incognito"
   },
   "releaseSearch": {
     "title": "Releases",

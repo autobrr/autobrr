@@ -126,7 +126,8 @@
     "pageOf": "第 {{page}} 页，共 {{total}} 页",
     "pagination": "分页",
     "toggleView": "切换视图",
-    "goIncognito": "进入匿名模式"
+    "goIncognito": "进入匿名模式",
+    "exitIncognito": "退出匿名模式"
   },
   "releaseSearch": {
     "title": "发布",
