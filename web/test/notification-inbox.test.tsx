@@ -267,6 +267,34 @@ test("pagination only shows when there is more than one page", async () => {
   expect(list).toHaveBeenLastCalledWith({ limit: 25, offset: 25, unread: false, event: undefined });
 });
 
+test("a page past the end redirects to the last page without flashing the empty state", async () => {
+  let resolveLastPage: (value: InboxResponse) => void = () => {};
+  const list = vi.spyOn(APIClient.notifications.inbox, "list").mockImplementation(({ offset }) => offset === 25
+    ? new Promise((resolve) => { resolveLastPage = resolve; })
+    : Promise.resolve(response({ data: [], count: 30, all_count: 30 })));
+
+  // The empty state would only render for a frame before the redirect, so record every node that is ever added.
+  let emptyStateRendered = false;
+  const observer = new MutationObserver((records) => {
+    emptyStateRendered ||= records.some((record) => [...record.addedNodes].some((node) => node.textContent?.includes("No notifications")));
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+
+  renderInbox("/notifications?page=5");
+
+  await vi.waitFor(() => expect(list).toHaveBeenLastCalledWith({ limit: 25, offset: 25, unread: false, event: undefined }));
+  expect(list).toHaveBeenCalledWith({ limit: 25, offset: 125, unread: false, event: undefined });
+
+  await act(async () => {
+    resolveLastPage(response({ count: 30, all_count: 30 }));
+  });
+  expect(await screen.findByText("P2P-Network")).toBeTruthy();
+  expect(screen.getByRole("button", { name: "2" }).getAttribute("aria-current")).toBe("page");
+
+  observer.disconnect();
+  expect(emptyStateRendered).toBe(false);
+});
+
 test("mark all as read mentions hidden messages when an event filter is active", async () => {
   vi.spyOn(APIClient.notifications.inbox, "list").mockResolvedValue(response());
 

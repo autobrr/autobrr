@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Fragment, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import type { ComponentType, ReactNode, SVGProps } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
@@ -76,7 +76,7 @@ export const NotificationInbox = () => {
   const pageSize = search.pageSize ?? DEFAULT_PAGE_SIZE;
   const unreadOnly = search.unread ?? false;
 
-  const { data, isPending } = useQuery(NotificationInboxQueryOptions({
+  const { data, isPending, isPlaceholderData } = useQuery(NotificationInboxQueryOptions({
     limit: pageSize,
     offset: page * pageSize,
     unread: unreadOnly,
@@ -84,6 +84,14 @@ export const NotificationInbox = () => {
   }));
   const messages = useMemo(() => data?.data ?? [], [data]);
   const pageCount = Math.max(1, Math.ceil((data?.count ?? 0) / pageSize));
+
+  // Deleting the last page's messages or opening a stale link leaves page past the end.
+  const outOfRange = !!data && data.count > 0 && page >= pageCount;
+  useEffect(() => {
+    if (outOfRange) {
+      navigate({ search: (prev) => ({ ...prev, page: pageCount > 1 ? pageCount - 1 : undefined }), replace: true });
+    }
+  }, [outOfRange, pageCount, navigate]);
 
   // Live updates refetch the page, so only the selected ids still on it count.
   const selectedIds = useMemo(() => messages.filter(m => selected.has(m.id)).map(m => m.id), [messages, selected]);
@@ -260,7 +268,7 @@ export const NotificationInbox = () => {
             )}
           </div>
 
-          {isPending ? (
+          {isPending || outOfRange || (isPlaceholderData && messages.length === 0) ? (
             <InboxSkeleton />
           ) : messages.length > 0 ? (
             <ul className="min-w-full divide-y divide-gray-150 dark:divide-gray-775">
