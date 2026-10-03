@@ -3,7 +3,7 @@ version: 2
 #id: infinityhd
 name: InfinityHD
 identifier: infinityhd
-description: InfinityHD is a private torrent tracker for MOVIES and TV
+description: InfinityHD is a private torrent tracker for MOVIES, TV, and MUSIC
 language: en-us
 urls:
   - https://infinityhd.net/
@@ -52,6 +52,7 @@ irc:
         type: single
         lines:
           # <announceType>:<category>:<leechType>:<origin>:<tid>:<sizebytes>:<uploadDate>:<tmdbid>|<Type>/<resolution>|<year>|<releasename>|<uploader>
+          # music: <announceType>:5:<leechType>:<origin>:<tid>:<sizebytes>:<uploadDate>:0|<format>/<tags>|<year>|<releasename>|<uploader>
           - pattern: '(?P<announceTypeEnum>\d):(?P<categoryEnum>\d):(?P<leechTypeEnum>\d):(?P<originEnum>\d):(?P<torrentId>\d+):(?P<torrentSizeBytes>\d+):(?P<uploadedDate>\d+):(?P<tmdb>\d+)\|(?P<releaseTags>.*)\|(?P<year>\d+)?\|(?P<releaseName>.+)\|(?P<uploader>.+)'
             tests:
               - line: 0:2:0:0:12878:9939320728:1774760500:203489|WEB-DL/1080p|2022|Mike Judge's Beavis and Butt-Head S02 1080p AMZN WEB-DL DD+ 5.1 H.264-NTb|uploader1
@@ -84,6 +85,36 @@ irc:
                   releaseName: I Was Reincarnated as the 7th Prince so I Can Take My Time Perfecting My Magical Ability AKA Tensei Shitara Dainana Ouji Datta Node, Kimama ni Majutsu wo Kiwamemasu S01 PROPER 1080p BluRay Dual-Audio Opus 2.0 x265-Headpatter
                   uploader: uploader2
 
+              - line: 0:5:1:1:25704:344064512:1775190000:0|FLAC/Lossless / WEB|2014|Headhunterz featuring Krewella - United Kids of the World (Remixes) (2014) [WEB FLAC]-StellarRift|uploader3
+                expect:
+                  announceTypeEnum: 0
+                  categoryEnum: 5
+                  leechTypeEnum: 1
+                  originEnum: 1
+                  torrentId: "25704"
+                  torrentSizeBytes: "344064512"
+                  uploadedDate: "1775190000"
+                  tmdb: "0"
+                  releaseTags: FLAC/Lossless / WEB
+                  year: "2014"
+                  releaseName: Headhunterz featuring Krewella - United Kids of the World (Remixes) (2014) [WEB FLAC]-StellarRift
+                  uploader: uploader3
+
+              - line: 0:5:0:0:25910:472908011:1775193600:0|FLAC/Lossless / CD / Log / 100% / Cue|1997|Radiohead - OK Computer (1997) [CD FLAC]-GROUP|uploader4
+                expect:
+                  announceTypeEnum: 0
+                  categoryEnum: 5
+                  leechTypeEnum: 0
+                  originEnum: 0
+                  torrentId: "25910"
+                  torrentSizeBytes: "472908011"
+                  uploadedDate: "1775193600"
+                  tmdb: "0"
+                  releaseTags: FLAC/Lossless / CD / Log / 100% / Cue
+                  year: "1997"
+                  releaseName: Radiohead - OK Computer (1997) [CD FLAC]-GROUP
+                  uploader: uploader4
+
         mappings:
           announceTypeEnum:
             "0":
@@ -102,6 +133,8 @@ irc:
               category: "Anime"
             "4":
               category: "Anime Movie"
+            "5":
+              category: "Music"
 
           originEnum:
             "0":
