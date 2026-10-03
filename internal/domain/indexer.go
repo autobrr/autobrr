@@ -202,13 +202,29 @@ func (i IndexerDefinition) HasApi() bool {
 	return slices.Contains(i.Supports, "api")
 }
 
-// ValidateIRCAuth rejects invalid authentication metadata in an indexer definition.
-func (i IndexerDefinition) ValidateIRCAuth() error {
-	if i.IRC == nil || i.IRC.Auth == nil {
+// ValidateIRC rejects invalid IRC authentication and parse metadata in an indexer definition.
+func (i IndexerDefinition) ValidateIRC() error {
+	if i.IRC == nil {
 		return nil
 	}
 
-	return i.IRC.Auth.Validate()
+	if i.IRC.Auth != nil {
+		if err := i.IRC.Auth.Validate(); err != nil {
+			return err
+		}
+	}
+
+	for _, channel := range i.IRC.Channels {
+		if channel.Parse == nil {
+			continue
+		}
+
+		if err := channel.Parse.SizeUnits.Validate(); err != nil {
+			return errors.Wrap(err, "invalid parse for channel: %s", channel.Name)
+		}
+	}
+
+	return nil
 }
 
 type IndexerDefinitionCustom struct {
@@ -450,6 +466,16 @@ const (
 
 func (s SizeUnits) String() string {
 	return string(s)
+}
+
+// Validate rejects size units other than the decimal default and binary.
+func (s SizeUnits) Validate() error {
+	switch s {
+	case "", SizeUnitsBinary:
+		return nil
+	}
+
+	return errors.New("invalid size units: %q", s)
 }
 
 type IndexerIRCV2ParseMatch struct {

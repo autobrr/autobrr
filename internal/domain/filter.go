@@ -456,7 +456,7 @@ func (f *Filter) CheckFilter(r *Release) (*RejectionReasons, bool) {
 			msg = fmt.Sprintf("reached %d per %d %s", f.MaxDownloads, period, f.MaxDownloadsUnit)
 		}
 
-		f.RejectReasons.Addf("max downloads", fmt.Sprintf("[max downloads] %s", msg), f.Downloads.String(), msg)
+		f.RejectReasons.Addf("max downloads", "[%[1]s] %[3]s", f.Downloads.String(), msg)
 		return f.RejectReasons, false
 	}
 
