@@ -456,7 +456,7 @@ func (f *Filter) CheckFilter(r *Release) (*RejectionReasons, bool) {
 			msg = fmt.Sprintf("reached %d per %d %s", f.MaxDownloads, period, f.MaxDownloadsUnit)
 		}
 
-		f.RejectReasons.Addf("max downloads", fmt.Sprintf("[max downloads] %s", msg), f.Downloads.String(), msg)
+		f.RejectReasons.Addf("max downloads", "[%[1]s] %[3]s", f.Downloads.String(), msg)
 		return f.RejectReasons, false
 	}
 
@@ -1286,12 +1286,12 @@ func (f *Filter) CheckReleaseSize(releaseSize uint64) (bool, error) {
 	}
 
 	if minBytes != nil && releaseSize <= *minBytes {
-		f.RejectReasons.Addf("release size", "release size %d bytes is smaller than filter min size %d bytes", releaseSize, *minBytes)
+		f.RejectReasons.Addf("release size", "release size %[2]d bytes is smaller than filter min size %[3]d bytes", releaseSize, *minBytes)
 		return false, nil
 	}
 
 	if maxBytes != nil && releaseSize >= *maxBytes {
-		f.RejectReasons.Addf("release size", "release size %d bytes is larger than filter max size %d bytes", releaseSize, *maxBytes)
+		f.RejectReasons.Addf("release size", "release size %[2]d bytes is larger than filter max size %[3]d bytes", releaseSize, *maxBytes)
 		return false, nil
 	}
 

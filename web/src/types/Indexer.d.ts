@@ -99,7 +99,8 @@ interface IndexerFeed {
 
 interface IndexerParse {
   type: string;
-  forcesizeunit: boolean;
+  forcesizeunit: string;
+  sizeunits: "" | "binary";
   skipcleanmessage: boolean;
   lines: IndexerParseLines[];
   match: IndexerParseMatch;

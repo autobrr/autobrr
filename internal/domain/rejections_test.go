@@ -44,6 +44,26 @@ func TestRejectionReasons_String(t *testing.T) {
 			},
 			want: "[resolution] not matching: got 1080p want: 2160p, [match hdr] not matching: got [HDR10] want: [DV]",
 		},
+		{
+			name: "formatted",
+			fields: fields{
+				data: []Rejection{
+					{
+						key:    "max downloads",
+						format: "[%[1]s] %[3]s",
+						got:    "Period: 10",
+						want:   "reached 10 per MONTH",
+					},
+					{
+						key:    "release size",
+						format: "release size %[2]d bytes is larger than filter max size %[3]d bytes",
+						got:    uint64(8192650117),
+						want:   uint64(8000000000),
+					},
+				},
+			},
+			want: "[max downloads] reached 10 per MONTH, release size 8192650117 bytes is larger than filter max size 8000000000 bytes",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
