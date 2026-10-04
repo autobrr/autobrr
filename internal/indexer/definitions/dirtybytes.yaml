@@ -58,13 +58,13 @@ irc:
       parse:
         type: single
         lines:
-          - pattern: 'NEW TORRENT in (?P<category>.+?) :: (?P<releaseName>.+) :: (?P<baseUrl>https:\/\/.+\/)download\/(?P<torrentId>\d+)(?: :: Genres: \[(?P<tags>.*?)\])? :: Tags: \[(?P<releaseTags>(?:[^\]]*?(?P<freeleech>freeleech))?[^\]]*)\] :: Size: \[(?P<torrentSize>.+)\]'
+          - pattern: 'NEW TORRENT in (?P<category>.+?) :: (?P<releaseName>.+) :: (?P<baseUrl>https:\/\/.+\/)api\/v1\/torrents\/download\/(?P<torrentId>\d+)(?: :: Genres: \[(?P<tags>.*?)\])? :: Tags: \[(?P<releaseTags>(?:[^\]]*?(?P<freeleech>freeleech))?[^\]]*)\] :: Size: \[(?P<torrentSize>.+)\]'
             tests:
               - line: 'NEW TORRENT in Movies/SD :: Pounding The Pledges :: https://dirtybytes.net/api/v1/torrents/download/165 :: Tags: [freeleech] :: Size: [691.55 MiB]'
                 expect:
                   category: Movies/SD
                   releaseName: Pounding The Pledges
-                  baseUrl: https://dirtybytes.net/api/v1/torrents/
+                  baseUrl: https://dirtybytes.net/
                   torrentId: "165"
                   tags: ""
                   releaseTags: freeleech
@@ -75,7 +75,7 @@ irc:
                 expect:
                   category: Movies/1080p
                   releaseName: cosplayer ZiraelRem PACK
-                  baseUrl: https://dirtybytes.net/api/v1/torrents/
+                  baseUrl: https://dirtybytes.net/
                   torrentId: "166"
                   tags: "Amateur, Cosplay, Solo, Toys"
                   releaseTags: freeleech
