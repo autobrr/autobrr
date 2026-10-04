@@ -165,6 +165,10 @@ type NotificationPayload struct {
 	ReleaseName         string
 	Filter              string
 	FilterID            int
+	List                string
+	ListID              int64
+	ListType            ListType
+	ListError           string
 	Indexer             string
 	InfoHash            string
 	Size                uint64
@@ -303,6 +307,7 @@ type WebhookData struct {
 	Filter  *WebhookFilter  `json:"filter,omitempty"`
 	Action  *WebhookAction  `json:"action,omitempty"`
 	Result  *WebhookResult  `json:"result,omitempty"`
+	List    *WebhookList    `json:"list,omitempty"`
 }
 
 // WebhookRelease contains release-specific data
@@ -384,6 +389,14 @@ type WebhookAction struct {
 	Name   string `json:"name,omitempty"`
 	Type   string `json:"type,omitempty"`
 	Client string `json:"client,omitempty"`
+}
+
+// WebhookList contains list refresh information
+type WebhookList struct {
+	ID    int64  `json:"id"`
+	Name  string `json:"name"`
+	Type  string `json:"type"`
+	Error string `json:"error,omitempty"`
 }
 
 // WebhookResult contains push result information
@@ -531,6 +544,15 @@ func NewWebhookEvent(event NotificationEvent, payload NotificationPayload, id st
 		data.Result = &WebhookResult{
 			Status:     string(payload.Status),
 			Rejections: payload.Rejections,
+		}
+	}
+
+	if event == NotificationEventListRefreshSuccess || event == NotificationEventListRefreshError {
+		data.List = &WebhookList{
+			ID:    payload.ListID,
+			Name:  payload.List,
+			Type:  string(payload.ListType),
+			Error: payload.ListError,
 		}
 	}
 

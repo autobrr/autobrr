@@ -362,6 +362,9 @@ func (s *Service) setupEventListeners() {
 				Event:     domain.NotificationEventListRefreshSuccess,
 				Subject:   "List Refresh Success",
 				Message:   fmt.Sprintf("List: %s", event.List.Name),
+				List:      event.List.Name,
+				ListID:    event.List.ID,
+				ListType:  event.List.Type,
 				Timestamp: event.List.LastRefreshTime,
 			}
 
@@ -370,6 +373,10 @@ func (s *Service) setupEventListeners() {
 				Event:     domain.NotificationEventListRefreshError,
 				Subject:   "List Refresh Error",
 				Message:   fmt.Sprintf("List: %s\nError: %s", event.List.Name, event.List.LastRefreshData),
+				List:      event.List.Name,
+				ListID:    event.List.ID,
+				ListType:  event.List.Type,
+				ListError: event.List.LastRefreshData,
 				Timestamp: event.List.LastRefreshTime,
 			}
 		default:
@@ -781,12 +788,19 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 			Event:     domain.NotificationEventListRefreshSuccess,
 			Subject:   "List Refresh Success",
 			Message:   "List: Sonarr TV",
+			List:      "Sonarr TV",
+			ListID:    1,
+			ListType:  domain.ListTypeSonarr,
 			Timestamp: time.Now(),
 		},
 		{
 			Event:     domain.NotificationEventListRefreshError,
 			Subject:   "List Refresh Error",
 			Message:   "List: Sonarr TV\nError: client sonarr Sonarr not enabled",
+			List:      "Sonarr TV",
+			ListID:    1,
+			ListType:  domain.ListTypeSonarr,
+			ListError: "client sonarr Sonarr not enabled",
 			Timestamp: time.Now(),
 		},
 		{
