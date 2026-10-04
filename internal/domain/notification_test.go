@@ -184,6 +184,38 @@ func TestNewWebhookEvent_ListRefresh(t *testing.T) {
 	}
 }
 
+func TestNewWebhookEvent_FeedRefresh(t *testing.T) {
+	tests := []struct {
+		name  string
+		event NotificationEvent
+		want  WebhookEventType
+		err   string
+	}{
+		{name: "success", event: NotificationEventFeedRefreshSuccess, want: WebhookEventFeedRefreshSuccess},
+		{name: "error", event: NotificationEventFeedRefreshError, want: WebhookEventFeedRefreshError, err: "error fetching feed items: unexpected status code: 503"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			payload := NotificationPayload{
+				Event:     tt.event,
+				Feed:      "Mock Indexer",
+				FeedID:    4,
+				FeedType:  string(FeedTypeTorznab),
+				FeedError: tt.err,
+				Indexer:   "Mock Indexer",
+			}
+
+			result := NewWebhookEvent(payload.Event, payload, "test-uuid")
+
+			assert.Equal(t, tt.want, result.Event)
+			require.NotNil(t, result.Data.Feed)
+			assert.Equal(t, &WebhookFeed{ID: 4, Name: "Mock Indexer", Type: "TORZNAB", Error: tt.err}, result.Data.Feed)
+			require.NotNil(t, result.Data.Indexer)
+			assert.Equal(t, "Mock Indexer", result.Data.Indexer.Name)
+		})
+	}
+}
+
 func TestNewWebhookEvent_IRC(t *testing.T) {
 	tests := []struct {
 		name    string

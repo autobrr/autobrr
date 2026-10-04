@@ -197,6 +197,14 @@
         "label": "Chyba obnovení listu",
         "description": "Obnovení listu selhalo"
       },
+      "FEED_REFRESH_SUCCESS": {
+        "label": "Obnovení kanálu úspěšné",
+        "description": "Kanál byl obnoven"
+      },
+      "FEED_REFRESH_ERROR": {
+        "label": "Chyba obnovení kanálu",
+        "description": "Obnovení kanálu selhalo"
+      },
       "APP_UPDATE_AVAILABLE": {
         "label": "Nová aktualizace",
         "description": "Obdržet notifikace o aktualizacích"

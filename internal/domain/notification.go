@@ -169,6 +169,10 @@ type NotificationPayload struct {
 	ListID              int64
 	ListType            ListType
 	ListError           string
+	Feed                string
+	FeedID              int
+	FeedType            string
+	FeedError           string
 	IRCNetwork          string
 	IRCMessage          string
 	Indexer             string
@@ -217,6 +221,8 @@ const (
 	NotificationEventIRCReconnected     NotificationEvent = "IRC_RECONNECTED"
 	NotificationEventListRefreshSuccess NotificationEvent = "LIST_REFRESH_SUCCESS"
 	NotificationEventListRefreshError   NotificationEvent = "LIST_REFRESH_ERROR"
+	NotificationEventFeedRefreshSuccess NotificationEvent = "FEED_REFRESH_SUCCESS"
+	NotificationEventFeedRefreshError   NotificationEvent = "FEED_REFRESH_ERROR"
 	NotificationEventReleaseNew         NotificationEvent = "RELEASE_NEW"
 	NotificationEventTest               NotificationEvent = "TEST"
 )
@@ -289,6 +295,8 @@ const (
 	WebhookEventIRCReconnected     WebhookEventType = "irc.reconnected"
 	WebhookEventListRefreshSuccess WebhookEventType = "list.refresh_success"
 	WebhookEventListRefreshError   WebhookEventType = "list.refresh_error"
+	WebhookEventFeedRefreshSuccess WebhookEventType = "feed.refresh_success"
+	WebhookEventFeedRefreshError   WebhookEventType = "feed.refresh_error"
 	WebhookEventAppUpdate          WebhookEventType = "app.update_available"
 	WebhookEventTest               WebhookEventType = "test"
 )
@@ -310,6 +318,7 @@ type WebhookData struct {
 	Action  *WebhookAction  `json:"action,omitempty"`
 	Result  *WebhookResult  `json:"result,omitempty"`
 	List    *WebhookList    `json:"list,omitempty"`
+	Feed    *WebhookFeed    `json:"feed,omitempty"`
 	IRC     *WebhookIRC     `json:"irc,omitempty"`
 }
 
@@ -402,6 +411,14 @@ type WebhookList struct {
 	Error string `json:"error,omitempty"`
 }
 
+// WebhookFeed contains feed refresh information
+type WebhookFeed struct {
+	ID    int    `json:"id"`
+	Name  string `json:"name"`
+	Type  string `json:"type"`
+	Error string `json:"error,omitempty"`
+}
+
 // WebhookIRC contains irc network information
 type WebhookIRC struct {
 	Network string `json:"network"`
@@ -432,6 +449,10 @@ func mapNotificationEventToWebhookEvent(event NotificationEvent) WebhookEventTyp
 		return WebhookEventListRefreshSuccess
 	case NotificationEventListRefreshError:
 		return WebhookEventListRefreshError
+	case NotificationEventFeedRefreshSuccess:
+		return WebhookEventFeedRefreshSuccess
+	case NotificationEventFeedRefreshError:
+		return WebhookEventFeedRefreshError
 	case NotificationEventAppUpdateAvailable:
 		return WebhookEventAppUpdate
 	case NotificationEventTest:
@@ -562,6 +583,15 @@ func NewWebhookEvent(event NotificationEvent, payload NotificationPayload, id st
 			Name:  payload.List,
 			Type:  string(payload.ListType),
 			Error: payload.ListError,
+		}
+	}
+
+	if event == NotificationEventFeedRefreshSuccess || event == NotificationEventFeedRefreshError {
+		data.Feed = &WebhookFeed{
+			ID:    payload.FeedID,
+			Name:  payload.Feed,
+			Type:  payload.FeedType,
+			Error: payload.FeedError,
 		}
 	}
 

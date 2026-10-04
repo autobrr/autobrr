@@ -12,6 +12,7 @@ import {
   ExclamationTriangleIcon,
   InboxArrowDownIcon,
   NoSymbolIcon,
+  RssIcon,
   SignalIcon,
   SignalSlashIcon
 } from "@heroicons/react/24/outline";
@@ -61,6 +62,8 @@ export const INBOX_EVENT_STYLES: Record<InboxMessage["event"], InboxEventStyle> 
   IRC_RECONNECTED: { icon: SignalIcon, ...GREEN },
   LIST_REFRESH_SUCCESS: { icon: ArrowPathIcon, ...GREEN },
   LIST_REFRESH_ERROR: { icon: ArrowPathIcon, ...RED },
+  FEED_REFRESH_SUCCESS: { icon: RssIcon, ...GREEN },
+  FEED_REFRESH_ERROR: { icon: RssIcon, ...RED },
   APP_UPDATE_AVAILABLE: { icon: ArrowUpCircleIcon, ...BLUE },
   RELEASE_NEW: { icon: InboxArrowDownIcon, ...GRAY },
   TEST: { icon: BeakerIcon, ...GRAY }
@@ -77,5 +80,7 @@ export const INBOX_FILTER_EVENTS: InboxFilterEvent[] = [
   "IRC_RECONNECTED",
   "LIST_REFRESH_ERROR",
   "LIST_REFRESH_SUCCESS",
+  "FEED_REFRESH_ERROR",
+  "FEED_REFRESH_SUCCESS",
   "APP_UPDATE_AVAILABLE"
 ];

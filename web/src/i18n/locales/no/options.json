@@ -197,6 +197,14 @@
       "label": "Feil ved oppdatering av liste",
       "description": "Oppdatering av listen mislyktes"
     },
+    "FEED_REFRESH_SUCCESS": {
+      "label": "Feed oppdatert",
+      "description": "Feeden er oppdatert"
+    },
+    "FEED_REFRESH_ERROR": {
+      "label": "Feil ved oppdatering av feed",
+      "description": "Oppdatering av feeden mislyktes"
+    },
     "APP_UPDATE_AVAILABLE": {
       "label": "Ny oppdatering",
       "description": "Bli varslet om oppdateringer"
