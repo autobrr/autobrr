@@ -253,8 +253,8 @@ export const NotificationInboxRoute = createRoute({
   path: 'notifications',
   component: lazyRouteComponent(() => import("@screens/NotificationInbox"), "NotificationInbox"),
   validateSearch: (search) => z.object({
-    page: z.optional(z.number()),
-    pageSize: z.optional(z.number()),
+    page: z.catch(z.optional(z.int().check(z.nonnegative())), undefined),
+    pageSize: z.catch(z.optional(z.literal([10, 25, 50, 100])), undefined),
     unread: z.optional(z.boolean()),
     event: z.optional(z.enum(['PUSH_ERROR', 'PUSH_REJECTED', 'PUSH_APPROVED', 'IRC_DISCONNECTED', 'IRC_RECONNECTED', 'APP_UPDATE_AVAILABLE'])),
   }).parse(search),

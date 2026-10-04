@@ -8,7 +8,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createMemoryHistory, createRootRouteWithContext, createRoute, createRouter, RouterProvider } from "@tanstack/react-router";
 import { act, cleanup, fireEvent, render, renderHook, screen, within } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
-import { z } from "zod/mini";
 
 import { APIClient } from "@api/APIClient";
 import { NotificationUpdateForm } from "@forms/settings/NotificationForms";
@@ -18,6 +17,7 @@ import { useInboxEvents } from "@hooks/useInbox";
 import { NotificationKeys } from "@api/query_keys";
 import { SettingsContext } from "@utils/Context";
 import i18n from "@app/i18n";
+import { NotificationInboxRoute } from "@app/routes";
 
 afterEach(() => {
   cleanup();
@@ -74,12 +74,7 @@ const renderInbox = (path = "/notifications", component: () => ReactNode = Notif
     getParentRoute: () => authenticated,
     path: "notifications",
     component,
-    validateSearch: (search) => z.object({
-      page: z.optional(z.number()),
-      pageSize: z.optional(z.number()),
-      unread: z.optional(z.boolean()),
-      event: z.optional(z.enum(["PUSH_ERROR", "PUSH_REJECTED", "PUSH_APPROVED", "IRC_DISCONNECTED", "IRC_RECONNECTED", "APP_UPDATE_AVAILABLE"]))
-    }).parse(search)
+    validateSearch: NotificationInboxRoute.options.validateSearch
   });
   const router = createRouter({
     routeTree: root.addChildren([auth.addChildren([authenticated.addChildren([inbox])])]),
@@ -315,6 +310,23 @@ test("a page past the end redirects to the last page without flashing the empty 
 
   observer.disconnect();
   expect(emptyStateRendered).toBe(false);
+});
+
+test.each([
+  ["pageSize=0", { limit: 25, offset: 0 }],
+  ["pageSize=7", { limit: 25, offset: 0 }],
+  ["pageSize=50&page=-1", { limit: 50, offset: 0 }],
+  ["pageSize=50&page=1.5", { limit: 50, offset: 0 }],
+  ["pageSize=50&page=1", { limit: 50, offset: 50 }]
+])("pagination search %s falls back to supported values", async (search, params) => {
+  const list = vi.spyOn(APIClient.notifications.inbox, "list").mockResolvedValue(response({ count: 120, all_count: 120 }));
+
+  renderInbox(`/notifications?${search}`);
+
+  const nav = await screen.findByRole("navigation", { name: "Pagination" });
+  expect(list).toHaveBeenLastCalledWith({ ...params, unread: false, event: undefined });
+  expect(nav.textContent).not.toContain("Infinity");
+  expect((screen.getByRole("combobox", { name: "Items Per Page" }) as HTMLSelectElement).value).toBe(String(params.limit));
 });
 
 test("mark all as read mentions hidden messages when an event filter is active", async () => {

@@ -47,7 +47,9 @@ import { classNames, IsEmptyDate, simplifyDate } from "@utils";
 import { paginationRange } from "@utils/pagination";
 
 const DEFAULT_PAGE_SIZE = 25;
-const PAGE_SIZES = [10, 25, 50, 100];
+const PAGE_SIZES = [10, 25, 50, 100] as const;
+
+type PageSize = typeof PAGE_SIZES[number];
 
 type PendingAction =
   | { kind: "markRead"; ids: number[] }
@@ -57,7 +59,7 @@ type PendingAction =
 
 type InboxSearch = {
   page?: number;
-  pageSize?: number;
+  pageSize?: PageSize;
   unread?: boolean;
   event?: InboxFilterEvent;
 };
@@ -739,7 +741,7 @@ interface InboxPaginationProps {
   pageCount: number;
   pageSize: number;
   onPageChange: (page: number) => void;
-  onPageSizeChange: (size: number) => void;
+  onPageSizeChange: (size: PageSize) => void;
 }
 
 const InboxPagination = ({ page, pageCount, pageSize, onPageChange, onPageSizeChange }: InboxPaginationProps) => {
@@ -792,7 +794,7 @@ const InboxPagination = ({ page, pageCount, pageSize, onPageChange, onPageSizeCh
         <select
           className="py-1 pl-2 pr-8 text-sm block w-full border-gray-300 rounded-md shadow-xs cursor-pointer transition-colors dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:text-gray-200 focus:border-blue-300 focus:ring-3 focus:ring-blue-200 focus:ring-opacity-50"
           value={pageSize}
-          onChange={(e) => onPageSizeChange(Number(e.target.value))}
+          onChange={(e) => onPageSizeChange(Number(e.target.value) as PageSize)}
         >
           {PAGE_SIZES.map((size) => (
             <option key={size} value={size}>
