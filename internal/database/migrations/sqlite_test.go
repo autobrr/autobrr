@@ -672,6 +672,19 @@ func TestRunMigrationTest_SQLite(t *testing.T) {
 			},
 			want: "",
 		},
+		{
+			name:   "notification inbox migration keeps an existing built-in notification",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "notification inbox migration keeps an existing built-in notification",
+				MigrationIndex:      98,
+				MigrationsUntilName: "98_irc_update_nordicbytes_network",
+				MigrationToRun:      "99_add_notification_inbox",
+				SetupData:           setupBuiltinNotificationPresent,
+				ValidateResult:      validateBuiltinNotificationNotDuplicated,
+			},
+			want: "",
+		},
 	}
 
 	for _, tt := range tests {

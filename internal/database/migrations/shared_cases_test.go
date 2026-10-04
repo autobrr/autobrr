@@ -204,3 +204,22 @@ func validateBuiltinNotificationKeepsExisting(db *sql.DB, t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "https://discord.example/hook", webhook)
 }
+
+func setupBuiltinNotificationPresent(db *sql.DB) error {
+	_, err := db.Exec(`INSERT INTO notification (name, type, enabled, events)
+		VALUES ('Existing', 'BUILTIN', FALSE, '{PUSH_REJECTED}')`)
+
+	return err
+}
+
+func validateBuiltinNotificationNotDuplicated(db *sql.DB, t *testing.T) {
+	var count int
+	err := db.QueryRow(`SELECT COUNT(*) FROM notification WHERE type = 'BUILTIN'`).Scan(&count)
+	require.NoError(t, err)
+	assert.Equal(t, 1, count)
+
+	var name string
+	err = db.QueryRow(`SELECT name FROM notification WHERE type = 'BUILTIN'`).Scan(&name)
+	require.NoError(t, err)
+	assert.Equal(t, "Existing", name, "the seed must not replace a built-in row that already exists")
+}

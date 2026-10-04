@@ -543,6 +543,14 @@ func TestRunMigrationTest_Postgres(t *testing.T) {
 			SetupData:           setupBuiltinNotificationExisting,
 			ValidateResult:      validateBuiltinNotificationKeepsExisting,
 		},
+		{
+			Name:                "notification inbox migration keeps an existing built-in notification",
+			MigrationIndex:      88,
+			MigrationsUntilName: "88_irc_update_nordicbytes_network",
+			MigrationToRun:      "89_add_notification_inbox",
+			SetupData:           setupBuiltinNotificationPresent,
+			ValidateResult:      validateBuiltinNotificationNotDuplicated,
+		},
 	}
 
 	for _, tc := range tests {

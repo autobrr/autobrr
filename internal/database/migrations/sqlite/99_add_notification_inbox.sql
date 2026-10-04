@@ -21,7 +21,8 @@ CREATE INDEX notification_inbox_created_at_index
 
 -- every install gets one built-in notification; the partial unique index keeps it a singleton
 INSERT INTO notification (name, type, enabled, events, created_at, updated_at)
-VALUES ('Built-in', 'BUILTIN', TRUE, '{PUSH_ERROR,IRC_DISCONNECTED,APP_UPDATE_AVAILABLE}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+SELECT 'Built-in', 'BUILTIN', TRUE, '{PUSH_ERROR,IRC_DISCONNECTED,APP_UPDATE_AVAILABLE}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+WHERE NOT EXISTS (SELECT 1 FROM notification WHERE type = 'BUILTIN');
 
 CREATE UNIQUE INDEX notification_builtin_unique
     ON notification (type)
