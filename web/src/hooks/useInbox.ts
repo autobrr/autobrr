@@ -49,8 +49,10 @@ export function useInboxEvents() {
         void queryClient.invalidateQueries({ queryKey: NotificationKeys.inbox.all() });
       });
 
+      // The stream has no replay, so anything published while disconnected is only in the database.
       es.onopen = () => {
         reconnectAttempt = 0;
+        void queryClient.invalidateQueries({ queryKey: NotificationKeys.inbox.all() });
       };
 
       // The browser only retries transport errors. A non-2xx handshake (expired session,

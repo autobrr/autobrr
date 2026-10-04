@@ -6,7 +6,7 @@
 import type { ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createMemoryHistory, createRootRouteWithContext, createRoute, createRouter, RouterProvider } from "@tanstack/react-router";
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, renderHook, screen, within } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import { z } from "zod/mini";
 
@@ -14,11 +14,15 @@ import { APIClient } from "@api/APIClient";
 import { NotificationUpdateForm } from "@forms/settings/NotificationForms";
 import { NotificationInbox } from "@screens/NotificationInbox";
 import { InboxMenu } from "@components/header/InboxMenu";
+import { useInboxEvents } from "@hooks/useInbox";
+import { NotificationKeys } from "@api/query_keys";
 import "@app/i18n";
 
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
 });
 
 const emptyFields = {
@@ -344,4 +348,40 @@ test("the built-in notification can not change type or be removed", () => {
   expect(screen.queryByText("Remove")).toBeNull();
   expect(screen.getByText("Browser notifications")).toBeTruthy();
   expect(screen.queryByText("New Release")).toBeNull();
+});
+
+test("the inbox refetches every time the event stream connects", async () => {
+  vi.useFakeTimers();
+  vi.stubGlobal("EventSource", { CONNECTING: 0, OPEN: 1, CLOSED: 2 });
+  const streams: EventSource[] = [];
+  vi.spyOn(APIClient.events, "notifications").mockImplementation(() => {
+    const es = { readyState: 1, addEventListener: vi.fn(), close: vi.fn() } as unknown as EventSource;
+    streams.push(es);
+    return es;
+  });
+
+  const queryClient = new QueryClient();
+  const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+  const { unmount } = renderHook(() => useInboxEvents(), {
+    wrapper: ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  });
+
+  streams[0].onopen?.(new Event("open"));
+  expect(invalidate).toHaveBeenCalledTimes(1);
+
+  // The browser retries a dropped connection on the same EventSource.
+  streams[0].onopen?.(new Event("open"));
+  expect(invalidate).toHaveBeenCalledTimes(2);
+
+  // A failed handshake closes the stream and our backoff opens a new one.
+  Object.assign(streams[0], { readyState: 2 });
+  streams[0].onerror?.(new Event("error"));
+  act(() => vi.advanceTimersByTime(1000));
+  expect(streams).toHaveLength(2);
+
+  streams[1].onopen?.(new Event("open"));
+  expect(invalidate).toHaveBeenCalledTimes(3);
+  expect(invalidate).toHaveBeenLastCalledWith({ queryKey: NotificationKeys.inbox.all() });
+
+  unmount();
 });
