@@ -1,0 +1,87 @@
+---
+version: 2
+#id: dirtybytes
+name: DirtyBytes
+identifier: dirtybytes
+description: DirtyBytes is a private torrent tracker for XXX
+language: en-us
+urls:
+  - https://dirtybytes.net/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: unknown
+settings:
+  - name: passkey
+    type: secret
+    required: true
+    label: PassKey
+    help: Settings -> Security -> Passkey.
+
+irc:
+  network: DigitalCore
+  server: irc.digitalcore.club
+  port: 7000
+  tls: true
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user|autodl
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+    - name: invite_command
+      type: secret
+      default: "DirtyBytes !invite USERNAME IRCKEY"
+      required: true
+      label: Invite command
+      help: Invite auth with DirtyBytes. Replace USERNAME and IRCKEY
+
+  channels:
+    - name: "#dirtybytes-announce"
+      announcers:
+        - DirtyBytes
+      parse:
+        type: single
+        lines:
+          - pattern: 'NEW TORRENT in (?P<category>.+?) :: (?P<releaseName>.+) :: (?P<baseUrl>https:\/\/.+\/)download\/(?P<torrentId>\d+)(?: :: Genres: \[(?P<tags>.*?)\])? :: Tags: \[(?P<releaseTags>(?:[^\]]*?(?P<freeleech>freeleech))?[^\]]*)\] :: Size: \[(?P<torrentSize>.+)\]'
+            tests:
+              - line: 'NEW TORRENT in Movies/SD :: Pounding The Pledges :: https://dirtybytes.net/api/v1/torrents/download/165 :: Tags: [freeleech] :: Size: [691.55 MiB]'
+                expect:
+                  category: Movies/SD
+                  releaseName: Pounding The Pledges
+                  baseUrl: https://dirtybytes.net/api/v1/torrents/
+                  torrentId: "165"
+                  tags: ""
+                  releaseTags: freeleech
+                  freeleech: freeleech
+                  torrentSize: 691.55 MiB
+
+              - line: 'NEW TORRENT in Movies/1080p :: cosplayer ZiraelRem PACK :: https://dirtybytes.net/api/v1/torrents/download/166 :: Genres: [Amateur, Cosplay, Solo, Toys] :: Tags: [freeleech] :: Size: [305.06 GiB]'
+                expect:
+                  category: Movies/1080p
+                  releaseName: cosplayer ZiraelRem PACK
+                  baseUrl: https://dirtybytes.net/api/v1/torrents/
+                  torrentId: "166"
+                  tags: "Amateur, Cosplay, Solo, Toys"
+                  releaseTags: freeleech
+                  freeleech: freeleech
+                  torrentSize: 305.06 GiB
+
+        match:
+          infourl: "/torrent/{{ .torrentId }}/"
+          downloadurl: "/api/v1/torrents/download/{{ .torrentId }}/{{ .passkey }}"
