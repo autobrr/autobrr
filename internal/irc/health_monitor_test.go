@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/events"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -155,4 +156,26 @@ func TestCheckNetworkHealth_RemovedNetworkSendsNoRecovery(t *testing.T) {
 
 	assert.Len(t, bus.snapshot(), 1)
 	assert.Empty(t, s.unhealthyNetworks)
+}
+
+func TestCheckNetworkHealth_StartupProxyLookupFailure(t *testing.T) {
+	bus := &recordingEventBus{}
+	s := NewService(zerolog.Nop(), bus, &mockSSEServer{}, newStubIrcRepo(proxiedNetwork()), nil, stubIndexerService{}, stubProxyService{err: errors.New("database is locked")})
+
+	s.StartHandlers()
+	t.Cleanup(s.StopHandlers)
+
+	h, found := s.networkHandlers.Get(proxiedNetwork().ID)
+	require.True(t, found, "a network whose proxy lookup failed must still get a handler")
+
+	require.Eventually(t, func() bool {
+		return h.healthStatus().stopped
+	}, time.Second, 10*time.Millisecond)
+
+	s.checkNetworkHealth(t.Context(), time.Now())
+
+	got := bus.snapshot()
+	require.Len(t, got, 1)
+	assert.Equal(t, events.IRCUnhealthy, got[0].Type)
+	assert.Equal(t, "net: configured proxy could not be loaded", got[0].Message)
 }

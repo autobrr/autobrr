@@ -198,9 +198,10 @@ func (s *Service) StartHandlers() {
 			continue
 		}
 
+		// still register the handler: Run refuses to connect without the proxy and records
+		// why, so the network shows as unhealthy instead of silently missing
 		if err := s.attachProxy(ctx, &network); err != nil {
 			s.log.Error().Err(err).Str("server", network.Server).Msg("failed to get proxy for network")
-			continue
 		}
 
 		channels, err := s.repo.ListChannels(network.ID)
