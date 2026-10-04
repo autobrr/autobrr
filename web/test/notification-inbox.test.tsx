@@ -119,6 +119,23 @@ test("inbox shows tab counts and asks for unread messages", async () => {
   expect(await screen.findByText("Show all notifications")).toBeTruthy();
 });
 
+test("a failed load shows an error instead of an empty inbox and can be retried", async () => {
+  const list = vi.spyOn(APIClient.notifications.inbox, "list").mockRejectedValue(new Error("boom"));
+
+  renderInbox("/notifications?unread=true");
+
+  expect(await screen.findByText("Couldn't load notifications")).toBeTruthy();
+  expect(screen.queryByText("You're all caught up")).toBeNull();
+
+  list.mockResolvedValue(response());
+  await act(async () => {
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+  });
+
+  expect(await screen.findByText("P2P-Network")).toBeTruthy();
+  expect(screen.queryByText("Couldn't load notifications")).toBeNull();
+});
+
 test("selected messages can be marked read and deleted in bulk", async () => {
   vi.spyOn(APIClient.notifications.inbox, "list").mockResolvedValue(response());
   const markRead = vi.spyOn(APIClient.notifications.inbox, "markRead").mockResolvedValue(undefined as never);

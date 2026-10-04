@@ -28,6 +28,7 @@ import {
   ChevronRightIcon,
   Cog6ToothIcon,
   EllipsisHorizontalIcon,
+  ExclamationTriangleIcon,
   TrashIcon
 } from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
@@ -76,7 +77,7 @@ export const NotificationInbox = () => {
   const pageSize = search.pageSize ?? DEFAULT_PAGE_SIZE;
   const unreadOnly = search.unread ?? false;
 
-  const { data, isPending, isPlaceholderData } = useQuery(NotificationInboxQueryOptions({
+  const { data, isPending, isPlaceholderData, isError, refetch } = useQuery(NotificationInboxQueryOptions({
     limit: pageSize,
     offset: page * pageSize,
     unread: unreadOnly,
@@ -270,6 +271,21 @@ export const NotificationInbox = () => {
 
           {isPending || outOfRange || (isPlaceholderData && messages.length === 0) ? (
             <InboxSkeleton />
+          ) : isError && !data ? (
+            <EmptyInbox
+              icon={ExclamationTriangleIcon}
+              title={t("inbox.loadError")}
+              description={t("inbox.loadErrorDescription")}
+              action={
+                <button
+                  type="button"
+                  onClick={() => refetch()}
+                  className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 cursor-pointer"
+                >
+                  {t("inbox.retry")}
+                </button>
+              }
+            />
           ) : messages.length > 0 ? (
             <ul className="min-w-full divide-y divide-gray-150 dark:divide-gray-775">
               {messages.map((message, idx) => (
