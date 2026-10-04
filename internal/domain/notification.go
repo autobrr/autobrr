@@ -169,6 +169,8 @@ type NotificationPayload struct {
 	ListID              int64
 	ListType            ListType
 	ListError           string
+	IRCNetwork          string
+	IRCMessage          string
 	Indexer             string
 	InfoHash            string
 	Size                uint64
@@ -308,6 +310,7 @@ type WebhookData struct {
 	Action  *WebhookAction  `json:"action,omitempty"`
 	Result  *WebhookResult  `json:"result,omitempty"`
 	List    *WebhookList    `json:"list,omitempty"`
+	IRC     *WebhookIRC     `json:"irc,omitempty"`
 }
 
 // WebhookRelease contains release-specific data
@@ -397,6 +400,12 @@ type WebhookList struct {
 	Name  string `json:"name"`
 	Type  string `json:"type"`
 	Error string `json:"error,omitempty"`
+}
+
+// WebhookIRC contains irc network information
+type WebhookIRC struct {
+	Network string `json:"network"`
+	Message string `json:"message,omitempty"`
 }
 
 // WebhookResult contains push result information
@@ -553,6 +562,13 @@ func NewWebhookEvent(event NotificationEvent, payload NotificationPayload, id st
 			Name:  payload.List,
 			Type:  string(payload.ListType),
 			Error: payload.ListError,
+		}
+	}
+
+	if event == NotificationEventIRCDisconnected || event == NotificationEventIRCReconnected {
+		data.IRC = &WebhookIRC{
+			Network: payload.IRCNetwork,
+			Message: payload.IRCMessage,
 		}
 	}
 

@@ -325,24 +325,30 @@ func (s *Service) setupEventListeners() {
 		switch event.Type {
 		case events.IRCReconnected:
 			payload = domain.NotificationPayload{
-				Event:   domain.NotificationEventIRCReconnected,
-				Subject: "IRC Reconnected",
-				Message: event.Network,
-				//Message: fmt.Sprintf("Network: %s", networkName),
+				Event:      domain.NotificationEventIRCReconnected,
+				Subject:    "IRC Reconnected",
+				Message:    event.Network,
+				IRCNetwork: event.Network,
+				Timestamp:  time.Now(),
 			}
 
 		case events.IRCDisconnected:
 			payload = domain.NotificationPayload{
-				Event:   domain.NotificationEventIRCDisconnected,
-				Subject: "IRC Disconnected",
-				Message: event.Network,
+				Event:      domain.NotificationEventIRCDisconnected,
+				Subject:    "IRC Disconnected",
+				Message:    event.Network,
+				IRCNetwork: event.Network,
+				Timestamp:  time.Now(),
 			}
 
 		case events.IRCFlapping:
 			payload = domain.NotificationPayload{
-				Event:   domain.NotificationEventIRCDisconnected,
-				Subject: "IRC Stopped",
-				Message: event.Message,
+				Event:      domain.NotificationEventIRCDisconnected,
+				Subject:    "IRC Stopped",
+				Message:    event.Message,
+				IRCNetwork: event.Network,
+				IRCMessage: event.Message,
+				Timestamp:  time.Now(),
 			}
 		default:
 			return nil
@@ -773,16 +779,18 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 			},
 		},
 		{
-			Event:     domain.NotificationEventIRCDisconnected,
-			Subject:   "IRC Disconnected unexpectedly",
-			Message:   "Network: P2P-Network",
-			Timestamp: time.Now(),
+			Event:      domain.NotificationEventIRCDisconnected,
+			Subject:    "IRC Disconnected unexpectedly",
+			Message:    "Network: P2P-Network",
+			IRCNetwork: "P2P-Network",
+			Timestamp:  time.Now(),
 		},
 		{
-			Event:     domain.NotificationEventIRCReconnected,
-			Subject:   "IRC Reconnected",
-			Message:   "Network: P2P-Network",
-			Timestamp: time.Now(),
+			Event:      domain.NotificationEventIRCReconnected,
+			Subject:    "IRC Reconnected",
+			Message:    "Network: P2P-Network",
+			IRCNetwork: "P2P-Network",
+			Timestamp:  time.Now(),
 		},
 		{
 			Event:     domain.NotificationEventListRefreshSuccess,
