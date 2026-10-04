@@ -81,7 +81,7 @@ func (h notificationHandler) store(w http.ResponseWriter, r *http.Request) {
 
 	err := h.service.Store(r.Context(), data)
 	if err != nil {
-		if errors.Is(err, domain.ErrNotificationBuiltin) {
+		if errors.Is(err, domain.ErrNotificationBuiltin) || errors.Is(err, domain.ErrNotificationInvalid) {
 			h.encoder.BadRequestErr(w, err)
 			return
 		}
@@ -126,7 +126,7 @@ func (h notificationHandler) update(w http.ResponseWriter, r *http.Request) {
 			h.encoder.NotFoundErr(w, errors.New("notification with id %d not found", data.ID))
 			return
 		}
-		if errors.Is(err, domain.ErrNotificationBuiltin) {
+		if errors.Is(err, domain.ErrNotificationBuiltin) || errors.Is(err, domain.ErrNotificationInvalid) {
 			h.encoder.BadRequestErr(w, err)
 			return
 		}
@@ -170,6 +170,11 @@ func (h notificationHandler) test(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.service.Test(r.Context(), data); err != nil {
+		if errors.Is(err, domain.ErrNotificationInvalid) {
+			h.encoder.BadRequestErr(w, err)
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}

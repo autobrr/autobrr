@@ -104,6 +104,10 @@ func (c *Client) Name() string {
 }
 
 func (c *Client) SendMessage(ctx context.Context, message *Message) error {
+	if c.config.APIKey == "" {
+		return errors.New("missing notifiarr api key")
+	}
+
 	jsonData, err := json.Marshal(message)
 	if err != nil {
 		return errors.Wrap(err, "could not marshal message to json")

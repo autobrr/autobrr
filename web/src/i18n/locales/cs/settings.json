@@ -576,6 +576,7 @@
         "discordWebhookHelp": "Webhook URL Discord kanálu",
         "notifiarrApiKey": "API klíč",
         "notifiarrApiKeyHelp": "Notifiarr API klíč",
+        "notifiarrApiKeyInvalid": "Musí to být 36znakový API klíč složený z a-z, 0-9 a pomlček",
         "lunaseaWebhookPlaceholder": "https://notify.lunasea.app/v1/custom/user/TOKEN",
         "lunaseaWebhookHelp": "Webhook URL LunaSea",
         "botToken": "Bot token",

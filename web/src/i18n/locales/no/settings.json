@@ -576,6 +576,7 @@
       "discordWebhookHelp": "Webhook-URL for Discord-kanal",
       "notifiarrApiKey": "API-nøkkel",
       "notifiarrApiKeyHelp": "Notifiarr API-nøkkel",
+      "notifiarrApiKeyInvalid": "Må være en API-nøkkel på 36 tegn med a-z, 0-9 og bindestreker",
       "lunaseaWebhookPlaceholder": "https://notify.lunasea.app/v1/custom/user/TOKEN",
       "lunaseaWebhookHelp": "LunaSea Webhook-URL",
       "botToken": "Bot-token",

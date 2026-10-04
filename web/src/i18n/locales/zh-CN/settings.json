@@ -576,6 +576,7 @@
       "discordWebhookHelp": "Discord 频道 webhook URL",
       "notifiarrApiKey": "API 密钥",
       "notifiarrApiKeyHelp": "Notifiarr API 密钥",
+      "notifiarrApiKeyInvalid": "必须是由 a-z、0-9 和短横线组成的 36 位 API 密钥",
       "lunaseaWebhookPlaceholder": "https://notify.lunasea.app/v1/custom/user/TOKEN",
       "lunaseaWebhookHelp": "LunaSea Webhook URL",
       "botToken": "机器人 Token",

@@ -746,3 +746,23 @@ func TestServiceBuiltinNotification(t *testing.T) {
 		}
 	})
 }
+
+func TestServiceValidation(t *testing.T) {
+	ctx := t.Context()
+
+	service := newTestService(newTestNotificationRepo(nil, nil))
+	require.NoError(t, service.Start())
+
+	missingKey := domain.Notification{Name: "notifiarr", Type: domain.NotificationTypeNotifiarr, Enabled: true}
+	assert.ErrorIs(t, service.Store(ctx, &missingKey), domain.ErrNotificationInvalid)
+	assert.ErrorIs(t, service.Test(ctx, &missingKey), domain.ErrNotificationInvalid)
+
+	missingKey.Enabled = false
+	require.NoError(t, service.Store(ctx, &missingKey), "disabled notifications are saved as drafts")
+
+	missingKey.Enabled = true
+	assert.ErrorIs(t, service.Update(ctx, &missingKey), domain.ErrNotificationInvalid)
+
+	missingKey.APIKey = "0b6c2a3e-9f1d-4c8a-b7e2-5d4f3a2b1c0d"
+	require.NoError(t, service.Update(ctx, &missingKey))
+}

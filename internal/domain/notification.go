@@ -5,8 +5,15 @@ package domain
 
 import (
 	"encoding/json"
+	"regexp"
+	"strings"
 	"time"
+
+	"github.com/autobrr/autobrr/pkg/errors"
 )
+
+// Notifiarr API keys are lowercase UUIDs; anything else is rejected by notifiarr.com.
+var rxpNotifiarrAPIKey = regexp.MustCompile(`^[a-z0-9-]{36}$`)
 
 type Notification struct {
 	ID            int                  `json:"id"`
@@ -87,6 +94,53 @@ func (n *Notification) IsEnabled() bool {
 		return true
 	}
 	return false
+}
+
+// Validate checks that the provider-specific fields a sender needs are present and well-formed.
+func (n *Notification) Validate() error {
+	switch n.Type {
+	case NotificationTypeDiscord, NotificationTypeLunaSea, NotificationTypeWebhook:
+		if strings.TrimSpace(n.Webhook) == "" {
+			return errors.Wrap(ErrNotificationInvalid, "missing webhook url")
+		}
+	case NotificationTypeGotify:
+		if strings.TrimSpace(n.Host) == "" {
+			return errors.Wrap(ErrNotificationInvalid, "missing gotify url")
+		}
+		if strings.TrimSpace(n.Token) == "" {
+			return errors.Wrap(ErrNotificationInvalid, "missing gotify application token")
+		}
+	case NotificationTypeNotifiarr:
+		if strings.TrimSpace(n.APIKey) == "" {
+			return errors.Wrap(ErrNotificationInvalid, "missing notifiarr api key")
+		}
+		if !rxpNotifiarrAPIKey.MatchString(n.APIKey) {
+			return errors.Wrap(ErrNotificationInvalid, "notifiarr api key must be 36 characters of a-z, 0-9 and dashes")
+		}
+	case NotificationTypeNtfy, NotificationTypeShoutrrr:
+		if strings.TrimSpace(n.Host) == "" {
+			return errors.Wrap(ErrNotificationInvalid, "missing url")
+		}
+	case NotificationTypePushover:
+		if strings.TrimSpace(n.APIKey) == "" {
+			return errors.Wrap(ErrNotificationInvalid, "missing pushover api token")
+		}
+		if strings.TrimSpace(n.Token) == "" {
+			return errors.Wrap(ErrNotificationInvalid, "missing pushover user key")
+		}
+	case NotificationTypeTelegram:
+		if strings.TrimSpace(n.Token) == "" {
+			return errors.Wrap(ErrNotificationInvalid, "missing telegram bot token")
+		}
+		if strings.TrimSpace(n.Channel) == "" {
+			return errors.Wrap(ErrNotificationInvalid, "missing telegram chat id")
+		}
+	case NotificationTypeBuiltin:
+	default:
+		return errors.Wrap(ErrNotificationInvalid, "unsupported notification type: '%s'", n.Type)
+	}
+
+	return nil
 }
 
 func (n Notification) MarshalJSON() ([]byte, error) {

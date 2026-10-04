@@ -576,6 +576,7 @@
       "discordWebhookHelp": "URL del webhook del canal de Discord",
       "notifiarrApiKey": "Clave API",
       "notifiarrApiKeyHelp": "Clave API de Notifiarr",
+      "notifiarrApiKeyInvalid": "Debe ser una clave API de 36 caracteres con a-z, 0-9 y guiones",
       "lunaseaWebhookPlaceholder": "https://notify.lunasea.app/v1/custom/user/TOKEN",
       "lunaseaWebhookHelp": "URL del webhook de LunaSea",
       "botToken": "Token del bot",

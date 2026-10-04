@@ -386,6 +386,12 @@ func (s *Service) Store(ctx context.Context, notification *domain.Notification) 
 		return domain.ErrNotificationBuiltin
 	}
 
+	if notification.Enabled {
+		if err := notification.Validate(); err != nil {
+			return err
+		}
+	}
+
 	s.stateMu.Lock()
 	defer s.stateMu.Unlock()
 
@@ -424,6 +430,13 @@ func (s *Service) Update(ctx context.Context, notification *domain.Notification)
 	}
 	if domain.IsRedactedString(notification.APIKey) {
 		notification.APIKey = existing.APIKey
+	}
+
+	// Disabling must stay possible for rows saved before validation existed.
+	if notification.Enabled {
+		if err := notification.Validate(); err != nil {
+			return err
+		}
 	}
 
 	if err := s.repo.Update(ctx, notification); err != nil {
@@ -615,6 +628,10 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 		if domain.IsRedactedString(notification.APIKey) {
 			notification.APIKey = existing.APIKey
 		}
+	}
+
+	if err := notification.Validate(); err != nil {
+		return err
 	}
 
 	var agent Sender
