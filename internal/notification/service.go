@@ -5,6 +5,7 @@ package notification
 
 import (
 	"context"
+	"fmt"
 	"maps"
 	"slices"
 	"sync"
@@ -52,6 +53,7 @@ type eventBus interface {
 	OnReleaseNew(handler func(context.Context, events.ReleaseEvent) error) func()
 	OnReleasePush(handler func(context.Context, events.ReleasePushEvent) error) func()
 	OnIRC(handler func(context.Context, events.IRCEvent) error) func()
+	OnListRefresh(handler func(context.Context, events.ListRefreshEvent) error) func()
 }
 
 type Service struct {
@@ -323,24 +325,65 @@ func (s *Service) setupEventListeners() {
 		switch event.Type {
 		case events.IRCReconnected:
 			payload = domain.NotificationPayload{
-				Event:   domain.NotificationEventIRCReconnected,
-				Subject: "IRC Reconnected",
-				Message: event.Network,
-				//Message: fmt.Sprintf("Network: %s", networkName),
+				Event:      domain.NotificationEventIRCReconnected,
+				Subject:    "IRC Reconnected",
+				Message:    event.Network,
+				IRCNetwork: event.Network,
+				Timestamp:  time.Now(),
 			}
 
 		case events.IRCDisconnected:
 			payload = domain.NotificationPayload{
-				Event:   domain.NotificationEventIRCDisconnected,
-				Subject: "IRC Disconnected",
-				Message: event.Network,
+				Event:      domain.NotificationEventIRCDisconnected,
+				Subject:    "IRC Disconnected",
+				Message:    event.Network,
+				IRCNetwork: event.Network,
+				Timestamp:  time.Now(),
 			}
 
 		case events.IRCFlapping:
 			payload = domain.NotificationPayload{
-				Event:   domain.NotificationEventIRCDisconnected,
-				Subject: "IRC Stopped",
-				Message: event.Message,
+				Event:      domain.NotificationEventIRCDisconnected,
+				Subject:    "IRC Stopped",
+				Message:    event.Message,
+				IRCNetwork: event.Network,
+				IRCMessage: event.Message,
+				Timestamp:  time.Now(),
+			}
+		default:
+			return nil
+		}
+
+		s.Send(ctx, payload)
+
+		return nil
+	})
+
+	s.eventBus.OnListRefresh(func(ctx context.Context, event events.ListRefreshEvent) error {
+		var payload domain.NotificationPayload
+
+		switch event.Type {
+		case events.ListRefreshSuccess:
+			payload = domain.NotificationPayload{
+				Event:     domain.NotificationEventListRefreshSuccess,
+				Subject:   "List Refresh Success",
+				Message:   fmt.Sprintf("List: %s", event.List.Name),
+				List:      event.List.Name,
+				ListID:    event.List.ID,
+				ListType:  event.List.Type,
+				Timestamp: event.List.LastRefreshTime,
+			}
+
+		case events.ListRefreshError:
+			payload = domain.NotificationPayload{
+				Event:     domain.NotificationEventListRefreshError,
+				Subject:   "List Refresh Error",
+				Message:   fmt.Sprintf("List: %s\nError: %s", event.List.Name, event.List.LastRefreshData),
+				List:      event.List.Name,
+				ListID:    event.List.ID,
+				ListType:  event.List.Type,
+				ListError: event.List.LastRefreshData,
+				Timestamp: event.List.LastRefreshTime,
 			}
 		default:
 			return nil
@@ -736,15 +779,36 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 			},
 		},
 		{
-			Event:     domain.NotificationEventIRCDisconnected,
-			Subject:   "IRC Disconnected unexpectedly",
-			Message:   "Network: P2P-Network",
+			Event:      domain.NotificationEventIRCDisconnected,
+			Subject:    "IRC Disconnected unexpectedly",
+			Message:    "Network: P2P-Network",
+			IRCNetwork: "P2P-Network",
+			Timestamp:  time.Now(),
+		},
+		{
+			Event:      domain.NotificationEventIRCReconnected,
+			Subject:    "IRC Reconnected",
+			Message:    "Network: P2P-Network",
+			IRCNetwork: "P2P-Network",
+			Timestamp:  time.Now(),
+		},
+		{
+			Event:     domain.NotificationEventListRefreshSuccess,
+			Subject:   "List Refresh Success",
+			Message:   "List: Sonarr TV",
+			List:      "Sonarr TV",
+			ListID:    1,
+			ListType:  domain.ListTypeSonarr,
 			Timestamp: time.Now(),
 		},
 		{
-			Event:     domain.NotificationEventIRCReconnected,
-			Subject:   "IRC Reconnected",
-			Message:   "Network: P2P-Network",
+			Event:     domain.NotificationEventListRefreshError,
+			Subject:   "List Refresh Error",
+			Message:   "List: Sonarr TV\nError: client sonarr Sonarr not enabled",
+			List:      "Sonarr TV",
+			ListID:    1,
+			ListType:  domain.ListTypeSonarr,
+			ListError: "client sonarr Sonarr not enabled",
 			Timestamp: time.Now(),
 		},
 		{

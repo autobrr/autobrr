@@ -189,6 +189,14 @@
       "label": "IRC tilkoblet på nytt",
       "description": "Koblet til IRC-nettverket på nytt etter feil"
     },
+    "LIST_REFRESH_SUCCESS": {
+      "label": "Liste oppdatert",
+      "description": "Listen er oppdatert og filtrene er endret"
+    },
+    "LIST_REFRESH_ERROR": {
+      "label": "Feil ved oppdatering av liste",
+      "description": "Oppdatering av listen mislyktes"
+    },
     "APP_UPDATE_AVAILABLE": {
       "label": "Ny oppdatering",
       "description": "Bli varslet om oppdateringer"

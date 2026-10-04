@@ -189,6 +189,14 @@
         "label": "IRC Znovu Připojeno",
         "description": "Znovu připojeno k irc síti po chybě"
       },
+      "LIST_REFRESH_SUCCESS": {
+        "label": "Obnovení listu úspěšné",
+        "description": "List byl obnoven a filtry aktualizovány"
+      },
+      "LIST_REFRESH_ERROR": {
+        "label": "Chyba obnovení listu",
+        "description": "Obnovení listu selhalo"
+      },
       "APP_UPDATE_AVAILABLE": {
         "label": "Nová aktualizace",
         "description": "Obdržet notifikace o aktualizacích"

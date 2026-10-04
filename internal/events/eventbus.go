@@ -125,6 +125,7 @@ type EventBus struct {
 	appUpdate   *Topic[AppUpdateEvent]
 	indexer     *Topic[IndexerChangeEvent]
 	irc         *Topic[IRCEvent]
+	list        *Topic[ListRefreshEvent]
 	proxy       *Topic[ProxyChangeEvent]
 	release     *Topic[ReleaseEvent]
 	releasePush *Topic[ReleasePushEvent]
@@ -137,6 +138,7 @@ func NewEventBus(log zerolog.Logger) *EventBus {
 		appUpdate:   NewTopic[AppUpdateEvent](log, "app_update"),
 		indexer:     NewTopic[IndexerChangeEvent](log, "indexer"),
 		irc:         NewTopic[IRCEvent](log, "irc"),
+		list:        NewTopic[ListRefreshEvent](log, "list"),
 		proxy:       NewTopic[ProxyChangeEvent](log, "proxy"),
 		release:     NewTopic[ReleaseEvent](log, "release"),
 		releasePush: NewTopic[ReleasePushEvent](log, "release_push"),
@@ -165,6 +167,14 @@ func (eb *EventBus) EmitIRC(ctx context.Context, event IRCEvent) {
 
 func (eb *EventBus) OnIRC(handler func(context.Context, IRCEvent) error) func() {
 	return eb.irc.On(handler)
+}
+
+func (eb *EventBus) EmitListRefresh(ctx context.Context, event ListRefreshEvent) {
+	eb.list.Emit(ctx, event)
+}
+
+func (eb *EventBus) OnListRefresh(handler func(context.Context, ListRefreshEvent) error) func() {
+	return eb.list.On(handler)
 }
 
 func (eb *EventBus) EmitProxy(ctx context.Context, event ProxyChangeEvent) {

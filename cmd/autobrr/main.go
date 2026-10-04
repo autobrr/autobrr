@@ -175,7 +175,7 @@ func main() {
 		releaseService      = release.NewService(log, eventBus, releaseRepo, actionService, filterService, indexerService, schedulingService)
 		ircService          = irc.NewService(log, eventBus, serverEvents, ircRepo, releaseService, indexerService, proxyService)
 		feedService         = feed.NewService(log, eventBus, feedRepo, feedCacheRepo, releaseService, proxyService, schedulingService)
-		listService         = list.NewService(log, listRepo, downloaderService, filterService, schedulingService)
+		listService         = list.NewService(log, eventBus, listRepo, downloaderService, filterService, schedulingService)
 	)
 
 	errorChannel := make(chan error)

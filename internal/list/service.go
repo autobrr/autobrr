@@ -9,6 +9,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/downloader"
+	"github.com/autobrr/autobrr/internal/events"
 
 	"github.com/pkg/errors"
 	"github.com/robfig/cron/v3"
@@ -39,18 +40,24 @@ type schedulerService interface {
 	AddJob(job cron.Job, spec string, identifier string) (int, error)
 }
 
+type eventBus interface {
+	EmitListRefresh(ctx context.Context, event events.ListRefreshEvent)
+}
+
 type Service struct {
-	log  zerolog.Logger
-	repo listRepo
+	log      zerolog.Logger
+	eventBus eventBus
+	repo     listRepo
 
 	scheduler     schedulerService
 	downloaderSvc downloaderService
 	filterSvc     filterService
 }
 
-func NewService(log zerolog.Logger, repo listRepo, downloaderSvc downloaderService, filterSvc filterService, schedulerSvc schedulerService) *Service {
+func NewService(log zerolog.Logger, eventBus eventBus, repo listRepo, downloaderSvc downloaderService, filterSvc filterService, schedulerSvc schedulerService) *Service {
 	return &Service{
 		log:           log.With().Str("module", "list").Logger(),
+		eventBus:      eventBus,
 		repo:          repo,
 		downloaderSvc: downloaderSvc,
 		filterSvc:     filterSvc,

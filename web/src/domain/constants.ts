@@ -911,6 +911,16 @@ export const getEventOptions = (t: TFunction): SelectOption[] => [
     description: t("options:event.IRC_RECONNECTED.description")
   },
   {
+    label: t("options:event.LIST_REFRESH_SUCCESS.label"),
+    value: "LIST_REFRESH_SUCCESS",
+    description: t("options:event.LIST_REFRESH_SUCCESS.description")
+  },
+  {
+    label: t("options:event.LIST_REFRESH_ERROR.label"),
+    value: "LIST_REFRESH_ERROR",
+    description: t("options:event.LIST_REFRESH_ERROR.description")
+  },
+  {
     label: t("options:event.APP_UPDATE_AVAILABLE.label"),
     value: "APP_UPDATE_AVAILABLE",
     description: t("options:event.APP_UPDATE_AVAILABLE.description")

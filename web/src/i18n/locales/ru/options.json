@@ -189,6 +189,14 @@
       "label": "Переподключение IRC",
       "description": "Переподключение к IRC-сети после ошибки"
     },
+    "LIST_REFRESH_SUCCESS": {
+      "label": "Список обновлён",
+      "description": "Список обновлён, фильтры изменены"
+    },
+    "LIST_REFRESH_ERROR": {
+      "label": "Ошибка обновления списка",
+      "description": "Не удалось обновить список"
+    },
     "APP_UPDATE_AVAILABLE": {
       "label": "Новое обновление",
       "description": "Получать уведомления об обновлениях"

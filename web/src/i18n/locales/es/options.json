@@ -189,6 +189,14 @@
       "label": "IRC reconectado",
       "description": "Reconectado a la red IRC después de un error"
     },
+    "LIST_REFRESH_SUCCESS": {
+      "label": "Lista actualizada",
+      "description": "Lista actualizada y filtros modificados"
+    },
+    "LIST_REFRESH_ERROR": {
+      "label": "Error al actualizar la lista",
+      "description": "La actualización de la lista ha fallado"
+    },
     "APP_UPDATE_AVAILABLE": {
       "label": "Nueva actualización",
       "description": "Recibir notificaciones de actualizaciones"

@@ -56,6 +56,10 @@ func (testEventBus) OnIRC(func(context.Context, events.IRCEvent) error) func() {
 	return func() {}
 }
 
+func (testEventBus) OnListRefresh(func(context.Context, events.ListRefreshEvent) error) func() {
+	return func() {}
+}
+
 type testInboxRepo struct {
 	mu       sync.Mutex
 	messages []*domain.InboxMessage
@@ -718,6 +722,36 @@ func TestServiceBuiltinNotification(t *testing.T) {
 
 		require.Len(t, published, 1)
 		assert.Equal(t, "NOTIFICATION", string(published[0].Event))
+	})
+
+	t.Run("list refresh events reach subscribed senders", func(t *testing.T) {
+		inbox := &testInboxRepo{}
+		bus := events.NewEventBus(zerolog.Nop())
+
+		builtin := builtinNotification
+		builtin.Events = []string{string(domain.NotificationEventListRefreshError)}
+
+		service := NewService(zerolog.Nop(), bus, &testPublisher{}, newTestNotificationRepo([]domain.Notification{builtin}, nil), inbox, testScheduler{})
+		require.NoError(t, service.Start())
+
+		list := &domain.List{Name: "Sonarr TV", LastRefreshData: "client sonarr Sonarr not enabled"}
+		bus.EmitListRefresh(ctx, events.ListRefreshEvent{Type: events.ListRefreshSuccess, List: list})
+		bus.EmitListRefresh(ctx, events.ListRefreshEvent{Type: events.ListRefreshError, List: list})
+
+		assert.Eventually(t, func() bool {
+			inbox.mu.Lock()
+			defer inbox.mu.Unlock()
+
+			return len(inbox.messages) == 1
+		}, time.Second, 10*time.Millisecond)
+
+		inbox.mu.Lock()
+		msg := inbox.messages[0]
+		inbox.mu.Unlock()
+
+		assert.Equal(t, domain.NotificationEventListRefreshError, msg.Event)
+		assert.Equal(t, "List Refresh Error", msg.Title)
+		assert.Equal(t, "List: Sonarr TV\nError: client sonarr Sonarr not enabled", msg.Message)
 	})
 
 	t.Run("inbox changes publish change event", func(t *testing.T) {

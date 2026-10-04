@@ -165,6 +165,12 @@ type NotificationPayload struct {
 	ReleaseName         string
 	Filter              string
 	FilterID            int
+	List                string
+	ListID              int64
+	ListType            ListType
+	ListError           string
+	IRCNetwork          string
+	IRCMessage          string
 	Indexer             string
 	InfoHash            string
 	Size                uint64
@@ -209,6 +215,8 @@ const (
 	NotificationEventPushError          NotificationEvent = "PUSH_ERROR"
 	NotificationEventIRCDisconnected    NotificationEvent = "IRC_DISCONNECTED"
 	NotificationEventIRCReconnected     NotificationEvent = "IRC_RECONNECTED"
+	NotificationEventListRefreshSuccess NotificationEvent = "LIST_REFRESH_SUCCESS"
+	NotificationEventListRefreshError   NotificationEvent = "LIST_REFRESH_ERROR"
 	NotificationEventReleaseNew         NotificationEvent = "RELEASE_NEW"
 	NotificationEventTest               NotificationEvent = "TEST"
 )
@@ -273,14 +281,16 @@ type NotificationQueryParams struct {
 type WebhookEventType string
 
 const (
-	WebhookEventReleaseNew      WebhookEventType = "release.new"
-	WebhookEventActionApproved  WebhookEventType = "action.approved"
-	WebhookEventActionRejected  WebhookEventType = "action.rejected"
-	WebhookEventActionError     WebhookEventType = "action.error"
-	WebhookEventIRCDisconnected WebhookEventType = "irc.disconnected"
-	WebhookEventIRCReconnected  WebhookEventType = "irc.reconnected"
-	WebhookEventAppUpdate       WebhookEventType = "app.update_available"
-	WebhookEventTest            WebhookEventType = "test"
+	WebhookEventReleaseNew         WebhookEventType = "release.new"
+	WebhookEventActionApproved     WebhookEventType = "action.approved"
+	WebhookEventActionRejected     WebhookEventType = "action.rejected"
+	WebhookEventActionError        WebhookEventType = "action.error"
+	WebhookEventIRCDisconnected    WebhookEventType = "irc.disconnected"
+	WebhookEventIRCReconnected     WebhookEventType = "irc.reconnected"
+	WebhookEventListRefreshSuccess WebhookEventType = "list.refresh_success"
+	WebhookEventListRefreshError   WebhookEventType = "list.refresh_error"
+	WebhookEventAppUpdate          WebhookEventType = "app.update_available"
+	WebhookEventTest               WebhookEventType = "test"
 )
 
 // WebhookEvent is the top-level webhook payload structure
@@ -299,6 +309,8 @@ type WebhookData struct {
 	Filter  *WebhookFilter  `json:"filter,omitempty"`
 	Action  *WebhookAction  `json:"action,omitempty"`
 	Result  *WebhookResult  `json:"result,omitempty"`
+	List    *WebhookList    `json:"list,omitempty"`
+	IRC     *WebhookIRC     `json:"irc,omitempty"`
 }
 
 // WebhookRelease contains release-specific data
@@ -382,6 +394,20 @@ type WebhookAction struct {
 	Client string `json:"client,omitempty"`
 }
 
+// WebhookList contains list refresh information
+type WebhookList struct {
+	ID    int64  `json:"id"`
+	Name  string `json:"name"`
+	Type  string `json:"type"`
+	Error string `json:"error,omitempty"`
+}
+
+// WebhookIRC contains irc network information
+type WebhookIRC struct {
+	Network string `json:"network"`
+	Message string `json:"message,omitempty"`
+}
+
 // WebhookResult contains push result information
 type WebhookResult struct {
 	Status     string   `json:"status,omitempty"`
@@ -402,6 +428,10 @@ func mapNotificationEventToWebhookEvent(event NotificationEvent) WebhookEventTyp
 		return WebhookEventIRCDisconnected
 	case NotificationEventIRCReconnected:
 		return WebhookEventIRCReconnected
+	case NotificationEventListRefreshSuccess:
+		return WebhookEventListRefreshSuccess
+	case NotificationEventListRefreshError:
+		return WebhookEventListRefreshError
 	case NotificationEventAppUpdateAvailable:
 		return WebhookEventAppUpdate
 	case NotificationEventTest:
@@ -523,6 +553,22 @@ func NewWebhookEvent(event NotificationEvent, payload NotificationPayload, id st
 		data.Result = &WebhookResult{
 			Status:     string(payload.Status),
 			Rejections: payload.Rejections,
+		}
+	}
+
+	if event == NotificationEventListRefreshSuccess || event == NotificationEventListRefreshError {
+		data.List = &WebhookList{
+			ID:    payload.ListID,
+			Name:  payload.List,
+			Type:  string(payload.ListType),
+			Error: payload.ListError,
+		}
+	}
+
+	if event == NotificationEventIRCDisconnected || event == NotificationEventIRCReconnected {
+		data.IRC = &WebhookIRC{
+			Network: payload.IRCNetwork,
+			Message: payload.IRCMessage,
 		}
 	}
 

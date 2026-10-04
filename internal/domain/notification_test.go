@@ -154,3 +154,60 @@ func TestNotification_Validate(t *testing.T) {
 		})
 	}
 }
+
+func TestNewWebhookEvent_ListRefresh(t *testing.T) {
+	tests := []struct {
+		name  string
+		event NotificationEvent
+		want  WebhookEventType
+		err   string
+	}{
+		{name: "success", event: NotificationEventListRefreshSuccess, want: WebhookEventListRefreshSuccess},
+		{name: "error", event: NotificationEventListRefreshError, want: WebhookEventListRefreshError, err: "client sonarr Sonarr not enabled"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			payload := NotificationPayload{
+				Event:     tt.event,
+				List:      "Sonarr TV",
+				ListID:    3,
+				ListType:  ListTypeSonarr,
+				ListError: tt.err,
+			}
+
+			result := NewWebhookEvent(payload.Event, payload, "test-uuid")
+
+			assert.Equal(t, tt.want, result.Event)
+			require.NotNil(t, result.Data.List)
+			assert.Equal(t, &WebhookList{ID: 3, Name: "Sonarr TV", Type: "SONARR", Error: tt.err}, result.Data.List)
+		})
+	}
+}
+
+func TestNewWebhookEvent_IRC(t *testing.T) {
+	tests := []struct {
+		name    string
+		event   NotificationEvent
+		want    WebhookEventType
+		message string
+	}{
+		{name: "disconnected", event: NotificationEventIRCDisconnected, want: WebhookEventIRCDisconnected},
+		{name: "reconnected", event: NotificationEventIRCReconnected, want: WebhookEventIRCReconnected},
+		{name: "stopped", event: NotificationEventIRCDisconnected, want: WebhookEventIRCDisconnected, message: "Network: P2P-Network stopped after repeated short-lived connections"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			payload := NotificationPayload{
+				Event:      tt.event,
+				IRCNetwork: "P2P-Network",
+				IRCMessage: tt.message,
+			}
+
+			result := NewWebhookEvent(payload.Event, payload, "test-uuid")
+
+			assert.Equal(t, tt.want, result.Event)
+			require.NotNil(t, result.Data.IRC)
+			assert.Equal(t, &WebhookIRC{Network: "P2P-Network", Message: tt.message}, result.Data.IRC)
+		})
+	}
+}
