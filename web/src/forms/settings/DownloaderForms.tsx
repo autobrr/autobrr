@@ -445,6 +445,8 @@ function FormFieldsSabnzbd() {
 
 function FormFieldsNzbget() {
   const { t } = useTranslation("settings");
+  const { tls } = useFormValue((v: InitialValues) => ({ tls: v.tls }));
+
   return (
     <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
       <TextFieldWide
@@ -452,6 +454,15 @@ function FormFieldsNzbget() {
         label={t("forms.downloadClient.host")}
         help={t("forms.downloadClient.hostHelpNzbget")}
       />
+
+      <SwitchGroupWide name="tls" label={t("forms.downloadClient.tls")} />
+
+      {tls && (
+        <SwitchGroupWide
+          name="tls_skip_verify"
+          label={t("forms.downloadClient.skipTls")}
+        />
+      )}
 
       <TextFieldWide name="username" label={t("forms.downloadClient.username")} />
       <PasswordFieldWide name="password" label={t("forms.downloadClient.password")} />
