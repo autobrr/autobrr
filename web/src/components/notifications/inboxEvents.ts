@@ -5,6 +5,7 @@
 
 import type { ComponentType, SVGProps } from "react";
 import {
+  ArrowPathIcon,
   ArrowUpCircleIcon,
   BeakerIcon,
   CheckCircleIcon,
@@ -58,6 +59,8 @@ export const INBOX_EVENT_STYLES: Record<InboxMessage["event"], InboxEventStyle> 
   PUSH_ERROR: { icon: ExclamationTriangleIcon, ...RED },
   IRC_DISCONNECTED: { icon: SignalSlashIcon, ...RED },
   IRC_RECONNECTED: { icon: SignalIcon, ...GREEN },
+  LIST_REFRESH_SUCCESS: { icon: ArrowPathIcon, ...GREEN },
+  LIST_REFRESH_ERROR: { icon: ArrowPathIcon, ...RED },
   APP_UPDATE_AVAILABLE: { icon: ArrowUpCircleIcon, ...BLUE },
   RELEASE_NEW: { icon: InboxArrowDownIcon, ...GRAY },
   TEST: { icon: BeakerIcon, ...GRAY }
@@ -72,5 +75,7 @@ export const INBOX_FILTER_EVENTS: InboxFilterEvent[] = [
   "PUSH_APPROVED",
   "IRC_DISCONNECTED",
   "IRC_RECONNECTED",
+  "LIST_REFRESH_ERROR",
+  "LIST_REFRESH_SUCCESS",
   "APP_UPDATE_AVAILABLE"
 ];

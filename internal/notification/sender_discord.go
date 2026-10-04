@@ -160,6 +160,22 @@ func buildDiscordMessage(payload domain.NotificationPayload) (*discord.Message, 
 		m.AddEmbed(e)
 		break
 
+	case domain.NotificationEventListRefreshSuccess:
+		e := discord.NewEmbed()
+		e.SetTitle("List Refresh Success")
+		e.SetColor(discord.GREEN)
+		e.SetDescription(payload.Message)
+		e.SetTimestamp(payload.Timestamp)
+		m.AddEmbed(e)
+
+	case domain.NotificationEventListRefreshError:
+		e := discord.NewEmbed()
+		e.SetTitle("List Refresh Error")
+		e.SetColor(discord.RED)
+		e.SetDescription(payload.Message)
+		e.SetTimestamp(payload.Timestamp)
+		m.AddEmbed(e)
+
 	default:
 		return nil, fmt.Errorf("unknown event: %s", payload.Event)
 	}

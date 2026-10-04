@@ -209,6 +209,8 @@ const (
 	NotificationEventPushError          NotificationEvent = "PUSH_ERROR"
 	NotificationEventIRCDisconnected    NotificationEvent = "IRC_DISCONNECTED"
 	NotificationEventIRCReconnected     NotificationEvent = "IRC_RECONNECTED"
+	NotificationEventListRefreshSuccess NotificationEvent = "LIST_REFRESH_SUCCESS"
+	NotificationEventListRefreshError   NotificationEvent = "LIST_REFRESH_ERROR"
 	NotificationEventReleaseNew         NotificationEvent = "RELEASE_NEW"
 	NotificationEventTest               NotificationEvent = "TEST"
 )
@@ -273,14 +275,16 @@ type NotificationQueryParams struct {
 type WebhookEventType string
 
 const (
-	WebhookEventReleaseNew      WebhookEventType = "release.new"
-	WebhookEventActionApproved  WebhookEventType = "action.approved"
-	WebhookEventActionRejected  WebhookEventType = "action.rejected"
-	WebhookEventActionError     WebhookEventType = "action.error"
-	WebhookEventIRCDisconnected WebhookEventType = "irc.disconnected"
-	WebhookEventIRCReconnected  WebhookEventType = "irc.reconnected"
-	WebhookEventAppUpdate       WebhookEventType = "app.update_available"
-	WebhookEventTest            WebhookEventType = "test"
+	WebhookEventReleaseNew         WebhookEventType = "release.new"
+	WebhookEventActionApproved     WebhookEventType = "action.approved"
+	WebhookEventActionRejected     WebhookEventType = "action.rejected"
+	WebhookEventActionError        WebhookEventType = "action.error"
+	WebhookEventIRCDisconnected    WebhookEventType = "irc.disconnected"
+	WebhookEventIRCReconnected     WebhookEventType = "irc.reconnected"
+	WebhookEventListRefreshSuccess WebhookEventType = "list.refresh_success"
+	WebhookEventListRefreshError   WebhookEventType = "list.refresh_error"
+	WebhookEventAppUpdate          WebhookEventType = "app.update_available"
+	WebhookEventTest               WebhookEventType = "test"
 )
 
 // WebhookEvent is the top-level webhook payload structure
@@ -402,6 +406,10 @@ func mapNotificationEventToWebhookEvent(event NotificationEvent) WebhookEventTyp
 		return WebhookEventIRCDisconnected
 	case NotificationEventIRCReconnected:
 		return WebhookEventIRCReconnected
+	case NotificationEventListRefreshSuccess:
+		return WebhookEventListRefreshSuccess
+	case NotificationEventListRefreshError:
+		return WebhookEventListRefreshError
 	case NotificationEventAppUpdateAvailable:
 		return WebhookEventAppUpdate
 	case NotificationEventTest:

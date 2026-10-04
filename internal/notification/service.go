@@ -5,6 +5,7 @@ package notification
 
 import (
 	"context"
+	"fmt"
 	"maps"
 	"slices"
 	"sync"
@@ -52,6 +53,7 @@ type eventBus interface {
 	OnReleaseNew(handler func(context.Context, events.ReleaseEvent) error) func()
 	OnReleasePush(handler func(context.Context, events.ReleasePushEvent) error) func()
 	OnIRC(handler func(context.Context, events.IRCEvent) error) func()
+	OnListRefresh(handler func(context.Context, events.ListRefreshEvent) error) func()
 }
 
 type Service struct {
@@ -341,6 +343,34 @@ func (s *Service) setupEventListeners() {
 				Event:   domain.NotificationEventIRCDisconnected,
 				Subject: "IRC Stopped",
 				Message: event.Message,
+			}
+		default:
+			return nil
+		}
+
+		s.Send(ctx, payload)
+
+		return nil
+	})
+
+	s.eventBus.OnListRefresh(func(ctx context.Context, event events.ListRefreshEvent) error {
+		var payload domain.NotificationPayload
+
+		switch event.Type {
+		case events.ListRefreshSuccess:
+			payload = domain.NotificationPayload{
+				Event:     domain.NotificationEventListRefreshSuccess,
+				Subject:   "List Refresh Success",
+				Message:   fmt.Sprintf("List: %s", event.List.Name),
+				Timestamp: event.List.LastRefreshTime,
+			}
+
+		case events.ListRefreshError:
+			payload = domain.NotificationPayload{
+				Event:     domain.NotificationEventListRefreshError,
+				Subject:   "List Refresh Error",
+				Message:   fmt.Sprintf("List: %s\nError: %s", event.List.Name, event.List.LastRefreshData),
+				Timestamp: event.List.LastRefreshTime,
 			}
 		default:
 			return nil
@@ -745,6 +775,18 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 			Event:     domain.NotificationEventIRCReconnected,
 			Subject:   "IRC Reconnected",
 			Message:   "Network: P2P-Network",
+			Timestamp: time.Now(),
+		},
+		{
+			Event:     domain.NotificationEventListRefreshSuccess,
+			Subject:   "List Refresh Success",
+			Message:   "List: Sonarr TV",
+			Timestamp: time.Now(),
+		},
+		{
+			Event:     domain.NotificationEventListRefreshError,
+			Subject:   "List Refresh Error",
+			Message:   "List: Sonarr TV\nError: client sonarr Sonarr not enabled",
 			Timestamp: time.Now(),
 		},
 		{

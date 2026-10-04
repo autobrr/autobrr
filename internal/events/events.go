@@ -32,6 +32,9 @@ const (
 	IRCDisconnected EventType = "irc.disconnected"
 	IRCReconnected  EventType = "irc.reconnected"
 	IRCFlapping     EventType = "irc.flapping"
+
+	ListRefreshSuccess EventType = "list.refresh_success"
+	ListRefreshError   EventType = "list.refresh_error"
 )
 
 type Event struct {
@@ -73,6 +76,13 @@ type ProxyChangeEvent struct {
 	Event
 	ProxyID int64
 	Usage   *domain.ProxyUsage
+}
+
+// ListRefreshEvent carries the list after its refresh outcome is recorded, so LastRefreshData
+// holds the error message of a failed refresh.
+type ListRefreshEvent struct {
+	Event
+	List *domain.List
 }
 
 type IRCEvent struct {

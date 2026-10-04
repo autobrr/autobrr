@@ -189,6 +189,14 @@
       "label": "IRC Wieder verbunden",
       "description": "Nach Fehler wieder mit IRC-Netzwerk verbunden"
     },
+    "LIST_REFRESH_SUCCESS": {
+      "label": "Listenaktualisierung erfolgreich",
+      "description": "Liste aktualisiert und Filter angepasst"
+    },
+    "LIST_REFRESH_ERROR": {
+      "label": "Fehler bei Listenaktualisierung",
+      "description": "Aktualisierung der Liste fehlgeschlagen"
+    },
     "APP_UPDATE_AVAILABLE": {
       "label": "Neues Update",
       "description": "Über Updates benachrichtigt werden"

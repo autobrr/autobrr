@@ -189,6 +189,14 @@
       "label": "IRC reconnecté",
       "description": "Reconnecté au réseau IRC après une erreur"
     },
+    "LIST_REFRESH_SUCCESS": {
+      "label": "Liste actualisée",
+      "description": "Liste actualisée et filtres mis à jour"
+    },
+    "LIST_REFRESH_ERROR": {
+      "label": "Erreur d'actualisation de liste",
+      "description": "L'actualisation de la liste a échoué"
+    },
     "APP_UPDATE_AVAILABLE": {
       "label": "Nouvelle mise à jour",
       "description": "Être notifié des mises à jour"

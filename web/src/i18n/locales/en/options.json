@@ -197,6 +197,14 @@
       "label": "IRC Reconnected",
       "description": "Reconnected to irc network after error"
     },
+    "LIST_REFRESH_SUCCESS": {
+      "label": "List Refresh Success",
+      "description": "List refreshed and filters updated"
+    },
+    "LIST_REFRESH_ERROR": {
+      "label": "List Refresh Error",
+      "description": "List refresh failed"
+    },
     "APP_UPDATE_AVAILABLE": {
       "label": "New update",
       "description": "Get notified on updates"
