@@ -10,6 +10,8 @@ import (
 	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/pkg/errors"
 
+	"github.com/ergochat/irc-go/ircevent"
+	"github.com/ergochat/irc-go/ircmsg"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -169,7 +171,8 @@ func TestCheckNetworkHealth_StartupProxyLookupFailure(t *testing.T) {
 	require.True(t, found, "a network whose proxy lookup failed must still get a handler")
 
 	require.Eventually(t, func() bool {
-		return h.healthStatus().stopped
+		status := h.healthStatus()
+		return status.stopped && status.tracked
 	}, time.Second, 10*time.Millisecond)
 
 	s.checkNetworkHealth(t.Context(), time.Now())
@@ -213,4 +216,46 @@ func TestCheckNetworkHealth_ReplacedHandlerGetsFullGracePeriod(t *testing.T) {
 	s.checkNetworkHealth(t.Context(), start.Add(unhealthyGracePeriod))
 
 	assert.Empty(t, bus.snapshot(), "the new handler's grace period starts at its first check")
+}
+
+func TestCheckNetworkHealth_AnnounceJoinErrorKeepsReason(t *testing.T) {
+	tests := []struct {
+		name          string
+		monitoredPeer bool
+		wantState     ConnectionState
+	}{
+		{name: "every announce channel failed", wantState: StateError},
+		{name: "some announce channels failed", monitoredPeer: true, wantState: StatePartiallyOperational},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s, bus := newHealthTestService(t)
+			h := addHealthTestHandler(s, 1, "PTP", StateJoiningChannels)
+
+			if tt.monitoredPeer {
+				addMonitoredChannel(h, "#ptp-irc", "")
+			}
+
+			announce := NewChannel(zerolog.Nop(), h.network.ID, "#ptp-announce", true, false, nil)
+			sm := NewChannelStateMachine(announce, h, "")
+			announce.SetStateMachine(sm)
+			sm.state = ChannelStateJoining
+			h.channels.Set(announce.Name, announce)
+
+			h.handleJoinError(ircmsg.MakeMessage(nil, "srv", ircevent.ERR_BADCHANNELKEY, "bot", "#ptp-announce", "Cannot join channel (+k)"))
+
+			require.Eventually(t, func() bool {
+				return h.stateMachine.GetState() == tt.wantState
+			}, time.Second, 10*time.Millisecond)
+
+			start := time.Now()
+			s.checkNetworkHealth(t.Context(), start)
+			s.checkNetworkHealth(t.Context(), start.Add(unhealthyGracePeriod))
+
+			got := bus.snapshot()
+			require.Len(t, got, 1)
+			assert.Contains(t, got[0].Message, "PTP: #ptp-announce: could not join #ptp-announce")
+			assert.NotContains(t, got[0].Message, "connection state")
+		})
+	}
 }

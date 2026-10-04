@@ -64,16 +64,12 @@ func (h *Handler) healthStatus() networkHealth {
 		return networkHealth{tracked: true, healthy: true}
 	}
 
-	if !h.stateMachine.IsHealthy() {
-		reasons := connectionErrors
-		if len(reasons) == 0 {
-			reasons = []string{fmt.Sprintf("connection state: %s", h.stateMachine.GetState())}
-		}
+	// Channel errors are cleared on disconnect, so any left belong to this
+	// connection. They also explain Error and PartiallyOperational, which a failed
+	// announce channel join drives the connection into.
+	connectionHealthy := h.stateMachine.IsHealthy()
+	reasons := connectionErrors
 
-		return networkHealth{tracked: true, reasons: reasons}
-	}
-
-	var reasons []string
 	for _, channel := range h.channels.Iterator() {
 		snap := channel.Snapshot()
 		if !snap.Enabled || !snap.DefaultChannel {
@@ -85,7 +81,7 @@ func (h *Handler) healthStatus() networkHealth {
 			continue
 		}
 
-		if snap.Monitoring {
+		if snap.Monitoring || !connectionHealthy {
 			continue
 		}
 
@@ -95,6 +91,10 @@ func (h *Handler) healthStatus() networkHealth {
 		}
 
 		reasons = append(reasons, fmt.Sprintf("%s: %s", snap.Name, state))
+	}
+
+	if len(reasons) == 0 {
+		reasons = []string{fmt.Sprintf("connection state: %s", h.stateMachine.GetState())}
 	}
 
 	return networkHealth{tracked: true, reasons: reasons}
