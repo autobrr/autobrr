@@ -197,6 +197,14 @@
       "label": "Error al actualizar la lista",
       "description": "La actualización de la lista ha fallado"
     },
+    "FEED_REFRESH_SUCCESS": {
+      "label": "Feed actualizado",
+      "description": "El feed se ha actualizado"
+    },
+    "FEED_REFRESH_ERROR": {
+      "label": "Error al actualizar el feed",
+      "description": "La actualización del feed ha fallado"
+    },
     "APP_UPDATE_AVAILABLE": {
       "label": "Nueva actualización",
       "description": "Recibir notificaciones de actualizaciones"

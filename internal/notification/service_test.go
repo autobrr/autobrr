@@ -60,6 +60,10 @@ func (testEventBus) OnListRefresh(func(context.Context, events.ListRefreshEvent)
 	return func() {}
 }
 
+func (testEventBus) OnFeedRefresh(func(context.Context, events.FeedRefreshEvent) error) func() {
+	return func() {}
+}
+
 type testInboxRepo struct {
 	mu       sync.Mutex
 	messages []*domain.InboxMessage
@@ -752,6 +756,36 @@ func TestServiceBuiltinNotification(t *testing.T) {
 		assert.Equal(t, domain.NotificationEventListRefreshError, msg.Event)
 		assert.Equal(t, "List Refresh Error", msg.Title)
 		assert.Equal(t, "List: Sonarr TV\nError: client sonarr Sonarr not enabled", msg.Message)
+	})
+
+	t.Run("feed refresh events reach subscribed senders", func(t *testing.T) {
+		inbox := &testInboxRepo{}
+		bus := events.NewEventBus(zerolog.Nop())
+
+		builtin := builtinNotification
+		builtin.Events = []string{string(domain.NotificationEventFeedRefreshError)}
+
+		service := NewService(zerolog.Nop(), bus, &testPublisher{}, newTestNotificationRepo([]domain.Notification{builtin}, nil), inbox, testScheduler{})
+		require.NoError(t, service.Start())
+
+		f := &domain.Feed{ID: 4, Name: "Mock Indexer"}
+		bus.EmitFeedRefresh(ctx, events.FeedRefreshEvent{Type: events.FeedRefreshSuccess, Feed: f})
+		bus.EmitFeedRefresh(ctx, events.FeedRefreshEvent{Type: events.FeedRefreshError, Feed: f, Error: "unexpected status code: 503"})
+
+		assert.Eventually(t, func() bool {
+			inbox.mu.Lock()
+			defer inbox.mu.Unlock()
+
+			return len(inbox.messages) == 1
+		}, time.Second, 10*time.Millisecond)
+
+		inbox.mu.Lock()
+		msg := inbox.messages[0]
+		inbox.mu.Unlock()
+
+		assert.Equal(t, domain.NotificationEventFeedRefreshError, msg.Event)
+		assert.Equal(t, "Feed Refresh Error", msg.Title)
+		assert.Equal(t, "Feed: Mock Indexer\nError: unexpected status code: 503", msg.Message)
 	})
 
 	t.Run("inbox changes publish change event", func(t *testing.T) {

@@ -205,6 +205,14 @@
       "label": "List Refresh Error",
       "description": "List refresh failed"
     },
+    "FEED_REFRESH_SUCCESS": {
+      "label": "Feed Refresh Success",
+      "description": "Feed refreshed"
+    },
+    "FEED_REFRESH_ERROR": {
+      "label": "Feed Refresh Error",
+      "description": "Feed refresh failed"
+    },
     "APP_UPDATE_AVAILABLE": {
       "label": "New update",
       "description": "Get notified on updates"

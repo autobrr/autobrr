@@ -197,6 +197,14 @@
       "label": "Ошибка обновления списка",
       "description": "Не удалось обновить список"
     },
+    "FEED_REFRESH_SUCCESS": {
+      "label": "Фид обновлён",
+      "description": "Фид успешно обновлён"
+    },
+    "FEED_REFRESH_ERROR": {
+      "label": "Ошибка обновления фида",
+      "description": "Не удалось обновить фид"
+    },
     "APP_UPDATE_AVAILABLE": {
       "label": "Новое обновление",
       "description": "Получать уведомления об обновлениях"

@@ -197,6 +197,14 @@
       "label": "列表刷新失败",
       "description": "列表刷新出错"
     },
+    "FEED_REFRESH_SUCCESS": {
+      "label": "订阅源刷新成功",
+      "description": "订阅源已刷新"
+    },
+    "FEED_REFRESH_ERROR": {
+      "label": "订阅源刷新失败",
+      "description": "订阅源刷新出错"
+    },
     "APP_UPDATE_AVAILABLE": {
       "label": "发现新更新",
       "description": "在有更新时通知"

@@ -91,6 +91,8 @@ func BuildTitle(event domain.NotificationEvent) string {
 		domain.NotificationEventIRCReconnected:     "IRC Reconnected",
 		domain.NotificationEventListRefreshSuccess: "List Refresh Success",
 		domain.NotificationEventListRefreshError:   "List Refresh Error",
+		domain.NotificationEventFeedRefreshSuccess: "Feed Refresh Success",
+		domain.NotificationEventFeedRefreshError:   "Feed Refresh Error",
 		domain.NotificationEventReleaseNew:         "New Release",
 		domain.NotificationEventTest:               "Test",
 	}

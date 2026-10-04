@@ -197,6 +197,14 @@
       "label": "Fehler bei Listenaktualisierung",
       "description": "Aktualisierung der Liste fehlgeschlagen"
     },
+    "FEED_REFRESH_SUCCESS": {
+      "label": "Feed-Aktualisierung erfolgreich",
+      "description": "Feed aktualisiert"
+    },
+    "FEED_REFRESH_ERROR": {
+      "label": "Fehler bei Feed-Aktualisierung",
+      "description": "Aktualisierung des Feeds fehlgeschlagen"
+    },
     "APP_UPDATE_AVAILABLE": {
       "label": "Neues Update",
       "description": "Über Updates benachrichtigt werden"

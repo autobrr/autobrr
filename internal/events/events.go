@@ -35,6 +35,9 @@ const (
 
 	ListRefreshSuccess EventType = "list.refresh_success"
 	ListRefreshError   EventType = "list.refresh_error"
+
+	FeedRefreshSuccess EventType = "feed.refresh_success"
+	FeedRefreshError   EventType = "feed.refresh_error"
 )
 
 type Event struct {
@@ -83,6 +86,13 @@ type ProxyChangeEvent struct {
 type ListRefreshEvent struct {
 	Event
 	List *domain.List
+}
+
+// FeedRefreshEvent carries the outcome of a feed refresh; Error is empty on success.
+type FeedRefreshEvent struct {
+	Event
+	Feed  *domain.Feed
+	Error string
 }
 
 type IRCEvent struct {

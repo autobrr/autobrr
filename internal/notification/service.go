@@ -54,6 +54,7 @@ type eventBus interface {
 	OnReleasePush(handler func(context.Context, events.ReleasePushEvent) error) func()
 	OnIRC(handler func(context.Context, events.IRCEvent) error) func()
 	OnListRefresh(handler func(context.Context, events.ListRefreshEvent) error) func()
+	OnFeedRefresh(handler func(context.Context, events.FeedRefreshEvent) error) func()
 }
 
 type Service struct {
@@ -349,6 +350,43 @@ func (s *Service) setupEventListeners() {
 				IRCNetwork: event.Network,
 				IRCMessage: event.Message,
 				Timestamp:  time.Now(),
+			}
+		default:
+			return nil
+		}
+
+		s.Send(ctx, payload)
+
+		return nil
+	})
+
+	s.eventBus.OnFeedRefresh(func(ctx context.Context, event events.FeedRefreshEvent) error {
+		var payload domain.NotificationPayload
+
+		switch event.Type {
+		case events.FeedRefreshSuccess:
+			payload = domain.NotificationPayload{
+				Event:     domain.NotificationEventFeedRefreshSuccess,
+				Subject:   "Feed Refresh Success",
+				Message:   fmt.Sprintf("Feed: %s", event.Feed.Name),
+				Feed:      event.Feed.Name,
+				FeedID:    event.Feed.ID,
+				FeedType:  event.Feed.Type,
+				Indexer:   event.Feed.Indexer.Name,
+				Timestamp: time.Now(),
+			}
+
+		case events.FeedRefreshError:
+			payload = domain.NotificationPayload{
+				Event:     domain.NotificationEventFeedRefreshError,
+				Subject:   "Feed Refresh Error",
+				Message:   fmt.Sprintf("Feed: %s\nError: %s", event.Feed.Name, event.Error),
+				Feed:      event.Feed.Name,
+				FeedID:    event.Feed.ID,
+				FeedType:  event.Feed.Type,
+				FeedError: event.Error,
+				Indexer:   event.Feed.Indexer.Name,
+				Timestamp: time.Now(),
 			}
 		default:
 			return nil
@@ -809,6 +847,27 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 			ListID:    1,
 			ListType:  domain.ListTypeSonarr,
 			ListError: "client sonarr Sonarr not enabled",
+			Timestamp: time.Now(),
+		},
+		{
+			Event:     domain.NotificationEventFeedRefreshSuccess,
+			Subject:   "Feed Refresh Success",
+			Message:   "Feed: Mock Indexer",
+			Feed:      "Mock Indexer",
+			FeedID:    1,
+			FeedType:  string(domain.FeedTypeTorznab),
+			Indexer:   "Mock Indexer",
+			Timestamp: time.Now(),
+		},
+		{
+			Event:     domain.NotificationEventFeedRefreshError,
+			Subject:   "Feed Refresh Error",
+			Message:   "Feed: Mock Indexer\nError: error fetching feed items: unexpected status code: 503",
+			Feed:      "Mock Indexer",
+			FeedID:    1,
+			FeedType:  string(domain.FeedTypeTorznab),
+			FeedError: "error fetching feed items: unexpected status code: 503",
+			Indexer:   "Mock Indexer",
 			Timestamp: time.Now(),
 		},
 		{

@@ -197,6 +197,14 @@
       "label": "Erreur d'actualisation de liste",
       "description": "L'actualisation de la liste a échoué"
     },
+    "FEED_REFRESH_SUCCESS": {
+      "label": "Feed actualisé",
+      "description": "Le feed a été actualisé"
+    },
+    "FEED_REFRESH_ERROR": {
+      "label": "Erreur d'actualisation du feed",
+      "description": "L'actualisation du feed a échoué"
+    },
     "APP_UPDATE_AVAILABLE": {
       "label": "Nouvelle mise à jour",
       "description": "Être notifié des mises à jour"
