@@ -45,6 +45,10 @@ export function useInboxEvents() {
         }
       });
 
+      es.addEventListener("INBOX_CHANGED", () => {
+        void queryClient.invalidateQueries({ queryKey: NotificationKeys.inbox.all() });
+      });
+
       es.onopen = () => {
         reconnectAttempt = 0;
       };

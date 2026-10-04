@@ -14,7 +14,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// InboxStreamKey is the SSE stream that new inbox messages are published on.
+// InboxStreamKey is the SSE stream that inbox messages and changes are published on.
 const InboxStreamKey = "notifications"
 
 const (
@@ -81,15 +81,43 @@ func (s *Service) FindInbox(ctx context.Context, params domain.InboxQueryParams)
 
 // MarkInboxRead marks the messages in messageIDs as read, or the whole inbox when messageIDs is empty.
 func (s *Service) MarkInboxRead(ctx context.Context, messageIDs []int64) error {
-	return s.inboxRepo.MarkRead(ctx, messageIDs, time.Now().UTC())
+	if err := s.inboxRepo.MarkRead(ctx, messageIDs, time.Now().UTC()); err != nil {
+		return err
+	}
+
+	publishInboxChanged(s.sse)
+
+	return nil
 }
 
 func (s *Service) DeleteInboxMessages(ctx context.Context, messageIDs []int64) error {
-	return s.inboxRepo.Delete(ctx, messageIDs)
+	if err := s.inboxRepo.Delete(ctx, messageIDs); err != nil {
+		return err
+	}
+
+	publishInboxChanged(s.sse)
+
+	return nil
 }
 
 func (s *Service) DeleteInbox(ctx context.Context) error {
-	return s.inboxRepo.DeleteAll(ctx)
+	if err := s.inboxRepo.DeleteAll(ctx); err != nil {
+		return err
+	}
+
+	publishInboxChanged(s.sse)
+
+	return nil
+}
+
+// publishInboxChanged tells connected web clients to refetch the inbox. It carries no ids
+// because deletes shift pages and the counts depend on each client's query filters.
+func publishInboxChanged(publisher ssePublisher) {
+	// r3labs/sse closes the subscriber's stream on an event with empty Data.
+	publisher.Publish(InboxStreamKey, &sse.Event{
+		Event: []byte("INBOX_CHANGED"),
+		Data:  []byte("{}"),
+	})
 }
 
 // StoreInboxMessage stores msg and publishes it to connected web clients.
@@ -116,6 +144,7 @@ func (s *Service) startInboxCleanupJob() error {
 	job := &InboxCleanupJob{
 		log:  s.log.With().Str("job", inboxCleanupJob).Logger(),
 		repo: s.inboxRepo,
+		sse:  s.sse,
 	}
 
 	if _, err := s.scheduler.ScheduleJob(job, 1*time.Hour, inboxCleanupJob); err != nil {
@@ -131,6 +160,7 @@ func (s *Service) startInboxCleanupJob() error {
 type InboxCleanupJob struct {
 	log  zerolog.Logger
 	repo inboxRepo
+	sse  ssePublisher
 }
 
 func (j *InboxCleanupJob) Run() {
@@ -144,4 +174,8 @@ func (j *InboxCleanupJob) Run() {
 	}
 
 	j.log.Debug().Int64("deleted", deleted).Msg("notification inbox cleaned up")
+
+	if deleted > 0 {
+		publishInboxChanged(j.sse)
+	}
 }

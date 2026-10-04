@@ -59,6 +59,7 @@ func (testEventBus) OnIRC(func(context.Context, events.IRCEvent) error) func() {
 type testInboxRepo struct {
 	mu       sync.Mutex
 	messages []*domain.InboxMessage
+	cleaned  int64
 }
 
 func (r *testInboxRepo) Find(context.Context, domain.InboxQueryParams) (*domain.FindInboxResponse, error) {
@@ -84,7 +85,7 @@ func (r *testInboxRepo) Delete(context.Context, []int64) error { return nil }
 func (r *testInboxRepo) DeleteAll(context.Context) error { return nil }
 
 func (r *testInboxRepo) Cleanup(context.Context, domain.InboxCleanupParams) (int64, error) {
-	return 0, nil
+	return r.cleaned, nil
 }
 
 type testPublisher struct {
@@ -717,5 +718,31 @@ func TestServiceBuiltinNotification(t *testing.T) {
 
 		require.Len(t, published, 1)
 		assert.Equal(t, "NOTIFICATION", string(published[0].Event))
+	})
+
+	t.Run("inbox changes publish change event", func(t *testing.T) {
+		inbox := &testInboxRepo{}
+		publisher := &testPublisher{}
+		service := NewService(zerolog.Nop(), testEventBus{}, publisher, newTestNotificationRepo(nil, nil), inbox, testScheduler{})
+
+		require.NoError(t, service.MarkInboxRead(ctx, []int64{1}))
+		require.NoError(t, service.DeleteInboxMessages(ctx, []int64{1}))
+		require.NoError(t, service.DeleteInbox(ctx))
+
+		job := &InboxCleanupJob{log: zerolog.Nop(), repo: inbox, sse: publisher}
+		job.Run()
+
+		inbox.cleaned = 2
+		job.Run()
+
+		publisher.mu.Lock()
+		published := append([]*sse.Event(nil), publisher.events...)
+		publisher.mu.Unlock()
+
+		require.Len(t, published, 4)
+		for _, event := range published {
+			assert.Equal(t, "INBOX_CHANGED", string(event.Event))
+			assert.NotEmpty(t, event.Data)
+		}
 	})
 }
