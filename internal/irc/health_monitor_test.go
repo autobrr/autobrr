@@ -179,3 +179,38 @@ func TestCheckNetworkHealth_StartupProxyLookupFailure(t *testing.T) {
 	assert.Equal(t, events.IRCUnhealthy, got[0].Type)
 	assert.Equal(t, "net: configured proxy could not be loaded", got[0].Message)
 }
+
+func TestCheckNetworkHealth_ReplacedHandlerStartsNewEpisode(t *testing.T) {
+	s, bus := newHealthTestService(t)
+	stopWithError(addHealthTestHandler(s, 1, "PTP", StateDisconnected), "authentication failed: SASL negotiation failed")
+
+	start := time.Now()
+	s.checkNetworkHealth(t.Context(), start)
+	require.Len(t, bus.snapshot(), 1)
+
+	// disabled and re-enabled between checks: a new handler under the same id
+	h := addHealthTestHandler(s, 1, "PTP", StateFullyOperational)
+	s.checkNetworkHealth(t.Context(), start.Add(time.Minute))
+	assert.Len(t, bus.snapshot(), 1, "the new handler must not send a recovery for the discarded episode")
+
+	stopWithError(h, "banned from network: K-Lined")
+	s.checkNetworkHealth(t.Context(), start.Add(2*time.Minute))
+
+	got := bus.snapshot()
+	require.Len(t, got, 2, "a fatal failure on the new handler must be reported")
+	assert.Equal(t, "PTP: banned from network: K-Lined", got[1].Message)
+}
+
+func TestCheckNetworkHealth_ReplacedHandlerGetsFullGracePeriod(t *testing.T) {
+	s, bus := newHealthTestService(t)
+	addHealthTestHandler(s, 1, "PTP", StateDisconnected)
+
+	start := time.Now()
+	s.checkNetworkHealth(t.Context(), start)
+
+	addHealthTestHandler(s, 1, "PTP", StateDisconnected)
+	s.checkNetworkHealth(t.Context(), start.Add(10*time.Minute))
+	s.checkNetworkHealth(t.Context(), start.Add(unhealthyGracePeriod))
+
+	assert.Empty(t, bus.snapshot(), "the new handler's grace period starts at its first check")
+}

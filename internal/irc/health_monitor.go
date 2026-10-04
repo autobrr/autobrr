@@ -36,6 +36,9 @@ type networkHealth struct {
 
 // unhealthyEpisode tracks one continuous unhealthy stretch of a network.
 type unhealthyEpisode struct {
+	// handler ties the episode to one handler: disabling and re-enabling a network
+	// between checks swaps the handler under the same id, which must start fresh.
+	handler  *Handler
 	since    time.Time
 	notified bool
 }
@@ -132,6 +135,10 @@ func (s *Service) checkNetworkHealth(ctx context.Context, now time.Time) {
 
 		name := handler.GetNetwork().Name
 		episode, found := s.unhealthyNetworks[id]
+		if found && episode.handler != handler {
+			delete(s.unhealthyNetworks, id)
+			found = false
+		}
 
 		if status.healthy {
 			if found {
@@ -145,7 +152,7 @@ func (s *Service) checkNetworkHealth(ctx context.Context, now time.Time) {
 		}
 
 		if !found {
-			episode = &unhealthyEpisode{since: now}
+			episode = &unhealthyEpisode{handler: handler, since: now}
 			s.unhealthyNetworks[id] = episode
 		}
 
