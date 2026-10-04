@@ -219,6 +219,8 @@ const (
 	NotificationEventPushError          NotificationEvent = "PUSH_ERROR"
 	NotificationEventIRCDisconnected    NotificationEvent = "IRC_DISCONNECTED"
 	NotificationEventIRCReconnected     NotificationEvent = "IRC_RECONNECTED"
+	NotificationEventIRCUnhealthy       NotificationEvent = "IRC_UNHEALTHY"
+	NotificationEventIRCHealthy         NotificationEvent = "IRC_HEALTHY"
 	NotificationEventListRefreshSuccess NotificationEvent = "LIST_REFRESH_SUCCESS"
 	NotificationEventListRefreshError   NotificationEvent = "LIST_REFRESH_ERROR"
 	NotificationEventFeedRefreshSuccess NotificationEvent = "FEED_REFRESH_SUCCESS"
@@ -293,6 +295,8 @@ const (
 	WebhookEventActionError        WebhookEventType = "action.error"
 	WebhookEventIRCDisconnected    WebhookEventType = "irc.disconnected"
 	WebhookEventIRCReconnected     WebhookEventType = "irc.reconnected"
+	WebhookEventIRCUnhealthy       WebhookEventType = "irc.unhealthy"
+	WebhookEventIRCHealthy         WebhookEventType = "irc.healthy"
 	WebhookEventListRefreshSuccess WebhookEventType = "list.refresh_success"
 	WebhookEventListRefreshError   WebhookEventType = "list.refresh_error"
 	WebhookEventFeedRefreshSuccess WebhookEventType = "feed.refresh_success"
@@ -445,6 +449,10 @@ func mapNotificationEventToWebhookEvent(event NotificationEvent) WebhookEventTyp
 		return WebhookEventIRCDisconnected
 	case NotificationEventIRCReconnected:
 		return WebhookEventIRCReconnected
+	case NotificationEventIRCUnhealthy:
+		return WebhookEventIRCUnhealthy
+	case NotificationEventIRCHealthy:
+		return WebhookEventIRCHealthy
 	case NotificationEventListRefreshSuccess:
 		return WebhookEventListRefreshSuccess
 	case NotificationEventListRefreshError:
@@ -595,7 +603,7 @@ func NewWebhookEvent(event NotificationEvent, payload NotificationPayload, id st
 		}
 	}
 
-	if event == NotificationEventIRCDisconnected || event == NotificationEventIRCReconnected {
+	if event == NotificationEventIRCDisconnected || event == NotificationEventIRCReconnected || event == NotificationEventIRCUnhealthy || event == NotificationEventIRCHealthy {
 		data.IRC = &WebhookIRC{
 			Network: payload.IRCNetwork,
 			Message: payload.IRCMessage,

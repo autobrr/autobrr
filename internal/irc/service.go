@@ -71,6 +71,10 @@ type Service struct {
 	networkCache    *haxmap.Map[int64, *domain.IrcNetwork]
 	networkHandlers *haxmap.Map[int64, *Handler]
 
+	// unhealthyNetworks is owned by the health monitor goroutine
+	unhealthyNetworks map[int64]*unhealthyEpisode
+	stopHealthMonitor context.CancelFunc
+
 	stopWG sync.WaitGroup
 	lock   sync.RWMutex
 }
@@ -86,6 +90,8 @@ func NewService(log zerolog.Logger, eventBus eventBus, sse sseServer, repo ircRe
 		proxyService:    proxySvc,
 		networkCache:    haxmap.New[int64, *domain.IrcNetwork](),
 		networkHandlers: haxmap.New[int64, *Handler](),
+
+		unhealthyNetworks: map[int64]*unhealthyEpisode{},
 	}
 
 	s.setupEventListeners()
@@ -220,10 +226,19 @@ func (s *Service) StartHandlers() {
 			}
 		}(network)
 	}
+
+	healthCtx, cancel := context.WithCancel(ctx)
+	s.stopHealthMonitor = cancel
+
+	go s.monitorHealth(healthCtx)
 }
 
 func (s *Service) StopHandlers() {
 	s.log.Info().Msg("stopping all irc handlers..")
+
+	if s.stopHealthMonitor != nil {
+		s.stopHealthMonitor()
+	}
 
 	for _, handler := range s.networkHandlers.Iterator() {
 		s.log.Info().Str("network", handler.network.Name).Msg("stop network")

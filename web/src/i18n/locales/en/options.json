@@ -197,6 +197,14 @@
       "label": "IRC Reconnected",
       "description": "Reconnected to irc network after error"
     },
+    "IRC_UNHEALTHY": {
+      "label": "IRC Unhealthy",
+      "description": "IRC network unhealthy for 15 minutes, or stopped on a fatal error"
+    },
+    "IRC_HEALTHY": {
+      "label": "IRC Healthy",
+      "description": "IRC network healthy again after being reported unhealthy"
+    },
     "LIST_REFRESH_SUCCESS": {
       "label": "List Refresh Success",
       "description": "List refreshed and filters updated"

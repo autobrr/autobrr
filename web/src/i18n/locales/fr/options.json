@@ -189,6 +189,14 @@
       "label": "IRC reconnecté",
       "description": "Reconnecté au réseau IRC après une erreur"
     },
+    "IRC_UNHEALTHY": {
+      "label": "IRC défaillant",
+      "description": "Réseau IRC défaillant depuis 15 minutes ou arrêté suite à une erreur fatale"
+    },
+    "IRC_HEALTHY": {
+      "label": "IRC rétabli",
+      "description": "Réseau IRC rétabli après avoir été signalé défaillant"
+    },
     "LIST_REFRESH_SUCCESS": {
       "label": "Liste actualisée",
       "description": "Liste actualisée et filtres mis à jour"
