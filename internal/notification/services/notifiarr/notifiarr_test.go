@@ -255,3 +255,22 @@ func TestClient_SendMessage_ServerErrorRetries(t *testing.T) {
 	assert.ErrorContains(t, err, "unexpected status: 502")
 	assert.Equal(t, int32(3), requests.Load())
 }
+
+func TestClient_SendMessage_MissingAPIKey(t *testing.T) {
+	t.Parallel()
+
+	var requests atomic.Int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests.Add(1)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	client := NewSender(zerolog.New(io.Discard), Config{Name: "mock"})
+	client.endpoint = server.URL
+
+	err := client.SendMessage(t.Context(), &Message{Event: "TEST"})
+	assert.ErrorContains(t, err, "missing notifiarr api key")
+	assert.Equal(t, int32(0), requests.Load())
+}

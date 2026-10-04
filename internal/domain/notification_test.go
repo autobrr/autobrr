@@ -112,3 +112,45 @@ func TestNewWebhookEvent_NilRelease(t *testing.T) {
 	assert.Equal(t, id, result.ID)
 	assert.Nil(t, result.Data.Release)
 }
+
+func TestNotification_Validate(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name         string
+		notification Notification
+		wantErr      string
+	}{
+		{name: "notifiarr valid", notification: Notification{Type: NotificationTypeNotifiarr, APIKey: "0b6c2a3e-9f1d-4c8a-b7e2-5d4f3a2b1c0d"}},
+		{name: "notifiarr missing api key", notification: Notification{Type: NotificationTypeNotifiarr}, wantErr: "missing notifiarr api key"},
+		{name: "notifiarr short api key", notification: Notification{Type: NotificationTypeNotifiarr, APIKey: "abc123"}, wantErr: "notifiarr api key must be"},
+		{name: "notifiarr api key with whitespace", notification: Notification{Type: NotificationTypeNotifiarr, APIKey: " 0b6c2a3e-9f1d-4c8a-b7e2-5d4f3a2b1c0"}, wantErr: "notifiarr api key must be"},
+		{name: "notifiarr uppercase api key", notification: Notification{Type: NotificationTypeNotifiarr, APIKey: "0B6C2A3E-9F1D-4C8A-B7E2-5D4F3A2B1C0D"}, wantErr: "notifiarr api key must be"},
+		{name: "discord missing webhook", notification: Notification{Type: NotificationTypeDiscord}, wantErr: "missing webhook url"},
+		{name: "lunasea missing webhook", notification: Notification{Type: NotificationTypeLunaSea}, wantErr: "missing webhook url"},
+		{name: "webhook missing url", notification: Notification{Type: NotificationTypeWebhook}, wantErr: "missing webhook url"},
+		{name: "gotify missing token", notification: Notification{Type: NotificationTypeGotify, Host: "https://gotify.example.com"}, wantErr: "missing gotify application token"},
+		{name: "ntfy missing host", notification: Notification{Type: NotificationTypeNtfy}, wantErr: "missing url"},
+		{name: "shoutrrr missing host", notification: Notification{Type: NotificationTypeShoutrrr}, wantErr: "missing url"},
+		{name: "pushover missing user key", notification: Notification{Type: NotificationTypePushover, APIKey: "token"}, wantErr: "missing pushover user key"},
+		{name: "telegram missing chat id", notification: Notification{Type: NotificationTypeTelegram, Token: "token"}, wantErr: "missing telegram chat id"},
+		{name: "telegram valid", notification: Notification{Type: NotificationTypeTelegram, Token: "token", Channel: "123"}},
+		{name: "builtin", notification: Notification{Type: NotificationTypeBuiltin}},
+		{name: "missing type", notification: Notification{}, wantErr: "unsupported notification type"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := tt.notification.Validate()
+			if tt.wantErr == "" {
+				assert.NoError(t, err)
+				return
+			}
+
+			assert.ErrorIs(t, err, ErrNotificationInvalid)
+			assert.ErrorContains(t, err, tt.wantErr)
+		})
+	}
+}

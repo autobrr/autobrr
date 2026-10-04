@@ -24,6 +24,7 @@ import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { selectComponents, selectStyles, selectTheme } from "@components/inputs/select_props";
 import { NumberFieldWide, PasswordFieldWide, SelectFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
+import { ErrorField } from "@components/inputs/common";
 import { Checkbox } from "@components/Checkbox";
 import { EmptySimple } from "@components/emptystates";
 import { browserNotificationsSupported } from "@hooks/useInbox";
@@ -57,6 +58,7 @@ function FormFieldsDiscord() {
         label={t("forms.notification.webhookUrl")}
         help={t("forms.notification.discordWebhookHelp")}
         placeholder={t("forms.notification.discordWebhookPlaceholder")}
+        required={true}
       />
     </div>
   );
@@ -79,6 +81,7 @@ function FormFieldsNotifiarr() {
         name="api_key"
         label={t("forms.notification.notifiarrApiKey")}
         help={t("forms.notification.notifiarrApiKeyHelp")}
+        required={true}
       />
     </div>
   );
@@ -112,6 +115,7 @@ function FormFieldsLunaSea() {
         label={t("forms.notification.webhookUrl")}
         help={t("forms.notification.lunaseaWebhookHelp")}
         placeholder={t("forms.notification.lunaseaWebhookPlaceholder")}
+        required={true}
       />
     </div>
   );
@@ -141,11 +145,13 @@ function FormFieldsTelegram() {
         name="token"
         label={t("forms.notification.botToken")}
         help={t("forms.notification.botTokenHelp")}
+        required={true}
       />
       <PasswordFieldWide
         name="channel"
         label={t("forms.notification.chatId")}
         help={t("forms.notification.chatIdHelp")}
+        required={true}
       />
       <PasswordFieldWide
         name="topic"
@@ -201,11 +207,13 @@ function FormFieldsPushover() {
         name="api_key"
         label={t("forms.notification.apiToken")}
         help={t("forms.notification.apiTokenHelp")}
+        required={true}
       />
       <PasswordFieldWide
         name="token"
         label={t("forms.notification.userKey")}
         help={t("forms.notification.userKeyHelp")}
+        required={true}
       />
       <NumberFieldWide
         name="priority"
@@ -439,10 +447,45 @@ const componentMap: componentMapType = {
   BUILTIN: <FormFieldsBuiltin />
 };
 
-interface NotificationAddFormValues {
+type NotificationRequiredField = "webhook" | "token" | "api_key" | "host" | "channel";
+
+const NOTIFICATION_REQUIRED_FIELDS: Partial<Record<NotificationType, NotificationRequiredField[]>> = {
+  DISCORD: ["webhook"],
+  NOTIFIARR: ["api_key"],
+  TELEGRAM: ["token", "channel"],
+  PUSHOVER: ["api_key", "token"],
+  GOTIFY: ["host", "token"],
+  NTFY: ["host"],
+  SHOUTRRR: ["host"],
+  LUNASEA: ["webhook"],
+  WEBHOOK: ["webhook"]
+};
+
+// Notifiarr API keys are lowercase UUIDs; notifiarr.com rejects anything else.
+const NOTIFIARR_API_KEY = /^[a-z0-9-]{36}$/;
+
+interface NotificationFormValues extends Partial<Record<NotificationRequiredField, string>> {
   name: string;
-  enabled: boolean;
+  type: NotificationType | "";
 }
+
+const validateNotification = (values: NotificationFormValues, required: string, invalidApiKey: string) => {
+  const errors: FormFieldErrors = {};
+  if (!values.name)
+    errors.name = required;
+  if (!values.type)
+    errors.type = required;
+
+  for (const field of (values.type && NOTIFICATION_REQUIRED_FIELDS[values.type]) || []) {
+    if (!values[field]?.trim())
+      errors[field] = required;
+  }
+
+  if (values.type === "NOTIFIARR" && values.api_key && values.api_key !== "<redacted>" && !NOTIFIARR_API_KEY.test(values.api_key))
+    errors.api_key = invalidApiKey;
+
+  return errors;
+};
 
 export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
   return (
@@ -476,25 +519,20 @@ function NotificationAddFormPanel({ toggle }: NotificationAddFormPanelProps) {
   const onSubmit = (formData: unknown) => createMutation.mutate(formData as ServiceNotification);
 
   const testMutation = useMutation({
-    mutationFn: (n: ServiceNotification) => APIClient.notifications.test(n),
-    onError: (err) => {
-      console.error(err);
-    }
+    mutationFn: (n: ServiceNotification) => APIClient.notifications.test(n)
   });
 
   const testNotification = (data: unknown) => testMutation.mutate(data as ServiceNotification);
 
-  const validate = (values: NotificationAddFormValues) => {
-    const errors: FormFieldErrors = {};
-    if (!values.name)
-      errors.name = t("settings:forms.notification.required");
-
-    return errors;
-  };
+  const validate = (values: NotificationFormValues) => validateNotification(
+    values,
+    t("settings:forms.notification.required"),
+    t("settings:forms.notification.notifiarrApiKeyInvalid")
+  );
 
   const initialValues = {
     enabled: true,
-    type: "",
+    type: "" as NotificationType | "",
     name: "",
     webhook: "",
     events: [],
@@ -627,28 +665,31 @@ const NotificationTypeSelector = () => {
   return (
     <form.Field name="type">
       {(field) => (
-        <Select
-          name={field.name}
-          onBlur={field.handleBlur}
-          isClearable={true}
-          isSearchable={true}
-          components={selectComponents}
-          placeholder={t("settings:forms.notification.chooseType")}
-          styles={selectStyles}
-          theme={selectTheme}
-          value={field.state.value && notificationTypeOptions.find(o => o.value == field.state.value)}
-          onChange={(option: unknown) => {
-            // Reset clears the provider-specific fields; the shared ones carry over to the new type.
-            const { name, enabled, events } = form.state.values as ServiceNotification;
-            form.reset();
-            form.setFieldValue("name", name, { dontUpdateMeta: true });
-            form.setFieldValue("enabled", enabled, { dontUpdateMeta: true });
-            form.setFieldValue("events", events, { dontUpdateMeta: true });
-            const opt = option as SelectOption | null;
-            field.handleChange(opt?.value ?? "");
-          }}
-          options={notificationTypeOptions}
-        />
+        <>
+          <Select
+            name={field.name}
+            onBlur={field.handleBlur}
+            isClearable={true}
+            isSearchable={true}
+            components={selectComponents}
+            placeholder={t("settings:forms.notification.chooseType")}
+            styles={selectStyles}
+            theme={selectTheme}
+            value={field.state.value && notificationTypeOptions.find(o => o.value == field.state.value)}
+            onChange={(option: unknown) => {
+              // Reset clears the provider-specific fields; the shared ones carry over to the new type.
+              const { name, enabled, events } = form.state.values as ServiceNotification;
+              form.reset();
+              form.setFieldValue("name", name, { dontUpdateMeta: true });
+              form.setFieldValue("enabled", enabled, { dontUpdateMeta: true });
+              form.setFieldValue("events", events, { dontUpdateMeta: true });
+              const opt = option as SelectOption | null;
+              field.handleChange(opt?.value ?? "");
+            }}
+            options={notificationTypeOptions}
+          />
+          <ErrorField meta={field.state.meta} classNames="block text-red-500 mt-2" />
+        </>
       )}
     </form.Field>
   );
@@ -847,10 +888,7 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
   const deleteAction = () => deleteMutation.mutate(notification.id);
 
   const testMutation = useMutation({
-    mutationFn: (n: ServiceNotification) => APIClient.notifications.test(n),
-    onError: (err) => {
-      console.error(err);
-    }
+    mutationFn: (n: ServiceNotification) => APIClient.notifications.test(n)
   });
 
   const testNotification = (data: unknown) => testMutation.mutate(data as ServiceNotification);
@@ -886,6 +924,11 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
       onSubmit={onSubmit}
       deleteAction={isBuiltin ? undefined : deleteAction}
       initialValues={initialValues}
+      validate={(values) => validateNotification(
+        values,
+        t("settings:forms.notification.required"),
+        t("settings:forms.notification.notifiarrApiKeyInvalid")
+      )}
       testFn={testNotification}
     >
       {(values) => (
