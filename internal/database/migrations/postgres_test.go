@@ -114,6 +114,9 @@ func TestFullMigrationSequencePostgres(t *testing.T) {
 	err = migrate.Migrate()
 	require.NoError(t, err)
 
+	// A fresh install only applies the base schema, so it must seed the built-in notification too.
+	validateBuiltinNotification(db.Handler, t)
+
 	//// Verify current schema version
 	//var version int
 	//err = db.Handler.QueryRow("PRAGMA user_version").Scan(&version)
@@ -531,6 +534,22 @@ func TestRunMigrationTest_Postgres(t *testing.T) {
 			MigrationToRun:      "88_irc_update_nordicbytes_network",
 			SetupData:           setupNordicBytesNotUsed,
 			ValidateResult:      validateNordicBytesNotUsed,
+		},
+		{
+			Name:                "notification inbox migration seeds the built-in notification",
+			MigrationIndex:      88,
+			MigrationsUntilName: "88_irc_update_nordicbytes_network",
+			MigrationToRun:      "89_add_notification_inbox",
+			SetupData:           setupBuiltinNotificationExisting,
+			ValidateResult:      validateBuiltinNotificationKeepsExisting,
+		},
+		{
+			Name:                "notification inbox migration keeps an existing built-in notification",
+			MigrationIndex:      88,
+			MigrationsUntilName: "88_irc_update_nordicbytes_network",
+			MigrationToRun:      "89_add_notification_inbox",
+			SetupData:           setupBuiltinNotificationPresent,
+			ValidateResult:      validateBuiltinNotificationNotDuplicated,
 		},
 	}
 

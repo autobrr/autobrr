@@ -11,6 +11,8 @@ import (
 	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/pkg/errors"
 
+	"github.com/r3labs/sse/v2"
+	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -52,6 +54,60 @@ func (testEventBus) OnReleasePush(func(context.Context, events.ReleasePushEvent)
 
 func (testEventBus) OnIRC(func(context.Context, events.IRCEvent) error) func() {
 	return func() {}
+}
+
+type testInboxRepo struct {
+	mu       sync.Mutex
+	messages []*domain.InboxMessage
+	cleaned  int64
+}
+
+func (r *testInboxRepo) Find(context.Context, domain.InboxQueryParams) (*domain.FindInboxResponse, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	return &domain.FindInboxResponse{Data: r.messages, TotalCount: len(r.messages)}, nil
+}
+
+func (r *testInboxRepo) Store(_ context.Context, msg *domain.InboxMessage) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	msg.ID = int64(len(r.messages) + 1)
+	r.messages = append(r.messages, msg)
+	return nil
+}
+
+func (r *testInboxRepo) MarkRead(context.Context, []int64, time.Time) error { return nil }
+
+func (r *testInboxRepo) Delete(context.Context, []int64) error { return nil }
+
+func (r *testInboxRepo) DeleteAll(context.Context) error { return nil }
+
+func (r *testInboxRepo) Cleanup(context.Context, domain.InboxCleanupParams) (int64, error) {
+	return r.cleaned, nil
+}
+
+type testPublisher struct {
+	mu     sync.Mutex
+	events []*sse.Event
+}
+
+func (p *testPublisher) Publish(_ string, event *sse.Event) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	p.events = append(p.events, event)
+}
+
+type testScheduler struct{}
+
+func (testScheduler) ScheduleJob(cron.Job, time.Duration, string) (int, error) {
+	return 1, nil
+}
+
+func newTestService(repo *testNotificationRepo) *Service {
+	return NewService(zerolog.Nop(), testEventBus{}, &testPublisher{}, repo, &testInboxRepo{}, testScheduler{})
 }
 
 type testNotificationRepo struct {
@@ -356,7 +412,7 @@ func TestServiceRoutingLifecycle(t *testing.T) {
 	t.Run("global edit is not reverted by later filter edits", func(t *testing.T) {
 		notification := validNotification(1, "webhook", pushApproved)
 		repo := newTestNotificationRepo([]domain.Notification{notification}, nil)
-		service := NewService(zerolog.Nop(), testEventBus{}, repo)
+		service := newTestService(repo)
 		err := service.Start()
 		require.NoError(t, err)
 
@@ -375,7 +431,7 @@ func TestServiceRoutingLifecycle(t *testing.T) {
 		assert.Empty(t, service.currentSnapshot().resolve(pushApproved, 5))
 		assert.Empty(t, service.currentSnapshot().resolve(pushApproved, 6))
 
-		restarted := NewService(zerolog.Nop(), testEventBus{}, repo)
+		restarted := newTestService(repo)
 		require.NoError(t, restarted.Start())
 		for filterID := 1; filterID <= 6; filterID++ {
 			assert.Len(t, restarted.currentSnapshot().resolve(pushApproved, filterID), len(service.currentSnapshot().resolve(pushApproved, filterID)))
@@ -387,7 +443,7 @@ func TestServiceRoutingLifecycle(t *testing.T) {
 		repo := newTestNotificationRepo([]domain.Notification{notification}, map[int][]domain.FilterNotification{
 			1: {{FilterID: 1, NotificationID: 1, Events: []string{}}},
 		})
-		service := NewService(zerolog.Nop(), testEventBus{}, repo)
+		service := newTestService(repo)
 		err := service.Start()
 		require.NoError(t, err)
 
@@ -398,7 +454,7 @@ func TestServiceRoutingLifecycle(t *testing.T) {
 
 	t.Run("new notification can be routed without restart", func(t *testing.T) {
 		repo := newTestNotificationRepo(nil, nil)
-		service := NewService(zerolog.Nop(), testEventBus{}, repo)
+		service := newTestService(repo)
 		err := service.Start()
 		require.NoError(t, err)
 
@@ -422,7 +478,7 @@ func TestServiceRoutingLifecycle(t *testing.T) {
 				{FilterID: 1, NotificationID: 2, Events: []string{string(pushApproved)}},
 			},
 		})
-		service := NewService(zerolog.Nop(), testEventBus{}, repo)
+		service := newTestService(repo)
 		err := service.Start()
 		require.NoError(t, err)
 
@@ -440,7 +496,7 @@ func TestServiceRoutingLifecycle(t *testing.T) {
 	t.Run("unknown notification is rejected before persistence", func(t *testing.T) {
 		notification := validNotification(1, "one", pushApproved)
 		repo := newTestNotificationRepo([]domain.Notification{notification}, nil)
-		service := NewService(zerolog.Nop(), testEventBus{}, repo)
+		service := newTestService(repo)
 		err := service.Start()
 		require.NoError(t, err)
 
@@ -463,7 +519,7 @@ func TestServiceRoutingLifecycle(t *testing.T) {
 		repo := newTestNotificationRepo([]domain.Notification{global, disabled}, map[int][]domain.FilterNotification{
 			1: {{FilterID: 1, NotificationID: 2, Events: []string{string(pushApproved)}}},
 		})
-		service := NewService(zerolog.Nop(), testEventBus{}, repo)
+		service := newTestService(repo)
 		err := service.Start()
 		require.NoError(t, err)
 
@@ -475,7 +531,7 @@ func TestServiceRoutingLifecycle(t *testing.T) {
 		repo := newTestNotificationRepo([]domain.Notification{global}, map[int][]domain.FilterNotification{
 			1: {{FilterID: 1, NotificationID: 99, Events: []string{string(pushApproved)}}},
 		})
-		service := NewService(zerolog.Nop(), testEventBus{}, repo)
+		service := newTestService(repo)
 		err := service.Start()
 		require.NoError(t, err)
 
@@ -488,7 +544,7 @@ func TestServiceRoutingLifecycle(t *testing.T) {
 		repo := newTestNotificationRepo([]domain.Notification{global, override}, map[int][]domain.FilterNotification{
 			1: {{FilterID: 1, NotificationID: 2, Events: []string{}}},
 		})
-		service := NewService(zerolog.Nop(), testEventBus{}, repo)
+		service := newTestService(repo)
 		err := service.Start()
 		require.NoError(t, err)
 
@@ -503,7 +559,7 @@ func TestServiceRoutingLifecycle(t *testing.T) {
 		repo := newTestNotificationRepo([]domain.Notification{global}, map[int][]domain.FilterNotification{
 			1: {{FilterID: 1, NotificationID: 1, Events: []string{}}},
 		})
-		service := NewService(zerolog.Nop(), testEventBus{}, repo)
+		service := newTestService(repo)
 		err := service.Start()
 		require.NoError(t, err)
 
@@ -548,7 +604,7 @@ func TestServiceStartFailsClosed(t *testing.T) {
 			repo := newTestNotificationRepo(nil, nil)
 			test.configure(repo)
 
-			service := NewService(zerolog.Nop(), testEventBus{}, repo)
+			service := newTestService(repo)
 			assert.Error(t, service.Start())
 			assert.Nil(t, service.state.Load())
 		})
@@ -560,7 +616,7 @@ func TestServiceConcurrentRoutingUpdates(t *testing.T) {
 	pushApproved := domain.NotificationEventPushApproved
 	notification := validNotification(1, "webhook", pushApproved)
 	repo := newTestNotificationRepo([]domain.Notification{notification}, nil)
-	service := NewService(zerolog.Nop(), testEventBus{}, repo)
+	service := newTestService(repo)
 	err := service.Start()
 	require.NoError(t, err)
 
@@ -583,4 +639,110 @@ func TestServiceConcurrentRoutingUpdates(t *testing.T) {
 		}()
 	}
 	group.Wait()
+}
+
+func TestServiceBuiltinNotification(t *testing.T) {
+	ctx := t.Context()
+	pushError := domain.NotificationEventPushError
+
+	// Mirrors the row the migrations seed.
+	builtinNotification := domain.Notification{
+		ID:      1,
+		Name:    "Built-in",
+		Type:    domain.NotificationTypeBuiltin,
+		Enabled: true,
+		Events:  []string{string(pushError), string(domain.NotificationEventIRCDisconnected), string(domain.NotificationEventAppUpdateAvailable)},
+	}
+
+	t.Run("can not be stored, deleted or change type", func(t *testing.T) {
+		repo := newTestNotificationRepo([]domain.Notification{builtinNotification}, nil)
+		service := newTestService(repo)
+		require.NoError(t, service.Start())
+
+		builtin := builtinNotification
+		another := domain.Notification{Name: "Another", Type: domain.NotificationTypeBuiltin, Enabled: true}
+
+		assert.ErrorIs(t, service.Store(ctx, &another), domain.ErrNotificationBuiltin)
+		assert.ErrorIs(t, service.Delete(ctx, builtin.ID), domain.ErrNotificationBuiltin)
+
+		changed := builtin
+		changed.Type = domain.NotificationTypeWebhook
+		assert.ErrorIs(t, service.Update(ctx, &changed), domain.ErrNotificationBuiltin)
+
+		webhook := validNotification(0, "webhook")
+		require.NoError(t, service.Store(ctx, &webhook))
+		webhook.Type = domain.NotificationTypeBuiltin
+		assert.ErrorIs(t, service.Update(ctx, &webhook), domain.ErrNotificationBuiltin)
+
+		builtin.Events = []string{string(domain.NotificationEventPushRejected)}
+		require.NoError(t, service.Update(ctx, &builtin))
+		assert.Len(t, service.currentSnapshot().resolve(domain.NotificationEventPushRejected, 0), 1)
+	})
+
+	t.Run("send stores and publishes inbox message", func(t *testing.T) {
+		inbox := &testInboxRepo{}
+		publisher := &testPublisher{}
+		service := NewService(zerolog.Nop(), testEventBus{}, publisher, newTestNotificationRepo([]domain.Notification{builtinNotification}, nil), inbox, testScheduler{})
+		require.NoError(t, service.Start())
+
+		senders := service.currentSnapshot().resolve(pushError, 0)
+		require.Len(t, senders, 1)
+
+		require.NoError(t, senders[0].Send(ctx, domain.NotificationPayload{
+			Event:        pushError,
+			Message:      "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
+			ReleaseName:  "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP",
+			Filter:       "TV",
+			FilterID:     4,
+			ActionClient: "Sonarr",
+			Rejections:   []string{"error pushing to client"},
+		}))
+
+		inbox.mu.Lock()
+		messages := append([]*domain.InboxMessage(nil), inbox.messages...)
+		inbox.mu.Unlock()
+
+		require.Len(t, messages, 1)
+		msg := messages[0]
+		assert.Equal(t, "Push Error", msg.Title)
+		assert.Empty(t, msg.Message)
+		assert.Equal(t, "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP", msg.ReleaseName)
+		assert.Equal(t, "TV", msg.FilterName)
+		assert.Equal(t, 4, msg.FilterID)
+		assert.Equal(t, "Sonarr", msg.ActionClient)
+		assert.Equal(t, []string{"error pushing to client"}, msg.Rejections)
+
+		publisher.mu.Lock()
+		published := append([]*sse.Event(nil), publisher.events...)
+		publisher.mu.Unlock()
+
+		require.Len(t, published, 1)
+		assert.Equal(t, "NOTIFICATION", string(published[0].Event))
+	})
+
+	t.Run("inbox changes publish change event", func(t *testing.T) {
+		inbox := &testInboxRepo{}
+		publisher := &testPublisher{}
+		service := NewService(zerolog.Nop(), testEventBus{}, publisher, newTestNotificationRepo(nil, nil), inbox, testScheduler{})
+
+		require.NoError(t, service.MarkInboxRead(ctx, []int64{1}))
+		require.NoError(t, service.DeleteInboxMessages(ctx, []int64{1}))
+		require.NoError(t, service.DeleteInbox(ctx))
+
+		job := &InboxCleanupJob{log: zerolog.Nop(), repo: inbox, sse: publisher}
+		job.Run()
+
+		inbox.cleaned = 2
+		job.Run()
+
+		publisher.mu.Lock()
+		published := append([]*sse.Event(nil), publisher.events...)
+		publisher.mu.Unlock()
+
+		require.Len(t, published, 4)
+		for _, event := range published {
+			assert.Equal(t, "INBOX_CHANGED", string(event.Event))
+			assert.NotEmpty(t, event.Data)
+		}
+	})
 }

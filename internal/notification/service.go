@@ -16,6 +16,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/moistari/rls"
+	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
 )
@@ -42,6 +43,10 @@ type Sender interface {
 	Name() string
 }
 
+type schedulerService interface {
+	ScheduleJob(job cron.Job, interval time.Duration, identifier string) (int, error)
+}
+
 type eventBus interface {
 	OnAppUpdate(handler func(context.Context, events.AppUpdateEvent) error) func()
 	OnReleaseNew(handler func(context.Context, events.ReleaseEvent) error) func()
@@ -52,10 +57,14 @@ type eventBus interface {
 type Service struct {
 	log      zerolog.Logger
 	eventBus eventBus
-	repo     notificationRepo
+	sse      ssePublisher
 
 	stateMu sync.Mutex
 	state   atomic.Pointer[routingSnapshot]
+
+	repo      notificationRepo
+	inboxRepo inboxRepo
+	scheduler schedulerService
 }
 
 type eventSet map[domain.NotificationEvent]struct{}
@@ -67,14 +76,15 @@ type routingSnapshot struct {
 }
 
 // NewService loads notification routes and registers event listeners.
-func NewService(log zerolog.Logger, eventBus eventBus, repo notificationRepo) *Service {
-	s := &Service{
-		log:      log.With().Str("module", "notification").Logger(),
-		eventBus: eventBus,
-		repo:     repo,
+func NewService(log zerolog.Logger, eventBus eventBus, sse ssePublisher, repo notificationRepo, inboxRepo inboxRepo, scheduler schedulerService) *Service {
+	return &Service{
+		log:       log.With().Str("module", "notification").Logger(),
+		eventBus:  eventBus,
+		sse:       sse,
+		repo:      repo,
+		inboxRepo: inboxRepo,
+		scheduler: scheduler,
 	}
-
-	return s
 }
 
 func (s *Service) Start() error {
@@ -82,6 +92,10 @@ func (s *Service) Start() error {
 
 	if err := s.loadRoutingSnapshot(context.Background()); err != nil {
 		return err
+	}
+
+	if err := s.startInboxCleanupJob(); err != nil {
+		s.log.Error().Err(err).Msg("could not start notification inbox cleanup job")
 	}
 
 	return nil
@@ -368,6 +382,10 @@ func (s *Service) FindByID(ctx context.Context, notificationID int) (*domain.Not
 }
 
 func (s *Service) Store(ctx context.Context, notification *domain.Notification) error {
+	if notification.Type == domain.NotificationTypeBuiltin {
+		return domain.ErrNotificationBuiltin
+	}
+
 	s.stateMu.Lock()
 	defer s.stateMu.Unlock()
 
@@ -392,6 +410,10 @@ func (s *Service) Update(ctx context.Context, notification *domain.Notification)
 	if err != nil {
 		s.log.Error().Err(err).Int("notification_id", notification.ID).Msg("could not find notification by id")
 		return err
+	}
+
+	if notification.Type != existing.Type && (notification.Type == domain.NotificationTypeBuiltin || existing.Type == domain.NotificationTypeBuiltin) {
+		return domain.ErrNotificationBuiltin
 	}
 
 	if domain.IsRedactedString(notification.Password) {
@@ -420,9 +442,14 @@ func (s *Service) Delete(ctx context.Context, notificationID int) error {
 	s.stateMu.Lock()
 	defer s.stateMu.Unlock()
 
-	if _, err := s.repo.FindByID(ctx, notificationID); err != nil {
+	existing, err := s.repo.FindByID(ctx, notificationID)
+	if err != nil {
 		s.log.Error().Err(err).Int("notification_id", notificationID).Msg("could not find notification by id")
 		return err
+	}
+
+	if existing.Type == domain.NotificationTypeBuiltin {
+		return domain.ErrNotificationBuiltin
 	}
 
 	if err := s.repo.Delete(ctx, notificationID); err != nil {
@@ -535,6 +562,8 @@ func (s *Service) newSender(notification *domain.Notification) Sender {
 		return NewTelegramSender(s.log, notification)
 	case domain.NotificationTypeWebhook:
 		return NewWebhookSender(s.log, notification)
+	case domain.NotificationTypeBuiltin:
+		return NewBuiltinSender(notification, s)
 	default:
 		s.log.Error().Str("notification_type", string(notification.Type)).Msg("unsupported notification type")
 		return nil

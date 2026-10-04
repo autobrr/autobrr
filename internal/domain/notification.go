@@ -83,6 +83,8 @@ func (n *Notification) IsEnabled() bool {
 		if n.Webhook != "" {
 			return true
 		}
+	case NotificationTypeBuiltin:
+		return true
 	}
 	return false
 }
@@ -141,6 +143,7 @@ const (
 	NotificationTypeLunaSea   NotificationType = "LUNASEA"
 	NotificationTypeShoutrrr  NotificationType = "SHOUTRRR"
 	NotificationTypeWebhook   NotificationType = "WEBHOOK"
+	NotificationTypeBuiltin   NotificationType = "BUILTIN"
 )
 
 type NotificationEvent string
@@ -161,6 +164,45 @@ func (e NotificationEvent) String() string {
 }
 
 type NotificationEventArr []NotificationEvent
+
+// InboxMessage is a notification delivered by the built-in notification.
+type InboxMessage struct {
+	ID           int64             `json:"id"`
+	Event        NotificationEvent `json:"event"`
+	Title        string            `json:"title"`
+	Message      string            `json:"message"`
+	ReleaseName  string            `json:"release_name"`
+	Indexer      string            `json:"indexer"`
+	FilterName   string            `json:"filter_name"`
+	FilterID     int               `json:"filter_id"`
+	Action       string            `json:"action"`
+	ActionClient string            `json:"action_client"`
+	Rejections   []string          `json:"rejections"`
+	URL          string            `json:"url"`
+	ReadAt       *time.Time        `json:"read_at"`
+	CreatedAt    time.Time         `json:"created_at"`
+}
+
+type InboxQueryParams struct {
+	Limit  uint64
+	Offset uint64
+	Unread bool
+	Events []string
+}
+
+// FindInboxResponse holds one page of messages. TotalCount matches the query, AllCount and
+// UnreadCount ignore the unread filter so the UI can show both tab counts.
+type FindInboxResponse struct {
+	Data        []*InboxMessage `json:"data"`
+	TotalCount  int             `json:"count"`
+	AllCount    int             `json:"all_count"`
+	UnreadCount int             `json:"unread_count"`
+}
+
+type InboxCleanupParams struct {
+	MaxMessages int
+	OlderThan   time.Time
+}
 
 type NotificationQueryParams struct {
 	Limit   uint64

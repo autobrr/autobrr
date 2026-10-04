@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"testing"
 
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -164,4 +165,61 @@ func validateNordicBytesNotUsed(db *sql.DB, t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 2, networks, "nothing must change without NordicBytes, including empty p2p-network rows")
 	assert.Equal(t, 1, channels)
+}
+
+func setupBuiltinNotificationExisting(db *sql.DB) error {
+	_, err := db.Exec(`INSERT INTO notification (name, type, enabled, events, webhook)
+		VALUES ('Discord', 'DISCORD', TRUE, '{PUSH_APPROVED}', 'https://discord.example/hook')`)
+
+	return err
+}
+
+func validateBuiltinNotification(db *sql.DB, t *testing.T) {
+	var count int
+	err := db.QueryRow(`SELECT COUNT(*) FROM notification WHERE type = 'BUILTIN'`).Scan(&count)
+	require.NoError(t, err)
+	assert.Equal(t, 1, count)
+
+	var name string
+	var enabled bool
+	var events []string
+	err = db.QueryRow(`SELECT name, enabled, events FROM notification WHERE type = 'BUILTIN'`).Scan(&name, &enabled, pq.Array(&events))
+	require.NoError(t, err)
+	assert.Equal(t, "Built-in", name)
+	assert.True(t, enabled)
+	assert.Equal(t, []string{"PUSH_ERROR", "IRC_DISCONNECTED", "APP_UPDATE_AVAILABLE"}, events)
+
+	_, err = db.Exec(`INSERT INTO notification (name, type, enabled) VALUES ('Second', 'BUILTIN', TRUE)`)
+	assert.Error(t, err, "the unique index must reject a second built-in notification")
+
+	_, err = db.Exec(`INSERT INTO notification (name, type, enabled) VALUES ('Another hook', 'WEBHOOK', TRUE)`)
+	assert.NoError(t, err, "the unique index must only cover the built-in type")
+}
+
+func validateBuiltinNotificationKeepsExisting(db *sql.DB, t *testing.T) {
+	validateBuiltinNotification(db, t)
+
+	var webhook string
+	err := db.QueryRow(`SELECT webhook FROM notification WHERE type = 'DISCORD'`).Scan(&webhook)
+	require.NoError(t, err)
+	assert.Equal(t, "https://discord.example/hook", webhook)
+}
+
+func setupBuiltinNotificationPresent(db *sql.DB) error {
+	_, err := db.Exec(`INSERT INTO notification (name, type, enabled, events)
+		VALUES ('Existing', 'BUILTIN', FALSE, '{PUSH_REJECTED}')`)
+
+	return err
+}
+
+func validateBuiltinNotificationNotDuplicated(db *sql.DB, t *testing.T) {
+	var count int
+	err := db.QueryRow(`SELECT COUNT(*) FROM notification WHERE type = 'BUILTIN'`).Scan(&count)
+	require.NoError(t, err)
+	assert.Equal(t, 1, count)
+
+	var name string
+	err = db.QueryRow(`SELECT name FROM notification WHERE type = 'BUILTIN'`).Scan(&name)
+	require.NoError(t, err)
+	assert.Equal(t, "Existing", name, "the seed must not replace a built-in row that already exists")
 }

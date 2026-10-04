@@ -26,6 +26,8 @@ import { selectComponents, selectStyles, selectTheme } from "@components/inputs/
 import { NumberFieldWide, PasswordFieldWide, SelectFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import { Checkbox } from "@components/Checkbox";
 import { EmptySimple } from "@components/emptystates";
+import { browserNotificationsSupported } from "@hooks/useInbox";
+import { SettingsContext } from "@utils/Context";
 
 import { componentMapType } from "./DownloaderForms";
 import { AddFormProps, UpdateFormProps } from "@forms/_shared";
@@ -384,6 +386,46 @@ function FormFieldsGenericWebhook() {
   );
 }
 
+function FormFieldsBuiltin() {
+  const { t } = useTranslation("settings");
+  const browserNotifications = SettingsContext.useSelector((s) => s.browserNotifications);
+  const supported = browserNotificationsSupported() && window.isSecureContext;
+
+  const setBrowserNotifications = async (enabled: boolean) => {
+    if (enabled && Notification.permission !== "granted" && await Notification.requestPermission() !== "granted") {
+      toast.custom((toastInstance) => <Toast type="warning" body={t("forms.notification.browserNotificationsDenied")} t={toastInstance} />);
+      return;
+    }
+
+    SettingsContext.set((prev) => ({ ...prev, browserNotifications: enabled }));
+  };
+
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+      <div className="px-4">
+        <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+          {t("forms.notification.settings")}
+        </h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          {t("forms.notification.settingsDescBuiltin")}
+        </p>
+      </div>
+
+      <Checkbox
+        name="browser_notifications"
+        label={t("forms.notification.browserNotifications")}
+        description={supported
+          ? t("forms.notification.browserNotificationsHelp")
+          : t("forms.notification.browserNotificationsUnsupported")}
+        value={supported && browserNotifications}
+        setValue={(enabled) => void setBrowserNotifications(enabled)}
+        disabled={!supported}
+        className="p-4"
+      />
+    </div>
+  );
+}
+
 const componentMap: componentMapType = {
   DISCORD: <FormFieldsDiscord />,
   NOTIFIARR: <FormFieldsNotifiarr />,
@@ -393,7 +435,8 @@ const componentMap: componentMapType = {
   NTFY: <FormFieldsNtfy />,
   SHOUTRRR: <FormFieldsShoutrrr />,
   LUNASEA: <FormFieldsLunaSea />,
-  WEBHOOK: <FormFieldsGenericWebhook />
+  WEBHOOK: <FormFieldsGenericWebhook />,
+  BUILTIN: <FormFieldsBuiltin />
 };
 
 interface NotificationAddFormValues {
@@ -640,7 +683,9 @@ const EventCheckBox = ({ event }: { event: NotificationEventOption; }) => {
 
 const EventCheckBoxes = () => {
   const { t } = useTranslation(["options", "settings"]);
-  const eventOptions = getEventOptions(t);
+  const type = useFormValue((v: ServiceNotification) => v.type);
+  // New releases arrive before filtering, far too many for an inbox meant to be read.
+  const eventOptions = getEventOptions(t).filter(e => type !== "BUILTIN" || e.value !== "RELEASE_NEW");
 
   return (
     <fieldset className="space-y-5">
@@ -769,6 +814,7 @@ interface InitialValues {
 
 export function NotificationUpdateForm({ isOpen, toggle, data: notification }: UpdateFormProps<ServiceNotification>) {
   const { t } = useTranslation(["options", "settings"]);
+  const isBuiltin = notification.type === "BUILTIN";
   const filterEventOptions: Record<NotificationFilterEvent, string> = {
     "PUSH_APPROVED": t("event.PUSH_APPROVED.label"),
     "PUSH_REJECTED": t("event.PUSH_REJECTED.label"),
@@ -838,7 +884,7 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
       isOpen={isOpen}
       toggle={toggle}
       onSubmit={onSubmit}
-      deleteAction={deleteAction}
+      deleteAction={isBuiltin ? undefined : deleteAction}
       initialValues={initialValues}
       testFn={testNotification}
     >
@@ -847,19 +893,21 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
           <TextFieldWide name="name" label={t("settings:forms.notification.name")} required={true} />
 
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            <div className="py-4 flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
-              <div>
-                <label
-                  htmlFor="type"
-                  className="block text-sm font-medium text-gray-900 dark:text-white"
-                >
-                  {t("settings:forms.notification.type")}
-                </label>
+            {!isBuiltin && (
+              <div className="py-4 flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
+                <div>
+                  <label
+                    htmlFor="type"
+                    className="block text-sm font-medium text-gray-900 dark:text-white"
+                  >
+                    {t("settings:forms.notification.type")}
+                  </label>
+                </div>
+                <div className="sm:col-span-2">
+                  <NotificationTypeSelector />
+                </div>
               </div>
-              <div className="sm:col-span-2">
-                <NotificationTypeSelector />
-              </div>
-            </div>
+            )}
             <SwitchGroupWide name="enabled" label={t("settings:forms.notification.enabled")} />
             <div className="pb-2">
               <div className="p-4">
