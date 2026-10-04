@@ -647,7 +647,7 @@ CREATE TABLE release_cleanup_job
 
 CREATE TABLE notification_inbox
 (
-    id            INTEGER PRIMARY KEY,
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
     event         TEXT NOT NULL,
     title         TEXT NOT NULL,
     message       TEXT NOT NULL,

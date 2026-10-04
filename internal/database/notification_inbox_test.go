@@ -89,3 +89,32 @@ func TestNotificationInboxRepo_Lifecycle(t *testing.T) {
 		})
 	}
 }
+
+func TestNotificationInboxRepo_IDsNotReusedAfterDeleteAll(t *testing.T) {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		repo := NewNotificationInboxRepo(setupLoggerForTest(), testDb.db)
+
+		t.Run(fmt.Sprintf("IDsNotReusedAfterDeleteAll [%s]", dbType), func(t *testing.T) {
+			require.NoError(t, repo.DeleteAll(ctx))
+			t.Cleanup(func() { _ = repo.DeleteAll(ctx) })
+
+			old := &domain.InboxMessage{Event: domain.NotificationEventPushError, Title: "Push Error", Message: "old", CreatedAt: time.Now().UTC()}
+			require.NoError(t, repo.Store(ctx, old))
+
+			require.NoError(t, repo.DeleteAll(ctx))
+
+			msg := &domain.InboxMessage{Event: domain.NotificationEventPushError, Title: "Push Error", Message: "new", CreatedAt: time.Now().UTC()}
+			require.NoError(t, repo.Store(ctx, msg))
+			assert.Greater(t, msg.ID, old.ID)
+
+			// a stale delete for the cleared message must not hit the new one
+			require.NoError(t, repo.Delete(ctx, []int64{old.ID}))
+			resp, err := repo.Find(ctx, domain.InboxQueryParams{Limit: 10})
+			require.NoError(t, err)
+			require.Len(t, resp.Data, 1)
+			assert.Equal(t, msg.ID, resp.Data[0].ID)
+		})
+	}
+}
