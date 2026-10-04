@@ -8,6 +8,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { APIClient } from "@api/APIClient";
 import { NotificationKeys } from "@api/query_keys";
+import i18n from "@app/i18n";
 import { SettingsContext } from "@utils/Context";
 
 export const browserNotificationsSupported = () => typeof window !== "undefined" && "Notification" in window;
@@ -20,7 +21,19 @@ const showBrowserNotification = (msg: InboxMessage) => {
     return;
   }
 
-  new Notification(msg.title, { body: msg.message, tag: `autobrr-inbox-${msg.id}` });
+  const title = msg.event === "TEST"
+    ? msg.title
+    : i18n.t(`options:event.${msg.event}.label`, { defaultValue: msg.title });
+
+  // Push events carry no message, their context is in the release and rejection fields.
+  const body = [
+    msg.message,
+    msg.release_name,
+    [msg.filter_name, msg.action].filter(Boolean).join(" / "),
+    msg.rejections.join(", ")
+  ].filter(Boolean).join("\n");
+
+  new Notification(title, { body, tag: `autobrr-inbox-${msg.id}` });
 };
 
 export function useInboxEvents() {

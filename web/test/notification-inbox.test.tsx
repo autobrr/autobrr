@@ -16,7 +16,8 @@ import { NotificationInbox } from "@screens/NotificationInbox";
 import { InboxMenu } from "@components/header/InboxMenu";
 import { useInboxEvents } from "@hooks/useInbox";
 import { NotificationKeys } from "@api/query_keys";
-import "@app/i18n";
+import { SettingsContext } from "@utils/Context";
+import i18n from "@app/i18n";
 
 afterEach(() => {
   cleanup();
@@ -401,4 +402,41 @@ test("the inbox refetches every time the event stream connects", async () => {
   expect(invalidate).toHaveBeenLastCalledWith({ queryKey: NotificationKeys.inbox.all() });
 
   unmount();
+});
+
+test("browser notifications for push events show the translated title, release, filter, action and rejections", async () => {
+  vi.stubGlobal("EventSource", { CONNECTING: 0, OPEN: 1, CLOSED: 2 });
+  const notification = vi.fn();
+  vi.stubGlobal("Notification", Object.assign(notification, { permission: "granted" }));
+  vi.spyOn(SettingsContext, "get").mockReturnValue({ ...SettingsContext.get(), browserNotifications: true });
+
+  const listeners: Record<string, (event: MessageEvent) => void> = {};
+  vi.spyOn(APIClient.events, "notifications").mockImplementation(() => ({
+    readyState: 1,
+    addEventListener: (type: string, listener: (event: MessageEvent) => void) => {
+      listeners[type] = listener;
+    },
+    close: vi.fn()
+  }) as unknown as EventSource);
+
+  const queryClient = new QueryClient();
+  const { unmount } = renderHook(() => useInboxEvents(), {
+    wrapper: ({ children }) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  });
+
+  listeners.NOTIFICATION(new MessageEvent("NOTIFICATION", { data: JSON.stringify(messages[0]) }));
+
+  expect(notification).toHaveBeenCalledWith("Push Error", {
+    body: "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP\nTV / Send to Sonarr\nerror pushing to client",
+    tag: "autobrr-inbox-2"
+  });
+
+  await i18n.changeLanguage("de");
+  try {
+    listeners.NOTIFICATION(new MessageEvent("NOTIFICATION", { data: JSON.stringify(messages[0]) }));
+    expect(notification).toHaveBeenLastCalledWith("Push Fehler", expect.anything());
+  } finally {
+    await i18n.changeLanguage("en");
+    unmount();
+  }
 });
