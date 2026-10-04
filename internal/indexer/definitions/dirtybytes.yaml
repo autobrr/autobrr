@@ -3,10 +3,11 @@ version: 2
 #id: dirtybytes
 name: DirtyBytes
 identifier: dirtybytes
-description: DirtyBytes is a private torrent tracker for XXX
+description: DirtyBytes is a private torrent tracker for XXX.
 language: en-us
 urls:
   - https://dirtybytes.net/
+  - https://trackerprxy.dirtybytes.net/
 privacy: private
 protocol: torrent
 supports:
