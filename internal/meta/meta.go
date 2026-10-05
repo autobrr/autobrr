@@ -11,6 +11,7 @@ import (
 	"time"
 )
 
+// Info holds the build version, commit and date.
 type Info struct {
 	Version   string `json:"version"`
 	Commit    string `json:"commit"`
@@ -45,6 +46,7 @@ func Set(v, c, d string) {
 	}
 }
 
+// GetVersion returns the build version, "dev" for local builds.
 func GetVersion() string {
 	if version != devVersion {
 		// Only semver gets the v prefix: CI builds pr-<n> and develop images, which
@@ -93,6 +95,7 @@ func isHex(s string) bool {
 	return true
 }
 
+// GetDate returns the build date as YYYY-MM-DD, or today when it was not set.
 func GetDate() string {
 	if date != "" && date != unknownValue {
 		if t, err := time.Parse(time.RFC3339, date); err == nil {
@@ -121,6 +124,7 @@ func GetUserAgent() string {
 	return fmt.Sprintf("autobrr/%s (%s/%s)", v, runtime.GOOS, runtime.GOARCH)
 }
 
+// GetMetaStr returns a one-line summary of the version, build date and commit.
 func GetMetaStr() string {
 	v := GetVersion()
 	d := GetDate()
@@ -133,6 +137,7 @@ func GetMetaStr() string {
 	return fmt.Sprintf("%s (Built on %s from Git SHA %s)", v, d, c)
 }
 
+// GetMetaInfo returns the version, build date and commit.
 func GetMetaInfo() Info {
 	return Info{
 		Version: GetVersion(),
