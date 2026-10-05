@@ -37,7 +37,10 @@
     "openMainMenu": "Открыть главное меню",
     "newUpdateAvailable": "Доступно новое обновление!",
     "listRefreshFailed": "Ошибка обновления списка!",
-    "multipleListRefreshesFailed": "Ошибка обновления нескольких списков!"
+    "multipleListRefreshesFailed": "Ошибка обновления нескольких списков!",
+    "ircNetworkUnhealthy": "Проблема с IRC-сетью!",
+    "multipleIrcNetworksUnhealthy": "Проблемы с несколькими IRC-сетями!",
+    "dismiss": "Скрыть"
   },
   "inbox": {
     "title": "Уведомления",

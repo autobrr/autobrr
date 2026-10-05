@@ -37,7 +37,10 @@
     "openMainMenu": "Ouvrir le menu principal",
     "newUpdateAvailable": "Nouvelle mise à jour disponible!",
     "listRefreshFailed": "Échec de l'actualisation de la liste!",
-    "multipleListRefreshesFailed": "Plusieurs actualisations de listes ont échoué!"
+    "multipleListRefreshesFailed": "Plusieurs actualisations de listes ont échoué!",
+    "ircNetworkUnhealthy": "Réseau IRC défaillant!",
+    "multipleIrcNetworksUnhealthy": "Plusieurs réseaux IRC défaillants!",
+    "dismiss": "Ignorer"
   },
   "inbox": {
     "title": "Notifications",

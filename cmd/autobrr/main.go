@@ -14,6 +14,7 @@ import (
 	_ "time/tzdata"
 
 	"github.com/autobrr/autobrr/internal/action"
+	"github.com/autobrr/autobrr/internal/alert"
 	"github.com/autobrr/autobrr/internal/api"
 	"github.com/autobrr/autobrr/internal/auth"
 	"github.com/autobrr/autobrr/internal/config"
@@ -176,6 +177,7 @@ func main() {
 		ircService          = irc.NewService(log, eventBus, serverEvents, ircRepo, releaseService, indexerService, proxyService)
 		feedService         = feed.NewService(log, eventBus, feedRepo, feedCacheRepo, releaseService, proxyService, schedulingService)
 		listService         = list.NewService(log, eventBus, listRepo, downloaderService, filterService, schedulingService)
+		alertService        = alert.NewService(log, eventBus, cfg.Config, serverEvents, updateService, ircService, listService)
 	)
 
 	errorChannel := make(chan error)
@@ -191,6 +193,7 @@ func main() {
 			Commit:              commit,
 			Date:                date,
 			ActionService:       actionService,
+			AlertService:        alertService,
 			ApiService:          apiService,
 			AuthService:         authService,
 			DownloaderService:   downloaderService,

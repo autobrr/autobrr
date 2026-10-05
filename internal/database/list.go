@@ -28,7 +28,7 @@ func NewListRepo(log zerolog.Logger, db *DB) *ListRepo {
 	}
 }
 
-func (r *ListRepo) List(ctx context.Context) ([]*domain.List, error) {
+func (r *ListRepo) List(ctx context.Context, params domain.ListQueryParams) ([]*domain.List, error) {
 	qb := r.db.squirrel.Select(
 		"id",
 		"name",
@@ -53,6 +53,14 @@ func (r *ListRepo) List(ctx context.Context) ([]*domain.List, error) {
 	).
 		From("list").
 		OrderBy("name ASC")
+
+	if params.Enabled != nil {
+		qb = qb.Where(sq.Eq{"enabled": *params.Enabled})
+	}
+
+	if params.LastRefreshStatus != "" {
+		qb = qb.Where(sq.Eq{"last_refresh_status": params.LastRefreshStatus})
+	}
 
 	query, args, err := qb.ToSql()
 	if err != nil {

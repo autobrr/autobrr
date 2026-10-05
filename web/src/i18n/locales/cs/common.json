@@ -37,7 +37,10 @@
       "openMainMenu": "Otevřít hlavní menu",
       "newUpdateAvailable": "Je dostupná nová aktualizace!",
       "listRefreshFailed": "Selhalo obnovení seznamu!",
-      "multipleListRefreshesFailed": "Selhalo obnovení několika seznamů!"
+      "multipleListRefreshesFailed": "Selhalo obnovení několika seznamů!",
+      "ircNetworkUnhealthy": "IRC síť není v pořádku!",
+      "multipleIrcNetworksUnhealthy": "Několik IRC sítí není v pořádku!",
+      "dismiss": "Zavřít"
     },
     "inbox": {
       "title": "Oznámení",

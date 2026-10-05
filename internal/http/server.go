@@ -33,6 +33,7 @@ type Server struct {
 	sessionManager *scs.SessionManager
 
 	actionService       actionService
+	alertService        alertService
 	apiService          apikeyService
 	authService         authService
 	downloaderService   downloaderService
@@ -61,6 +62,7 @@ type Deps struct {
 	Date    string
 
 	ActionService       actionService
+	AlertService        alertService
 	ApiService          apikeyService
 	AuthService         authService
 	DownloaderService   downloaderService
@@ -107,6 +109,7 @@ func NewServer(deps Deps) *Server {
 		sessionManager: sessionManager,
 
 		actionService:       deps.ActionService,
+		alertService:        deps.AlertService,
 		apiService:          deps.ApiService,
 		authService:         deps.AuthService,
 		downloaderService:   deps.DownloaderService,
@@ -193,6 +196,7 @@ func (s *Server) Handler() http.Handler {
 			r.Use(s.IsAuthenticated)
 
 			r.Route("/actions", newActionHandler(encoder, s.actionService).Routes)
+			r.Route("/alerts", newAlertHandler(encoder, s.alertService).Routes)
 			r.Route("/config", newConfigHandler(encoder, s.buildInfo, s.config).Routes)
 			r.Route("/downloaders", newDownloaderHandler(encoder, s.downloaderService).Routes)
 			r.Route("/filters", newFilterHandler(encoder, s.filterService).Routes)

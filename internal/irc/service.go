@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -73,6 +74,7 @@ type Service struct {
 
 	// unhealthyNetworks is owned by the health monitor goroutine
 	unhealthyNetworks map[int64]*unhealthyEpisode
+	unhealthySnapshot atomic.Pointer[[]reportedNetwork]
 	stopHealthMonitor context.CancelFunc
 
 	stopWG sync.WaitGroup
