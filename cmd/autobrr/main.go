@@ -30,6 +30,7 @@ import (
 	"github.com/autobrr/autobrr/internal/irc"
 	"github.com/autobrr/autobrr/internal/list"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/internal/meta"
 	"github.com/autobrr/autobrr/internal/metrics"
 	"github.com/autobrr/autobrr/internal/notification"
 	"github.com/autobrr/autobrr/internal/proxy"
@@ -62,6 +63,14 @@ func init() {
 }
 
 func main() {
+	meta.Set(version, commit, date)
+
+	var (
+		version = meta.GetVersion()
+		commit  = meta.GetCommit()
+		date    = meta.GetDate()
+	)
+
 	var configPath, profilePath string
 	pflag.StringVar(&configPath, "config", "", "path to configuration directory")
 	pflag.StringVar(&profilePath, "pgo", "", "internal build flag")
@@ -72,7 +81,7 @@ func main() {
 	ctx := context.Background()
 
 	// read config
-	cfg := config.New(configPath, version)
+	cfg := config.New(configPath)
 
 	// setup server-sent-events
 	serverEvents := sse.New()
