@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"runtime"
 	"slices"
 	"strings"
 	"time"
@@ -168,10 +167,6 @@ func (c *Checker) checkNewVersion(version string, release *Release) (bool, strin
 	}
 
 	return false, "", nil
-}
-
-func (c *Checker) buildUserAgent() string {
-	return fmt.Sprintf("autobrr/%s (%s %s)", c.CurrentVersion, runtime.GOOS, runtime.GOARCH)
 }
 
 func isDevelop(version string) bool {
