@@ -521,7 +521,88 @@
       "createCta": "Создать API-ключ",
       "removeTitle": "Удалить API-ключ: {{name}}",
       "removeText": "Вы уверены, что хотите удалить этот API-ключ? Это действие нельзя отменить.",
-      "deleteKey": "Удалить ключ"
+      "deleteKey": "Удалить ключ",
+      "updated": "API-ключ {{name}} обновлён",
+      "updateTitle": "Изменить API-ключ",
+      "updateDescription": "Измените имя и права доступа этого API-ключа.",
+      "save": "Сохранить",
+      "editKey": "Изменить ключ",
+      "permissions": "Права доступа",
+      "permissionsDescription": "Выберите минимально необходимые права доступа.",
+      "permissionsRequired": "Выберите полный доступ или добавьте хотя бы одно право",
+      "fullAccess": "Полный доступ",
+      "fullAccessDescription": "Чтение и запись всего, включая API-ключи и настройки пользователя.",
+      "customAccess": "Выборочные права",
+      "customAccessDescription": "Только выбранные ресурсы и уровни доступа.",
+      "addPermissions": "Добавить права",
+      "selectPermissions": "Выберите права",
+      "searchPermissions": "Поиск",
+      "noPermissions": "Права доступа ещё не добавлены.",
+      "noPermissionsFound": "Права не найдены",
+      "removePermission": "Удалить право {{name}}",
+      "accessLabel": "Доступ:",
+      "access": {
+        "read": "Только чтение",
+        "write": "Чтение и запись"
+      },
+      "accessShort": {
+        "read": "Чтение",
+        "write": "Запись"
+      },
+      "resources": {
+        "filters": {
+          "label": "Фильтры",
+          "description": "Фильтры и их действия."
+        },
+        "releases": {
+          "label": "Релизы",
+          "description": "История релизов, статистика, задачи очистки и повтор действий."
+        },
+        "indexers": {
+          "label": "Индексаторы",
+          "description": "Индексаторы и их настройки."
+        },
+        "irc": {
+          "label": "IRC",
+          "description": "IRC-сети, каналы и обработка анонсов."
+        },
+        "feeds": {
+          "label": "Фиды",
+          "description": "RSS-, Torznab- и Newznab-фиды."
+        },
+        "downloaders": {
+          "label": "Клиенты загрузки",
+          "description": "Клиенты загрузки и проверка подключения."
+        },
+        "lists": {
+          "label": "Списки",
+          "description": "Списки и их обновление."
+        },
+        "webhooks": {
+          "label": "Вебхуки",
+          "description": "Запуск обновления списков через вебхуки, например из Sonarr или Radarr."
+        },
+        "notifications": {
+          "label": "Уведомления",
+          "description": "Сервисы уведомлений."
+        },
+        "proxies": {
+          "label": "Прокси",
+          "description": "Прокси и их проверка."
+        },
+        "config": {
+          "label": "Конфигурация приложения",
+          "description": "Настройки приложения, например уровень логирования и проверка обновлений."
+        },
+        "logs": {
+          "label": "Логи",
+          "description": "Файлы логов и живой поток логов."
+        },
+        "updates": {
+          "label": "Обновления",
+          "description": "Проверка новых версий autobrr."
+        }
+      }
     },
     "notification": {
       "settings": "Настройки",

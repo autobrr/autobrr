@@ -521,7 +521,88 @@
       "createCta": "Vytvořit API klíč",
       "removeTitle": "Odstranit API klíč: {{name}}",
       "removeText": "Jste si jisti, že chcete odstranit tento API klíč? Tato akce je nevratná.",
-      "deleteKey": "Smazat klíč"
+      "deleteKey": "Smazat klíč",
+      "updated": "API klíč {{name}} byl aktualizován",
+      "updateTitle": "Upravit API klíč",
+      "updateDescription": "Upravte název a oprávnění tohoto API klíče.",
+      "save": "Uložit",
+      "editKey": "Upravit klíč",
+      "permissions": "Oprávnění",
+      "permissionsDescription": "Zvolte minimální oprávnění, která potřebujete.",
+      "permissionsRequired": "Zvolte plný přístup nebo přidejte alespoň jedno oprávnění",
+      "fullAccess": "Plný přístup",
+      "fullAccessDescription": "Čtení i zápis všeho, včetně API klíčů a uživatelského nastavení.",
+      "customAccess": "Vlastní oprávnění",
+      "customAccessDescription": "Pouze vybrané zdroje a úrovně přístupu.",
+      "addPermissions": "Přidat oprávnění",
+      "selectPermissions": "Vyberte oprávnění",
+      "searchPermissions": "Hledat",
+      "noPermissions": "Zatím nebyla přidána žádná oprávnění.",
+      "noPermissionsFound": "Žádná oprávnění nenalezena",
+      "removePermission": "Odebrat oprávnění {{name}}",
+      "accessLabel": "Přístup:",
+      "access": {
+        "read": "Pouze čtení",
+        "write": "Čtení a zápis"
+      },
+      "accessShort": {
+        "read": "Čtení",
+        "write": "Zápis"
+      },
+      "resources": {
+        "filters": {
+          "label": "Filtry",
+          "description": "Filtry a jejich akce."
+        },
+        "releases": {
+          "label": "Releasy",
+          "description": "Historie releasů, statistiky, úlohy čištění a opakování akcí."
+        },
+        "indexers": {
+          "label": "Indexery",
+          "description": "Indexery a jejich nastavení."
+        },
+        "irc": {
+          "label": "IRC",
+          "description": "IRC sítě, kanály a zpracování oznámení."
+        },
+        "feeds": {
+          "label": "Kanály",
+          "description": "RSS, Torznab a Newznab kanály."
+        },
+        "downloaders": {
+          "label": "Klienti pro stahování",
+          "description": "Klienti pro stahování a testy připojení."
+        },
+        "lists": {
+          "label": "Seznamy",
+          "description": "Seznamy a jejich obnovování."
+        },
+        "webhooks": {
+          "label": "Webhooky",
+          "description": "Spouštění obnovy seznamů přes webhooky, např. ze Sonarru nebo Radarru."
+        },
+        "notifications": {
+          "label": "Oznámení",
+          "description": "Notifikační služby."
+        },
+        "proxies": {
+          "label": "Proxy",
+          "description": "Proxy a jejich testy."
+        },
+        "config": {
+          "label": "Konfigurace aplikace",
+          "description": "Nastavení aplikace, např. úroveň logování a kontrola aktualizací."
+        },
+        "logs": {
+          "label": "Logy",
+          "description": "Soubory logů a živý stream logů."
+        },
+        "updates": {
+          "label": "Aktualizace",
+          "description": "Kontrola nových verzí autobrr."
+        }
+      }
     },
       "notification": {
         "settings": "Nastavení",

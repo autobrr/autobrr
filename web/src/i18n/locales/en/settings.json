@@ -522,7 +522,88 @@
     "createCta": "Create API key",
     "removeTitle": "Remove API key: {{name}}",
     "removeText": "Are you sure you want to remove this API key? This action cannot be undone.",
-    "deleteKey": "Delete key"
+    "deleteKey": "Delete key",
+    "updated": "API key {{name}} was updated",
+    "updateTitle": "Edit API key",
+    "updateDescription": "Update the name and permissions of this API key.",
+    "save": "Save",
+    "editKey": "Edit key",
+    "permissions": "Permissions",
+    "permissionsDescription": "Choose the minimal permissions necessary for your needs.",
+    "permissionsRequired": "Choose full access or add at least one permission",
+    "fullAccess": "Full access",
+    "fullAccessDescription": "Read and write access to everything, including API keys and user settings.",
+    "customAccess": "Custom permissions",
+    "customAccessDescription": "Only the resources and access levels you select.",
+    "addPermissions": "Add permissions",
+    "selectPermissions": "Select permissions",
+    "searchPermissions": "Search",
+    "noPermissions": "No permissions added yet.",
+    "noPermissionsFound": "No permissions found",
+    "removePermission": "Remove {{name}} permission",
+    "accessLabel": "Access:",
+    "access": {
+      "read": "Read-only",
+      "write": "Read and write"
+    },
+    "accessShort": {
+      "read": "Read",
+      "write": "Write"
+    },
+    "resources": {
+      "filters": {
+        "label": "Filters",
+        "description": "Filters and their actions."
+      },
+      "releases": {
+        "label": "Releases",
+        "description": "Release history, stats, cleanup jobs and action retries."
+      },
+      "indexers": {
+        "label": "Indexers",
+        "description": "Indexers and their settings."
+      },
+      "irc": {
+        "label": "IRC",
+        "description": "IRC networks, channels and announce processing."
+      },
+      "feeds": {
+        "label": "Feeds",
+        "description": "RSS, Torznab and Newznab feeds."
+      },
+      "downloaders": {
+        "label": "Download clients",
+        "description": "Download clients and connection tests."
+      },
+      "lists": {
+        "label": "Lists",
+        "description": "Lists and list refreshes."
+      },
+      "webhooks": {
+        "label": "Webhooks",
+        "description": "Trigger list refreshes from webhooks, e.g. from Sonarr or Radarr."
+      },
+      "notifications": {
+        "label": "Notifications",
+        "description": "Notification agents."
+      },
+      "proxies": {
+        "label": "Proxies",
+        "description": "Proxies and proxy tests."
+      },
+      "config": {
+        "label": "Application config",
+        "description": "Application settings like log level and update checks."
+      },
+      "logs": {
+        "label": "Logs",
+        "description": "Log files and the live log stream."
+      },
+      "updates": {
+        "label": "Updates",
+        "description": "Check for new autobrr versions."
+      }
+    }
   },
     "notification": {
       "settings": "Settings",

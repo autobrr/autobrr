@@ -52,6 +52,38 @@ func TestAPIRepo_Store(t *testing.T) {
 	}
 }
 
+func TestAPIRepo_Update(t *testing.T) {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		db := testDb.db
+		log := setupLoggerForTest()
+		repo := NewAPIRepo(log, db)
+
+		t.Run(fmt.Sprintf("Update_Succeeds_With_Existing_Key [%s]", dbType), func(t *testing.T) {
+			key := &domain.APIKey{Name: "TestKey", Key: "123", Scopes: []string{"*"}}
+			require.NoError(t, repo.Store(ctx, key))
+
+			update := &domain.APIKey{Name: "Renamed", Key: "123", Scopes: []string{"filters:read", "webhooks:write"}}
+			err := repo.Update(ctx, update)
+			require.NoError(t, err)
+			assert.NotZero(t, update.CreatedAt)
+
+			apiKey, err := repo.GetKey(ctx, key.Key)
+			require.NoError(t, err)
+			assert.Equal(t, "Renamed", apiKey.Name)
+			assert.Equal(t, []string{"filters:read", "webhooks:write"}, apiKey.Scopes)
+			// Cleanup
+			_ = repo.Delete(ctx, key.Key)
+		})
+
+		t.Run(fmt.Sprintf("Update_Fails_If_Key_Does_Not_Exist [%s]", dbType), func(t *testing.T) {
+			err := repo.Update(ctx, &domain.APIKey{Name: "TestKey", Key: "nonexistent", Scopes: []string{"*"}})
+			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
+		})
+	}
+}
+
 func TestAPIRepo_Delete(t *testing.T) {
 	ctx := t.Context()
 

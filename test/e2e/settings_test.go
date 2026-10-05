@@ -54,9 +54,19 @@ func TestAddAPIKey(t *testing.T) {
 	page.AddNew()
 
 	page.Fill("name", "e2e-key")
+
+	page.ClickButton("Add permissions")
+	page.Check("Filters")
+	page.Check("Webhooks")
+	page.ExpectText("Filters and their actions.")
+	page.Keyboard().Press("Escape")
+
+	page.ClickButton("Read-only")
+	page.ClickMenuItem("Read and write")
 	page.Submit()
 
 	page.ExpectRow("e2e-key")
+	page.ExpectText("Filters: Write")
 }
 
 // The download client form validates the host before it will save, so this also

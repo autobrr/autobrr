@@ -521,7 +521,88 @@
       "createCta": "Crear clave API",
       "removeTitle": "Eliminar clave API: {{name}}",
       "removeText": "¿Estás seguro de que quieres eliminar esta clave API? Esta acción no se puede deshacer.",
-      "deleteKey": "Eliminar clave"
+      "deleteKey": "Eliminar clave",
+      "updated": "La clave API {{name}} se ha actualizado",
+      "updateTitle": "Editar clave API",
+      "updateDescription": "Actualiza el nombre y los permisos de esta clave API.",
+      "save": "Guardar",
+      "editKey": "Editar clave",
+      "permissions": "Permisos",
+      "permissionsDescription": "Elige los permisos mínimos necesarios para tu caso.",
+      "permissionsRequired": "Elige acceso completo o añade al menos un permiso",
+      "fullAccess": "Acceso completo",
+      "fullAccessDescription": "Lectura y escritura de todo, incluidas las claves API y la configuración de usuario.",
+      "customAccess": "Permisos personalizados",
+      "customAccessDescription": "Solo los recursos y niveles de acceso que selecciones.",
+      "addPermissions": "Añadir permisos",
+      "selectPermissions": "Seleccionar permisos",
+      "searchPermissions": "Buscar",
+      "noPermissions": "Aún no se han añadido permisos.",
+      "noPermissionsFound": "No se encontraron permisos",
+      "removePermission": "Quitar el permiso {{name}}",
+      "accessLabel": "Acceso:",
+      "access": {
+        "read": "Solo lectura",
+        "write": "Lectura y escritura"
+      },
+      "accessShort": {
+        "read": "Lectura",
+        "write": "Escritura"
+      },
+      "resources": {
+        "filters": {
+          "label": "Filtros",
+          "description": "Filtros y sus acciones."
+        },
+        "releases": {
+          "label": "Releases",
+          "description": "Historial de releases, estadísticas, tareas de limpieza y reintentos de acciones."
+        },
+        "indexers": {
+          "label": "Indexadores",
+          "description": "Indexadores y su configuración."
+        },
+        "irc": {
+          "label": "IRC",
+          "description": "Redes IRC, canales y procesamiento de anuncios."
+        },
+        "feeds": {
+          "label": "Feeds",
+          "description": "Feeds RSS, Torznab y Newznab."
+        },
+        "downloaders": {
+          "label": "Clientes de descarga",
+          "description": "Clientes de descarga y pruebas de conexión."
+        },
+        "lists": {
+          "label": "Listas",
+          "description": "Listas y actualizaciones de listas."
+        },
+        "webhooks": {
+          "label": "Webhooks",
+          "description": "Lanzar actualizaciones de listas desde webhooks, p. ej. desde Sonarr o Radarr."
+        },
+        "notifications": {
+          "label": "Notificaciones",
+          "description": "Agentes de notificación."
+        },
+        "proxies": {
+          "label": "Proxies",
+          "description": "Proxies y pruebas de proxy."
+        },
+        "config": {
+          "label": "Configuración de la aplicación",
+          "description": "Ajustes de la aplicación como el nivel de log y la comprobación de actualizaciones."
+        },
+        "logs": {
+          "label": "Logs",
+          "description": "Archivos de log y el flujo de logs en vivo."
+        },
+        "updates": {
+          "label": "Actualizaciones",
+          "description": "Buscar nuevas versiones de autobrr."
+        }
+      }
     },
     "notification": {
       "settings": "Configuración",

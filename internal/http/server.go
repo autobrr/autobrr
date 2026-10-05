@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/config"
+	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/web"
 
 	"github.com/alexedwards/scs/v2"
@@ -192,23 +193,23 @@ func (s *Server) Handler() http.Handler {
 		r.Group(func(r chi.Router) {
 			r.Use(s.IsAuthenticated)
 
-			r.Route("/actions", newActionHandler(encoder, s.actionService).Routes)
-			r.Route("/config", newConfigHandler(encoder, s.buildInfo, s.config).Routes)
-			r.Route("/downloaders", newDownloaderHandler(encoder, s.downloaderService).Routes)
-			r.Route("/filters", newFilterHandler(encoder, s.filterService).Routes)
-			r.Route("/feeds", newFeedHandler(encoder, s.feedService).Routes)
-			r.Route("/irc", newIrcHandler(encoder, s.sse, s.ircService).Routes)
-			r.Route("/indexer", newIndexerHandler(encoder, s.indexerService, s.ircService).Routes)
-			r.Route("/lists", newListHandler(encoder, s.listService).Routes)
-			r.Route("/keys", newAPIKeyHandler(encoder, s.apiService).Routes)
-			r.Route("/logs", newLogsHandler(s.config).Routes)
-			r.Route("/notification", newNotificationHandler(encoder, s.notificationService).Routes)
-			r.Route("/proxy", newProxyHandler(encoder, s.proxyService).Routes)
-			r.Route("/release", newReleaseHandler(encoder, s.releaseService).Routes)
-			r.Route("/updates", newUpdateHandler(encoder, s.updateService).Routes)
-			r.Route("/webhook", newWebhookHandler(encoder, s.listService).Routes)
+			r.With(requireScope(domain.APIResourceFilters)).Route("/actions", newActionHandler(encoder, s.actionService).Routes)
+			r.With(requireScope(domain.APIResourceConfig)).Route("/config", newConfigHandler(encoder, s.buildInfo, s.config).Routes)
+			r.With(requireScope(domain.APIResourceDownloaders)).Route("/downloaders", newDownloaderHandler(encoder, s.downloaderService).Routes)
+			r.With(requireScope(domain.APIResourceFilters)).Route("/filters", newFilterHandler(encoder, s.filterService).Routes)
+			r.With(requireScope(domain.APIResourceFeeds)).Route("/feeds", newFeedHandler(encoder, s.feedService).Routes)
+			r.With(requireScope(domain.APIResourceIRC)).Route("/irc", newIrcHandler(encoder, s.sse, s.ircService).Routes)
+			r.With(requireScope(domain.APIResourceIndexers)).Route("/indexer", newIndexerHandler(encoder, s.indexerService, s.ircService).Routes)
+			r.With(requireScope(domain.APIResourceLists)).Route("/lists", newListHandler(encoder, s.listService).Routes)
+			r.With(requireFullAccess).Route("/keys", newAPIKeyHandler(encoder, s.apiService).Routes)
+			r.With(requireScope(domain.APIResourceLogs)).Route("/logs", newLogsHandler(s.config).Routes)
+			r.With(requireScope(domain.APIResourceNotifications)).Route("/notification", newNotificationHandler(encoder, s.notificationService).Routes)
+			r.With(requireScope(domain.APIResourceProxies)).Route("/proxy", newProxyHandler(encoder, s.proxyService).Routes)
+			r.With(requireScope(domain.APIResourceReleases)).Route("/release", newReleaseHandler(encoder, s.releaseService).Routes)
+			r.With(requireScope(domain.APIResourceUpdates)).Route("/updates", newUpdateHandler(encoder, s.updateService).Routes)
+			r.With(requireAccess(domain.APIResourceWebhooks, domain.APIAccessWrite)).Route("/webhook", newWebhookHandler(encoder, s.listService).Routes)
 
-			r.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
+			r.With(requireAccess(domain.APIResourceLogs, domain.APIAccessRead)).HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
 
 				// inject CORS headers to bypass checks
 				s.sse.Headers = map[string]string{

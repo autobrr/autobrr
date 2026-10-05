@@ -521,7 +521,88 @@
     "createCta": "Opprett API-nøkkel",
     "removeTitle": "Fjern API-nøkkel: {{name}}",
     "removeText": "Er du sikker på at du vil fjerne denne API-nøkkelen? Denne handlingen kan ikke angres.",
-    "deleteKey": "Slett nøkkel"
+    "deleteKey": "Slett nøkkel",
+    "updated": "API-nøkkel {{name}} ble oppdatert",
+    "updateTitle": "Rediger API-nøkkel",
+    "updateDescription": "Endre navn og tillatelser for denne API-nøkkelen.",
+    "save": "Lagre",
+    "editKey": "Rediger nøkkel",
+    "permissions": "Tillatelser",
+    "permissionsDescription": "Velg de minste tillatelsene du trenger.",
+    "permissionsRequired": "Velg full tilgang eller legg til minst én tillatelse",
+    "fullAccess": "Full tilgang",
+    "fullAccessDescription": "Lese- og skrivetilgang til alt, inkludert API-nøkler og brukerinnstillinger.",
+    "customAccess": "Egendefinerte tillatelser",
+    "customAccessDescription": "Kun ressursene og tilgangsnivåene du velger.",
+    "addPermissions": "Legg til tillatelser",
+    "selectPermissions": "Velg tillatelser",
+    "searchPermissions": "Søk",
+    "noPermissions": "Ingen tillatelser lagt til ennå.",
+    "noPermissionsFound": "Fant ingen tillatelser",
+    "removePermission": "Fjern tillatelsen {{name}}",
+    "accessLabel": "Tilgang:",
+    "access": {
+      "read": "Kun lesing",
+      "write": "Lesing og skriving"
+    },
+    "accessShort": {
+      "read": "Les",
+      "write": "Skriv"
+    },
+    "resources": {
+      "filters": {
+        "label": "Filtre",
+        "description": "Filtre og handlingene deres."
+      },
+      "releases": {
+        "label": "Utgivelser",
+        "description": "Utgivelseshistorikk, statistikk, oppryddingsjobber og nye forsøk på handlinger."
+      },
+      "indexers": {
+        "label": "Indekserere",
+        "description": "Indekserere og innstillingene deres."
+      },
+      "irc": {
+        "label": "IRC",
+        "description": "IRC-nettverk, kanaler og behandling av kunngjøringer."
+      },
+      "feeds": {
+        "label": "Feeds",
+        "description": "RSS-, Torznab- og Newznab-feeds."
+      },
+      "downloaders": {
+        "label": "Nedlastingsklienter",
+        "description": "Nedlastingsklienter og tilkoblingstester."
+      },
+      "lists": {
+        "label": "Lister",
+        "description": "Lister og oppdatering av lister."
+      },
+      "webhooks": {
+        "label": "Webhooks",
+        "description": "Utløs listeoppdateringer fra webhooks, f.eks. fra Sonarr eller Radarr."
+      },
+      "notifications": {
+        "label": "Varsler",
+        "description": "Varslingstjenester."
+      },
+      "proxies": {
+        "label": "Proxyer",
+        "description": "Proxyer og proxytester."
+      },
+      "config": {
+        "label": "Applikasjonskonfigurasjon",
+        "description": "Applikasjonsinnstillinger som loggnivå og oppdateringssjekk."
+      },
+      "logs": {
+        "label": "Logger",
+        "description": "Loggfiler og direkte loggstrøm."
+      },
+      "updates": {
+        "label": "Oppdateringer",
+        "description": "Se etter nye versjoner av autobrr."
+      }
+    }
   },
     "notification": {
       "settings": "Innstillinger",
