@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/downloader"
@@ -66,6 +67,29 @@ func Test_arrDownloadClient(t *testing.T) {
 			assert.Equal(t, tt.wantName, name)
 		})
 	}
+}
+
+func TestArrPublishDate(t *testing.T) {
+	t.Parallel()
+
+	t.Run("uses the feed publish date when set", func(t *testing.T) {
+		t.Parallel()
+
+		pubDate := time.Date(2026, time.September, 24, 5, 58, 24, 0, time.UTC)
+		got := arrPublishDate(&domain.Release{PublishDate: pubDate})
+
+		assert.Equal(t, pubDate.Format(time.RFC3339), got)
+	})
+
+	t.Run("falls back to now when the feed publish date is zero", func(t *testing.T) {
+		t.Parallel()
+
+		before := time.Now().Add(-time.Second)
+		got, err := time.Parse(time.RFC3339, arrPublishDate(&domain.Release{}))
+
+		assert.NoError(t, err)
+		assert.WithinDuration(t, before, got, 5*time.Second)
+	})
 }
 
 type fakeDownloaderService struct {

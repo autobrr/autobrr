@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/torznab"
@@ -98,6 +99,34 @@ func TestTorznabJob_processItems(t *testing.T) {
 			assert.Equal(t, tt.wantMagnetURI, releases[0].MagnetURI, "magnet uri")
 		})
 	}
+}
+
+func TestTorznabJob_processItems_metadata(t *testing.T) {
+	pubDate := time.Date(2026, time.September, 24, 5, 58, 24, 0, time.UTC)
+
+	j := &TorznabJob{
+		Log: zerolog.New(io.Discard),
+		Feed: &domain.Feed{
+			Indexer: domain.IndexerMinimal{Name: "Mock Feed", Identifier: "mock-feed"},
+		},
+	}
+
+	item := torznab.FeedItem{
+		Title:   "That Show S01 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-NOGROUP",
+		TvdbId:  "0",
+		ImdbId:  "0",
+		TmdbId:  "0",
+		PubDate: torznab.Time{Time: pubDate},
+	}
+
+	releases, err := j.processItems([]torznab.FeedItem{item})
+	require.NoError(t, err)
+	require.Len(t, releases, 1)
+
+	assert.Equal(t, 0, releases[0].MetaTVDB, "tvdb id")
+	assert.Equal(t, "0", releases[0].MetaIMDB, "imdb id")
+	assert.Equal(t, 0, releases[0].MetaTMDB, "tmdb id")
+	assert.Equal(t, pubDate, releases[0].PublishDate, "publish date")
 }
 
 func TestTorznabJob_RunE(t *testing.T) {

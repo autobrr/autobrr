@@ -130,6 +130,15 @@ func (j *NewznabJob) processItems(items []newznab.FeedItem) ([]*domain.Release, 
 				rls.MetaTMDB = tmdbId
 			}
 		}
+		if item.TvdbId != "" {
+			if tvdbId, err := strconv.Atoi(item.TvdbId); err == nil {
+				rls.MetaTVDB = tvdbId
+			}
+		}
+
+		if !item.PubDate.Time.IsZero() {
+			rls.PublishDate = item.PubDate.Time
+		}
 
 		rls.Size = item.Size
 

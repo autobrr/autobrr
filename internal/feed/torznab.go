@@ -194,6 +194,15 @@ func (j *TorznabJob) processItems(items []torznab.FeedItem) ([]*domain.Release, 
 				rls.MetaTMDB = tmdbId
 			}
 		}
+		if item.TvdbId != "" {
+			if tvdbId, err := strconv.Atoi(item.TvdbId); err == nil {
+				rls.MetaTVDB = tvdbId
+			}
+		}
+
+		if !item.PubDate.Time.IsZero() {
+			rls.PublishDate = item.PubDate.Time
+		}
 
 		// Get freeleech percentage between 0 - 100
 		if freeleechPercentage := parseFreeleechTorznab(item.DownloadVolumeFactor); freeleechPercentage >= 0 {

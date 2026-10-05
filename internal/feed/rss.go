@@ -127,6 +127,10 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 	rls := domain.NewRelease(j.Feed.Indexer)
 	rls.Implementation = domain.ReleaseImplementationRSS
 
+	if item.PublishedParsed != nil && !item.PublishedParsed.IsZero() {
+		rls.PublishDate = *item.PublishedParsed
+	}
+
 	rls.ParseString(item.Title)
 
 	if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet {
