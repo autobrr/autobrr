@@ -5,15 +5,12 @@ package feed
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
-	"net/http"
 	"sync"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/events"
-	"github.com/autobrr/autobrr/internal/proxy"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/newznab"
 	"github.com/autobrr/autobrr/pkg/torznab"
@@ -69,17 +66,6 @@ type eventBus interface {
 	OnIndexer(handler func(ctx context.Context, event events.IndexerChangeEvent) error) func()
 	OnProxy(handler func(ctx context.Context, event events.ProxyChangeEvent) error) func()
 	EmitFeedRefresh(ctx context.Context, event events.FeedRefreshEvent)
-}
-
-type feedInstance struct {
-	Feed           *domain.Feed
-	Name           string
-	Indexer        domain.IndexerMinimal
-	URL            string
-	ApiKey         string
-	Implementation string
-	CronSchedule   time.Duration
-	Timeout        time.Duration
 }
 
 // guardedJob wraps a scheduled feed job with the feed's run guard so it cannot overlap a force
@@ -415,147 +401,42 @@ func (s *Service) test(ctx context.Context, feed *domain.Feed) error {
 		feed.Cookie = existingFeed.Cookie
 	}
 
-	// add proxy conf
-	if existingFeed.UseProxy {
-		proxyConf, err := s.proxySvc.FindByID(ctx, feed.ProxyID)
-		if err != nil {
-			return errors.Wrap(err, "could not find proxy for indexer feed")
-		}
-
-		if proxyConf.Enabled {
-			feed.Proxy = proxyConf
-		}
-	}
-
-	// create sub logger
-	subLogger := s.log.With().Str("feed", feed.Name).Logger()
-
-	// test feeds
-	switch feed.Type {
-	case string(domain.FeedTypeTorznab):
-		if err := s.testTorznab(ctx, feed, subLogger); err != nil {
-			return err
-		}
-
-	case string(domain.FeedTypeNewznab):
-		if err := s.testNewznab(ctx, feed, subLogger); err != nil {
-			return err
-		}
-
-	case string(domain.FeedTypeRSS):
-		if err := s.testRSS(ctx, feed); err != nil {
-			return err
-		}
-
-	default:
-		return errors.New("unsupported feed type: %s", feed.Type)
-	}
-
-	s.log.Info().Str("feed", feed.Name).Str("url", feed.URL).Msg("feed test successful")
-
-	return nil
-}
-
-func (s *Service) testRSS(ctx context.Context, feed *domain.Feed) error {
-	feedParser := NewFeedParser(time.Duration(feed.Timeout)*time.Second, feed.Cookie, feed.UserAgent, feed.TLSSkipVerify)
-
-	// add proxy if enabled and exists
-	if feed.UseProxy && feed.Proxy != nil {
-		proxyClient, err := proxy.GetProxiedHTTPClient(feed.Proxy)
-		if err != nil {
-			return errors.Wrap(err, "could not get proxy client")
-		}
-
-		if feed.TLSSkipVerify {
-			if t, ok := proxyClient.Transport.(*http.Transport); ok {
-				t.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-			}
-		}
-
-		feedParser.WithHTTPClient(proxyClient)
-
-		s.log.Debug().Str("proxy", feed.Proxy.Name).Str("feed", feed.Name).Msg("using proxy for feed")
-	}
-
-	feedResponse, err := feedParser.ParseURLWithContext(ctx, feed.URL)
-	if err != nil {
-		s.log.Error().Err(err).Msg("error fetching rss feed items")
-		return errors.Wrap(err, "error fetching rss feed items")
-	}
-
-	s.log.Info().Str("feed", feed.Name).Int("items_count", len(feedResponse.Items)).Msg("refreshing rss feed found items")
-
-	return nil
-}
-
-func (s *Service) testTorznab(ctx context.Context, feed *domain.Feed, subLogger zerolog.Logger) error {
-	// setup torznab Client
-	c := torznab.NewClient(torznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, Timeout: time.Duration(feed.Timeout) * time.Second, TLSSkipVerify: feed.TLSSkipVerify, Log: subLogger})
-
-	// add proxy if enabled and exists
-	if feed.UseProxy && feed.Proxy != nil {
-		proxyClient, err := proxy.GetProxiedHTTPClient(feed.Proxy)
-		if err != nil {
-			return errors.Wrap(err, "could not get proxy client")
-		}
-
-		if feed.TLSSkipVerify {
-			if t, ok := proxyClient.Transport.(*http.Transport); ok {
-				t.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-			}
-		}
-
-		if feed.Timeout > 0 {
-			proxyClient.Timeout = time.Duration(feed.Timeout) * time.Second
-		}
-		c.WithHTTPClient(proxyClient)
-
-		s.log.Debug().Str("proxy", feed.Proxy.Name).Str("feed", feed.Name).Msg("using proxy for feed")
-	}
-
-	items, err := c.FetchFeed(ctx)
-	if err != nil {
-		s.log.Error().Err(err).Msg("error getting torznab feed")
+	if err := s.loadProxy(ctx, feed); err != nil {
 		return err
 	}
 
-	s.log.Info().Str("feed", feed.Name).Int("items_count", len(items.Channel.Items)).Msg("refreshing torznab feed found items")
+	l := s.log.With().Str("feed", feed.Name).Logger()
+
+	src, err := newSource(feed, l)
+	if err != nil {
+		return err
+	}
+
+	res, err := src.fetch(ctx)
+	if err != nil {
+		l.Error().Err(err).Msg("could not test feed")
+		return err
+	}
+
+	l.Info().Str("url", feed.URL).Int("items_count", len(res.entries)).Msg("feed test successful")
 
 	return nil
 }
 
-func (s *Service) testNewznab(ctx context.Context, feed *domain.Feed, subLogger zerolog.Logger) error {
-	// setup newznab Client
-	c := newznab.NewClient(newznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, Timeout: time.Duration(feed.Timeout) * time.Second, TLSSkipVerify: feed.TLSSkipVerify, Log: subLogger})
-
-	// add proxy if enabled and exists
-	if feed.UseProxy && feed.Proxy != nil {
-		proxyClient, err := proxy.GetProxiedHTTPClient(feed.Proxy)
-		if err != nil {
-			return errors.Wrap(err, "could not get proxy client")
-		}
-
-		if feed.TLSSkipVerify {
-			if t, ok := proxyClient.Transport.(*http.Transport); ok {
-				t.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-			}
-		}
-
-		if feed.Timeout > 0 {
-			proxyClient.Timeout = time.Duration(feed.Timeout) * time.Second
-		}
-		c.WithHTTPClient(proxyClient)
-
-		s.log.Debug().Str("proxy", feed.Proxy.Name).Str("feed", feed.Name).Msg("using proxy for feed")
+// loadProxy attaches the feed's proxy when it is set to use an enabled one.
+func (s *Service) loadProxy(ctx context.Context, f *domain.Feed) error {
+	if !f.UseProxy {
+		return nil
 	}
 
-	items, err := c.GetFeed(ctx)
+	proxyConf, err := s.proxySvc.FindByID(ctx, f.ProxyID)
 	if err != nil {
-		s.log.Error().Err(err).Msg("error getting newznab feed")
-		return err
+		return errors.Wrap(err, "could not find proxy for indexer feed")
 	}
 
-	s.log.Info().Str("feed", feed.Name).Int("items_count", len(items.Channel.Items)).Msg("refreshing newznab feed found items")
+	if proxyConf.Enabled {
+		f.Proxy = proxyConf
+	}
 
 	return nil
 }
@@ -609,43 +490,22 @@ func (s *Service) start() error {
 	return nil
 }
 
-func newFeedInstance(f *domain.Feed) feedInstance {
-	// cron schedule to run every X minutes
-	fi := feedInstance{
-		Feed:           f,
-		Name:           f.Name,
-		Indexer:        f.Indexer,
-		Implementation: f.Type,
-		URL:            f.URL,
-		ApiKey:         f.ApiKey,
-		CronSchedule:   time.Duration(f.Interval) * time.Minute,
-		Timeout:        time.Duration(f.Timeout) * time.Second,
-	}
+// newRefreshJob builds the refresh job for a feed, with its proxy already attached.
+func (s *Service) newRefreshJob(f *domain.Feed) (*refreshJob, error) {
+	l := s.log.With().Str("feed", f.Name).Int("feed_id", f.ID).Str("implementation", f.Type).Logger()
 
-	return fi
-}
-
-func (s *Service) initializeFeedJob(fi feedInstance) (RefreshFeedJob, error) {
-	var err error
-	var job RefreshFeedJob
-
-	switch fi.Implementation {
-	case string(domain.FeedTypeTorznab):
-		job, err = s.createTorznabJob(fi)
-
-	case string(domain.FeedTypeNewznab):
-		job, err = s.createNewznabJob(fi)
-
-	case string(domain.FeedTypeRSS):
-		job, err = s.createRSSJob(fi)
-
-	default:
-		return nil, errors.New("unsupported feed type: %s", fi.Implementation)
-	}
-
+	src, err := newSource(f, l)
 	if err != nil {
-		s.log.Error().Err(err).Str("implementation", fi.Implementation).Msg("failed to initialize feed")
-		return nil, err
+		return nil, errors.Wrap(err, "could not create source for feed: %s", f.Name)
+	}
+
+	job := &refreshJob{
+		log:        l,
+		feed:       f,
+		src:        src,
+		repo:       s.repo,
+		cacheRepo:  s.cacheRepo,
+		releaseSvc: s.releaseSvc,
 	}
 
 	return job, nil
@@ -666,26 +526,16 @@ func (s *Service) startJob(f *domain.Feed) error {
 		return errors.New("no URL provided for feed: %s", f.Name)
 	}
 
-	// add proxy conf
-	if f.UseProxy {
-		proxyConf, err := s.proxySvc.FindByID(context.Background(), f.ProxyID)
-		if err != nil {
-			return errors.Wrap(err, "could not find proxy for indexer feed")
-		}
-
-		if proxyConf.Enabled {
-			f.Proxy = proxyConf
-		}
+	if err := s.loadProxy(context.Background(), f); err != nil {
+		return err
 	}
 
-	fi := newFeedInstance(f)
-
-	job, err := s.initializeFeedJob(fi)
+	job, err := s.newRefreshJob(f)
 	if err != nil {
-		return errors.Wrap(err, "initialize job %s failed", f.Name)
+		return err
 	}
 
-	if err := s.scheduleJob(fi, job); err != nil {
+	if err := s.scheduleJob(f, job); err != nil {
 		return errors.Wrap(err, "schedule job %s failed", f.Name)
 	}
 
@@ -694,27 +544,34 @@ func (s *Service) startJob(f *domain.Feed) error {
 	return nil
 }
 
-func (s *Service) scheduleJob(fi feedInstance, job RefreshFeedJob) error {
-	identifierKey := feedKey{fi.Feed.ID}.ToString()
+func (s *Service) scheduleJob(f *domain.Feed, job refresher) error {
+	identifierKey := feedKey{f.ID}.ToString()
+
+	l := s.log.With().Str("feed", f.Name).Int("feed_id", f.ID).Logger()
 
 	guarded := &guardedJob{
-		guard: &s.feedGuard(fi.Feed.ID).run,
-		log:   s.log.With().Str("feed", fi.Name).Int("feed_id", fi.Feed.ID).Logger(),
+		guard: &s.feedGuard(f.ID).run,
+		log:   l,
 		run: func() {
-			// the job logs its own error
-			_ = s.refresh(context.Background(), fi.Feed, job)
+			if err := s.refresh(context.Background(), f, job); err != nil {
+				l.Error().Err(err).Msg("could not refresh feed")
+			}
 		},
 	}
 
-	if _, err := s.scheduler.ScheduleJobAnchored(guarded, fi.CronSchedule, fi.Feed.LastRun, identifierKey); err != nil {
+	if _, err := s.scheduler.ScheduleJobAnchored(guarded, time.Duration(f.Interval)*time.Minute, f.LastRun, identifierKey); err != nil {
 		return errors.Wrap(err, "add job %s failed", identifierKey)
 	}
 
 	return nil
 }
 
+type refresher interface {
+	RunE(ctx context.Context) error
+}
+
 // refresh runs the job and emits its outcome for notifications.
-func (s *Service) refresh(ctx context.Context, feed *domain.Feed, job RefreshFeedJob) error {
+func (s *Service) refresh(ctx context.Context, feed *domain.Feed, job refresher) error {
 	err := job.RunE(ctx)
 
 	event := events.FeedRefreshEvent{Type: events.FeedRefreshSuccess, Feed: feed}
@@ -756,68 +613,6 @@ func (s *Service) syncFeedJob(ctx context.Context, feedID int) error {
 	}
 
 	return s.startJob(feed)
-}
-
-func (s *Service) createTorznabJob(f feedInstance) (RefreshFeedJob, error) {
-	s.log.Debug().Str("feed", f.Name).Msg("create torznab job")
-
-	if f.URL == "" {
-		return nil, errors.New("torznab feed requires URL")
-	}
-
-	//if f.CronSchedule < 5*time.Minute {
-	//	f.CronSchedule = 15 * time.Minute
-	//}
-
-	// setup logger
-	l := s.log.With().Str("feed", f.Name).Int("feed_id", f.Feed.ID).Str("implementation", f.Implementation).Logger()
-
-	// setup torznab Client
-	client := torznab.NewClient(torznab.Config{Host: f.URL, ApiKey: f.ApiKey, Timeout: f.Timeout, TLSSkipVerify: f.Feed.TLSSkipVerify})
-
-	// create job
-	job := NewTorznabJob(f.Feed, f.Name, l, f.URL, client, s.repo, s.cacheRepo, s.releaseSvc)
-
-	return job, nil
-}
-
-func (s *Service) createNewznabJob(f feedInstance) (RefreshFeedJob, error) {
-	s.log.Debug().Str("feed", f.Name).Msg("create newznab job")
-
-	if f.URL == "" {
-		return nil, errors.New("newznab feed requires URL")
-	}
-
-	// setup logger
-	l := s.log.With().Str("feed", f.Name).Int("feed_id", f.Feed.ID).Str("implementation", f.Implementation).Logger()
-
-	// setup newznab Client
-	client := newznab.NewClient(newznab.Config{Host: f.URL, ApiKey: f.ApiKey, Timeout: f.Timeout, TLSSkipVerify: f.Feed.TLSSkipVerify})
-
-	// create job
-	job := NewNewznabJob(f.Feed, f.Name, l, f.URL, client, s.repo, s.cacheRepo, s.releaseSvc)
-
-	return job, nil
-}
-
-func (s *Service) createRSSJob(f feedInstance) (RefreshFeedJob, error) {
-	s.log.Debug().Str("feed", f.Name).Msg("create rss job")
-
-	if f.URL == "" {
-		return nil, errors.New("rss feed requires URL")
-	}
-
-	//if f.CronSchedule < time.Duration(5*time.Minute) {
-	//	f.CronSchedule = time.Duration(15 * time.Minute)
-	//}
-
-	// setup logger
-	l := s.log.With().Str("feed", f.Name).Int("feed_id", f.Feed.ID).Str("implementation", f.Implementation).Logger()
-
-	// create job
-	job := NewRSSJob(f.Feed, f.Name, l, f.URL, s.repo, s.cacheRepo, s.releaseSvc, f.Timeout)
-
-	return job, nil
 }
 
 func (s *Service) createCleanupJob() error {
@@ -868,20 +663,11 @@ func (s *Service) ForceRun(ctx context.Context, id int) error {
 		return err
 	}
 
-	if feed.UseProxy {
-		proxyConf, err := s.proxySvc.FindByID(ctx, feed.ProxyID)
-		if err != nil {
-			return errors.Wrap(err, "could not find proxy for indexer feed")
-		}
-
-		if proxyConf.Enabled {
-			feed.Proxy = proxyConf
-		}
+	if err := s.loadProxy(ctx, feed); err != nil {
+		return err
 	}
 
-	fi := newFeedInstance(feed)
-
-	job, err := s.initializeFeedJob(fi)
+	job, err := s.newRefreshJob(feed)
 	if err != nil {
 		s.log.Error().Err(err).Msg("failed to initialize feed job")
 		return err
@@ -917,75 +703,38 @@ func (s *Service) FetchCaps(ctx context.Context, feed *domain.Feed) (*domain.Fee
 		return nil, errors.New("feed URL is required")
 	}
 
-	if feed.Timeout == 0 {
-		feed.Timeout = 60
+	if err := s.loadProxy(ctx, feed); err != nil {
+		return nil, err
 	}
 
-	if feed.UseProxy {
-		proxyConf, err := s.proxySvc.FindByID(ctx, feed.ProxyID)
-		if err != nil {
-			return nil, errors.Wrap(err, "could not find proxy for indexer feed")
-		}
-
-		if proxyConf.Enabled {
-			feed.Proxy = proxyConf
-		}
+	httpClient, err := newHTTPClient(feed)
+	if err != nil {
+		return nil, err
 	}
 
 	switch feed.Type {
 	case string(domain.FeedTypeTorznab):
-		client := torznab.NewClient(torznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, Timeout: time.Duration(feed.Timeout) * time.Second, TLSSkipVerify: feed.TLSSkipVerify})
-
-		if feed.UseProxy && feed.Proxy != nil {
-			proxyClient, err := proxy.GetProxiedHTTPClient(feed.Proxy)
-			if err != nil {
-				return nil, errors.Wrap(err, "could not get proxy client")
-			}
-
-			if feed.TLSSkipVerify {
-				if t, ok := proxyClient.Transport.(*http.Transport); ok {
-					t.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-				}
-			}
-
-			client.WithHTTPClient(proxyClient)
-		}
+		client := torznab.NewClient(torznab.Config{Host: feed.URL, ApiKey: feed.ApiKey})
+		client.WithHTTPClient(httpClient)
 
 		caps, err := client.FetchCaps(ctx)
 		if err != nil {
 			return nil, err
 		}
 
-		unifiedCaps := domain.NewFeedCapabilitiesFromTorznab(caps)
-
-		return unifiedCaps, nil
+		return domain.NewFeedCapabilitiesFromTorznab(caps), nil
 
 	case string(domain.FeedTypeNewznab):
-		client := newznab.NewClient(newznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, Timeout: time.Duration(feed.Timeout) * time.Second, TLSSkipVerify: feed.TLSSkipVerify})
-
-		if feed.UseProxy && feed.Proxy != nil {
-			proxyClient, err := proxy.GetProxiedHTTPClient(feed.Proxy)
-			if err != nil {
-				return nil, errors.Wrap(err, "could not get proxy client")
-			}
-
-			if feed.TLSSkipVerify {
-				if t, ok := proxyClient.Transport.(*http.Transport); ok {
-					t.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-				}
-			}
-
-			client.WithHTTPClient(proxyClient)
-		}
+		client := newznab.NewClient(newznab.Config{Host: feed.URL, ApiKey: feed.ApiKey})
+		client.WithHTTPClient(httpClient)
 
 		caps, err := client.GetCaps(ctx)
 		if err != nil {
 			return nil, err
 		}
 
-		unifiedCaps := domain.NewFeedCapabilitiesFromNewznab(caps)
+		return domain.NewFeedCapabilitiesFromNewznab(caps), nil
 
-		return unifiedCaps, nil
 	default:
 		return nil, errors.New("unsupported feed type: %s", feed.Type)
 	}
