@@ -887,6 +887,51 @@ func TestReleaseRepo_StatsBucketUTC(t *testing.T) {
 			_ = filterRepo.Delete(ctx, createdFilters[0].ID)
 			_ = downloadClientRepo.Delete(ctx, mock.ID)
 		})
+
+		t.Run(fmt.Sprintf("StatsBucketUTC_WindowCutoffInUTC [%s]", dbType), func(t *testing.T) {
+			// Setup
+			err := filterRepo.Store(ctx, getMockFilter())
+			assert.NoError(t, err)
+
+			createdFilters, err := filterRepo.ListFilters(ctx)
+			assert.NoError(t, err)
+			assert.NotNil(t, createdFilters)
+
+			// The 30 day window starts at cutoff (UTC midnight). Store one release
+			// just after it and one just before it, each in a zone whose local wall
+			// clock is on the other side of the cutoff. Only the first is in the window.
+			cutoff := time.Now().UTC().AddDate(0, 0, -29).Truncate(24 * time.Hour)
+			inside := getMockRelease()
+			inside.FilterID = createdFilters[0].ID
+			inside.Timestamp = cutoff.Add(30 * time.Minute).In(time.FixedZone("UTC-4", -4*3600))
+			err = repo.Store(ctx, inside)
+			require.NoError(t, err)
+
+			outside := getMockRelease()
+			outside.FilterID = createdFilters[0].ID
+			outside.Timestamp = cutoff.Add(-30 * time.Minute).In(time.FixedZone("UTC+2", 2*3600))
+			err = repo.Store(ctx, outside)
+			require.NoError(t, err)
+
+			// Execute
+			activity, err := repo.StatsActivity(ctx, 30)
+			require.NoError(t, err)
+			require.NotNil(t, activity)
+
+			// Verify
+			var total int64
+			for _, d := range activity.Daily {
+				total += d.MatchedCount
+				if d.Date == cutoff.Format("2006-01-02") {
+					assert.Equal(t, int64(1), d.MatchedCount, "release just after the UTC cutoff should be in the first day [%s]", dbType)
+				}
+			}
+			assert.Equal(t, int64(1), total, "only the release after the UTC cutoff should be counted [%s]", dbType)
+
+			// Cleanup
+			_ = repo.Delete(ctx, &domain.DeleteReleaseRequest{OlderThan: 0})
+			_ = filterRepo.Delete(ctx, createdFilters[0].ID)
+		})
 	}
 }
 
