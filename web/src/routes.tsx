@@ -256,7 +256,7 @@ export const NotificationInboxRoute = createRoute({
     page: z.catch(z.optional(z.int().check(z.nonnegative())), undefined),
     pageSize: z.catch(z.optional(z.literal([10, 25, 50, 100])), undefined),
     unread: z.optional(z.boolean()),
-    event: z.optional(z.enum(['PUSH_ERROR', 'PUSH_REJECTED', 'PUSH_APPROVED', 'IRC_DISCONNECTED', 'IRC_RECONNECTED', 'LIST_REFRESH_ERROR', 'LIST_REFRESH_SUCCESS', 'FEED_REFRESH_ERROR', 'FEED_REFRESH_SUCCESS', 'APP_UPDATE_AVAILABLE'])),
+    event: z.optional(z.enum(['PUSH_ERROR', 'PUSH_REJECTED', 'PUSH_APPROVED', 'IRC_DISCONNECTED', 'IRC_RECONNECTED', 'IRC_UNHEALTHY', 'IRC_HEALTHY', 'LIST_REFRESH_ERROR', 'LIST_REFRESH_SUCCESS', 'FEED_REFRESH_ERROR', 'FEED_REFRESH_SUCCESS', 'APP_UPDATE_AVAILABLE'])),
   }).parse(search),
 });
 

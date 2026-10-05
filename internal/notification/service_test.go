@@ -2,7 +2,9 @@ package notification
 
 import (
 	"context"
+	"slices"
 	"sort"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -786,6 +788,43 @@ func TestServiceBuiltinNotification(t *testing.T) {
 		assert.Equal(t, domain.NotificationEventFeedRefreshError, msg.Event)
 		assert.Equal(t, "Feed Refresh Error", msg.Title)
 		assert.Equal(t, "Feed: Mock Indexer\nError: unexpected status code: 503", msg.Message)
+	})
+
+	t.Run("irc health events reach subscribed senders", func(t *testing.T) {
+		inbox := &testInboxRepo{}
+		bus := events.NewEventBus(zerolog.Nop())
+
+		builtin := builtinNotification
+		builtin.Events = []string{string(domain.NotificationEventIRCUnhealthy), string(domain.NotificationEventIRCHealthy)}
+
+		service := NewService(zerolog.Nop(), bus, &testPublisher{}, newTestNotificationRepo([]domain.Notification{builtin}, nil), inbox, testScheduler{})
+		require.NoError(t, service.Start())
+
+		bus.EmitIRC(ctx, events.IRCEvent{Type: events.IRCDisconnected, Network: "P2P-Network"})
+		bus.EmitIRC(ctx, events.IRCEvent{Type: events.IRCUnhealthy, Network: "P2P-Network", Message: "P2P-Network: #announce: InviteFailed"})
+		bus.EmitIRC(ctx, events.IRCEvent{Type: events.IRCHealthy, Network: "P2P-Network", Message: "P2P-Network"})
+
+		assert.Eventually(t, func() bool {
+			inbox.mu.Lock()
+			defer inbox.mu.Unlock()
+
+			return len(inbox.messages) == 2
+		}, time.Second, 10*time.Millisecond)
+
+		inbox.mu.Lock()
+		msgs := slices.Clone(inbox.messages)
+		inbox.mu.Unlock()
+
+		slices.SortFunc(msgs, func(a, b *domain.InboxMessage) int {
+			return strings.Compare(string(a.Event), string(b.Event))
+		})
+
+		assert.Equal(t, domain.NotificationEventIRCHealthy, msgs[0].Event)
+		assert.Equal(t, "IRC Healthy", msgs[0].Title)
+		assert.Equal(t, "P2P-Network", msgs[0].Message)
+		assert.Equal(t, domain.NotificationEventIRCUnhealthy, msgs[1].Event)
+		assert.Equal(t, "IRC Unhealthy", msgs[1].Title)
+		assert.Equal(t, "P2P-Network: #announce: InviteFailed", msgs[1].Message)
 	})
 
 	t.Run("inbox changes publish change event", func(t *testing.T) {

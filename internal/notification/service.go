@@ -351,6 +351,25 @@ func (s *Service) setupEventListeners() {
 				IRCMessage: event.Message,
 				Timestamp:  time.Now(),
 			}
+
+		case events.IRCUnhealthy:
+			payload = domain.NotificationPayload{
+				Event:      domain.NotificationEventIRCUnhealthy,
+				Subject:    "IRC Unhealthy",
+				Message:    event.Message,
+				IRCNetwork: event.Network,
+				IRCMessage: event.Message,
+				Timestamp:  time.Now(),
+			}
+
+		case events.IRCHealthy:
+			payload = domain.NotificationPayload{
+				Event:      domain.NotificationEventIRCHealthy,
+				Subject:    "IRC Healthy",
+				Message:    event.Network,
+				IRCNetwork: event.Network,
+				Timestamp:  time.Now(),
+			}
 		default:
 			return nil
 		}
@@ -827,6 +846,21 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 			Event:      domain.NotificationEventIRCReconnected,
 			Subject:    "IRC Reconnected",
 			Message:    "Network: P2P-Network",
+			IRCNetwork: "P2P-Network",
+			Timestamp:  time.Now(),
+		},
+		{
+			Event:      domain.NotificationEventIRCUnhealthy,
+			Subject:    "IRC Unhealthy",
+			Message:    "P2P-Network: authentication failed: account does not exist",
+			IRCNetwork: "P2P-Network",
+			IRCMessage: "P2P-Network: authentication failed: account does not exist",
+			Timestamp:  time.Now(),
+		},
+		{
+			Event:      domain.NotificationEventIRCHealthy,
+			Subject:    "IRC Healthy",
+			Message:    "P2P-Network",
 			IRCNetwork: "P2P-Network",
 			Timestamp:  time.Now(),
 		},

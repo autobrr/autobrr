@@ -189,6 +189,14 @@
       "label": "IRC Wieder verbunden",
       "description": "Nach Fehler wieder mit IRC-Netzwerk verbunden"
     },
+    "IRC_UNHEALTHY": {
+      "label": "IRC Fehlerhaft",
+      "description": "IRC-Netzwerk seit 15 Minuten fehlerhaft oder nach schwerem Fehler gestoppt"
+    },
+    "IRC_HEALTHY": {
+      "label": "IRC Wieder in Ordnung",
+      "description": "IRC-Netzwerk nach gemeldetem Fehler wieder in Ordnung"
+    },
     "LIST_REFRESH_SUCCESS": {
       "label": "Listenaktualisierung erfolgreich",
       "description": "Liste aktualisiert und Filter angepasst"

@@ -911,6 +911,16 @@ export const getEventOptions = (t: TFunction): SelectOption[] => [
     description: t("options:event.IRC_RECONNECTED.description")
   },
   {
+    label: t("options:event.IRC_UNHEALTHY.label"),
+    value: "IRC_UNHEALTHY",
+    description: t("options:event.IRC_UNHEALTHY.description")
+  },
+  {
+    label: t("options:event.IRC_HEALTHY.label"),
+    value: "IRC_HEALTHY",
+    description: t("options:event.IRC_HEALTHY.description")
+  },
+  {
     label: t("options:event.LIST_REFRESH_SUCCESS.label"),
     value: "LIST_REFRESH_SUCCESS",
     description: t("options:event.LIST_REFRESH_SUCCESS.description")

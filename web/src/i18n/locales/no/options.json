@@ -189,6 +189,14 @@
       "label": "IRC tilkoblet på nytt",
       "description": "Koblet til IRC-nettverket på nytt etter feil"
     },
+    "IRC_UNHEALTHY": {
+      "label": "IRC usunt",
+      "description": "IRC-nettverket usunt i 15 minutter, eller stoppet etter en kritisk feil"
+    },
+    "IRC_HEALTHY": {
+      "label": "IRC sunt",
+      "description": "IRC-nettverket sunt igjen etter å ha blitt meldt usunt"
+    },
     "LIST_REFRESH_SUCCESS": {
       "label": "Liste oppdatert",
       "description": "Listen er oppdatert og filtrene er endret"

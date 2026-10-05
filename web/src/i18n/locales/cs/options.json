@@ -189,6 +189,14 @@
         "label": "IRC Znovu Připojeno",
         "description": "Znovu připojeno k irc síti po chybě"
       },
+      "IRC_UNHEALTHY": {
+        "label": "IRC Nefunkční",
+        "description": "IRC síť nefunkční 15 minut nebo zastavena kvůli závažné chybě"
+      },
+      "IRC_HEALTHY": {
+        "label": "IRC Funkční",
+        "description": "IRC síť je opět funkční po hlášení o nefunkčnosti"
+      },
       "LIST_REFRESH_SUCCESS": {
         "label": "Obnovení listu úspěšné",
         "description": "List byl obnoven a filtry aktualizovány"

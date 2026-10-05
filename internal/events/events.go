@@ -32,6 +32,8 @@ const (
 	IRCDisconnected EventType = "irc.disconnected"
 	IRCReconnected  EventType = "irc.reconnected"
 	IRCFlapping     EventType = "irc.flapping"
+	IRCUnhealthy    EventType = "irc.unhealthy"
+	IRCHealthy      EventType = "irc.healthy"
 
 	ListRefreshSuccess EventType = "list.refresh_success"
 	ListRefreshError   EventType = "list.refresh_error"

@@ -226,6 +226,8 @@ func TestNewWebhookEvent_IRC(t *testing.T) {
 		{name: "disconnected", event: NotificationEventIRCDisconnected, want: WebhookEventIRCDisconnected},
 		{name: "reconnected", event: NotificationEventIRCReconnected, want: WebhookEventIRCReconnected},
 		{name: "stopped", event: NotificationEventIRCDisconnected, want: WebhookEventIRCDisconnected, message: "Network: P2P-Network stopped after repeated short-lived connections"},
+		{name: "unhealthy", event: NotificationEventIRCUnhealthy, want: WebhookEventIRCUnhealthy, message: "P2P-Network: #announce: InviteFailed"},
+		{name: "healthy", event: NotificationEventIRCHealthy, want: WebhookEventIRCHealthy},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
