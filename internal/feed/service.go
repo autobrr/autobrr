@@ -399,6 +399,10 @@ func (s *Service) test(ctx context.Context, feed *domain.Feed) error {
 		feed.Cookie = existingFeed.Cookie
 	}
 
+	// proxy settings belong to the indexer and are never part of the submitted feed
+	feed.UseProxy = existingFeed.UseProxy
+	feed.ProxyID = existingFeed.ProxyID
+
 	l := s.log.With().Str("feed", feed.Name).Logger()
 
 	src, err := s.newSource(ctx, feed, l)
