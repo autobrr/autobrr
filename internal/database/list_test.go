@@ -36,7 +36,10 @@ func TestListRepo_List(t *testing.T) {
 				{name: "never-refreshed", enabled: true},
 			}
 
+			seeded := make(map[string]struct{}, len(seed))
 			for _, item := range seed {
+				seeded[item.name] = struct{}{}
+
 				list := &domain.List{
 					Name:        item.name,
 					Type:        domain.ListTypePlaintext,
@@ -74,9 +77,12 @@ func TestListRepo_List(t *testing.T) {
 				lists, err := repo.List(ctx, tt.params)
 				require.NoError(t, err, tt.name)
 
+				// the database is shared across the package, so ignore lists other tests left behind
 				names := make([]string, 0, len(lists))
 				for _, list := range lists {
-					names = append(names, list.Name)
+					if _, ok := seeded[list.Name]; ok {
+						names = append(names, list.Name)
+					}
 				}
 
 				assert.Equal(t, tt.want, names, tt.name)
