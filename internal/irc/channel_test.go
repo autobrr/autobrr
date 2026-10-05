@@ -14,8 +14,7 @@ import (
 
 func newAnnouncerChannel(announcers []string) *Channel {
 	c := &Channel{
-		log:        zerolog.Nop(),
-		announcers: make(map[string]struct{}),
+		log: zerolog.Nop(),
 	}
 	c.RegisterAnnouncers(announcers)
 	return c
@@ -36,7 +35,7 @@ func TestChannel_IsValidAnnouncer(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := newAnnouncerChannel(tt.announcers)
-			assert.Equal(t, tt.want, c.IsValidAnnouncer(tt.nick))
+			assert.Equal(t, tt.want, c.IsValidAnnouncer(tt.nick, ircCaseMappingRFC1459))
 		})
 	}
 }
@@ -60,7 +59,7 @@ func TestChannel_IsValidAnnouncer_Exp_Flag(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := newAnnouncerChannel(tt.announcers)
-			assert.Equal(t, tt.want, c.IsValidAnnouncer(tt.nick))
+			assert.Equal(t, tt.want, c.IsValidAnnouncer(tt.nick, ircCaseMappingRFC1459))
 		})
 	}
 }
@@ -87,7 +86,7 @@ func TestChannel_OnMsg_SkipCleanMessage(t *testing.T) {
 				Params:  []string{"#chan", raw},
 			}
 
-			got, ok := c.OnMsg(msg)
+			got, ok := c.OnMsg(msg, ircCaseMappingRFC1459)
 			require.True(t, ok, "OnMsg() returned ok = false")
 			assert.Equal(t, tt.want, got.Message)
 

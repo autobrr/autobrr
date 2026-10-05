@@ -216,14 +216,14 @@ func TestCaseMappingChangeReassociatesInviteCommand(t *testing.T) {
 	require.True(t, found, "configured channel was not registered")
 	require.Equal(t, h.network.InviteCommand, channel.InviteCommand(), "RFC1459 should match the invite bot")
 
-	h.handleISupport(ircmsg.Message{
+	h.handleISupport(h.client, ircmsg.Message{
 		Command: "005",
 		Params:  []string{"autobrr", "CASEMAPPING=rfc1459-strict", "are supported"},
 	})
 	assert.Empty(t, channel.InviteCommand(), "strict RFC1459 retained non-equivalent invite bot command")
 	assert.Empty(t, channel.StateMachine().inviteCommand, "state machine retained non-equivalent invite bot command")
 
-	h.handleISupport(ircmsg.Message{
+	h.handleISupport(h.client, ircmsg.Message{
 		Command: "005",
 		Params:  []string{"autobrr", "CASEMAPPING=rfc1459", "are supported"},
 	})
@@ -246,7 +246,7 @@ func TestInviteCommandOwnerStaysWithSelectedChannelDefinition(t *testing.T) {
 	require.True(t, found, "shared channel was not registered")
 	require.Equal(t, "SecondBot enter two", channel.InviteCommand(), "initial invite command")
 
-	h.handleISupport(ircmsg.Message{
+	h.handleISupport(h.client, ircmsg.Message{
 		Command: "005",
 		Params:  []string{"autobrr", "CASEMAPPING=ascii", "are supported"},
 	})

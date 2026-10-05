@@ -116,6 +116,10 @@ type Handler struct {
 	caseMapping  ircCaseMapping
 	currentNick  string
 
+	// inviteMu serializes refreshInviteCommands so a refresh that read an older
+	// CASEMAPPING cannot finish after one that read the newer mapping.
+	inviteMu sync.Mutex
+
 	botModeChar string
 
 	stateMachine *ConnectionStateMachine
@@ -174,7 +178,7 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 
 		h.definitions[definition.Identifier] = definition
 		inviteBot := definitionInviteBot(definition)
-		inviteCommand := matchInviteCommand(h, inviteBot, connectCommands)
+		inviteCommand := matchInviteCommand(h.getCaseMapping(), inviteBot, connectCommands)
 
 		// indexers can use multiple channels, but it's not common, but let's handle that anyway.
 		for _, channel := range definition.IRC.Channels {
@@ -194,7 +198,6 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 			}
 
 			ircChannel := NewChannel(h.log, network.ID, channelName, true, skipCleanMessage, announce.NewAnnounceProcessor(h.log.With().Str("channel", channelName).Logger(), h.releaseSvc, definition))
-			ircChannel.setCaseMapping(h.getCaseMapping())
 			ircChannel.setInviteBot(inviteBot)
 			ircChannel.SetStateMachine(NewChannelStateMachine(ircChannel, h, inviteCommand))
 			ircChannel.syncInviteCommand(inviteCommand)
@@ -216,7 +219,6 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 		}
 
 		ircChannel := NewChannel(h.log, network.ID, channelName, false, false, nil)
-		ircChannel.setCaseMapping(h.getCaseMapping())
 		ircChannel.Configure(channel.ID, channel.Enabled, channel.Password)
 		ircChannel.SetStateMachine(NewChannelStateMachine(ircChannel, h, ""))
 
@@ -262,8 +264,6 @@ func (h *Handler) Run() (err error) {
 	if !shouldConnect {
 		return connectionInProgress
 	}
-
-	h.setCaseMapping(ircCaseMappingRFC1459)
 
 	h.stateMachine.OnConnecting()
 
@@ -380,17 +380,22 @@ func (h *Handler) Run() (err error) {
 	client.AddCallback("PART", h.handlePart)
 	client.AddCallback("PRIVMSG", h.onPrivMessage)
 	client.AddCallback("NOTICE", h.onNotice)
-	client.AddCallback("NICK", h.onNick)
 	client.AddCallback("KICK", h.onKick)
 	client.AddCallback("JOIN", h.handleJoin)
-	client.AddCallback(ircevent.RPL_WELCOME, h.handleWelcome)
+
+	// These update the handler's per-connection identity, so they carry the
+	// emitting client: Quit() does not wait for the read loop, and a stopped
+	// connection keeps running callbacks until its socket closes. Its late NICK
+	// or numerics must not overwrite the state of the connection replacing it.
+	client.AddCallback(ircevent.RPL_WELCOME, func(msg ircmsg.Message) { h.handleWelcome(client, msg) })
+	client.AddCallback(ircevent.RPL_ISUPPORT, func(msg ircmsg.Message) { h.handleISupport(client, msg) })
+	client.AddCallback("NICK", func(msg ircmsg.Message) { h.onNick(client, msg) })
 
 	client.AddCallback("TOPIC", h.handleTopicChange)
 	client.AddCallback(ircevent.RPL_TOPIC, h.handleTopic)
 	client.AddCallback(ircevent.RPL_ENDOFNAMES, h.handleJoined) // end of names
 
 	client.AddCallback(ircevent.RPL_LOGGEDIN, h.handleLoggedIn)
-	client.AddCallback(ircevent.RPL_ISUPPORT, h.handleISupport)
 	client.AddCallback(ircevent.RPL_SASLSUCCESS, h.handleSASLSuccess)
 	client.AddCallback(ircevent.ERR_SASLFAIL, h.handleSASLFail)
 
@@ -519,32 +524,29 @@ func (h *Handler) Run() (err error) {
 	return nil
 }
 
-func (h *Handler) isOurNick(nick string) bool {
+func (h *Handler) isOurCurrentNick(nick string) bool {
 	h.m.RLock()
 	defer h.m.RUnlock()
-	return h.caseMapping.equal(h.network.Nick, nick)
+
+	return h.isOurCurrentNickLocked(nick)
 }
 
-func (h *Handler) isOurCurrentNick(nick string) bool {
+// isOurCurrentNickLocked is isOurCurrentNick for callers that hold h.m.
+func (h *Handler) isOurCurrentNickLocked(nick string) bool {
 	if nick == "" {
 		return false
 	}
 
-	h.m.RLock()
-	currentNick := h.currentNick
-	client := h.client
-	h.m.RUnlock()
-
-	if currentNick != "" {
-		return h.identifiersEqual(currentNick, nick)
+	if h.currentNick != "" {
+		return h.caseMapping.equal(h.currentNick, nick)
 	}
-	if client != nil {
-		if clientNick := client.CurrentNick(); clientNick != "" {
-			return h.identifiersEqual(clientNick, nick)
+	if h.client != nil {
+		if clientNick := h.client.CurrentNick(); clientNick != "" {
+			return h.caseMapping.equal(clientNick, nick)
 		}
 	}
 
-	return h.isOurNick(nick)
+	return h.caseMapping.equal(h.network.Nick, nick)
 }
 
 func (h *Handler) isOurEndOfNamesTarget(target string) bool {
@@ -557,17 +559,16 @@ func (h *Handler) getCaseMapping() ircCaseMapping {
 	return h.caseMapping
 }
 
-func (h *Handler) setCaseMapping(caseMapping ircCaseMapping) {
+// setCaseMapping applies a CASEMAPPING advertised on client, unless client has
+// since been replaced.
+func (h *Handler) setCaseMapping(client *ircevent.Connection, caseMapping ircCaseMapping) {
 	h.m.Lock()
-	changed := h.caseMapping != caseMapping
+	if h.client != client {
+		h.m.Unlock()
+		return
+	}
 	h.caseMapping = caseMapping
 	h.m.Unlock()
-
-	if changed {
-		for _, channel := range h.channels.Iterator() {
-			channel.setCaseMapping(caseMapping)
-		}
-	}
 
 	h.refreshInviteCommands()
 }
@@ -576,6 +577,11 @@ func (h *Handler) identifiersEqual(first, second string) bool {
 	return h.getCaseMapping().equal(first, second)
 }
 
+// getChannel resolves a channel name sent by the server, which may be any
+// variant that is equivalent under the negotiated CASEMAPPING. Config-driven
+// paths (AddChannel, UpdateChannel, RemoveChannel, InitIndexers) address
+// channels by channelMapKey instead, so each configured channel keeps its own
+// runtime entry even when two configured names are equivalent on the server.
 func (h *Handler) getChannel(name string) (*Channel, string, bool) {
 	key := channelMapKey(name)
 	if channel, found := h.channels.Get(key); found {
@@ -610,14 +616,14 @@ func definitionInviteBot(definition *domain.IndexerDefinition) string {
 	return ""
 }
 
-func matchInviteCommand(h *Handler, defaultBot string, commands []string) string {
+func matchInviteCommand(caseMapping ircCaseMapping, defaultBot string, commands []string) string {
 	if defaultBot == "" {
 		return ""
 	}
 
 	for _, command := range commands {
 		fields := strings.Fields(command)
-		if len(fields) >= 2 && h.identifiersEqual(defaultBot, fields[0]) {
+		if len(fields) >= 2 && caseMapping.equal(defaultBot, fields[0]) {
 			return command
 		}
 	}
@@ -626,6 +632,10 @@ func matchInviteCommand(h *Handler, defaultBot string, commands []string) string
 }
 
 func (h *Handler) refreshInviteCommands() {
+	h.inviteMu.Lock()
+	defer h.inviteMu.Unlock()
+
+	caseMapping := h.getCaseMapping()
 	commands := inviteConnectCommands(h.GetNetwork().InviteCommand)
 	for _, channel := range h.channels.Iterator() {
 		defaultBot := channel.getInviteBot()
@@ -633,14 +643,8 @@ func (h *Handler) refreshInviteCommands() {
 			continue
 		}
 
-		channel.syncInviteCommand(matchInviteCommand(h, defaultBot, commands))
+		channel.syncInviteCommand(matchInviteCommand(caseMapping, defaultBot, commands))
 	}
-}
-
-func (h *Handler) setCurrentNick(nick string) {
-	h.m.Lock()
-	h.currentNick = nick
-	h.m.Unlock()
 }
 
 func (h *Handler) setConnectionStatus() {
@@ -731,16 +735,6 @@ func (h *Handler) Restart() error {
 
 // onConnect is the connect callback
 func (h *Handler) onConnect(m ircmsg.Message) {
-	if client := h.getClient(); client != nil {
-		if currentNick := client.CurrentNick(); currentNick != "" {
-			h.m.Lock()
-			if h.currentNick == "" {
-				h.currentNick = currentNick
-			}
-			h.m.Unlock()
-		}
-	}
-
 	h.setConnectionStatus()
 
 	networkName := h.GetNetwork().Name
@@ -826,7 +820,6 @@ func (h *Handler) onClientDisconnect(client *ircevent.Connection, _ ircmsg.Messa
 	}
 
 	h.m.Unlock()
-	h.setCaseMapping(ircCaseMappingRFC1459)
 
 	// reset channels monitored status and channel state machines so they
 	// rejoin cleanly on reconnect instead of getting stuck in Monitoring
@@ -1111,22 +1104,35 @@ func (h *Handler) handleLoggedIn(m ircmsg.Message) {
 	h.setAuthenticated()
 }
 
-func (h *Handler) handleWelcome(msg ircmsg.Message) {
+func (h *Handler) handleWelcome(client *ircevent.Connection, msg ircmsg.Message) {
 	if len(msg.Params) < 1 {
 		return
 	}
 
-	h.setCurrentNick(msg.Params[0])
+	h.m.Lock()
+	if h.client != client {
+		h.m.Unlock()
+		return
+	}
+	h.currentNick = msg.Params[0]
+	// CASEMAPPING is per connection and every 005 follows 001, so the welcome is
+	// where it resets. A disconnect is not enough: irc-go runs no disconnect
+	// callback for a connection that drops before end-of-MOTD, and the retry
+	// would otherwise inherit that attempt's 005.
+	h.caseMapping = ircCaseMappingRFC1459
+	h.m.Unlock()
+
+	h.refreshInviteCommands()
 }
 
-func (h *Handler) handleISupport(msg ircmsg.Message) {
+func (h *Handler) handleISupport(client *ircevent.Connection, msg ircmsg.Message) {
 	if len(msg.Params) < 3 {
 		return
 	}
 
 	for _, token := range msg.Params[1 : len(msg.Params)-1] {
 		if token == "-CASEMAPPING" {
-			h.setCaseMapping(ircCaseMappingRFC1459)
+			h.setCaseMapping(client, ircCaseMappingRFC1459)
 			return
 		}
 
@@ -1141,7 +1147,7 @@ func (h *Handler) handleISupport(msg ircmsg.Message) {
 			caseMapping = ircCaseMappingASCII
 		}
 
-		h.setCaseMapping(caseMapping)
+		h.setCaseMapping(client, caseMapping)
 		return
 	}
 }
@@ -1241,7 +1247,7 @@ func contains(s string, substr ...string) bool {
 }
 
 // onNick handles NICK events
-func (h *Handler) onNick(msg ircmsg.Message) {
+func (h *Handler) onNick(client *ircevent.Connection, msg ircmsg.Message) {
 	// NICK <newnick>
 	if len(msg.Params) < 1 {
 		return
@@ -1254,11 +1260,17 @@ func (h *Handler) onNick(msg ircmsg.Message) {
 	// irc-go updates CurrentNick before invoking client callbacks. The handler's
 	// shadow still has the old value, so accepting either side makes this robust
 	// to callback ordering while excluding unrelated users' nick changes.
-	if !h.isOurCurrentNick(oldNick) && !h.isOurCurrentNick(newNick) {
+	h.m.Lock()
+	ours := h.client == client && (h.isOurCurrentNickLocked(oldNick) || h.isOurCurrentNickLocked(newNick))
+	if ours {
+		h.currentNick = newNick
+	}
+	h.m.Unlock()
+
+	if !ours {
 		return
 	}
 
-	h.setCurrentNick(newNick)
 	h.authenticate()
 }
 
@@ -1347,7 +1359,7 @@ func (h *Handler) onPrivMessage(msg ircmsg.Message) {
 		return
 	}
 
-	ircMsg, ok := ircChannel.OnMsg(msg)
+	ircMsg, ok := ircChannel.OnMsg(msg, h.getCaseMapping())
 	if !ok {
 		return
 	}
@@ -1397,13 +1409,12 @@ func (h *Handler) JoinChannel(channel string, password string) error {
 func (h *Handler) AddChannel(channel domain.IrcChannel) {
 	channelName := channelMapKey(channel.Name)
 
-	ircChannel, _, found := h.getChannel(channel.Name)
+	ircChannel, found := h.channels.Get(channelName)
 	if !found {
 		// a user-defined extra channel has no indexer announce processor
 		ircChannel = NewChannel(h.log, h.GetNetwork().ID, channelName, false, false, nil)
 		ircChannel.SetStateMachine(NewChannelStateMachine(ircChannel, h, ""))
 		h.channels.Set(channelName, ircChannel)
-		ircChannel.setCaseMapping(h.getCaseMapping())
 	}
 
 	ircChannel.Configure(channel.ID, channel.Enabled, channel.Password)
@@ -1441,12 +1452,6 @@ func (h *Handler) AddChannel(channel domain.IrcChannel) {
 // retry timers on its state machine.
 func (h *Handler) RemoveChannel(name string) {
 	channelName := channelMapKey(name)
-	ircChannel, key, found := h.getChannel(name)
-	if found {
-		channelName = ircChannel.Name
-	} else {
-		key = channelMapKey(name)
-	}
 
 	h.log.Debug().Str("channel", channelName).Msg("removing channel")
 
@@ -1454,13 +1459,13 @@ func (h *Handler) RemoveChannel(name string) {
 		h.log.Error().Stack().Err(err).Str("channel", channelName).Msg("error parting channel")
 	}
 
-	if found {
-		if sm := ircChannel.StateMachine(); sm != nil {
+	if ch, found := h.channels.Get(channelName); found {
+		if sm := ch.StateMachine(); sm != nil {
 			sm.Reset() // stop monitoring and void any pending timers
 		}
 	}
 
-	h.channels.Del(key)
+	h.channels.Del(channelName)
 }
 
 // UpdateChannel re-applies the persisted config (enabled, password) to an
@@ -1473,7 +1478,7 @@ func (h *Handler) RemoveChannel(name string) {
 func (h *Handler) UpdateChannel(channel domain.IrcChannel) {
 	channelName := channelMapKey(channel.Name)
 
-	ircChannel, _, found := h.getChannel(channel.Name)
+	ircChannel, found := h.channels.Get(channelName)
 	if !found {
 		// not tracked yet - treat as an add
 		h.AddChannel(channel)

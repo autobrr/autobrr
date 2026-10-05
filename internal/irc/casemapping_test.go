@@ -9,6 +9,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 
+	"github.com/ergochat/irc-go/ircevent"
 	"github.com/ergochat/irc-go/ircmsg"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -65,7 +66,7 @@ func TestStrictCaseMappingAliases(t *testing.T) {
 			channel.RegisterAnnouncers([]string{"Bot^["})
 			h.channels.Set(channelMapKey(channel.Name), channel)
 
-			h.handleISupport(ircmsg.Message{
+			h.handleISupport(h.client, ircmsg.Message{
 				Command: "005",
 				Params:  []string{"autobrr", "CASEMAPPING=" + alias, "are supported"},
 			})
@@ -76,7 +77,7 @@ func TestStrictCaseMappingAliases(t *testing.T) {
 			_, _, found = h.getChannel("#announce~{")
 			assert.False(t, found, "strict RFC1459 must keep ^ and ~ distinct")
 
-			assert.False(t, channel.IsValidAnnouncer("bot~{"), "strict RFC1459 must keep ^ and ~ distinct in nicks")
+			assert.False(t, channel.IsValidAnnouncer("bot~{", h.getCaseMapping()), "strict RFC1459 must keep ^ and ~ distinct in nicks")
 		})
 	}
 }
@@ -87,7 +88,7 @@ func TestUnknownISupportCaseMappingUsesASCII(t *testing.T) {
 	channel.RegisterAnnouncers([]string{"Bot^["})
 	h.channels.Set(channelMapKey(channel.Name), channel)
 
-	h.handleISupport(ircmsg.Message{
+	h.handleISupport(h.client, ircmsg.Message{
 		Command: "005",
 		Params:  []string{"autobrr", "CASEMAPPING=unicode", "are supported"},
 	})
@@ -97,14 +98,14 @@ func TestUnknownISupportCaseMappingUsesASCII(t *testing.T) {
 	_, _, found := h.getChannel("#announce^{")
 	assert.False(t, found, "an unknown explicit CASEMAPPING must not grant RFC1459 channel equivalences")
 
-	assert.False(t, channel.IsValidAnnouncer("bot^{"), "an unknown explicit CASEMAPPING must not grant RFC1459 nick equivalences")
+	assert.False(t, channel.IsValidAnnouncer("bot^{", h.getCaseMapping()), "an unknown explicit CASEMAPPING must not grant RFC1459 nick equivalences")
 }
 
 func TestValuelessISupportCaseMappingUsesASCII(t *testing.T) {
 	for _, token := range []string{"CASEMAPPING", "CASEMAPPING="} {
 		t.Run(token, func(t *testing.T) {
 			h, _ := newTestHandler()
-			h.handleISupport(ircmsg.Message{
+			h.handleISupport(h.client, ircmsg.Message{
 				Command: "005",
 				Params:  []string{"autobrr", token, "are supported"},
 			})
@@ -116,9 +117,9 @@ func TestValuelessISupportCaseMappingUsesASCII(t *testing.T) {
 
 func TestRemovedISupportCaseMappingRestoresRFC1459(t *testing.T) {
 	h, _ := newTestHandler()
-	h.setCaseMapping(ircCaseMappingASCII)
+	h.caseMapping = ircCaseMappingASCII
 
-	h.handleISupport(ircmsg.Message{
+	h.handleISupport(h.client, ircmsg.Message{
 		Command: "005",
 		Params:  []string{"autobrr", "-CASEMAPPING", "are supported"},
 	})
@@ -130,58 +131,75 @@ func TestChannelMapKeyPreservesUnicodeLowercasing(t *testing.T) {
 	assert.Equal(t, "#ännounce", channelMapKey("#ÄNNOUNCE"))
 }
 
-func TestRejectedRunDoesNotResetNegotiatedCaseMapping(t *testing.T) {
+// TestWelcomeResetsCaseMappingForEachConnection covers an attempt that receives
+// 005 and drops before end-of-MOTD: irc-go runs no disconnect callback for it, so
+// the next connection's welcome is what has to restore the default.
+func TestWelcomeResetsCaseMappingForEachConnection(t *testing.T) {
 	h, _ := newTestHandler()
-	h.setCaseMapping(ircCaseMappingASCII)
+	h.handleWelcome(h.client, ircmsg.Message{Command: "001", Params: []string{"autobrr"}})
+	h.handleISupport(h.client, ircmsg.Message{
+		Command: "005",
+		Params:  []string{"autobrr", "CASEMAPPING=ascii", "are supported"},
+	})
 
-	require.ErrorIs(t, h.Run(), connectionInProgress)
+	h.handleWelcome(h.client, ircmsg.Message{Command: "001", Params: []string{"autobrr"}})
+	h.handleISupport(h.client, ircmsg.Message{
+		Command: "005",
+		Params:  []string{"autobrr", "NETWORK=Test", "are supported"},
+	})
 
-	assert.Equal(t, ircCaseMappingASCII, h.getCaseMapping(), "rejected Run must not reset CASEMAPPING")
+	assert.Equal(t, ircCaseMappingRFC1459, h.getCaseMapping(), "a connection without CASEMAPPING inherited the previous attempt's mapping")
 }
 
-func TestDisconnectResetsPerConnectionCaseMapping(t *testing.T) {
+// TestStaleClientCallbacksDoNotChangeIdentity delivers a stopped connection's
+// late callbacks after its replacement has registered.
+func TestStaleClientCallbacksDoNotChangeIdentity(t *testing.T) {
 	h, _ := newTestHandler()
-	channel := NewChannel(zerolog.Nop(), h.network.ID, "#announce[", true, false, nil)
-	channel.RegisterAnnouncers([]string{"Bot["})
-	h.channels.Set(channelMapKey(channel.Name), channel)
-	h.setCurrentNick("autobrr")
-	h.setCaseMapping(ircCaseMappingASCII)
+	stale := &ircevent.Connection{}
+	h.client = &ircevent.Connection{}
+	h.handleWelcome(h.client, ircmsg.Message{Command: "001", Params: []string{"autobrr"}})
 
-	h.onDisconnect(ircmsg.Message{})
+	h.onNick(stale, ircmsg.Message{
+		Source:  "autobrr!autobrr@irc.example.test",
+		Command: "NICK",
+		Params:  []string{"old-session-nick"},
+	})
+	h.handleWelcome(stale, ircmsg.Message{Command: "001", Params: []string{"old-session-nick"}})
+	h.handleISupport(stale, ircmsg.Message{
+		Command: "005",
+		Params:  []string{"old-session-nick", "CASEMAPPING=ascii", "are supported"},
+	})
 
-	assert.Equal(t, ircCaseMappingRFC1459, h.getCaseMapping(), "disconnect should restore the RFC1459 default")
-	assert.True(t, channel.IsValidAnnouncer("bot{"), "disconnect did not rebuild announcer keys for the default mapping")
+	assert.Equal(t, "autobrr", h.CurrentNick(), "a stopped connection's callbacks changed the replacement's nick")
+	assert.Equal(t, ircCaseMappingRFC1459, h.getCaseMapping(), "a stopped connection's 005 changed the replacement's CASEMAPPING")
 }
 
 func TestBouncerWildcardIsLimitedToEndOfNames(t *testing.T) {
 	h, _ := newTestHandler()
 	h.network.UseBouncer = true
-	h.setCurrentNick("autobrr")
+	h.currentNick = "autobrr"
 
 	assert.True(t, h.isOurEndOfNamesTarget("*"), "bouncer wildcard should be accepted for end-of-NAMES")
 	assert.False(t, h.isOurCurrentNick("*"), "bouncer wildcard must not be accepted as our nick for arbitrary events")
 }
 
-func TestChannelReconcileUsesNegotiatedCaseMapping(t *testing.T) {
-	t.Run("rfc1459 equivalent", func(t *testing.T) {
-		h, _ := newTestHandler()
-		h.AddChannel(domain.IrcChannel{Name: "#extra[", Enabled: false})
-		h.AddChannel(domain.IrcChannel{Name: "#extra{", Enabled: false})
+func TestChannelReconcileKeepsConfiguredChannelsSeparate(t *testing.T) {
+	h, _ := newTestHandler()
+	h.AddChannel(domain.IrcChannel{ID: 1, Name: "#extra[", Enabled: false, Password: "one"})
+	h.AddChannel(domain.IrcChannel{ID: 2, Name: "#extra{", Enabled: false, Password: "two"})
 
-		require.Equal(t, uintptr(1), h.channels.Len(), "RFC1459-equivalent channel add should create one entry")
+	require.Equal(t, uintptr(2), h.channels.Len(), "each configured channel should keep its own entry")
 
-		h.RemoveChannel("#extra{")
-		assert.Equal(t, uintptr(0), h.channels.Len(), "equivalent channel remove should delete the entry")
-	})
+	first, _ := h.channels.Get("#extra[")
+	assert.Equal(t, int64(1), first.Snapshot().ID, "adding an RFC1459-equivalent channel reconfigured its sibling")
+	assert.Equal(t, "one", first.GetPassword(), "adding an RFC1459-equivalent channel replaced its sibling's password")
 
-	t.Run("ascii distinct", func(t *testing.T) {
-		h, _ := newTestHandler()
-		h.setCaseMapping(ircCaseMappingASCII)
-		h.AddChannel(domain.IrcChannel{Name: "#extra[", Enabled: false})
-		h.AddChannel(domain.IrcChannel{Name: "#extra{", Enabled: false})
+	h.UpdateChannel(domain.IrcChannel{ID: 2, Name: "#extra{", Enabled: false, Password: "changed"})
+	assert.Equal(t, "one", first.GetPassword(), "updating an RFC1459-equivalent channel changed its sibling")
 
-		assert.Equal(t, uintptr(2), h.channels.Len(), "ASCII-distinct channel add should create two entries")
-	})
+	h.RemoveChannel("#extra{")
+	_, found := h.channels.Get("#extra[")
+	assert.True(t, found, "removing an RFC1459-equivalent channel removed its sibling")
 }
 
 func TestHandleISupportUpdatesIdentifierComparisons(t *testing.T) {
@@ -192,17 +210,52 @@ func TestHandleISupportUpdatesIdentifierComparisons(t *testing.T) {
 
 	_, _, found := h.getChannel("#ANNOUNCE{")
 	require.True(t, found, "rfc1459 should treat [ and { as equivalent in channel names")
-	require.True(t, channel.IsValidAnnouncer("announce{bot}"), "rfc1459 should treat [ and { as equivalent in announcer nicks")
+	require.True(t, channel.IsValidAnnouncer("announce{bot}", h.getCaseMapping()), "rfc1459 should treat [ and { as equivalent in announcer nicks")
 
-	h.handleISupport(ircmsg.Message{
+	h.handleISupport(h.client, ircmsg.Message{
 		Command: "005",
 		Params:  []string{"autobrr", "CHANTYPES=#", "CASEMAPPING=ascii", "are supported"},
 	})
 
 	_, _, found = h.getChannel("#ANNOUNCE{")
 	assert.False(t, found, "ascii CASEMAPPING must keep [ and { distinct in channel names")
-	assert.False(t, channel.IsValidAnnouncer("announce{bot}"), "ascii CASEMAPPING must keep [ and { distinct in announcer nicks")
-	assert.True(t, channel.IsValidAnnouncer("ANNOUNCE[BOT]"), "ascii CASEMAPPING should still compare ASCII letters case-insensitively")
+	assert.False(t, channel.IsValidAnnouncer("announce{bot}", h.getCaseMapping()), "ascii CASEMAPPING must keep [ and { distinct in announcer nicks")
+	assert.True(t, channel.IsValidAnnouncer("ANNOUNCE[BOT]", h.getCaseMapping()), "ascii CASEMAPPING should still compare ASCII letters case-insensitively")
+}
+
+type recordingAnnounceProcessor struct {
+	lines []string
+}
+
+func (p *recordingAnnounceProcessor) AddLineToQueue(_ string, line string) error {
+	p.lines = append(p.lines, line)
+	return nil
+}
+
+// TestOnPrivMessageChecksAnnouncerWithCurrentCaseMapping replays the losing
+// interleaving of a channel registered while CASEMAPPING changes: the channel is
+// built before the change and only becomes visible after it.
+func TestOnPrivMessageChecksAnnouncerWithCurrentCaseMapping(t *testing.T) {
+	h, _ := newTestHandler()
+	processor := &recordingAnnounceProcessor{}
+	channel := NewChannel(zerolog.Nop(), h.network.ID, "#announce", true, false, processor)
+	channel.RegisterAnnouncers([]string{"Bot["})
+
+	h.handleISupport(h.client, ircmsg.Message{
+		Command: "005",
+		Params:  []string{"autobrr", "CASEMAPPING=ascii", "are supported"},
+	})
+	h.channels.Set(channelMapKey(channel.Name), channel)
+
+	for _, nick := range []string{"bot{", "BOT["} {
+		h.onPrivMessage(ircmsg.Message{
+			Source:  nick + "!bot@irc.example.test",
+			Command: "PRIVMSG",
+			Params:  []string{"#announce", "New Torrent: That.Movie.2017.1080p.BluRay.x264-GROUP from " + nick},
+		})
+	}
+
+	assert.Equal(t, []string{"New Torrent: That.Movie.2017.1080p.BluRay.x264-GROUP from BOT["}, processor.lines, "announcer check must use the CASEMAPPING negotiated at message time")
 }
 
 func TestOnPrivMessageMatchesNickAndChannelCaseInsensitively(t *testing.T) {
@@ -238,9 +291,9 @@ func TestOnPrivMessageMatchesNickAndChannelCaseInsensitively(t *testing.T) {
 
 func TestOwnNickChangeUsesServerCaseMappingAndUpdatesShadow(t *testing.T) {
 	h, _ := newTestHandler()
-	h.setCurrentNick("Nick[")
+	h.currentNick = "Nick["
 
-	h.onNick(ircmsg.Message{
+	h.onNick(h.client, ircmsg.Message{
 		Source:  "NICK{!user@host",
 		Command: "NICK",
 		Params:  []string{"Nick_"},
@@ -251,9 +304,9 @@ func TestOwnNickChangeUsesServerCaseMappingAndUpdatesShadow(t *testing.T) {
 
 func TestOtherUsersNickChangeDoesNotUpdateShadow(t *testing.T) {
 	h, _ := newTestHandler()
-	h.setCurrentNick("autobrr")
+	h.currentNick = "autobrr"
 
-	h.onNick(ircmsg.Message{
+	h.onNick(h.client, ircmsg.Message{
 		Source:  "Someone!user@host",
 		Command: "NICK",
 		Params:  []string{"Else"},
@@ -264,7 +317,7 @@ func TestOtherUsersNickChangeDoesNotUpdateShadow(t *testing.T) {
 
 func TestWelcomeTracksServerSelectedNick(t *testing.T) {
 	h, _ := newTestHandler()
-	h.handleWelcome(ircmsg.Message{Command: "001", Params: []string{"autobrr_"}})
+	h.handleWelcome(h.client, ircmsg.Message{Command: "001", Params: []string{"autobrr_"}})
 
 	assert.Equal(t, "autobrr_", h.CurrentNick())
 }

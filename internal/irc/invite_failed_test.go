@@ -220,7 +220,7 @@ func TestHandleInviteResponseIgnoresUnrelatedNick(t *testing.T) {
 func TestBouncerIgnoresInviteResponseAddressedToStaleNick(t *testing.T) {
 	h, _ := newTestHandler()
 	h.network.UseBouncer = true
-	h.setCurrentNick("autobrr-new")
+	h.currentNick = "autobrr-new"
 	sm := addAwaitingInviteChannel(h, "#chan", "voyager autobot user key")
 
 	h.handleInviteResponse(ircmsg.Message{
