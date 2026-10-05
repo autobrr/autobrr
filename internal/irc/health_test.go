@@ -10,6 +10,7 @@ import (
 	"github.com/ergochat/irc-go/ircevent"
 	"github.com/ergochat/irc-go/ircmsg"
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/require"
 )
 
 // TestComputeHealthy verifies network health is driven only by the announce
@@ -27,14 +28,10 @@ func TestComputeHealthy(t *testing.T) {
 	extra.SetConnectionError("could not join #extra: wrong or missing channel password (+k)")
 	h.channels.Set(extra.Name, extra)
 
-	if !h.computeHealthy() {
-		t.Fatal("a failing non-default channel must not make the network unhealthy")
-	}
+	require.True(t, h.computeHealthy(), "a failing non-default channel must not make the network unhealthy")
 
 	announce.SetConnectionError("boom")
-	if h.computeHealthy() {
-		t.Fatal("a failing default (announce) channel must make the network unhealthy")
-	}
+	require.False(t, h.computeHealthy(), "a failing default (announce) channel must make the network unhealthy")
 }
 
 // TestComputeHealthy_ConnectionUnhealthy verifies the connection state machine
@@ -47,9 +44,7 @@ func TestComputeHealthy_ConnectionUnhealthy(t *testing.T) {
 	announce.SetMonitoring()
 	h.channels.Set(announce.Name, announce)
 
-	if h.computeHealthy() {
-		t.Fatal("network must be unhealthy when the connection state machine is unhealthy")
-	}
+	require.False(t, h.computeHealthy(), "network must be unhealthy when the connection state machine is unhealthy")
 }
 
 // TestStateEventCarriesHealth is the end-to-end guard for the user's scenario:
@@ -71,15 +66,9 @@ func TestStateEventCarriesHealth(t *testing.T) {
 
 	h.handleJoinError(ircmsg.MakeMessage(nil, "srv", ircevent.ERR_BADCHANNELKEY, "bot", "#extra", "Cannot join channel (+k)"))
 
-	if !waitForState(sm, ChannelStateError, time.Second) {
-		t.Fatalf("expected #extra Error, got %s", sm.CurrentState())
-	}
+	require.Truef(t, waitForState(sm, ChannelStateError, time.Second), "expected #extra Error, got %s", sm.CurrentState())
 
 	healthy, found := stateEventHealthy(sse, "#extra", "Error")
-	if !found {
-		t.Fatal("STATE event should carry a healthy field")
-	}
-	if !healthy {
-		t.Fatal("a non-default channel failure should keep the network healthy in the STATE event")
-	}
+	require.True(t, found, "STATE event should carry a healthy field")
+	require.True(t, healthy, "a non-default channel failure should keep the network healthy in the STATE event")
 }

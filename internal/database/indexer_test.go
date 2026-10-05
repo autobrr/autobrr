@@ -40,11 +40,11 @@ func TestIndexerRepo_Store(t *testing.T) {
 		t.Run(fmt.Sprintf("Store_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
 			createdIndexer, err := repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
 			indexer, err := repo.FindByID(ctx, int(createdIndexer.ID))
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, mockData.Name, createdIndexer.Name)
 			assert.Equal(t, mockData.Identifier, createdIndexer.Identifier)
 			assert.Equal(t, mockData.Enabled, indexer.Enabled)
@@ -69,19 +69,19 @@ func TestIndexerRepo_Update(t *testing.T) {
 		t.Run(fmt.Sprintf("Update_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
 			createdIndexer, err := repo.Store(ctx, initialData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			createdIndexer.Name = "UpdatedName"
 			createdIndexer.Enabled = false
 
 			// Execute
 			err = repo.Update(ctx, createdIndexer)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, "UpdatedName", createdIndexer.Name)
-			assert.Equal(t, createdIndexer.Enabled, false)
+			assert.False(t, createdIndexer.Enabled)
 
 			// Cleanup
 			_ = repo.Delete(ctx, int(createdIndexer.ID))
@@ -108,19 +108,19 @@ func TestIndexerRepo_List(t *testing.T) {
 			mockData2.Identifier = "Identifier2"
 
 			createdIndexer1, err := repo.Store(ctx, mockData1)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			createdIndexer2, err := repo.Store(ctx, mockData2)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute
 			indexers, err := repo.List(ctx)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
 			assert.Contains(t, indexers, *createdIndexer1)
 			assert.Contains(t, indexers, *createdIndexer2)
 
-			assert.Equal(t, 2, len(indexers))
+			assert.Len(t, indexers, 2)
 
 			// Cleanup
 			_ = repo.Delete(ctx, int(createdIndexer1.ID))
@@ -144,11 +144,11 @@ func TestIndexerRepo_FindByID(t *testing.T) {
 			mockData.Identifier = "TestIdentifier"
 
 			createdIndexer, err := repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute
 			foundIndexer, err := repo.FindByID(ctx, int(createdIndexer.ID))
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
 			assert.Equal(t, createdIndexer.ID, foundIndexer.ID)
@@ -178,21 +178,21 @@ func TestIndexerRepo_FindByFilterID(t *testing.T) {
 		t.Run(fmt.Sprintf("FindByFilterID_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
 			err := filterRepo.Store(ctx, filterMockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			indexer, err := repo.Store(ctx, mockData)
-			assert.NoError(t, err)
-			assert.NotNil(t, indexer)
+			require.NoError(t, err)
+			require.NotNil(t, indexer)
 
 			err = filterRepo.StoreIndexerConnection(ctx, filterMockData.ID, int(indexer.ID))
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute
 			foundIndexers, err := repo.FindByFilterID(ctx, filterMockData.ID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
-			assert.Len(t, foundIndexers, 1)
+			require.Len(t, foundIndexers, 1)
 			assert.Equal(t, indexer.Name, foundIndexers[0].Name)
 			assert.Equal(t, indexer.Identifier, foundIndexers[0].Identifier)
 
@@ -216,12 +216,12 @@ func TestIndexerRepo_Delete(t *testing.T) {
 		t.Run(fmt.Sprintf("Delete_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
 			createdIndexer, err := repo.Store(ctx, mockData)
-			assert.NoError(t, err)
-			assert.NotNil(t, createdIndexer)
+			require.NoError(t, err)
+			require.NotNil(t, createdIndexer)
 
 			// Execute
 			err = repo.Delete(ctx, int(createdIndexer.ID))
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
 			_, err = repo.FindByID(ctx, int(createdIndexer.ID))

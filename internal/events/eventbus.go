@@ -123,8 +123,10 @@ func (t *Topic[T]) Emit(ctx context.Context, event T) error {
 
 type EventBus struct {
 	appUpdate   *Topic[AppUpdateEvent]
+	feed        *Topic[FeedRefreshEvent]
 	indexer     *Topic[IndexerChangeEvent]
 	irc         *Topic[IRCEvent]
+	list        *Topic[ListRefreshEvent]
 	proxy       *Topic[ProxyChangeEvent]
 	release     *Topic[ReleaseEvent]
 	releasePush *Topic[ReleasePushEvent]
@@ -135,8 +137,10 @@ func NewEventBus(log zerolog.Logger) *EventBus {
 
 	return &EventBus{
 		appUpdate:   NewTopic[AppUpdateEvent](log, "app_update"),
+		feed:        NewTopic[FeedRefreshEvent](log, "feed"),
 		indexer:     NewTopic[IndexerChangeEvent](log, "indexer"),
 		irc:         NewTopic[IRCEvent](log, "irc"),
+		list:        NewTopic[ListRefreshEvent](log, "list"),
 		proxy:       NewTopic[ProxyChangeEvent](log, "proxy"),
 		release:     NewTopic[ReleaseEvent](log, "release"),
 		releasePush: NewTopic[ReleasePushEvent](log, "release_push"),
@@ -149,6 +153,14 @@ func (eb *EventBus) EmitAppUpdate(ctx context.Context, event AppUpdateEvent) {
 
 func (eb *EventBus) OnAppUpdate(handler func(context.Context, AppUpdateEvent) error) func() {
 	return eb.appUpdate.On(handler)
+}
+
+func (eb *EventBus) EmitFeedRefresh(ctx context.Context, event FeedRefreshEvent) {
+	eb.feed.Emit(ctx, event)
+}
+
+func (eb *EventBus) OnFeedRefresh(handler func(context.Context, FeedRefreshEvent) error) func() {
+	return eb.feed.On(handler)
 }
 
 func (eb *EventBus) EmitIndexer(ctx context.Context, event IndexerChangeEvent) {
@@ -165,6 +177,14 @@ func (eb *EventBus) EmitIRC(ctx context.Context, event IRCEvent) {
 
 func (eb *EventBus) OnIRC(handler func(context.Context, IRCEvent) error) func() {
 	return eb.irc.On(handler)
+}
+
+func (eb *EventBus) EmitListRefresh(ctx context.Context, event ListRefreshEvent) {
+	eb.list.Emit(ctx, event)
+}
+
+func (eb *EventBus) OnListRefresh(handler func(context.Context, ListRefreshEvent) error) func() {
+	return eb.list.On(handler)
 }
 
 func (eb *EventBus) EmitProxy(ctx context.Context, event ProxyChangeEvent) {

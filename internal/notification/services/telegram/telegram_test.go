@@ -40,8 +40,8 @@ func TestClient_SendMessage(t *testing.T) {
 		assert.Equal(t, "autobrr", r.Header.Get("User-Agent"))
 
 		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
-		require.NoError(t, json.Unmarshal(body, &got))
+		assert.NoError(t, err)
+		assert.NoError(t, json.Unmarshal(body, &got))
 
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -80,8 +80,8 @@ func TestClient_SendMessage_RateLimitedThenSuccess(t *testing.T) {
 		}
 
 		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
-		require.NoError(t, json.Unmarshal(body, &got))
+		assert.NoError(t, err)
+		assert.NoError(t, json.Unmarshal(body, &got))
 
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -137,10 +137,8 @@ func TestClient_SendMessage_RateLimitTooLong(t *testing.T) {
 	client := NewSender(zerolog.New(io.Discard), config)
 
 	err := client.SendMessage(t.Context(), &Message{Text: "autobrr goes brr!!"})
-	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "unexpected status: 429")
-		assert.Contains(t, err.Error(), "exceeds the retry budget")
-	}
+	assert.ErrorContains(t, err, "unexpected status: 429")
+	assert.ErrorContains(t, err, "exceeds the retry budget")
 	assert.Equal(t, int32(1), requests.Load())
 }
 
@@ -187,10 +185,8 @@ func TestClient_SendMessage_RateLimitHTTPDateTooLong(t *testing.T) {
 	client := NewSender(zerolog.New(io.Discard), config)
 
 	err := client.SendMessage(t.Context(), &Message{Text: "autobrr goes brr!!"})
-	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "unexpected status: 429")
-		assert.Contains(t, err.Error(), "exceeds the retry budget")
-	}
+	assert.ErrorContains(t, err, "unexpected status: 429")
+	assert.ErrorContains(t, err, "exceeds the retry budget")
 	assert.Equal(t, int32(1), requests.Load())
 }
 
@@ -210,10 +206,8 @@ func TestClient_SendMessage_BadRequestNoRetry(t *testing.T) {
 	client := NewSender(zerolog.New(io.Discard), config)
 
 	err := client.SendMessage(t.Context(), &Message{Text: "autobrr goes brr!!"})
-	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "unexpected status: 400")
-		assert.Contains(t, err.Error(), "Bad Request: chat not found")
-	}
+	assert.ErrorContains(t, err, "unexpected status: 400")
+	assert.ErrorContains(t, err, "Bad Request: chat not found")
 	assert.Equal(t, int32(1), requests.Load())
 }
 
@@ -232,9 +226,7 @@ func TestClient_SendMessage_ServerErrorRetries(t *testing.T) {
 	client := NewSender(zerolog.New(io.Discard), config)
 
 	err := client.SendMessage(t.Context(), &Message{Text: "autobrr goes brr!!"})
-	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "unexpected status: 500")
-	}
+	assert.ErrorContains(t, err, "unexpected status: 500")
 	assert.Equal(t, int32(3), requests.Load())
 }
 
@@ -245,7 +237,6 @@ func TestClient_SendMessage_MalformedHostDoesNotLeakToken(t *testing.T) {
 	client := NewSender(zerolog.New(io.Discard), config)
 
 	err := client.SendMessage(t.Context(), &Message{Text: "autobrr goes brr!!"})
-	if assert.Error(t, err) {
-		assert.NotContains(t, err.Error(), "secret-token")
-	}
+	require.Error(t, err)
+	assert.NotContains(t, err.Error(), "secret-token")
 }

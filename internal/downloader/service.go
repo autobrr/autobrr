@@ -451,9 +451,10 @@ func (s *Service) initInstance(cfg *domain.Downloader) (*Instance, error) {
 
 	case domain.DownloaderTypeSabnzbd:
 		clientCfg := sabnzbd.Options{
-			Addr:   cfg.Host,
-			ApiKey: cfg.Settings.APIKey,
-			Log:    s.log.With().Str("type", "Sabnzbd").Str("client", cfg.Name).Logger(),
+			Addr:          cfg.Host,
+			ApiKey:        cfg.Settings.APIKey,
+			TLSSkipVerify: cfg.TLSSkipVerify,
+			Log:           s.log.With().Str("type", "Sabnzbd").Str("client", cfg.Name).Logger(),
 		}
 
 		if cfg.Settings.Auth.Enabled {
@@ -465,10 +466,11 @@ func (s *Service) initInstance(cfg *domain.Downloader) (*Instance, error) {
 
 	case domain.DownloaderTypeNzbget:
 		clientCfg := nzbget.Options{
-			Host:     cfg.Host,
-			Username: cfg.Username,
-			Password: cfg.Password,
-			Log:      s.log.With().Str("type", "Nzbget").Str("client", cfg.Name).Logger(),
+			Host:          cfg.Host,
+			Username:      cfg.Username,
+			Password:      cfg.Password,
+			TLSSkipVerify: cfg.TLSSkipVerify,
+			Log:           s.log.With().Str("type", "Nzbget").Str("client", cfg.Name).Logger(),
 		}
 		instance.client = nzbget.New(clientCfg)
 

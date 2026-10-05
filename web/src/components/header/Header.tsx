@@ -18,7 +18,9 @@ import { RightNav } from "./RightNav";
 import { MobileNav } from "./MobileNav";
 import { ExternalLink } from "@components/ExternalLink";
 import { ConfigQueryOptions, ListsQueryOptions, UpdatesQueryOptions } from "@api/queries";
+import { useInboxEvents } from "@hooks/useInbox";
 import { AuthContext } from "@utils/Context";
+import { InboxMenu } from "./InboxMenu";
 
 export const Header = () => {
   const { t } = useTranslation("common");
@@ -29,6 +31,8 @@ export const Header = () => {
   const { data } = useQuery(UpdatesQueryOptions(config?.check_for_updates === true));
 
   const { data: lists } = useQuery(ListsQueryOptions());
+
+  useInboxEvents();
 
   // Check if the last run of any list has errored
   const hasErroredList = lists?.some(list => list.last_refresh_status === "ERROR");
@@ -60,7 +64,8 @@ export const Header = () => {
               <div className="flex items-center justify-between h-16 px-4 sm:px-0">
                 <LeftNav />
                 <RightNav logoutMutation={logoutMutation.mutate} />
-                <div className="-mr-2 flex sm:hidden">
+                <div className="-mr-2 flex items-center gap-2 sm:hidden">
+                  <InboxMenu />
                   {/* Mobile menu button */}
                   <DisclosureButton className="bg-gray-200 dark:bg-gray-800 inline-flex items-center justify-center p-2 rounded-md text-gray-600 dark:text-gray-400 hover:text-white hover:bg-gray-700 cursor-pointer">
                     <span className="sr-only">{t("header.openMainMenu")}</span>

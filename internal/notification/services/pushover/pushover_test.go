@@ -14,7 +14,6 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestClient_SendMessage(t *testing.T) {
@@ -26,7 +25,7 @@ func TestClient_SendMessage(t *testing.T) {
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "application/x-www-form-urlencoded", r.Header.Get("Content-Type"))
 
-		require.NoError(t, r.ParseForm())
+		assert.NoError(t, r.ParseForm())
 		assert.Equal(t, "mock-token", r.PostForm.Get("token"))
 		assert.Equal(t, "mock-user", r.PostForm.Get("user"))
 		assert.Equal(t, "Push Approved", r.PostForm.Get("title"))
@@ -54,7 +53,7 @@ func TestClient_SendMessage_ZeroTimestampNotSent(t *testing.T) {
 	t.Parallel()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.NoError(t, r.ParseForm())
+		assert.NoError(t, r.ParseForm())
 		assert.False(t, r.PostForm.Has("timestamp"))
 
 		w.WriteHeader(http.StatusOK)
@@ -83,10 +82,8 @@ func TestClient_SendMessage_QuotaExhaustedNoRetry(t *testing.T) {
 	client.endpoint = server.URL
 
 	err := client.SendMessage(t.Context(), &Message{Title: "Test", Message: "autobrr goes brr!!"})
-	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "monthly message quota exhausted")
-		assert.Contains(t, err.Error(), "unexpected status: 429")
-	}
+	assert.ErrorContains(t, err, "monthly message quota exhausted")
+	assert.ErrorContains(t, err, "unexpected status: 429")
 	assert.Equal(t, int32(1), requests.Load())
 }
 
@@ -106,10 +103,8 @@ func TestClient_SendMessage_BadRequestNoRetry(t *testing.T) {
 	client.endpoint = server.URL
 
 	err := client.SendMessage(t.Context(), &Message{Title: "Test", Message: "autobrr goes brr!!"})
-	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "unexpected status: 400")
-		assert.Contains(t, err.Error(), "user identifier is not a valid user, group, or subscribed user key")
-	}
+	assert.ErrorContains(t, err, "unexpected status: 400")
+	assert.ErrorContains(t, err, "user identifier is not a valid user, group, or subscribed user key")
 	assert.Equal(t, int32(1), requests.Load())
 }
 
@@ -129,7 +124,7 @@ func TestClient_SendMessage_ServerErrorRetries(t *testing.T) {
 	var requests atomic.Int32
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.NoError(t, r.ParseForm())
+		assert.NoError(t, r.ParseForm())
 		assert.Equal(t, "autobrr goes brr!!", r.PostForm.Get("message"))
 
 		requests.Add(1)
@@ -141,8 +136,6 @@ func TestClient_SendMessage_ServerErrorRetries(t *testing.T) {
 	client.endpoint = server.URL
 
 	err := client.SendMessage(t.Context(), &Message{Title: "Test", Message: "autobrr goes brr!!"})
-	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "unexpected status: 500")
-	}
+	assert.ErrorContains(t, err, "unexpected status: 500")
 	assert.Equal(t, int32(3), requests.Load())
 }

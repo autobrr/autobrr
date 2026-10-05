@@ -16,6 +16,7 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type indexerSvcStub struct {
@@ -290,7 +291,7 @@ func TestService_TestExternal_Webhook(t *testing.T) {
 			WebhookData:         `{"name":"{{ .TorrentName }}"}`,
 			WebhookExpectStatus: http.StatusOK,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.True(t, result.Success)
 		assert.Equal(t, http.StatusOK, result.Status)
 		assert.Equal(t, http.StatusOK, result.ExpectStatus)
@@ -306,7 +307,7 @@ func TestService_TestExternal_Webhook(t *testing.T) {
 			WebhookData:         `{"name":"{{ .TorrentName }}"}`,
 			WebhookExpectStatus: http.StatusCreated,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, result.Success)
 		assert.Equal(t, http.StatusOK, result.Status)
 		assert.Empty(t, result.Error)
@@ -318,7 +319,7 @@ func TestService_TestExternal_Webhook(t *testing.T) {
 			Type:                domain.ExternalFilterTypeWebhook,
 			WebhookExpectStatus: http.StatusOK,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, result.Success)
 		assert.Equal(t, 0, result.Status)
 		assert.NotEmpty(t, result.Error)
@@ -341,7 +342,7 @@ func TestService_TestExternal_Exec(t *testing.T) {
 			ExecArgs:         `-c 'echo "{{ .TorrentName }}"; echo oops >&2; exit 3'`,
 			ExecExpectStatus: 3,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.True(t, result.Success)
 		assert.Equal(t, 3, result.Status)
 		assert.Equal(t, "Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP\noops\n", result.Output)
@@ -355,7 +356,7 @@ func TestService_TestExternal_Exec(t *testing.T) {
 			ExecCmd:  "sh",
 			ExecArgs: `-c 'printf "%05000d" 0; printf "%05000d" 0 >&2; exit 7'`,
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.Equal(t, 7, result.Status)
 		assert.Len(t, result.Output, externalOutputMaxBytes)
 	})
@@ -366,7 +367,7 @@ func TestService_TestExternal_Exec(t *testing.T) {
 			Type:    domain.ExternalFilterTypeExec,
 			ExecCmd: "/nonexistent/autobrr-test-program",
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		assert.False(t, result.Success)
 		assert.NotEmpty(t, result.Error)
 	})

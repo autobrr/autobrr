@@ -5,8 +5,15 @@ package domain
 
 import (
 	"encoding/json"
+	"regexp"
+	"strings"
 	"time"
+
+	"github.com/autobrr/autobrr/pkg/errors"
 )
+
+// Notifiarr API keys are lowercase UUIDs; anything else is rejected by notifiarr.com.
+var rxpNotifiarrAPIKey = regexp.MustCompile(`^[a-z0-9-]{36}$`)
 
 type Notification struct {
 	ID            int                  `json:"id"`
@@ -83,8 +90,57 @@ func (n *Notification) IsEnabled() bool {
 		if n.Webhook != "" {
 			return true
 		}
+	case NotificationTypeBuiltin:
+		return true
 	}
 	return false
+}
+
+// Validate checks that the provider-specific fields a sender needs are present and well-formed.
+func (n *Notification) Validate() error {
+	switch n.Type {
+	case NotificationTypeDiscord, NotificationTypeLunaSea, NotificationTypeWebhook:
+		if strings.TrimSpace(n.Webhook) == "" {
+			return errors.Wrap(ErrNotificationInvalid, "missing webhook url")
+		}
+	case NotificationTypeGotify:
+		if strings.TrimSpace(n.Host) == "" {
+			return errors.Wrap(ErrNotificationInvalid, "missing gotify url")
+		}
+		if strings.TrimSpace(n.Token) == "" {
+			return errors.Wrap(ErrNotificationInvalid, "missing gotify application token")
+		}
+	case NotificationTypeNotifiarr:
+		if strings.TrimSpace(n.APIKey) == "" {
+			return errors.Wrap(ErrNotificationInvalid, "missing notifiarr api key")
+		}
+		if !rxpNotifiarrAPIKey.MatchString(n.APIKey) {
+			return errors.Wrap(ErrNotificationInvalid, "notifiarr api key must be 36 characters of a-z, 0-9 and dashes")
+		}
+	case NotificationTypeNtfy, NotificationTypeShoutrrr:
+		if strings.TrimSpace(n.Host) == "" {
+			return errors.Wrap(ErrNotificationInvalid, "missing url")
+		}
+	case NotificationTypePushover:
+		if strings.TrimSpace(n.APIKey) == "" {
+			return errors.Wrap(ErrNotificationInvalid, "missing pushover api token")
+		}
+		if strings.TrimSpace(n.Token) == "" {
+			return errors.Wrap(ErrNotificationInvalid, "missing pushover user key")
+		}
+	case NotificationTypeTelegram:
+		if strings.TrimSpace(n.Token) == "" {
+			return errors.Wrap(ErrNotificationInvalid, "missing telegram bot token")
+		}
+		if strings.TrimSpace(n.Channel) == "" {
+			return errors.Wrap(ErrNotificationInvalid, "missing telegram chat id")
+		}
+	case NotificationTypeBuiltin:
+	default:
+		return errors.Wrap(ErrNotificationInvalid, "unsupported notification type: '%s'", n.Type)
+	}
+
+	return nil
 }
 
 func (n Notification) MarshalJSON() ([]byte, error) {
@@ -109,6 +165,16 @@ type NotificationPayload struct {
 	ReleaseName         string
 	Filter              string
 	FilterID            int
+	List                string
+	ListID              int64
+	ListType            ListType
+	ListError           string
+	Feed                string
+	FeedID              int
+	FeedType            string
+	FeedError           string
+	IRCNetwork          string
+	IRCMessage          string
 	Indexer             string
 	InfoHash            string
 	Size                uint64
@@ -141,6 +207,7 @@ const (
 	NotificationTypeLunaSea   NotificationType = "LUNASEA"
 	NotificationTypeShoutrrr  NotificationType = "SHOUTRRR"
 	NotificationTypeWebhook   NotificationType = "WEBHOOK"
+	NotificationTypeBuiltin   NotificationType = "BUILTIN"
 )
 
 type NotificationEvent string
@@ -152,6 +219,12 @@ const (
 	NotificationEventPushError          NotificationEvent = "PUSH_ERROR"
 	NotificationEventIRCDisconnected    NotificationEvent = "IRC_DISCONNECTED"
 	NotificationEventIRCReconnected     NotificationEvent = "IRC_RECONNECTED"
+	NotificationEventIRCUnhealthy       NotificationEvent = "IRC_UNHEALTHY"
+	NotificationEventIRCHealthy         NotificationEvent = "IRC_HEALTHY"
+	NotificationEventListRefreshSuccess NotificationEvent = "LIST_REFRESH_SUCCESS"
+	NotificationEventListRefreshError   NotificationEvent = "LIST_REFRESH_ERROR"
+	NotificationEventFeedRefreshSuccess NotificationEvent = "FEED_REFRESH_SUCCESS"
+	NotificationEventFeedRefreshError   NotificationEvent = "FEED_REFRESH_ERROR"
 	NotificationEventReleaseNew         NotificationEvent = "RELEASE_NEW"
 	NotificationEventTest               NotificationEvent = "TEST"
 )
@@ -161,6 +234,45 @@ func (e NotificationEvent) String() string {
 }
 
 type NotificationEventArr []NotificationEvent
+
+// InboxMessage is a notification delivered by the built-in notification.
+type InboxMessage struct {
+	ID           int64             `json:"id"`
+	Event        NotificationEvent `json:"event"`
+	Title        string            `json:"title"`
+	Message      string            `json:"message"`
+	ReleaseName  string            `json:"release_name"`
+	Indexer      string            `json:"indexer"`
+	FilterName   string            `json:"filter_name"`
+	FilterID     int               `json:"filter_id"`
+	Action       string            `json:"action"`
+	ActionClient string            `json:"action_client"`
+	Rejections   []string          `json:"rejections"`
+	URL          string            `json:"url"`
+	ReadAt       *time.Time        `json:"read_at"`
+	CreatedAt    time.Time         `json:"created_at"`
+}
+
+type InboxQueryParams struct {
+	Limit  uint64
+	Offset uint64
+	Unread bool
+	Events []string
+}
+
+// FindInboxResponse holds one page of messages. TotalCount matches the query, AllCount and
+// UnreadCount ignore the unread filter so the UI can show both tab counts.
+type FindInboxResponse struct {
+	Data        []*InboxMessage `json:"data"`
+	TotalCount  int             `json:"count"`
+	AllCount    int             `json:"all_count"`
+	UnreadCount int             `json:"unread_count"`
+}
+
+type InboxCleanupParams struct {
+	MaxMessages int
+	OlderThan   time.Time
+}
 
 type NotificationQueryParams struct {
 	Limit   uint64
@@ -177,14 +289,20 @@ type NotificationQueryParams struct {
 type WebhookEventType string
 
 const (
-	WebhookEventReleaseNew      WebhookEventType = "release.new"
-	WebhookEventActionApproved  WebhookEventType = "action.approved"
-	WebhookEventActionRejected  WebhookEventType = "action.rejected"
-	WebhookEventActionError     WebhookEventType = "action.error"
-	WebhookEventIRCDisconnected WebhookEventType = "irc.disconnected"
-	WebhookEventIRCReconnected  WebhookEventType = "irc.reconnected"
-	WebhookEventAppUpdate       WebhookEventType = "app.update_available"
-	WebhookEventTest            WebhookEventType = "test"
+	WebhookEventReleaseNew         WebhookEventType = "release.new"
+	WebhookEventActionApproved     WebhookEventType = "action.approved"
+	WebhookEventActionRejected     WebhookEventType = "action.rejected"
+	WebhookEventActionError        WebhookEventType = "action.error"
+	WebhookEventIRCDisconnected    WebhookEventType = "irc.disconnected"
+	WebhookEventIRCReconnected     WebhookEventType = "irc.reconnected"
+	WebhookEventIRCUnhealthy       WebhookEventType = "irc.unhealthy"
+	WebhookEventIRCHealthy         WebhookEventType = "irc.healthy"
+	WebhookEventListRefreshSuccess WebhookEventType = "list.refresh_success"
+	WebhookEventListRefreshError   WebhookEventType = "list.refresh_error"
+	WebhookEventFeedRefreshSuccess WebhookEventType = "feed.refresh_success"
+	WebhookEventFeedRefreshError   WebhookEventType = "feed.refresh_error"
+	WebhookEventAppUpdate          WebhookEventType = "app.update_available"
+	WebhookEventTest               WebhookEventType = "test"
 )
 
 // WebhookEvent is the top-level webhook payload structure
@@ -203,6 +321,9 @@ type WebhookData struct {
 	Filter  *WebhookFilter  `json:"filter,omitempty"`
 	Action  *WebhookAction  `json:"action,omitempty"`
 	Result  *WebhookResult  `json:"result,omitempty"`
+	List    *WebhookList    `json:"list,omitempty"`
+	Feed    *WebhookFeed    `json:"feed,omitempty"`
+	IRC     *WebhookIRC     `json:"irc,omitempty"`
 }
 
 // WebhookRelease contains release-specific data
@@ -286,6 +407,28 @@ type WebhookAction struct {
 	Client string `json:"client,omitempty"`
 }
 
+// WebhookList contains list refresh information
+type WebhookList struct {
+	ID    int64  `json:"id"`
+	Name  string `json:"name"`
+	Type  string `json:"type"`
+	Error string `json:"error,omitempty"`
+}
+
+// WebhookFeed contains feed refresh information
+type WebhookFeed struct {
+	ID    int    `json:"id"`
+	Name  string `json:"name"`
+	Type  string `json:"type"`
+	Error string `json:"error,omitempty"`
+}
+
+// WebhookIRC contains irc network information
+type WebhookIRC struct {
+	Network string `json:"network"`
+	Message string `json:"message,omitempty"`
+}
+
 // WebhookResult contains push result information
 type WebhookResult struct {
 	Status     string   `json:"status,omitempty"`
@@ -306,6 +449,18 @@ func mapNotificationEventToWebhookEvent(event NotificationEvent) WebhookEventTyp
 		return WebhookEventIRCDisconnected
 	case NotificationEventIRCReconnected:
 		return WebhookEventIRCReconnected
+	case NotificationEventIRCUnhealthy:
+		return WebhookEventIRCUnhealthy
+	case NotificationEventIRCHealthy:
+		return WebhookEventIRCHealthy
+	case NotificationEventListRefreshSuccess:
+		return WebhookEventListRefreshSuccess
+	case NotificationEventListRefreshError:
+		return WebhookEventListRefreshError
+	case NotificationEventFeedRefreshSuccess:
+		return WebhookEventFeedRefreshSuccess
+	case NotificationEventFeedRefreshError:
+		return WebhookEventFeedRefreshError
 	case NotificationEventAppUpdateAvailable:
 		return WebhookEventAppUpdate
 	case NotificationEventTest:
@@ -427,6 +582,31 @@ func NewWebhookEvent(event NotificationEvent, payload NotificationPayload, id st
 		data.Result = &WebhookResult{
 			Status:     string(payload.Status),
 			Rejections: payload.Rejections,
+		}
+	}
+
+	if event == NotificationEventListRefreshSuccess || event == NotificationEventListRefreshError {
+		data.List = &WebhookList{
+			ID:    payload.ListID,
+			Name:  payload.List,
+			Type:  string(payload.ListType),
+			Error: payload.ListError,
+		}
+	}
+
+	if event == NotificationEventFeedRefreshSuccess || event == NotificationEventFeedRefreshError {
+		data.Feed = &WebhookFeed{
+			ID:    payload.FeedID,
+			Name:  payload.Feed,
+			Type:  payload.FeedType,
+			Error: payload.FeedError,
+		}
+	}
+
+	if event == NotificationEventIRCDisconnected || event == NotificationEventIRCReconnected || event == NotificationEventIRCUnhealthy || event == NotificationEventIRCHealthy {
+		data.IRC = &WebhookIRC{
+			Network: payload.IRCNetwork,
+			Message: payload.IRCMessage,
 		}
 	}
 

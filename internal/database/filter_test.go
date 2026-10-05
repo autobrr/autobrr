@@ -14,6 +14,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func getMockFilter() *domain.Filter {
@@ -120,11 +121,11 @@ func TestFilterRepo_Store(t *testing.T) {
 		t.Run(fmt.Sprintf("Store_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
 			err := repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			createdFilters, err := repo.ListFilters(ctx)
-			assert.NoError(t, err)
-			assert.NotNil(t, createdFilters)
+			require.NoError(t, err)
+			require.NotEmpty(t, createdFilters)
 			assert.Equal(t, mockData.Name, createdFilters[0].Name)
 
 			// Cleanup
@@ -137,7 +138,7 @@ func TestFilterRepo_Store(t *testing.T) {
 			assert.Error(t, err)
 
 			createdFilters, err := repo.ListFilters(ctx)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, createdFilters)
 
 			// Cleanup
@@ -166,7 +167,7 @@ func TestFilterRepo_Update(t *testing.T) {
 		t.Run(fmt.Sprintf("Update_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
 			err := repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Update mockData
 			mockData.Name = "Updated Filter"
@@ -175,13 +176,13 @@ func TestFilterRepo_Update(t *testing.T) {
 
 			// Execute
 			err = repo.Update(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			createdFilters, err := repo.ListFilters(ctx)
-			assert.NoError(t, err)
-			assert.NotNil(t, createdFilters)
+			require.NoError(t, err)
+			require.NotEmpty(t, createdFilters)
 			assert.Equal(t, "Updated Filter", createdFilters[0].Name)
-			assert.Equal(t, false, createdFilters[0].Enabled)
+			assert.False(t, createdFilters[0].Enabled)
 
 			// Cleanup
 			_ = repo.Delete(ctx, createdFilters[0].ID)
@@ -207,16 +208,16 @@ func TestFilterRepo_Delete(t *testing.T) {
 		t.Run(fmt.Sprintf("Delete_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
 			err := repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			createdFilters, err := repo.ListFilters(ctx)
-			assert.NoError(t, err)
-			assert.NotNil(t, createdFilters)
+			require.NoError(t, err)
+			require.NotEmpty(t, createdFilters)
 			assert.Equal(t, mockData.Name, createdFilters[0].Name)
 
 			// Execute
 			err = repo.Delete(ctx, createdFilters[0].ID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify that the filter is deleted and return error ErrRecordNotFound
 			filter, err := repo.FindByID(ctx, createdFilters[0].ID)
@@ -244,22 +245,22 @@ func TestFilterRepo_UpdatePartial(t *testing.T) {
 		t.Run(fmt.Sprintf("UpdatePartial_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
 			err := repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			updatedName := "Updated Name"
 
 			createdFilters, err := repo.ListFilters(ctx)
-			assert.NoError(t, err)
-			assert.NotNil(t, createdFilters)
+			require.NoError(t, err)
+			require.NotEmpty(t, createdFilters)
 
 			// Execute
 			updateData := domain.FilterUpdate{ID: createdFilters[0].ID, Name: &updatedName}
 			err = repo.UpdatePartial(ctx, updateData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify that the filter is updated
 			filter, err := repo.FindByID(ctx, createdFilters[0].ID)
-			assert.NoError(t, err)
-			assert.NotNil(t, filter)
+			require.NoError(t, err)
+			require.NotNil(t, filter)
 			assert.Equal(t, updatedName, filter.Name)
 
 			// Cleanup
@@ -288,22 +289,22 @@ func TestFilterRepo_ToggleEnabled(t *testing.T) {
 		t.Run(fmt.Sprintf("ToggleEnabled_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
 			err := repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			createdFilters, err := repo.ListFilters(ctx)
-			assert.NoError(t, err)
-			assert.NotNil(t, createdFilters)
-			assert.Equal(t, true, createdFilters[0].Enabled)
+			require.NoError(t, err)
+			require.NotEmpty(t, createdFilters)
+			assert.True(t, createdFilters[0].Enabled)
 
 			// Execute
 			err = repo.ToggleEnabled(ctx, mockData.ID, false)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify that the filter is updated
 			filter, err := repo.FindByID(ctx, createdFilters[0].ID)
-			assert.NoError(t, err)
-			assert.NotNil(t, filter)
-			assert.Equal(t, false, filter.Enabled)
+			require.NoError(t, err)
+			require.NotNil(t, filter)
+			assert.False(t, filter.Enabled)
 
 			// Cleanup
 			_ = repo.Delete(ctx, createdFilters[0].ID)
@@ -330,12 +331,12 @@ func TestFilterRepo_ListFilters(t *testing.T) {
 			// Setup
 			for range 10 {
 				err := repo.Store(ctx, mockData)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 
 			// Execute
 			filters, err := repo.ListFilters(ctx)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, filters)
 			assert.NotEmpty(t, filters)
 
@@ -347,7 +348,7 @@ func TestFilterRepo_ListFilters(t *testing.T) {
 
 		t.Run(fmt.Sprintf("ListFilters_ReturnsEmptyList [%s]", dbType), func(t *testing.T) {
 			filters, err := repo.ListFilters(ctx)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Empty(t, filters)
 		})
 
@@ -369,7 +370,7 @@ func TestFilterRepo_Find(t *testing.T) {
 			// Setup
 			mockData.Name = "Test Filter"
 			err := repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			params := domain.FilterQueryParams{
 				Search: "Test",
@@ -377,9 +378,9 @@ func TestFilterRepo_Find(t *testing.T) {
 
 			// Execute
 			filters, err := repo.Find(ctx, params)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, filters)
-			assert.NotEmpty(t, filters)
+			require.NotEmpty(t, filters)
 
 			// Cleanup
 			_ = repo.Delete(ctx, filters[0].ID)
@@ -390,7 +391,7 @@ func TestFilterRepo_Find(t *testing.T) {
 			for i := range 10 {
 				mockData.Name = fmt.Sprintf("Test Filter %d", i)
 				err := repo.Store(ctx, mockData)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 
 			params := domain.FilterQueryParams{
@@ -401,11 +402,11 @@ func TestFilterRepo_Find(t *testing.T) {
 
 			// Execute
 			filters, err := repo.Find(ctx, params)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, filters)
-			assert.NotEmpty(t, filters)
+			require.NotEmpty(t, filters)
 			assert.Equal(t, "Test Filter 9", filters[0].Name)
-			assert.Equal(t, 10, len(filters))
+			assert.Len(t, filters, 10)
 
 			// Cleanup
 			for _, filter := range filters {
@@ -417,15 +418,15 @@ func TestFilterRepo_Find(t *testing.T) {
 			// Setup
 			mockData.Name = "New Filter With Filters"
 			err := repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			allFilter, err := repo.ListFilters(ctx)
-			assert.NoError(t, err)
-			assert.NotNil(t, allFilter)
+			require.NoError(t, err)
+			require.NotEmpty(t, allFilter)
 
 			indexer, err := indexerRepo.Store(ctx, indexerMockData)
-			assert.NoError(t, err)
-			assert.NotNil(t, indexer)
+			require.NoError(t, err)
+			require.NotNil(t, indexer)
 
 			// Store indexer connection
 			err = repo.StoreIndexerConnection(ctx, allFilter[0].ID, int(indexer.ID))
@@ -436,11 +437,11 @@ func TestFilterRepo_Find(t *testing.T) {
 
 			// Execute
 			filters, err := repo.Find(ctx, params)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, filters)
-			assert.NotEmpty(t, filters)
+			require.NotEmpty(t, filters)
 			assert.Equal(t, "New Filter With Filters", filters[0].Name)
-			assert.Equal(t, 1, len(filters))
+			require.Len(t, filters, 1)
 
 			// Cleanup
 			_ = indexerRepo.Delete(ctx, int(indexer.ID))
@@ -462,16 +463,16 @@ func TestFilterRepo_FindByID(t *testing.T) {
 		t.Run(fmt.Sprintf("FindByID_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
 			err := repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			createdFilters, err := repo.ListFilters(ctx)
-			assert.NoError(t, err)
-			assert.NotNil(t, createdFilters)
+			require.NoError(t, err)
+			require.NotEmpty(t, createdFilters)
 
 			// Execute
 			filter, err := repo.FindByID(ctx, createdFilters[0].ID)
-			assert.NoError(t, err)
-			assert.NotNil(t, filter)
+			require.NoError(t, err)
+			require.NotNil(t, filter)
 			assert.Equal(t, createdFilters[0].ID, filter.ID)
 
 			// Cleanup
@@ -538,30 +539,30 @@ func TestFilterRepo_FindByIndexerIdentifier(t *testing.T) {
 		t.Run(fmt.Sprintf("FindByIndexerIdentifier_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
 			indexer, err := indexerRepo.Store(ctx, indexerMockData)
-			assert.NoError(t, err)
-			assert.NotNil(t, indexer)
+			require.NoError(t, err)
+			require.NotNil(t, indexer)
 
 			for _, filter := range filtersData {
 				err := repo.Store(ctx, filter)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 
 				err = repo.StoreIndexerConnection(ctx, filter.ID, int(indexer.ID))
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 
 			filtersList, err := repo.ListFilters(ctx)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotEmpty(t, filtersList)
 
 			// Execute
 			filters, err := repo.FindByIndexerIdentifier(ctx, indexerMockData.Identifier)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, filters)
-			assert.NotEmpty(t, filters)
+			require.NotEmpty(t, filters)
 
-			assert.Equal(t, filters[0].Priority, int32(100))
-			assert.Equal(t, filters[1].Priority, int32(30))
-			assert.Equal(t, filters[2].Priority, int32(20))
+			assert.Equal(t, int32(100), filters[0].Priority)
+			assert.Equal(t, int32(30), filters[1].Priority)
+			assert.Equal(t, int32(20), filters[2].Priority)
 
 			// Cleanup
 			_ = indexerRepo.Delete(ctx, int(indexer.ID))
@@ -574,7 +575,7 @@ func TestFilterRepo_FindByIndexerIdentifier(t *testing.T) {
 
 		t.Run(fmt.Sprintf("FindByIndexerIdentifier_Fails_Invalid_Identifier [%s]", dbType), func(t *testing.T) {
 			filters, err := repo.FindByIndexerIdentifier(ctx, "invalid-identifier")
-			assert.NoError(t, err) // should return an error??
+			require.NoError(t, err) // should return an error??
 			assert.Nil(t, filters)
 		})
 
@@ -593,15 +594,15 @@ func TestFilterRepo_FindExternalFiltersByID(t *testing.T) {
 			// Setup
 			mockData := getMockFilter()
 			err := repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockDataExternal := getMockFilterExternal()
 			err = repo.StoreFilterExternal(ctx, mockData.ID, []domain.FilterExternal{mockDataExternal})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute
 			filters, err := repo.FindExternalFiltersByID(ctx, mockData.ID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, filters)
 			assert.NotEmpty(t, filters)
 
@@ -611,7 +612,7 @@ func TestFilterRepo_FindExternalFiltersByID(t *testing.T) {
 
 		t.Run(fmt.Sprintf("FindExternalFiltersByID_Fails_Invalid_ID [%s]", dbType), func(t *testing.T) {
 			filters, err := repo.FindExternalFiltersByID(ctx, -1)
-			assert.NoError(t, err) // should return an error??
+			require.NoError(t, err) // should return an error??
 			assert.Nil(t, filters)
 		})
 
@@ -630,11 +631,11 @@ func TestFilterRepo_FindExternalFiltersByFilterIDs(t *testing.T) {
 			// Setup
 			firstFilter := getMockFilter()
 			err := repo.Store(ctx, firstFilter)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			secondFilter := getMockFilter()
 			err = repo.Store(ctx, secondFilter)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			first := getMockFilterExternal()
 			first.Index = 1
@@ -643,18 +644,18 @@ func TestFilterRepo_FindExternalFiltersByFilterIDs(t *testing.T) {
 			second.Index = 2
 
 			err = repo.StoreFilterExternal(ctx, firstFilter.ID, []domain.FilterExternal{first, second})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			err = repo.StoreFilterExternal(ctx, secondFilter.ID, []domain.FilterExternal{first})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute
 			externalFilters, err := repo.FindExternalFiltersByFilterIDs(ctx, []int{firstFilter.ID, secondFilter.ID})
 
 			// Verify
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Len(t, externalFilters, 2)
-			assert.Len(t, externalFilters[firstFilter.ID], 2)
+			require.Len(t, externalFilters[firstFilter.ID], 2)
 			assert.Len(t, externalFilters[secondFilter.ID], 1)
 
 			// idx DESC is preserved within each filter
@@ -663,7 +664,7 @@ func TestFilterRepo_FindExternalFiltersByFilterIDs(t *testing.T) {
 
 			// matches what the per-filter lookup returns
 			single, err := repo.FindExternalFiltersByID(ctx, firstFilter.ID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, single, externalFilters[firstFilter.ID])
 
 			// Cleanup
@@ -673,13 +674,13 @@ func TestFilterRepo_FindExternalFiltersByFilterIDs(t *testing.T) {
 
 		t.Run(fmt.Sprintf("FindExternalFiltersByFilterIDs_Empty_Input [%s]", dbType), func(t *testing.T) {
 			externalFilters, err := repo.FindExternalFiltersByFilterIDs(ctx, []int{})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Empty(t, externalFilters)
 		})
 
 		t.Run(fmt.Sprintf("FindExternalFiltersByFilterIDs_Unknown_ID [%s]", dbType), func(t *testing.T) {
 			externalFilters, err := repo.FindExternalFiltersByFilterIDs(ctx, []int{-1})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Empty(t, externalFilters)
 			assert.Nil(t, externalFilters[-1])
 		})
@@ -699,12 +700,12 @@ func TestFilterRepo_StoreIndexerConnection(t *testing.T) {
 			// Setup
 			mockData := getMockFilter()
 			err := repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			indexerMockData := getMockIndexer()
 			indexer, err := indexerRepo.Store(ctx, indexerMockData)
-			assert.NoError(t, err)
-			assert.NotNil(t, indexer)
+			require.NoError(t, err)
+			require.NotNil(t, indexer)
 
 			// Execute
 			err = repo.StoreIndexerConnection(ctx, mockData.ID, int(indexer.ID))
@@ -737,7 +738,7 @@ func TestFilterRepo_StoreIndexerConnections(t *testing.T) {
 			// Setup
 			mockData := getMockFilter()
 			err := repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			indexerMockData := getMockIndexer()
 			var indexers []domain.Indexer
@@ -745,17 +746,17 @@ func TestFilterRepo_StoreIndexerConnections(t *testing.T) {
 				// identifier must be unique
 				indexerMockData.Identifier = fmt.Sprintf("indexer%d", i)
 				indexer, err := indexerRepo.Store(ctx, indexerMockData)
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				indexers = append(indexers, *indexer)
 			}
 
 			// Execute
 			err = repo.StoreIndexerConnections(ctx, mockData.ID, indexers)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Validate that the connections were successfully stored in the database
 			connections, err := repo.FindByIndexerIdentifier(ctx, indexerMockData.Identifier)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, connections)
 			assert.NotEmpty(t, connections)
 
@@ -785,7 +786,7 @@ func TestFilterRepo_StoreFilterExternal(t *testing.T) {
 			// Setup
 			mockData := getMockFilter()
 			err := repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute
 			mockDataExternal := getMockFilterExternal()
@@ -816,23 +817,23 @@ func TestFilterRepo_DeleteIndexerConnections(t *testing.T) {
 			// Setup
 			mockData := getMockFilter()
 			err := repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			indexerMockData := getMockIndexer()
 			indexer, err := indexerRepo.Store(ctx, indexerMockData)
-			assert.NoError(t, err)
-			assert.NotNil(t, indexer)
+			require.NoError(t, err)
+			require.NotNil(t, indexer)
 
 			err = repo.StoreIndexerConnection(ctx, mockData.ID, int(indexer.ID))
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute
 			err = repo.DeleteIndexerConnections(ctx, mockData.ID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Validate that the connections were successfully deleted from the database
 			connections, err := repo.FindByIndexerIdentifier(ctx, indexerMockData.Identifier)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Nil(t, connections)
 
 			// Cleanup
@@ -860,19 +861,19 @@ func TestFilterRepo_DeleteFilterExternal(t *testing.T) {
 			// Setup
 			mockData := getMockFilter()
 			err := repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockDataExternal := getMockFilterExternal()
 			err = repo.StoreFilterExternal(ctx, mockData.ID, []domain.FilterExternal{mockDataExternal})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute
 			err = repo.DeleteFilterExternal(ctx, mockData.ID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Validate that the connections were successfully deleted from the database
 			connections, err := repo.FindExternalFiltersByID(ctx, mockData.ID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Nil(t, connections)
 
 			// Cleanup
@@ -902,12 +903,12 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			// Setup
 			mockData := getMockFilter()
 			err := repo.Store(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockClient := getMockDownloader()
 
 			err = downloadClientRepo.Store(ctx, &mockClient)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, mockClient)
 
 			mockAction := getMockAction()
@@ -923,17 +924,17 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			mockRelease.FilterID = mockData.ID
 
 			err = releaseRepo.Store(ctx, mockRelease)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockReleaseActionStatus.ActionID = int64(mockAction.ID)
 			mockReleaseActionStatus.ReleaseID = mockRelease.ID
 
 			err = releaseRepo.StoreReleaseActionStatus(ctx, mockReleaseActionStatus)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute
 			err = repo.GetFilterDownloadCount(ctx, mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, mockData.Downloads)
 			assert.Equal(t, mockData.Downloads, &domain.FilterDownloads{
 				PeriodCount: 1,
@@ -949,7 +950,7 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 		t.Run(fmt.Sprintf("GetFilterDownloads_Returns_Zero_For_Unknown_ID [%s]", dbType), func(t *testing.T) {
 			mockFilter := &domain.Filter{ID: -1, MaxDownloadsUnit: domain.FilterMaxDownloadsHour}
 			err := repo.GetFilterDownloadCount(ctx, mockFilter)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, mockFilter.Downloads)
 			assert.Equal(t, mockFilter.Downloads, &domain.FilterDownloads{
 				PeriodCount: 0,
@@ -960,12 +961,12 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			// Setup
 			mockFilter := getMockFilter()
 			err := repo.Store(ctx, mockFilter)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockClient := getMockDownloader()
 
 			err = downloadClientRepo.Store(ctx, &mockClient)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, mockClient)
 
 			mockAction1 := getMockAction()
@@ -973,20 +974,20 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			mockAction1.ClientID = mockClient.ID
 
 			actionErr := actionRepo.Store(ctx, mockAction1)
-			assert.NoError(t, actionErr)
+			require.NoError(t, actionErr)
 
 			mockAction2 := getMockAction()
 			mockAction2.FilterID = mockFilter.ID
 			mockAction2.ClientID = mockClient.ID
 
 			action2Err := actionRepo.Store(ctx, mockAction2)
-			assert.NoError(t, action2Err)
+			require.NoError(t, action2Err)
 
 			mockRelease := getMockRelease()
 			mockRelease.FilterID = mockFilter.ID
 
 			err = releaseRepo.Store(ctx, mockRelease)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockReleaseActionStatus1 := getMockReleaseActionStatus()
 			mockReleaseActionStatus1.ActionID = int64(mockAction1.ID)
@@ -994,7 +995,7 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			mockReleaseActionStatus1.ReleaseID = mockRelease.ID
 
 			err = releaseRepo.StoreReleaseActionStatus(ctx, mockReleaseActionStatus1)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockReleaseActionStatus2 := getMockReleaseActionStatus()
 			mockReleaseActionStatus2.ActionID = int64(mockAction2.ID)
@@ -1002,11 +1003,11 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			mockReleaseActionStatus2.ReleaseID = mockRelease.ID
 
 			err = releaseRepo.StoreReleaseActionStatus(ctx, mockReleaseActionStatus2)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute
 			err = repo.GetFilterDownloadCount(ctx, mockFilter)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, mockFilter.Downloads)
 			assert.Equal(t, mockFilter.Downloads, &domain.FilterDownloads{
 				PeriodCount: 1,
@@ -1025,12 +1026,12 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			mockFilter := getMockFilter()
 			mockFilter.Shows = "nope"
 			err := repo.Store(ctx, mockFilter)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockClient := getMockDownloader()
 
 			err = downloadClientRepo.Store(ctx, &mockClient)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, mockClient)
 
 			mockAction := getMockAction()
@@ -1038,20 +1039,20 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			mockAction.ClientID = mockClient.ID
 
 			err = actionRepo.Store(ctx, mockAction)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockAction2 := getMockAction()
 			mockAction2.FilterID = mockFilter.ID
 			mockAction2.ClientID = mockClient.ID
 
 			err = actionRepo.Store(ctx, mockAction2)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockRelease := getMockRelease()
 			mockRelease.FilterID = mockFilter.ID
 
 			err = releaseRepo.Store(ctx, mockRelease)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockReleaseActionStatus := getMockReleaseActionStatus()
 			mockReleaseActionStatus.ActionID = int64(mockAction.ID)
@@ -1060,7 +1061,7 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			mockReleaseActionStatus.Timestamp = mockReleaseActionStatus.Timestamp.Add(-35 * 24 * time.Hour) // use Add instead of AddDate(0, -1, 0) to not cause issues where previous month is shorter than current month.
 
 			err = releaseRepo.StoreReleaseActionStatus(ctx, mockReleaseActionStatus)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockReleaseActionStatus2 := getMockReleaseActionStatus()
 			mockReleaseActionStatus2.ActionID = int64(mockAction2.ID)
@@ -1069,11 +1070,11 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			mockReleaseActionStatus2.Timestamp = mockReleaseActionStatus2.Timestamp.Add(-35 * 24 * time.Hour) // use Add instead of AddDate(0, -1, 0) to not cause issues where previous month is shorter than current month.
 
 			err = releaseRepo.StoreReleaseActionStatus(ctx, mockReleaseActionStatus2)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute
 			err = repo.GetFilterDownloadCount(ctx, mockFilter)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, mockFilter.Downloads)
 			assert.Equal(t, mockFilter.Downloads, &domain.FilterDownloads{
 				PeriodCount: 0,
@@ -1091,10 +1092,10 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			// Setup
 			mockFilter := getMockFilter()
 			err := repo.Store(ctx, mockFilter)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			err = repo.GetFilterDownloadCount(ctx, mockFilter)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, mockFilter.Downloads)
 			assert.Equal(t, mockFilter.Downloads, &domain.FilterDownloads{
 				PeriodCount: 0,
@@ -1110,23 +1111,23 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			mockFilter.MaxDownloadsWindowType = domain.FilterMaxDownloadsWindowRolling
 			mockFilter.MaxDownloadsUnit = domain.FilterMaxDownloadsMinute
 			err := repo.Store(t.Context(), mockFilter)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockClient := getMockDownloader()
 			err = downloadClientRepo.Store(t.Context(), &mockClient)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockAction := getMockAction()
 			mockAction.FilterID = mockFilter.ID
 			mockAction.ClientID = mockClient.ID
 			err = actionRepo.Store(t.Context(), mockAction)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Create release with status within the last minute (should be counted)
 			mockRelease := getMockRelease()
 			mockRelease.FilterID = mockFilter.ID
 			err = releaseRepo.Store(t.Context(), mockRelease)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockReleaseActionStatus := getMockReleaseActionStatus()
 			mockReleaseActionStatus.ActionID = int64(mockAction.ID)
@@ -1135,12 +1136,12 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			mockReleaseActionStatus.Timestamp = time.Now().UTC().Add(-30 * time.Second)
 
 			err = releaseRepo.StoreReleaseActionStatus(t.Context(), mockReleaseActionStatus)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute - should count the release from 30 seconds ago
 			err = repo.GetFilterDownloadCount(t.Context(), mockFilter)
-			assert.NoError(t, err)
-			assert.NotNil(t, mockFilter.Downloads)
+			require.NoError(t, err)
+			require.NotNil(t, mockFilter.Downloads)
 			assert.Equal(t, 1, mockFilter.Downloads.PeriodCount, "should count release within last minute")
 
 			// Cleanup
@@ -1156,23 +1157,23 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			mockFilter.MaxDownloadsWindowType = domain.FilterMaxDownloadsWindowRolling
 			mockFilter.MaxDownloadsUnit = domain.FilterMaxDownloadsHour
 			err := repo.Store(t.Context(), mockFilter)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockClient := getMockDownloader()
 			err = downloadClientRepo.Store(t.Context(), &mockClient)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockAction := getMockAction()
 			mockAction.FilterID = mockFilter.ID
 			mockAction.ClientID = mockClient.ID
 			err = actionRepo.Store(t.Context(), mockAction)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Create release within the last hour
 			mockRelease := getMockRelease()
 			mockRelease.FilterID = mockFilter.ID
 			err = releaseRepo.Store(t.Context(), mockRelease)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockReleaseActionStatus := getMockReleaseActionStatus()
 			mockReleaseActionStatus.ActionID = int64(mockAction.ID)
@@ -1181,12 +1182,12 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			mockReleaseActionStatus.Timestamp = time.Now().UTC().Add(-30 * time.Minute)
 
 			err = releaseRepo.StoreReleaseActionStatus(t.Context(), mockReleaseActionStatus)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute - should count the release from 30 minutes ago
 			err = repo.GetFilterDownloadCount(t.Context(), mockFilter)
-			assert.NoError(t, err)
-			assert.NotNil(t, mockFilter.Downloads)
+			require.NoError(t, err)
+			require.NotNil(t, mockFilter.Downloads)
 			assert.Equal(t, 1, mockFilter.Downloads.PeriodCount, "should count release within last hour")
 
 			// Cleanup
@@ -1202,23 +1203,23 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			mockFilter.MaxDownloadsWindowType = domain.FilterMaxDownloadsWindowRolling
 			mockFilter.MaxDownloadsUnit = domain.FilterMaxDownloadsMinute
 			err := repo.Store(t.Context(), mockFilter)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockClient := getMockDownloader()
 			err = downloadClientRepo.Store(t.Context(), &mockClient)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockAction := getMockAction()
 			mockAction.FilterID = mockFilter.ID
 			mockAction.ClientID = mockClient.ID
 			err = actionRepo.Store(t.Context(), mockAction)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Create release outside the rolling window (should NOT be counted)
 			mockRelease := getMockRelease()
 			mockRelease.FilterID = mockFilter.ID
 			err = releaseRepo.Store(t.Context(), mockRelease)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockReleaseActionStatus := getMockReleaseActionStatus()
 			mockReleaseActionStatus.ActionID = int64(mockAction.ID)
@@ -1227,12 +1228,12 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			mockReleaseActionStatus.Timestamp = time.Now().UTC().Add(-2 * time.Minute)
 
 			err = releaseRepo.StoreReleaseActionStatus(t.Context(), mockReleaseActionStatus)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute - should NOT count the release from 2 minutes ago for a 1-minute window
 			err = repo.GetFilterDownloadCount(t.Context(), mockFilter)
-			assert.NoError(t, err)
-			assert.NotNil(t, mockFilter.Downloads)
+			require.NoError(t, err)
+			require.NotNil(t, mockFilter.Downloads)
 			assert.Equal(t, 0, mockFilter.Downloads.PeriodCount, "should not count release outside rolling window")
 
 			// Cleanup
@@ -1248,22 +1249,22 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			mockFilter.MaxDownloadsWindowType = "" // Explicitly unset
 			mockFilter.MaxDownloadsUnit = domain.FilterMaxDownloadsHour
 			err := repo.Store(t.Context(), mockFilter)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockClient := getMockDownloader()
 			err = downloadClientRepo.Store(t.Context(), &mockClient)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockAction := getMockAction()
 			mockAction.FilterID = mockFilter.ID
 			mockAction.ClientID = mockClient.ID
 			err = actionRepo.Store(t.Context(), mockAction)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockRelease := getMockRelease()
 			mockRelease.FilterID = mockFilter.ID
 			err = releaseRepo.Store(t.Context(), mockRelease)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockReleaseActionStatus := getMockReleaseActionStatus()
 			mockReleaseActionStatus.ActionID = int64(mockAction.ID)
@@ -1271,12 +1272,12 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			mockReleaseActionStatus.ReleaseID = mockRelease.ID
 
 			err = releaseRepo.StoreReleaseActionStatus(t.Context(), mockReleaseActionStatus)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute - should use FIXED window (calendar boundaries) by default
 			err = repo.GetFilterDownloadCount(t.Context(), mockFilter)
-			assert.NoError(t, err)
-			assert.NotNil(t, mockFilter.Downloads)
+			require.NoError(t, err)
+			require.NotNil(t, mockFilter.Downloads)
 			// Since we created a release just now, it should be in the current hour for FIXED window
 			assert.Equal(t, 1, mockFilter.Downloads.PeriodCount, "should count using FIXED window by default")
 
@@ -1293,23 +1294,23 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			mockFilter.MaxDownloadsWindowType = domain.FilterMaxDownloadsWindowRolling
 			mockFilter.MaxDownloadsUnit = domain.FilterMaxDownloadsDay
 			err := repo.Store(t.Context(), mockFilter)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockClient := getMockDownloader()
 			err = downloadClientRepo.Store(t.Context(), &mockClient)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockAction := getMockAction()
 			mockAction.FilterID = mockFilter.ID
 			mockAction.ClientID = mockClient.ID
 			err = actionRepo.Store(t.Context(), mockAction)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Create release within the last 24 hours
 			mockRelease := getMockRelease()
 			mockRelease.FilterID = mockFilter.ID
 			err = releaseRepo.Store(t.Context(), mockRelease)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockReleaseActionStatus := getMockReleaseActionStatus()
 			mockReleaseActionStatus.ActionID = int64(mockAction.ID)
@@ -1318,12 +1319,12 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			mockReleaseActionStatus.Timestamp = time.Now().UTC().Add(-12 * time.Hour)
 
 			err = releaseRepo.StoreReleaseActionStatus(t.Context(), mockReleaseActionStatus)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute - should count the release from 12 hours ago
 			err = repo.GetFilterDownloadCount(t.Context(), mockFilter)
-			assert.NoError(t, err)
-			assert.NotNil(t, mockFilter.Downloads)
+			require.NoError(t, err)
+			require.NotNil(t, mockFilter.Downloads)
 			assert.Equal(t, 1, mockFilter.Downloads.PeriodCount, "should count release within last 24 hours")
 
 			// Cleanup
@@ -1340,22 +1341,22 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			mockFilter.MaxDownloadsUnit = domain.FilterMaxDownloadsDay
 			mockFilter.MaxDownloadsPeriod = 3
 			err := repo.Store(t.Context(), mockFilter)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockClient := getMockDownloader()
 			err = downloadClientRepo.Store(t.Context(), &mockClient)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockAction := getMockAction()
 			mockAction.FilterID = mockFilter.ID
 			mockAction.ClientID = mockClient.ID
 			err = actionRepo.Store(t.Context(), mockAction)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockRelease := getMockRelease()
 			mockRelease.FilterID = mockFilter.ID
 			err = releaseRepo.Store(t.Context(), mockRelease)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockReleaseActionStatus := getMockReleaseActionStatus()
 			mockReleaseActionStatus.ActionID = int64(mockAction.ID)
@@ -1364,22 +1365,22 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			mockReleaseActionStatus.Timestamp = time.Now().UTC().Add(-2 * 24 * time.Hour)
 
 			err = releaseRepo.StoreReleaseActionStatus(t.Context(), mockReleaseActionStatus)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute
 			err = repo.GetFilterDownloadCount(t.Context(), mockFilter)
-			assert.NoError(t, err)
-			assert.NotNil(t, mockFilter.Downloads)
+			require.NoError(t, err)
+			require.NotNil(t, mockFilter.Downloads)
 			assert.Equal(t, 1, mockFilter.Downloads.PeriodCount, "should count release within rolling 3 day window")
 
 			// Execute - the same release must be outside a rolling 1 day window
 			mockFilter.MaxDownloadsPeriod = 1
 			err = repo.Update(t.Context(), mockFilter)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			err = repo.GetFilterDownloadCount(t.Context(), mockFilter)
-			assert.NoError(t, err)
-			assert.NotNil(t, mockFilter.Downloads)
+			require.NoError(t, err)
+			require.NotNil(t, mockFilter.Downloads)
 			assert.Equal(t, 0, mockFilter.Downloads.PeriodCount, "should not count release outside rolling 1 day window")
 
 			// Cleanup
@@ -1394,22 +1395,22 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			mockFilter := getMockFilter()
 			mockFilter.MaxDownloadsUnit = domain.FilterMaxDownloadsEver
 			err := repo.Store(t.Context(), mockFilter)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockClient := getMockDownloader()
 			err = downloadClientRepo.Store(t.Context(), &mockClient)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockAction := getMockAction()
 			mockAction.FilterID = mockFilter.ID
 			mockAction.ClientID = mockClient.ID
 			err = actionRepo.Store(t.Context(), mockAction)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockRelease := getMockRelease()
 			mockRelease.FilterID = mockFilter.ID
 			err = releaseRepo.Store(t.Context(), mockRelease)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			mockReleaseActionStatus := getMockReleaseActionStatus()
 			mockReleaseActionStatus.ActionID = int64(mockAction.ID)
@@ -1418,11 +1419,11 @@ func TestFilterRepo_GetFilterDownloads(t *testing.T) {
 			mockReleaseActionStatus.Timestamp = time.Now().UTC().Add(-365 * 24 * time.Hour)
 
 			err = releaseRepo.StoreReleaseActionStatus(t.Context(), mockReleaseActionStatus)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute
 			err = repo.GetFilterDownloadCount(t.Context(), mockFilter)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.NotNil(t, mockFilter.Downloads)
 			assert.Equal(t, mockFilter.Downloads, &domain.FilterDownloads{
 				PeriodCount: 1,

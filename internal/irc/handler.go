@@ -227,29 +227,23 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 
 			h.channels.Set(channelName, ircChannel)
 		}
+	}
 
-		// look for user-defined channels and add
-		for _, channel := range network.Channels {
-			channelName := strings.ToLower(channel.Name)
+	// runs outside the definitions loop so a network whose server matches no
+	// definition still registers its configured channels
+	for _, channel := range network.Channels {
+		channelName := strings.ToLower(channel.Name)
 
-			if ch, found := h.channels.Get(channelName); found {
-				ch.Configure(channel.ID, channel.Enabled, channel.Password)
-
-				if ch.StateMachine() == nil {
-					ch.SetStateMachine(NewChannelStateMachine(ch, h, inviteCommand))
-				}
-
-				h.channels.Swap(channelName, ch)
-
-				continue
-			}
-
-			ircChannel := NewChannel(h.log, network.ID, channelName, false, false, nil)
-			ircChannel.Configure(channel.ID, channel.Enabled, channel.Password)
-			ircChannel.SetStateMachine(NewChannelStateMachine(ircChannel, h, ""))
-
-			h.channels.Set(channelName, ircChannel)
+		if ch, found := h.channels.Get(channelName); found {
+			ch.Configure(channel.ID, channel.Enabled, channel.Password)
+			continue
 		}
+
+		ircChannel := NewChannel(h.log, network.ID, channelName, false, false, nil)
+		ircChannel.Configure(channel.ID, channel.Enabled, channel.Password)
+		ircChannel.SetStateMachine(NewChannelStateMachine(ircChannel, h, ""))
+
+		h.channels.Set(channelName, ircChannel)
 	}
 }
 

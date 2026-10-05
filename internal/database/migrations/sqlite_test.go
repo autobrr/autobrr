@@ -620,6 +620,71 @@ func TestRunMigrationTest_SQLite(t *testing.T) {
 			},
 			want: "",
 		},
+		{
+			name:   "NordicBytes IRC network migration: not migrated",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "NordicBytes IRC network migration: not migrated",
+				MigrationIndex:      97,
+				MigrationsUntilName: "97_add_filter_max_downloads_period",
+				MigrationToRun:      "98_irc_update_nordicbytes_network",
+				SetupData:           setupNordicBytesNotMigrated,
+				ValidateResult:      validateNordicBytesNotMigrated,
+			},
+			want: "",
+		},
+		{
+			name:   "NordicBytes IRC network migration: already migrated",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "NordicBytes IRC network migration: already migrated",
+				MigrationIndex:      97,
+				MigrationsUntilName: "97_add_filter_max_downloads_period",
+				MigrationToRun:      "98_irc_update_nordicbytes_network",
+				SetupData:           setupNordicBytesAlreadyMigrated,
+				ValidateResult:      validateNordicBytesAlreadyMigrated,
+			},
+			want: "",
+		},
+		{
+			name:   "NordicBytes IRC network migration: not used",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "NordicBytes IRC network migration: not used",
+				MigrationIndex:      97,
+				MigrationsUntilName: "97_add_filter_max_downloads_period",
+				MigrationToRun:      "98_irc_update_nordicbytes_network",
+				SetupData:           setupNordicBytesNotUsed,
+				ValidateResult:      validateNordicBytesNotUsed,
+			},
+			want: "",
+		},
+		{
+			name:   "notification inbox migration seeds the built-in notification",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "notification inbox migration seeds the built-in notification",
+				MigrationIndex:      98,
+				MigrationsUntilName: "98_irc_update_nordicbytes_network",
+				MigrationToRun:      "99_add_notification_inbox",
+				SetupData:           setupBuiltinNotificationExisting,
+				ValidateResult:      validateBuiltinNotificationKeepsExisting,
+			},
+			want: "",
+		},
+		{
+			name:   "notification inbox migration keeps an existing built-in notification",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "notification inbox migration keeps an existing built-in notification",
+				MigrationIndex:      98,
+				MigrationsUntilName: "98_irc_update_nordicbytes_network",
+				MigrationToRun:      "99_add_notification_inbox",
+				SetupData:           setupBuiltinNotificationPresent,
+				ValidateResult:      validateBuiltinNotificationNotDuplicated,
+			},
+			want: "",
+		},
 	}
 
 	for _, tt := range tests {
@@ -667,6 +732,9 @@ func TestFullMigrationSequenceSQLite(t *testing.T) {
 
 	err := migrate.Migrate()
 	require.NoError(t, err)
+
+	// A fresh install only applies the base schema, so it must seed the built-in notification too.
+	validateBuiltinNotification(db.Handler, t)
 
 	//// Verify current schema version
 	//var version int

@@ -15,7 +15,6 @@ import (
 	"github.com/autobrr/autobrr/internal/logger"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestGenericWebhookSender_Send(t *testing.T) {
@@ -27,11 +26,11 @@ func TestGenericWebhookSender_Send(t *testing.T) {
 		assert.Equal(t, string(domain.WebhookEventReleaseNew), r.Header.Get("X-Autobrr-Event"))
 
 		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 
 		var payload domain.WebhookEvent
 		err = json.Unmarshal(body, &payload)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 
 		// Assert structured payload
 		assert.Equal(t, domain.WebhookEventReleaseNew, payload.Event)
@@ -98,9 +97,8 @@ func TestGenericWebhookSender_Send_Error(t *testing.T) {
 	sender := NewWebhookSender(log, settings)
 
 	err := sender.Send(t.Context(), domain.NotificationPayload{Event: domain.NotificationEventTest})
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "unexpected status: 400")
-	assert.Contains(t, err.Error(), "bad request")
+	assert.ErrorContains(t, err, "unexpected status: 400")
+	assert.ErrorContains(t, err, "bad request")
 }
 
 func TestGenericWebhookSender_IsEnabled(t *testing.T) {

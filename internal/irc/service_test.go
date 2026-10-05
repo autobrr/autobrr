@@ -65,7 +65,7 @@ func (r *stubIrcRepo) CheckExistingNetwork(context.Context, *domain.IrcNetwork) 
 	return r.row(), nil
 }
 func (r *stubIrcRepo) FindActiveNetworks(context.Context) ([]domain.IrcNetwork, error) {
-	return nil, nil
+	return []domain.IrcNetwork{*r.row()}, nil
 }
 func (r *stubIrcRepo) ListNetworks(context.Context) ([]domain.IrcNetwork, error) { return nil, nil }
 func (r *stubIrcRepo) ListChannels(int64) ([]domain.IrcChannel, error)           { return nil, nil }
@@ -78,10 +78,13 @@ type stubIndexerService struct{}
 
 func (stubIndexerService) GetIndexersByIRCNetwork(string) []*domain.IndexerDefinition { return nil }
 
-type stubProxyService struct{ proxy *domain.Proxy }
+type stubProxyService struct {
+	proxy *domain.Proxy
+	err   error
+}
 
 func (s stubProxyService) FindByID(context.Context, int64) (*domain.Proxy, error) {
-	return s.proxy, nil
+	return s.proxy, s.err
 }
 
 func proxiedNetwork() domain.IrcNetwork {

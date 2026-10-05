@@ -45,20 +45,12 @@ func (s *Service) runWhisparr(ctx context.Context, action *domain.Action, releas
 		MagnetUrl:        release.MagnetURI,
 		Size:             release.Size,
 		Indexer:          release.Indexer.GetExternalIdentifier(),
-		DownloadClientId: cfg.Settings.ExternalDownloadClientId,
-		DownloadClient:   cfg.Settings.ExternalDownloadClient,
 		DownloadProtocol: release.Protocol.String(),
 		Protocol:         release.Protocol.String(),
 		PublishDate:      time.Now().Format(time.RFC3339),
 	}
 
-	if action.ExternalDownloadClientID > 0 {
-		req.DownloadClientId = int(action.ExternalDownloadClientID)
-	}
-
-	if action.ExternalDownloadClient != "" {
-		req.DownloadClient = action.ExternalDownloadClient
-	}
+	req.DownloadClientId, req.DownloadClient = arrDownloadClient(cfg.Settings, action)
 
 	rejections, err := client.Push(ctx, req)
 	if err != nil {

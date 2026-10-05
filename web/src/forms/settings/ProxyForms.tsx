@@ -125,7 +125,7 @@ function ProxyAddFormPanel({ toggle }: ProxyAddFormPanelProps) {
 
           <div>
             <TextFieldWide name="user" label={t("forms.proxy.user")} help={t("forms.proxy.userHelp")} autoComplete="off" />
-            <PasswordFieldWide name="pass" label={t("forms.proxy.pass")} help={t("forms.proxy.passHelp")} autoComplete="off"/>
+            <PasswordFieldWide name="pass" label={t("forms.proxy.pass")} help={t("forms.proxy.passHelp")} />
           </div>
 
           <FormDebug />
@@ -259,7 +259,7 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
 
           <div>
             <TextFieldWide name="user" label={t("forms.proxy.user")} help={t("forms.proxy.userHelp")} autoComplete="off"/>
-            <PasswordFieldWide name="pass" label={t("forms.proxy.pass")} help={t("forms.proxy.passHelp")} autoComplete="off"/>
+            <PasswordFieldWide name="pass" label={t("forms.proxy.pass")} help={t("forms.proxy.passHelp")} />
           </div>
         </div>
       )}

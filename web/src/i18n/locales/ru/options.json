@@ -165,7 +165,8 @@
     "PUSHOVER": "Pushover",
     "SHOUTRRR": "Shoutrrr",
     "TELEGRAM": "Telegram",
-    "WEBHOOK": "Webhook"
+    "WEBHOOK": "Webhook",
+    "BUILTIN": "Встроенные"
   },
   "event": {
     "PUSH_REJECTED": {
@@ -187,6 +188,30 @@
     "IRC_RECONNECTED": {
       "label": "Переподключение IRC",
       "description": "Переподключение к IRC-сети после ошибки"
+    },
+    "IRC_UNHEALTHY": {
+      "label": "Сбой IRC",
+      "description": "Сеть IRC неисправна 15 минут или остановлена из-за критической ошибки"
+    },
+    "IRC_HEALTHY": {
+      "label": "IRC восстановлен",
+      "description": "Сеть IRC снова работает после сообщения о сбое"
+    },
+    "LIST_REFRESH_SUCCESS": {
+      "label": "Список обновлён",
+      "description": "Список обновлён, фильтры изменены"
+    },
+    "LIST_REFRESH_ERROR": {
+      "label": "Ошибка обновления списка",
+      "description": "Не удалось обновить список"
+    },
+    "FEED_REFRESH_SUCCESS": {
+      "label": "Фид обновлён",
+      "description": "Фид успешно обновлён"
+    },
+    "FEED_REFRESH_ERROR": {
+      "label": "Ошибка обновления фида",
+      "description": "Не удалось обновить фид"
     },
     "APP_UPDATE_AVAILABLE": {
       "label": "Новое обновление",

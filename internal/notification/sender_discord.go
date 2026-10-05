@@ -160,6 +160,56 @@ func buildDiscordMessage(payload domain.NotificationPayload) (*discord.Message, 
 		m.AddEmbed(e)
 		break
 
+	case domain.NotificationEventIRCUnhealthy:
+		e := discord.NewEmbed()
+		e.SetTitle("IRC Unhealthy")
+		e.SetColor(discord.RED)
+		e.SetDescription(payload.Message)
+		e.SetTimestamp(payload.Timestamp)
+		m.AddEmbed(e)
+
+	case domain.NotificationEventIRCHealthy:
+		e := discord.NewEmbed()
+		e.SetTitle("IRC Healthy")
+		e.SetColor(discord.GREEN)
+		e.AddFields(
+			discord.TextField("Network", payload.Message, true),
+		)
+		e.SetTimestamp(payload.Timestamp)
+		m.AddEmbed(e)
+
+	case domain.NotificationEventListRefreshSuccess:
+		e := discord.NewEmbed()
+		e.SetTitle("List Refresh Success")
+		e.SetColor(discord.GREEN)
+		e.SetDescription(payload.Message)
+		e.SetTimestamp(payload.Timestamp)
+		m.AddEmbed(e)
+
+	case domain.NotificationEventListRefreshError:
+		e := discord.NewEmbed()
+		e.SetTitle("List Refresh Error")
+		e.SetColor(discord.RED)
+		e.SetDescription(payload.Message)
+		e.SetTimestamp(payload.Timestamp)
+		m.AddEmbed(e)
+
+	case domain.NotificationEventFeedRefreshSuccess:
+		e := discord.NewEmbed()
+		e.SetTitle("Feed Refresh Success")
+		e.SetColor(discord.GREEN)
+		e.SetDescription(payload.Message)
+		e.SetTimestamp(payload.Timestamp)
+		m.AddEmbed(e)
+
+	case domain.NotificationEventFeedRefreshError:
+		e := discord.NewEmbed()
+		e.SetTitle("Feed Refresh Error")
+		e.SetColor(discord.RED)
+		e.SetDescription(payload.Message)
+		e.SetTimestamp(payload.Timestamp)
+		m.AddEmbed(e)
+
 	default:
 		return nil, fmt.Errorf("unknown event: %s", payload.Event)
 	}

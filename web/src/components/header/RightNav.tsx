@@ -12,6 +12,7 @@ import { classNames } from "@utils";
 import { OpenIdIcon } from "@components/Icons";
 
 import { RightNavProps } from "./_shared";
+import { InboxMenu } from "./InboxMenu";
 
 import { Cog6ToothIcon, ArrowLeftOnRectangleIcon, MoonIcon, SunIcon, ComputerDesktopIcon } from "@heroicons/react/24/outline";
 import { Link } from "@tanstack/react-router";
@@ -53,6 +54,9 @@ export const RightNav = (props: RightNavProps) => {
   return (
     <div className="hidden sm:block">
       <div className="ml-4 flex items-center sm:ml-6">
+        <div className="mr-2">
+          <InboxMenu />
+        </div>
         <div className="mt-1 items-center">
           <button
             onClick={toggleTheme}

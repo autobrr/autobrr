@@ -68,6 +68,7 @@ type releaseService interface {
 type eventBus interface {
 	OnIndexer(handler func(ctx context.Context, event events.IndexerChangeEvent) error) func()
 	OnProxy(handler func(ctx context.Context, event events.ProxyChangeEvent) error) func()
+	EmitFeedRefresh(ctx context.Context, event events.FeedRefreshEvent)
 }
 
 type feedInstance struct {
@@ -86,7 +87,7 @@ type feedInstance struct {
 type guardedJob struct {
 	guard *sync.Mutex
 	log   zerolog.Logger
-	job   cron.Job
+	run   func()
 }
 
 func (g *guardedJob) Run() {
@@ -96,7 +97,7 @@ func (g *guardedJob) Run() {
 	}
 	defer g.guard.Unlock()
 
-	g.job.Run()
+	g.run()
 }
 
 // feedKey creates a unique identifier to be used for controlling jobs in the scheduler
@@ -489,7 +490,7 @@ func (s *Service) testRSS(ctx context.Context, feed *domain.Feed) error {
 
 func (s *Service) testTorznab(ctx context.Context, feed *domain.Feed, subLogger zerolog.Logger) error {
 	// setup torznab Client
-	c := torznab.NewClient(torznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, TLSSkipVerify: feed.TLSSkipVerify, Log: subLogger})
+	c := torznab.NewClient(torznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, Timeout: time.Duration(feed.Timeout) * time.Second, TLSSkipVerify: feed.TLSSkipVerify, Log: subLogger})
 
 	// add proxy if enabled and exists
 	if feed.UseProxy && feed.Proxy != nil {
@@ -504,6 +505,9 @@ func (s *Service) testTorznab(ctx context.Context, feed *domain.Feed, subLogger 
 			}
 		}
 
+		if feed.Timeout > 0 {
+			proxyClient.Timeout = time.Duration(feed.Timeout) * time.Second
+		}
 		c.WithHTTPClient(proxyClient)
 
 		s.log.Debug().Str("proxy", feed.Proxy.Name).Str("feed", feed.Name).Msg("using proxy for feed")
@@ -522,7 +526,7 @@ func (s *Service) testTorznab(ctx context.Context, feed *domain.Feed, subLogger 
 
 func (s *Service) testNewznab(ctx context.Context, feed *domain.Feed, subLogger zerolog.Logger) error {
 	// setup newznab Client
-	c := newznab.NewClient(newznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, TLSSkipVerify: feed.TLSSkipVerify, Log: subLogger})
+	c := newznab.NewClient(newznab.Config{Host: feed.URL, ApiKey: feed.ApiKey, Timeout: time.Duration(feed.Timeout) * time.Second, TLSSkipVerify: feed.TLSSkipVerify, Log: subLogger})
 
 	// add proxy if enabled and exists
 	if feed.UseProxy && feed.Proxy != nil {
@@ -537,6 +541,9 @@ func (s *Service) testNewznab(ctx context.Context, feed *domain.Feed, subLogger 
 			}
 		}
 
+		if feed.Timeout > 0 {
+			proxyClient.Timeout = time.Duration(feed.Timeout) * time.Second
+		}
 		c.WithHTTPClient(proxyClient)
 
 		s.log.Debug().Str("proxy", feed.Proxy.Name).Str("feed", feed.Name).Msg("using proxy for feed")
@@ -687,13 +694,16 @@ func (s *Service) startJob(f *domain.Feed) error {
 	return nil
 }
 
-func (s *Service) scheduleJob(fi feedInstance, job cron.Job) error {
+func (s *Service) scheduleJob(fi feedInstance, job RefreshFeedJob) error {
 	identifierKey := feedKey{fi.Feed.ID}.ToString()
 
 	guarded := &guardedJob{
 		guard: &s.feedGuard(fi.Feed.ID).run,
 		log:   s.log.With().Str("feed", fi.Name).Int("feed_id", fi.Feed.ID).Logger(),
-		job:   job,
+		run: func() {
+			// the job logs its own error
+			_ = s.refresh(context.Background(), fi.Feed, job)
+		},
 	}
 
 	if _, err := s.scheduler.ScheduleJobAnchored(guarded, fi.CronSchedule, fi.Feed.LastRun, identifierKey); err != nil {
@@ -701,6 +711,21 @@ func (s *Service) scheduleJob(fi feedInstance, job cron.Job) error {
 	}
 
 	return nil
+}
+
+// refresh runs the job and emits its outcome for notifications.
+func (s *Service) refresh(ctx context.Context, feed *domain.Feed, job RefreshFeedJob) error {
+	err := job.RunE(ctx)
+
+	event := events.FeedRefreshEvent{Type: events.FeedRefreshSuccess, Feed: feed}
+	if err != nil {
+		event.Type = events.FeedRefreshError
+		event.Error = err.Error()
+	}
+
+	s.eventBus.EmitFeedRefresh(ctx, event)
+
+	return err
 }
 
 func (s *Service) feedGuard(feedID int) *feedGuards {
@@ -868,7 +893,7 @@ func (s *Service) ForceRun(ctx context.Context, id int) error {
 	}
 	defer guard.Unlock()
 
-	if err := job.RunE(ctx); err != nil {
+	if err := s.refresh(ctx, feed, job); err != nil {
 		s.log.Error().Err(err).Msg("failed to refresh feed")
 		return err
 	}

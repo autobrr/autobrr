@@ -77,6 +77,7 @@ func main() {
 	serverEvents := sse.New()
 	serverEvents.CreateStreamWithOpts(logger.StreamLogs, sse.StreamOpts{MaxEntries: 1000, AutoReplay: true})
 	serverEvents.CreateStreamWithOpts("irc", sse.StreamOpts{MaxEntries: 0, AutoReplay: false, AutoStream: true})
+	serverEvents.CreateStreamWithOpts(notification.InboxStreamKey, sse.StreamOpts{MaxEntries: 0, AutoReplay: false})
 
 	// init new logger
 	log := logger.New(cfg.Config, serverEvents)
@@ -150,6 +151,7 @@ func main() {
 		ircRepo          = database.NewIrcRepo(log, db)
 		listRepo         = database.NewListRepo(log, db)
 		notificationRepo = database.NewNotificationRepo(log, db)
+		inboxRepo        = database.NewNotificationInboxRepo(log, db)
 		releaseRepo      = database.NewReleaseRepo(log, db)
 		userRepo         = database.NewUserRepo(log, db)
 		proxyRepo        = database.NewProxyRepo(log, db)
@@ -159,8 +161,8 @@ func main() {
 	var (
 		apiService          = api.NewService(log, apikeyRepo)
 		updateService       = update.NewUpdate(log, cfg.Config)
-		notificationService = notification.NewService(log, eventBus, notificationRepo)
 		schedulingService   = scheduler.NewService(log, eventBus, cfg.Config, updateService)
+		notificationService = notification.NewService(log, eventBus, serverEvents, notificationRepo, inboxRepo, schedulingService)
 		userService         = user.NewService(userRepo)
 		authService         = auth.NewService(log, userService)
 		proxyService        = proxy.NewService(log, eventBus, proxyRepo)
@@ -173,7 +175,7 @@ func main() {
 		releaseService      = release.NewService(log, eventBus, releaseRepo, actionService, filterService, indexerService, schedulingService)
 		ircService          = irc.NewService(log, eventBus, serverEvents, ircRepo, releaseService, indexerService, proxyService)
 		feedService         = feed.NewService(log, eventBus, feedRepo, feedCacheRepo, releaseService, proxyService, schedulingService)
-		listService         = list.NewService(log, listRepo, downloaderService, filterService, schedulingService)
+		listService         = list.NewService(log, eventBus, listRepo, downloaderService, filterService, schedulingService)
 	)
 
 	errorChannel := make(chan error)

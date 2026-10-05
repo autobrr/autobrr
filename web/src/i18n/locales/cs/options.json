@@ -165,7 +165,8 @@
       "PUSHOVER": "Pushover",
       "SHOUTRRR": "Shoutrrr",
       "TELEGRAM": "Telegram",
-      "WEBHOOK": "Webhook"
+      "WEBHOOK": "Webhook",
+      "BUILTIN": "Vestavěné"
     },
     "event": {
       "PUSH_REJECTED": {
@@ -187,6 +188,30 @@
       "IRC_RECONNECTED": {
         "label": "IRC Znovu Připojeno",
         "description": "Znovu připojeno k irc síti po chybě"
+      },
+      "IRC_UNHEALTHY": {
+        "label": "IRC Nefunkční",
+        "description": "IRC síť nefunkční 15 minut nebo zastavena kvůli závažné chybě"
+      },
+      "IRC_HEALTHY": {
+        "label": "IRC Funkční",
+        "description": "IRC síť je opět funkční po hlášení o nefunkčnosti"
+      },
+      "LIST_REFRESH_SUCCESS": {
+        "label": "Obnovení listu úspěšné",
+        "description": "List byl obnoven a filtry aktualizovány"
+      },
+      "LIST_REFRESH_ERROR": {
+        "label": "Chyba obnovení listu",
+        "description": "Obnovení listu selhalo"
+      },
+      "FEED_REFRESH_SUCCESS": {
+        "label": "Obnovení kanálu úspěšné",
+        "description": "Kanál byl obnoven"
+      },
+      "FEED_REFRESH_ERROR": {
+        "label": "Chyba obnovení kanálu",
+        "description": "Obnovení kanálu selhalo"
       },
       "APP_UPDATE_AVAILABLE": {
         "label": "Nová aktualizace",

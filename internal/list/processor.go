@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/pkg/arr/lidarr"
 	"github.com/autobrr/autobrr/pkg/arr/radarr"
 	"github.com/autobrr/autobrr/pkg/arr/readarr"
@@ -121,6 +122,11 @@ func (s *Service) Process(ctx context.Context, list *domain.List) error {
 		list.LastRefreshData = err.Error()
 		list.LastRefreshTime = time.Now()
 
+		s.eventBus.EmitListRefresh(ctx, events.ListRefreshEvent{
+			Type: events.ListRefreshError,
+			List: list,
+		})
+
 		if updateErr := s.repo.UpdateLastRefresh(ctx, list); updateErr != nil {
 			s.log.Error().Err(updateErr).Str("type", string(list.Type)).Str("list", list.Name).Msg("error updating last refresh for list")
 			return updateErr
@@ -130,8 +136,12 @@ func (s *Service) Process(ctx context.Context, list *domain.List) error {
 	}
 
 	list.LastRefreshStatus = domain.ListRefreshStatusSuccess
-	//listItem.LastRefreshData = err.Error()
 	list.LastRefreshTime = time.Now()
+
+	s.eventBus.EmitListRefresh(ctx, events.ListRefreshEvent{
+		Type: events.ListRefreshSuccess,
+		List: list,
+	})
 
 	if updateErr := s.repo.UpdateLastRefresh(ctx, list); updateErr != nil {
 		s.log.Error().Err(updateErr).Str("type", string(list.Type)).Str("list", list.Name).Msg("error updating last refresh for list")

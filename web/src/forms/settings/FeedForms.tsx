@@ -12,7 +12,7 @@ import { FeedKeys } from "@api/query_keys";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { SlideOver } from "@components/panels";
-import { NumberFieldWide, PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
+import { NumberFieldWide, PasswordFieldWide, SecretFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import { SelectFieldBasic } from "@components/inputs/select_wide";
 import { sleep } from "@utils";
 import { ImplementationBadge } from "@screens/settings/Indexer";
@@ -289,7 +289,7 @@ function FormFieldsRSS() {
       <NumberFieldWide name="max_age" label={t("forms.feed.maxAge")} help={t("forms.feed.maxAgeHelp")}/>
       <NumberFieldWide name="settings.cache_ttl_days" label={t("forms.feed.cacheTTL")} help={t("forms.feed.cacheTTLHelp")}/>
 
-      <PasswordFieldWide name="cookie" label={t("forms.feed.cookie")} help={t("forms.feed.cookieHelp")} />
+      <SecretFieldWide name="cookie" label={t("forms.feed.cookie")} help={t("forms.feed.cookieHelp")} />
 
       <TextFieldWide name="user_agent" label={t("forms.feed.userAgent")} help={t("forms.feed.userAgentHelp")} />
     </div>

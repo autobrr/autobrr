@@ -24,8 +24,11 @@ import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { selectComponents, selectStyles, selectTheme } from "@components/inputs/select_props";
 import { NumberFieldWide, PasswordFieldWide, SelectFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
+import { ErrorField } from "@components/inputs/common";
 import { Checkbox } from "@components/Checkbox";
 import { EmptySimple } from "@components/emptystates";
+import { browserNotificationsSupported } from "@hooks/useInbox";
+import { SettingsContext } from "@utils/Context";
 
 import { componentMapType } from "./DownloaderForms";
 import { AddFormProps, UpdateFormProps } from "@forms/_shared";
@@ -55,6 +58,7 @@ function FormFieldsDiscord() {
         label={t("forms.notification.webhookUrl")}
         help={t("forms.notification.discordWebhookHelp")}
         placeholder={t("forms.notification.discordWebhookPlaceholder")}
+        required={true}
       />
     </div>
   );
@@ -77,6 +81,7 @@ function FormFieldsNotifiarr() {
         name="api_key"
         label={t("forms.notification.notifiarrApiKey")}
         help={t("forms.notification.notifiarrApiKeyHelp")}
+        required={true}
       />
     </div>
   );
@@ -110,6 +115,7 @@ function FormFieldsLunaSea() {
         label={t("forms.notification.webhookUrl")}
         help={t("forms.notification.lunaseaWebhookHelp")}
         placeholder={t("forms.notification.lunaseaWebhookPlaceholder")}
+        required={true}
       />
     </div>
   );
@@ -139,11 +145,13 @@ function FormFieldsTelegram() {
         name="token"
         label={t("forms.notification.botToken")}
         help={t("forms.notification.botTokenHelp")}
+        required={true}
       />
       <PasswordFieldWide
         name="channel"
         label={t("forms.notification.chatId")}
         help={t("forms.notification.chatIdHelp")}
+        required={true}
       />
       <PasswordFieldWide
         name="topic"
@@ -199,11 +207,13 @@ function FormFieldsPushover() {
         name="api_key"
         label={t("forms.notification.apiToken")}
         help={t("forms.notification.apiTokenHelp")}
+        required={true}
       />
       <PasswordFieldWide
         name="token"
         label={t("forms.notification.userKey")}
         help={t("forms.notification.userKeyHelp")}
+        required={true}
       />
       <NumberFieldWide
         name="priority"
@@ -384,6 +394,46 @@ function FormFieldsGenericWebhook() {
   );
 }
 
+function FormFieldsBuiltin() {
+  const { t } = useTranslation("settings");
+  const browserNotifications = SettingsContext.useSelector((s) => s.browserNotifications);
+  const supported = browserNotificationsSupported() && window.isSecureContext;
+
+  const setBrowserNotifications = async (enabled: boolean) => {
+    if (enabled && Notification.permission !== "granted" && await Notification.requestPermission() !== "granted") {
+      toast.custom((toastInstance) => <Toast type="warning" body={t("forms.notification.browserNotificationsDenied")} t={toastInstance} />);
+      return;
+    }
+
+    SettingsContext.set((prev) => ({ ...prev, browserNotifications: enabled }));
+  };
+
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+      <div className="px-4">
+        <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+          {t("forms.notification.settings")}
+        </h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          {t("forms.notification.settingsDescBuiltin")}
+        </p>
+      </div>
+
+      <Checkbox
+        name="browser_notifications"
+        label={t("forms.notification.browserNotifications")}
+        description={supported
+          ? t("forms.notification.browserNotificationsHelp")
+          : t("forms.notification.browserNotificationsUnsupported")}
+        value={supported && browserNotifications}
+        setValue={(enabled) => void setBrowserNotifications(enabled)}
+        disabled={!supported}
+        className="p-4"
+      />
+    </div>
+  );
+}
+
 const componentMap: componentMapType = {
   DISCORD: <FormFieldsDiscord />,
   NOTIFIARR: <FormFieldsNotifiarr />,
@@ -393,13 +443,49 @@ const componentMap: componentMapType = {
   NTFY: <FormFieldsNtfy />,
   SHOUTRRR: <FormFieldsShoutrrr />,
   LUNASEA: <FormFieldsLunaSea />,
-  WEBHOOK: <FormFieldsGenericWebhook />
+  WEBHOOK: <FormFieldsGenericWebhook />,
+  BUILTIN: <FormFieldsBuiltin />
 };
 
-interface NotificationAddFormValues {
+type NotificationRequiredField = "webhook" | "token" | "api_key" | "host" | "channel";
+
+const NOTIFICATION_REQUIRED_FIELDS: Partial<Record<NotificationType, NotificationRequiredField[]>> = {
+  DISCORD: ["webhook"],
+  NOTIFIARR: ["api_key"],
+  TELEGRAM: ["token", "channel"],
+  PUSHOVER: ["api_key", "token"],
+  GOTIFY: ["host", "token"],
+  NTFY: ["host"],
+  SHOUTRRR: ["host"],
+  LUNASEA: ["webhook"],
+  WEBHOOK: ["webhook"]
+};
+
+// Notifiarr API keys are lowercase UUIDs; notifiarr.com rejects anything else.
+const NOTIFIARR_API_KEY = /^[a-z0-9-]{36}$/;
+
+interface NotificationFormValues extends Partial<Record<NotificationRequiredField, string>> {
   name: string;
-  enabled: boolean;
+  type: NotificationType | "";
 }
+
+const validateNotification = (values: NotificationFormValues, required: string, invalidApiKey: string) => {
+  const errors: FormFieldErrors = {};
+  if (!values.name)
+    errors.name = required;
+  if (!values.type)
+    errors.type = required;
+
+  for (const field of (values.type && NOTIFICATION_REQUIRED_FIELDS[values.type]) || []) {
+    if (!values[field]?.trim())
+      errors[field] = required;
+  }
+
+  if (values.type === "NOTIFIARR" && values.api_key && values.api_key !== "<redacted>" && !NOTIFIARR_API_KEY.test(values.api_key))
+    errors.api_key = invalidApiKey;
+
+  return errors;
+};
 
 export function NotificationAddForm({ isOpen, toggle }: AddFormProps) {
   return (
@@ -433,25 +519,20 @@ function NotificationAddFormPanel({ toggle }: NotificationAddFormPanelProps) {
   const onSubmit = (formData: unknown) => createMutation.mutate(formData as ServiceNotification);
 
   const testMutation = useMutation({
-    mutationFn: (n: ServiceNotification) => APIClient.notifications.test(n),
-    onError: (err) => {
-      console.error(err);
-    }
+    mutationFn: (n: ServiceNotification) => APIClient.notifications.test(n)
   });
 
   const testNotification = (data: unknown) => testMutation.mutate(data as ServiceNotification);
 
-  const validate = (values: NotificationAddFormValues) => {
-    const errors: FormFieldErrors = {};
-    if (!values.name)
-      errors.name = t("settings:forms.notification.required");
-
-    return errors;
-  };
+  const validate = (values: NotificationFormValues) => validateNotification(
+    values,
+    t("settings:forms.notification.required"),
+    t("settings:forms.notification.notifiarrApiKeyInvalid")
+  );
 
   const initialValues = {
     enabled: true,
-    type: "",
+    type: "" as NotificationType | "",
     name: "",
     webhook: "",
     events: [],
@@ -584,28 +665,31 @@ const NotificationTypeSelector = () => {
   return (
     <form.Field name="type">
       {(field) => (
-        <Select
-          name={field.name}
-          onBlur={field.handleBlur}
-          isClearable={true}
-          isSearchable={true}
-          components={selectComponents}
-          placeholder={t("settings:forms.notification.chooseType")}
-          styles={selectStyles}
-          theme={selectTheme}
-          value={field.state.value && notificationTypeOptions.find(o => o.value == field.state.value)}
-          onChange={(option: unknown) => {
-            // Reset clears the provider-specific fields; the shared ones carry over to the new type.
-            const { name, enabled, events } = form.state.values as ServiceNotification;
-            form.reset();
-            form.setFieldValue("name", name, { dontUpdateMeta: true });
-            form.setFieldValue("enabled", enabled, { dontUpdateMeta: true });
-            form.setFieldValue("events", events, { dontUpdateMeta: true });
-            const opt = option as SelectOption | null;
-            field.handleChange(opt?.value ?? "");
-          }}
-          options={notificationTypeOptions}
-        />
+        <>
+          <Select
+            name={field.name}
+            onBlur={field.handleBlur}
+            isClearable={true}
+            isSearchable={true}
+            components={selectComponents}
+            placeholder={t("settings:forms.notification.chooseType")}
+            styles={selectStyles}
+            theme={selectTheme}
+            value={field.state.value && notificationTypeOptions.find(o => o.value == field.state.value)}
+            onChange={(option: unknown) => {
+              // Reset clears the provider-specific fields; the shared ones carry over to the new type.
+              const { name, enabled, events } = form.state.values as ServiceNotification;
+              form.reset();
+              form.setFieldValue("name", name, { dontUpdateMeta: true });
+              form.setFieldValue("enabled", enabled, { dontUpdateMeta: true });
+              form.setFieldValue("events", events, { dontUpdateMeta: true });
+              const opt = option as SelectOption | null;
+              field.handleChange(opt?.value ?? "");
+            }}
+            options={notificationTypeOptions}
+          />
+          <ErrorField meta={field.state.meta} classNames="block text-red-500 mt-2" />
+        </>
       )}
     </form.Field>
   );
@@ -640,7 +724,9 @@ const EventCheckBox = ({ event }: { event: NotificationEventOption; }) => {
 
 const EventCheckBoxes = () => {
   const { t } = useTranslation(["options", "settings"]);
-  const eventOptions = getEventOptions(t);
+  const type = useFormValue((v: ServiceNotification) => v.type);
+  // New releases arrive before filtering, far too many for an inbox meant to be read.
+  const eventOptions = getEventOptions(t).filter(e => type !== "BUILTIN" || e.value !== "RELEASE_NEW");
 
   return (
     <fieldset className="space-y-5">
@@ -769,6 +855,7 @@ interface InitialValues {
 
 export function NotificationUpdateForm({ isOpen, toggle, data: notification }: UpdateFormProps<ServiceNotification>) {
   const { t } = useTranslation(["options", "settings"]);
+  const isBuiltin = notification.type === "BUILTIN";
   const filterEventOptions: Record<NotificationFilterEvent, string> = {
     "PUSH_APPROVED": t("event.PUSH_APPROVED.label"),
     "PUSH_REJECTED": t("event.PUSH_REJECTED.label"),
@@ -801,10 +888,7 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
   const deleteAction = () => deleteMutation.mutate(notification.id);
 
   const testMutation = useMutation({
-    mutationFn: (n: ServiceNotification) => APIClient.notifications.test(n),
-    onError: (err) => {
-      console.error(err);
-    }
+    mutationFn: (n: ServiceNotification) => APIClient.notifications.test(n)
   });
 
   const testNotification = (data: unknown) => testMutation.mutate(data as ServiceNotification);
@@ -838,8 +922,13 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
       isOpen={isOpen}
       toggle={toggle}
       onSubmit={onSubmit}
-      deleteAction={deleteAction}
+      deleteAction={isBuiltin ? undefined : deleteAction}
       initialValues={initialValues}
+      validate={(values) => validateNotification(
+        values,
+        t("settings:forms.notification.required"),
+        t("settings:forms.notification.notifiarrApiKeyInvalid")
+      )}
       testFn={testNotification}
     >
       {(values) => (
@@ -847,19 +936,21 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
           <TextFieldWide name="name" label={t("settings:forms.notification.name")} required={true} />
 
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            <div className="py-4 flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
-              <div>
-                <label
-                  htmlFor="type"
-                  className="block text-sm font-medium text-gray-900 dark:text-white"
-                >
-                  {t("settings:forms.notification.type")}
-                </label>
+            {!isBuiltin && (
+              <div className="py-4 flex items-center justify-between space-y-1 px-4 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:py-4">
+                <div>
+                  <label
+                    htmlFor="type"
+                    className="block text-sm font-medium text-gray-900 dark:text-white"
+                  >
+                    {t("settings:forms.notification.type")}
+                  </label>
+                </div>
+                <div className="sm:col-span-2">
+                  <NotificationTypeSelector />
+                </div>
               </div>
-              <div className="sm:col-span-2">
-                <NotificationTypeSelector />
-              </div>
-            </div>
+            )}
             <SwitchGroupWide name="enabled" label={t("settings:forms.notification.enabled")} />
             <div className="pb-2">
               <div className="p-4">

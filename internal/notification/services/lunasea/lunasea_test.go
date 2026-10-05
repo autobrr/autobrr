@@ -13,7 +13,6 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func Test_rewriteWebhookURL(t *testing.T) {
@@ -60,8 +59,8 @@ func TestClient_SendMessage(t *testing.T) {
 		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 
 		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
-		require.NoError(t, json.Unmarshal(body, &got))
+		assert.NoError(t, err)
+		assert.NoError(t, json.Unmarshal(body, &got))
 
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -94,10 +93,8 @@ func TestClient_SendMessage_NotFoundNoRetry(t *testing.T) {
 	client := NewSender(zerolog.New(io.Discard), Config{WebhookURL: server.URL + "/v1/custom/user/bad-id", Name: "mock"})
 
 	err := client.SendMessage(t.Context(), &Message{Title: "Test", Body: "autobrr goes brr!!"})
-	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "unexpected status: 404")
-		assert.Contains(t, err.Error(), "Not Found")
-		assert.Contains(t, err.Error(), "device or user id is likely wrong")
-	}
+	assert.ErrorContains(t, err, "unexpected status: 404")
+	assert.ErrorContains(t, err, "Not Found")
+	assert.ErrorContains(t, err, "device or user id is likely wrong")
 	assert.Equal(t, int32(1), requests.Load())
 }

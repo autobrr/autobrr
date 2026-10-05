@@ -13,6 +13,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func getMockIrcChannel() domain.IrcChannel {
@@ -71,10 +72,10 @@ func TestIrcRepo_StoreNetwork(t *testing.T) {
 
 			// Execute
 			err := repo.StoreNetwork(ctx, &mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
-			assert.NotEqual(t, int64(0), mockData.ID)
+			assert.NotZero(t, mockData.ID)
 
 			// Cleanup
 			_ = repo.DeleteNetwork(ctx, int64(int(mockData.ID)))
@@ -97,14 +98,14 @@ func TestIrcRepo_StoreChannel(t *testing.T) {
 		t.Run(fmt.Sprintf("StoreChannel_Insert_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
 			err := repo.StoreNetwork(ctx, &mockNetwork)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute
 			err = repo.StoreChannel(ctx, mockNetwork.ID, &mockChannel)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
-			assert.NotEqual(t, int64(0), mockChannel.ID)
+			assert.NotZero(t, mockChannel.ID)
 
 			// No need to clean up, since the test below will delete the network
 		})
@@ -112,7 +113,7 @@ func TestIrcRepo_StoreChannel(t *testing.T) {
 		t.Run(fmt.Sprintf("StoreChannel_Update_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
 			err := repo.StoreChannel(ctx, mockNetwork.ID, &mockChannel)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Update mockChannel fields
 			mockChannel.Enabled = false
@@ -120,11 +121,11 @@ func TestIrcRepo_StoreChannel(t *testing.T) {
 
 			// Execute
 			err = repo.StoreChannel(ctx, mockNetwork.ID, &mockChannel)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
 			fetchedChannel, fetchErr := repo.ListChannels(mockNetwork.ID)
-			assert.NoError(t, fetchErr)
+			require.NoError(t, fetchErr)
 			assert.Equal(t, mockChannel.Enabled, fetchedChannel[0].Enabled)
 			assert.Equal(t, mockChannel.Name, fetchedChannel[0].Name)
 
@@ -149,8 +150,8 @@ func TestIrcRepo_UpdateNetwork(t *testing.T) {
 			// Setup
 			assert.NotNil(t, mockData)
 			err := repo.StoreNetwork(ctx, &mockData)
-			assert.NoError(t, err)
-			assert.NotEqual(t, int64(0), mockData.ID)
+			require.NoError(t, err)
+			assert.NotZero(t, mockData.ID)
 
 			// Update mockData fields
 			mockData.Enabled = true
@@ -158,11 +159,11 @@ func TestIrcRepo_UpdateNetwork(t *testing.T) {
 
 			// Execute
 			err = repo.UpdateNetwork(ctx, &mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
 			updatedNetwork, fetchErr := repo.GetNetworkByID(ctx, mockData.ID)
-			assert.NoError(t, fetchErr)
+			require.NoError(t, fetchErr)
 			assert.Equal(t, mockData.Enabled, updatedNetwork.Enabled)
 			assert.Equal(t, mockData.Name, updatedNetwork.Name)
 
@@ -187,15 +188,15 @@ func TestIrcRepo_ToggleNetworkEnabled(t *testing.T) {
 			// Setup
 			mockData.Enabled = true
 			err := repo.StoreNetwork(ctx, &mockData)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute
 			err = repo.ToggleNetworkEnabled(ctx, mockData.ID, false)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
 			network, err := repo.GetNetworkByID(ctx, mockData.ID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.False(t, network.Enabled)
 
 			// Cleanup
@@ -219,15 +220,15 @@ func TestIrcRepo_GetNetworkByID(t *testing.T) {
 			// Setup
 			assert.NotNil(t, mockData)
 			err := repo.StoreNetwork(ctx, &mockData)
-			assert.NoError(t, err)
-			assert.NotEqual(t, int64(0), mockData.ID)
+			require.NoError(t, err)
+			assert.NotZero(t, mockData.ID)
 
 			// Execute
 			fetchedNetwork, err := repo.GetNetworkByID(ctx, mockData.ID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
-			assert.NotNil(t, fetchedNetwork)
+			require.NotNil(t, fetchedNetwork)
 			assert.Equal(t, mockData.ID, fetchedNetwork.ID)
 			assert.Equal(t, mockData.Enabled, fetchedNetwork.Enabled)
 			assert.Equal(t, mockData.Name, fetchedNetwork.Name)
@@ -253,12 +254,12 @@ func TestIrcRepo_DeleteNetwork(t *testing.T) {
 			// Setup
 			assert.NotNil(t, mockData)
 			err := repo.StoreNetwork(ctx, &mockData)
-			assert.NoError(t, err)
-			assert.NotEqual(t, int64(0), mockData.ID)
+			require.NoError(t, err)
+			assert.NotZero(t, mockData.ID)
 
 			// Execute
 			err = repo.DeleteNetwork(ctx, mockData.ID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
 			fetchedNetwork, fetchErr := repo.GetNetworkByID(ctx, mockData.ID)
@@ -290,17 +291,17 @@ func TestIrcRepo_FindActiveNetworks(t *testing.T) {
 		t.Run(fmt.Sprintf("FindActiveNetworks_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
 			err := repo.StoreNetwork(ctx, &mockData1)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			err = repo.StoreNetwork(ctx, &mockData2)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute
 			activeNetworks, err := repo.FindActiveNetworks(ctx)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
-			assert.NotEmpty(t, activeNetworks)
-			assert.Len(t, activeNetworks, 1)
+			require.NotEmpty(t, activeNetworks)
+			require.Len(t, activeNetworks, 1)
 			assert.True(t, activeNetworks[0].Enabled)
 
 			// Cleanup
@@ -331,17 +332,17 @@ func TestIrcRepo_ListNetworks(t *testing.T) {
 		t.Run(fmt.Sprintf("ListNetworks_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
 			err := repo.StoreNetwork(ctx, &mockData1)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			err = repo.StoreNetwork(ctx, &mockData2)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute
 			listedNetworks, err := repo.ListNetworks(ctx)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
-			assert.NotEmpty(t, listedNetworks)
-			assert.Len(t, listedNetworks, 2)
+			require.NotEmpty(t, listedNetworks)
+			require.Len(t, listedNetworks, 2)
 
 			// Verify the order is alphabetical based on the name
 			assert.Equal(t, "ANetwork", listedNetworks[0].Name)
@@ -368,14 +369,14 @@ func TestIrcRepo_ListChannels(t *testing.T) {
 		t.Run(fmt.Sprintf("ListChannels_Succeeds [%s]", dbType), func(t *testing.T) {
 			// Setup
 			err := repo.StoreNetwork(ctx, &mockNetwork)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			err = repo.StoreChannel(ctx, mockNetwork.ID, &mockChannel)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute
 			listedChannels, err := repo.ListChannels(mockNetwork.ID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
 			assert.NotEmpty(t, listedChannels)
@@ -400,7 +401,7 @@ func TestIrcRepo_CheckExistingNetwork(t *testing.T) {
 		t.Run(fmt.Sprintf("CheckExistingNetwork_NoMatch [%s]", dbType), func(t *testing.T) {
 			// Execute
 			existingNetwork, err := repo.CheckExistingNetwork(ctx, &mockNetwork)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
 			assert.Nil(t, existingNetwork)
@@ -409,14 +410,14 @@ func TestIrcRepo_CheckExistingNetwork(t *testing.T) {
 		t.Run(fmt.Sprintf("CheckExistingNetwork_MatchFound [%s]", dbType), func(t *testing.T) {
 			// Setup
 			err := repo.StoreNetwork(ctx, &mockNetwork)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute
 			existingNetwork, err := repo.CheckExistingNetwork(ctx, &mockNetwork)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
-			assert.NotNil(t, existingNetwork)
+			require.NotNil(t, existingNetwork)
 			assert.Equal(t, mockNetwork.Server, existingNetwork.Server)
 			assert.Equal(t, mockNetwork.Port, existingNetwork.Port)
 			assert.Equal(t, mockNetwork.Nick, existingNetwork.Nick)
@@ -441,19 +442,19 @@ func TestIrcRepo_StoreNetworkChannels(t *testing.T) {
 		t.Run(fmt.Sprintf("StoreNetworkChannels_DeleteOldChannels [%s]", dbType), func(t *testing.T) {
 			// Setup
 			err := repo.StoreNetwork(ctx, &mockNetwork)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			err = repo.StoreNetworkChannels(ctx, mockNetwork.ID, mockChannels)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute
 			err = repo.StoreNetworkChannels(ctx, mockNetwork.ID, []domain.IrcChannel{})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
 			existingChannels, err := repo.ListChannels(mockNetwork.ID)
-			assert.NoError(t, err)
-			assert.Len(t, existingChannels, 0)
+			require.NoError(t, err)
+			assert.Empty(t, existingChannels)
 
 			// Cleanup
 			_ = repo.DeleteNetwork(ctx, mockNetwork.ID)
@@ -462,15 +463,15 @@ func TestIrcRepo_StoreNetworkChannels(t *testing.T) {
 		t.Run(fmt.Sprintf("StoreNetworkChannels_InsertNewChannels [%s]", dbType), func(t *testing.T) {
 			// Setup
 			err := repo.StoreNetwork(ctx, &mockNetwork)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Execute
 			err = repo.StoreNetworkChannels(ctx, mockNetwork.ID, mockChannels)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
 			existingChannels, err := repo.ListChannels(mockNetwork.ID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Len(t, existingChannels, len(mockChannels))
 
 			// Cleanup
@@ -493,10 +494,10 @@ func TestIrcRepo_UpdateChannel(t *testing.T) {
 		t.Run(fmt.Sprintf("UpdateChannel_Success [%s]", dbType), func(t *testing.T) {
 			// Setup
 			err := repo.StoreNetwork(ctx, &mockNetwork)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			err = repo.StoreChannel(ctx, mockNetwork.ID, &mockChannel)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Update mockChannel properties
 			updatedChannel := mockChannel
@@ -506,11 +507,11 @@ func TestIrcRepo_UpdateChannel(t *testing.T) {
 
 			// Execute
 			err = repo.UpdateChannel(&updatedChannel)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
 			fetchedChannels, err := repo.ListChannels(mockNetwork.ID)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			fetchedChannel := fetchedChannels[0]
 			assert.Equal(t, updatedChannel.Enabled, fetchedChannel.Enabled)
@@ -536,16 +537,16 @@ func TestIrcRepo_UpdateInviteCommand(t *testing.T) {
 		t.Run(fmt.Sprintf("UpdateInviteCommand_Success [%s]", dbType), func(t *testing.T) {
 			// Setup
 			err := repo.StoreNetwork(ctx, &mockNetwork)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Update invite_command
 			newInviteCommand := "/new_invite_command"
 			err = repo.UpdateInviteCommand(mockNetwork.ID, newInviteCommand)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Verify
 			updatedNetwork, err := repo.ListNetworks(ctx)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			assert.Equal(t, newInviteCommand, updatedNetwork[0].InviteCommand)
 

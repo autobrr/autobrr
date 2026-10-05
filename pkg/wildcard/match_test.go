@@ -178,9 +178,7 @@ func TestMatchSimple(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		if got := MatchSimple(tt.pattern, tt.name); got != tt.want {
-			t.Errorf("MatchSimple(%q, %q) = %v, want %v", tt.pattern, tt.name, got, tt.want)
-		}
+		assert.Equalf(t, tt.want, MatchSimple(tt.pattern, tt.name), "MatchSimple(%q, %q)", tt.pattern, tt.name)
 	}
 }
 
@@ -205,9 +203,7 @@ func TestMatchSliceSimple(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		if got := MatchSliceSimple(tt.patterns, tt.name); got != tt.want {
-			t.Errorf("MatchSliceSimple(%v, %q) = %v, want %v", tt.patterns, tt.name, got, tt.want)
-		}
+		assert.Equalf(t, tt.want, MatchSliceSimple(tt.patterns, tt.name), "MatchSliceSimple(%v, %q)", tt.patterns, tt.name)
 	}
 }
 
@@ -248,9 +244,7 @@ func TestMatchSlice(t *testing.T) {
 	t.Parallel()
 
 	for _, tt := range matchSliceCases {
-		if got := MatchSlice(tt.patterns, tt.name); got != tt.want {
-			t.Errorf("MatchSlice(%v, %q) = %v, want %v", tt.patterns, tt.name, got, tt.want)
-		}
+		assert.Equalf(t, tt.want, MatchSlice(tt.patterns, tt.name), "MatchSlice(%v, %q)", tt.patterns, tt.name)
 	}
 }
 

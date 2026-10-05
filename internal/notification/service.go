@@ -5,6 +5,7 @@ package notification
 
 import (
 	"context"
+	"fmt"
 	"maps"
 	"slices"
 	"sync"
@@ -16,6 +17,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/moistari/rls"
+	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
 )
@@ -42,20 +44,30 @@ type Sender interface {
 	Name() string
 }
 
+type schedulerService interface {
+	ScheduleJob(job cron.Job, interval time.Duration, identifier string) (int, error)
+}
+
 type eventBus interface {
 	OnAppUpdate(handler func(context.Context, events.AppUpdateEvent) error) func()
 	OnReleaseNew(handler func(context.Context, events.ReleaseEvent) error) func()
 	OnReleasePush(handler func(context.Context, events.ReleasePushEvent) error) func()
 	OnIRC(handler func(context.Context, events.IRCEvent) error) func()
+	OnListRefresh(handler func(context.Context, events.ListRefreshEvent) error) func()
+	OnFeedRefresh(handler func(context.Context, events.FeedRefreshEvent) error) func()
 }
 
 type Service struct {
 	log      zerolog.Logger
 	eventBus eventBus
-	repo     notificationRepo
+	sse      ssePublisher
 
 	stateMu sync.Mutex
 	state   atomic.Pointer[routingSnapshot]
+
+	repo      notificationRepo
+	inboxRepo inboxRepo
+	scheduler schedulerService
 }
 
 type eventSet map[domain.NotificationEvent]struct{}
@@ -67,14 +79,15 @@ type routingSnapshot struct {
 }
 
 // NewService loads notification routes and registers event listeners.
-func NewService(log zerolog.Logger, eventBus eventBus, repo notificationRepo) *Service {
-	s := &Service{
-		log:      log.With().Str("module", "notification").Logger(),
-		eventBus: eventBus,
-		repo:     repo,
+func NewService(log zerolog.Logger, eventBus eventBus, sse ssePublisher, repo notificationRepo, inboxRepo inboxRepo, scheduler schedulerService) *Service {
+	return &Service{
+		log:       log.With().Str("module", "notification").Logger(),
+		eventBus:  eventBus,
+		sse:       sse,
+		repo:      repo,
+		inboxRepo: inboxRepo,
+		scheduler: scheduler,
 	}
-
-	return s
 }
 
 func (s *Service) Start() error {
@@ -82,6 +95,10 @@ func (s *Service) Start() error {
 
 	if err := s.loadRoutingSnapshot(context.Background()); err != nil {
 		return err
+	}
+
+	if err := s.startInboxCleanupJob(); err != nil {
+		s.log.Error().Err(err).Msg("could not start notification inbox cleanup job")
 	}
 
 	return nil
@@ -309,24 +326,121 @@ func (s *Service) setupEventListeners() {
 		switch event.Type {
 		case events.IRCReconnected:
 			payload = domain.NotificationPayload{
-				Event:   domain.NotificationEventIRCReconnected,
-				Subject: "IRC Reconnected",
-				Message: event.Network,
-				//Message: fmt.Sprintf("Network: %s", networkName),
+				Event:      domain.NotificationEventIRCReconnected,
+				Subject:    "IRC Reconnected",
+				Message:    event.Network,
+				IRCNetwork: event.Network,
+				Timestamp:  time.Now(),
 			}
 
 		case events.IRCDisconnected:
 			payload = domain.NotificationPayload{
-				Event:   domain.NotificationEventIRCDisconnected,
-				Subject: "IRC Disconnected",
-				Message: event.Network,
+				Event:      domain.NotificationEventIRCDisconnected,
+				Subject:    "IRC Disconnected",
+				Message:    event.Network,
+				IRCNetwork: event.Network,
+				Timestamp:  time.Now(),
 			}
 
 		case events.IRCFlapping:
 			payload = domain.NotificationPayload{
-				Event:   domain.NotificationEventIRCDisconnected,
-				Subject: "IRC Stopped",
-				Message: event.Message,
+				Event:      domain.NotificationEventIRCDisconnected,
+				Subject:    "IRC Stopped",
+				Message:    event.Message,
+				IRCNetwork: event.Network,
+				IRCMessage: event.Message,
+				Timestamp:  time.Now(),
+			}
+
+		case events.IRCUnhealthy:
+			payload = domain.NotificationPayload{
+				Event:      domain.NotificationEventIRCUnhealthy,
+				Subject:    "IRC Unhealthy",
+				Message:    event.Message,
+				IRCNetwork: event.Network,
+				IRCMessage: event.Message,
+				Timestamp:  time.Now(),
+			}
+
+		case events.IRCHealthy:
+			payload = domain.NotificationPayload{
+				Event:      domain.NotificationEventIRCHealthy,
+				Subject:    "IRC Healthy",
+				Message:    event.Network,
+				IRCNetwork: event.Network,
+				Timestamp:  time.Now(),
+			}
+		default:
+			return nil
+		}
+
+		s.Send(ctx, payload)
+
+		return nil
+	})
+
+	s.eventBus.OnFeedRefresh(func(ctx context.Context, event events.FeedRefreshEvent) error {
+		var payload domain.NotificationPayload
+
+		switch event.Type {
+		case events.FeedRefreshSuccess:
+			payload = domain.NotificationPayload{
+				Event:     domain.NotificationEventFeedRefreshSuccess,
+				Subject:   "Feed Refresh Success",
+				Message:   fmt.Sprintf("Feed: %s", event.Feed.Name),
+				Feed:      event.Feed.Name,
+				FeedID:    event.Feed.ID,
+				FeedType:  event.Feed.Type,
+				Indexer:   event.Feed.Indexer.Name,
+				Timestamp: time.Now(),
+			}
+
+		case events.FeedRefreshError:
+			payload = domain.NotificationPayload{
+				Event:     domain.NotificationEventFeedRefreshError,
+				Subject:   "Feed Refresh Error",
+				Message:   fmt.Sprintf("Feed: %s\nError: %s", event.Feed.Name, event.Error),
+				Feed:      event.Feed.Name,
+				FeedID:    event.Feed.ID,
+				FeedType:  event.Feed.Type,
+				FeedError: event.Error,
+				Indexer:   event.Feed.Indexer.Name,
+				Timestamp: time.Now(),
+			}
+		default:
+			return nil
+		}
+
+		s.Send(ctx, payload)
+
+		return nil
+	})
+
+	s.eventBus.OnListRefresh(func(ctx context.Context, event events.ListRefreshEvent) error {
+		var payload domain.NotificationPayload
+
+		switch event.Type {
+		case events.ListRefreshSuccess:
+			payload = domain.NotificationPayload{
+				Event:     domain.NotificationEventListRefreshSuccess,
+				Subject:   "List Refresh Success",
+				Message:   fmt.Sprintf("List: %s", event.List.Name),
+				List:      event.List.Name,
+				ListID:    event.List.ID,
+				ListType:  event.List.Type,
+				Timestamp: event.List.LastRefreshTime,
+			}
+
+		case events.ListRefreshError:
+			payload = domain.NotificationPayload{
+				Event:     domain.NotificationEventListRefreshError,
+				Subject:   "List Refresh Error",
+				Message:   fmt.Sprintf("List: %s\nError: %s", event.List.Name, event.List.LastRefreshData),
+				List:      event.List.Name,
+				ListID:    event.List.ID,
+				ListType:  event.List.Type,
+				ListError: event.List.LastRefreshData,
+				Timestamp: event.List.LastRefreshTime,
 			}
 		default:
 			return nil
@@ -368,6 +482,16 @@ func (s *Service) FindByID(ctx context.Context, notificationID int) (*domain.Not
 }
 
 func (s *Service) Store(ctx context.Context, notification *domain.Notification) error {
+	if notification.Type == domain.NotificationTypeBuiltin {
+		return domain.ErrNotificationBuiltin
+	}
+
+	if notification.Enabled {
+		if err := notification.Validate(); err != nil {
+			return err
+		}
+	}
+
 	s.stateMu.Lock()
 	defer s.stateMu.Unlock()
 
@@ -394,6 +518,10 @@ func (s *Service) Update(ctx context.Context, notification *domain.Notification)
 		return err
 	}
 
+	if notification.Type != existing.Type && (notification.Type == domain.NotificationTypeBuiltin || existing.Type == domain.NotificationTypeBuiltin) {
+		return domain.ErrNotificationBuiltin
+	}
+
 	if domain.IsRedactedString(notification.Password) {
 		notification.Password = existing.Password
 	}
@@ -402,6 +530,13 @@ func (s *Service) Update(ctx context.Context, notification *domain.Notification)
 	}
 	if domain.IsRedactedString(notification.APIKey) {
 		notification.APIKey = existing.APIKey
+	}
+
+	// Disabling must stay possible for rows saved before validation existed.
+	if notification.Enabled {
+		if err := notification.Validate(); err != nil {
+			return err
+		}
 	}
 
 	if err := s.repo.Update(ctx, notification); err != nil {
@@ -420,9 +555,14 @@ func (s *Service) Delete(ctx context.Context, notificationID int) error {
 	s.stateMu.Lock()
 	defer s.stateMu.Unlock()
 
-	if _, err := s.repo.FindByID(ctx, notificationID); err != nil {
+	existing, err := s.repo.FindByID(ctx, notificationID)
+	if err != nil {
 		s.log.Error().Err(err).Int("notification_id", notificationID).Msg("could not find notification by id")
 		return err
+	}
+
+	if existing.Type == domain.NotificationTypeBuiltin {
+		return domain.ErrNotificationBuiltin
 	}
 
 	if err := s.repo.Delete(ctx, notificationID); err != nil {
@@ -535,6 +675,8 @@ func (s *Service) newSender(notification *domain.Notification) Sender {
 		return NewTelegramSender(s.log, notification)
 	case domain.NotificationTypeWebhook:
 		return NewWebhookSender(s.log, notification)
+	case domain.NotificationTypeBuiltin:
+		return NewBuiltinSender(notification, s)
 	default:
 		s.log.Error().Str("notification_type", string(notification.Type)).Msg("unsupported notification type")
 		return nil
@@ -586,6 +728,10 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 		if domain.IsRedactedString(notification.APIKey) {
 			notification.APIKey = existing.APIKey
 		}
+	}
+
+	if err := notification.Validate(); err != nil {
+		return err
 	}
 
 	var agent Sender
@@ -690,15 +836,72 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 			},
 		},
 		{
-			Event:     domain.NotificationEventIRCDisconnected,
-			Subject:   "IRC Disconnected unexpectedly",
-			Message:   "Network: P2P-Network",
+			Event:      domain.NotificationEventIRCDisconnected,
+			Subject:    "IRC Disconnected unexpectedly",
+			Message:    "Network: P2P-Network",
+			IRCNetwork: "P2P-Network",
+			Timestamp:  time.Now(),
+		},
+		{
+			Event:      domain.NotificationEventIRCReconnected,
+			Subject:    "IRC Reconnected",
+			Message:    "Network: P2P-Network",
+			IRCNetwork: "P2P-Network",
+			Timestamp:  time.Now(),
+		},
+		{
+			Event:      domain.NotificationEventIRCUnhealthy,
+			Subject:    "IRC Unhealthy",
+			Message:    "P2P-Network: authentication failed: account does not exist",
+			IRCNetwork: "P2P-Network",
+			IRCMessage: "P2P-Network: authentication failed: account does not exist",
+			Timestamp:  time.Now(),
+		},
+		{
+			Event:      domain.NotificationEventIRCHealthy,
+			Subject:    "IRC Healthy",
+			Message:    "P2P-Network",
+			IRCNetwork: "P2P-Network",
+			Timestamp:  time.Now(),
+		},
+		{
+			Event:     domain.NotificationEventListRefreshSuccess,
+			Subject:   "List Refresh Success",
+			Message:   "List: Sonarr TV",
+			List:      "Sonarr TV",
+			ListID:    1,
+			ListType:  domain.ListTypeSonarr,
 			Timestamp: time.Now(),
 		},
 		{
-			Event:     domain.NotificationEventIRCReconnected,
-			Subject:   "IRC Reconnected",
-			Message:   "Network: P2P-Network",
+			Event:     domain.NotificationEventListRefreshError,
+			Subject:   "List Refresh Error",
+			Message:   "List: Sonarr TV\nError: client sonarr Sonarr not enabled",
+			List:      "Sonarr TV",
+			ListID:    1,
+			ListType:  domain.ListTypeSonarr,
+			ListError: "client sonarr Sonarr not enabled",
+			Timestamp: time.Now(),
+		},
+		{
+			Event:     domain.NotificationEventFeedRefreshSuccess,
+			Subject:   "Feed Refresh Success",
+			Message:   "Feed: Mock Indexer",
+			Feed:      "Mock Indexer",
+			FeedID:    1,
+			FeedType:  string(domain.FeedTypeTorznab),
+			Indexer:   "Mock Indexer",
+			Timestamp: time.Now(),
+		},
+		{
+			Event:     domain.NotificationEventFeedRefreshError,
+			Subject:   "Feed Refresh Error",
+			Message:   "Feed: Mock Indexer\nError: error fetching feed items: unexpected status code: 503",
+			Feed:      "Mock Indexer",
+			FeedID:    1,
+			FeedType:  string(domain.FeedTypeTorznab),
+			FeedError: "error fetching feed items: unexpected status code: 503",
+			Indexer:   "Mock Indexer",
 			Timestamp: time.Now(),
 		},
 		{

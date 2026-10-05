@@ -79,8 +79,13 @@ func (c *Client) Test(ctx context.Context) (*SystemStatusResponse, error) {
 		return nil, errors.Wrap(err, "could not make Test")
 	}
 
-	if status == http.StatusUnauthorized {
+	switch status {
+	case http.StatusOK:
+		break
+	case http.StatusUnauthorized:
 		return nil, errors.New("unauthorized: bad credentials")
+	default:
+		return nil, errors.New("unexpected status code: %d", status)
 	}
 
 	c.logger(ctx).Trace().Int("status", status).Str("response", string(res)).Msg("sonarr system/status response")
@@ -105,6 +110,10 @@ func (c *Client) Push(ctx context.Context, release ReleasePushRequest) ([]string
 		badRequestResponses := make([]*BadRequestResponse, 0)
 
 		if err = json.Unmarshal(res, &badRequestResponses); err != nil {
+			if errResp, ok := arr.ParseErrorResponse(res); ok {
+				return nil, errResp
+			}
+
 			return nil, errors.Wrap(err, "could not unmarshal data")
 		}
 

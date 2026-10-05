@@ -32,10 +32,17 @@ type Options struct {
 	Username string
 	Password string
 
+	TLSSkipVerify bool
+
 	Log zerolog.Logger
 }
 
 func New(opts Options) *Client {
+	transport := sharedhttp.Transport
+	if opts.TLSSkipVerify {
+		transport = sharedhttp.TransportTLSInsecure
+	}
+
 	return &Client{
 		host:     opts.Host,
 		username: opts.Username,
@@ -43,7 +50,7 @@ func New(opts Options) *Client {
 		log:      opts.Log,
 		http: &http.Client{
 			Timeout:   time.Second * 60,
-			Transport: sharedhttp.Transport,
+			Transport: transport,
 		},
 	}
 }

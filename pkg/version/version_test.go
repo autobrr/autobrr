@@ -103,8 +103,10 @@ func TestGitHubReleaseChecker_checkNewVersion(t *testing.T) {
 				Repo: tt.fields.Repo,
 			}
 			got, gotVersion, err := g.checkNewVersion(tt.args.version, tt.args.release)
-			if tt.wantErr && assert.Error(t, err) {
-				assert.Equal(t, tt.wantErr, err)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 			}
 			assert.Equal(t, tt.wantNew, got)
 			assert.Equal(t, tt.wantVersion, gotVersion)

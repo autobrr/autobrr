@@ -165,7 +165,8 @@
     "PUSHOVER": "Pushover",
     "SHOUTRRR": "Shoutrrr",
     "TELEGRAM": "Telegram",
-    "WEBHOOK": "Webhook"
+    "WEBHOOK": "Webhook",
+    "BUILTIN": "Innebygd"
   },
   "event": {
     "PUSH_REJECTED": {
@@ -187,6 +188,30 @@
     "IRC_RECONNECTED": {
       "label": "IRC tilkoblet på nytt",
       "description": "Koblet til IRC-nettverket på nytt etter feil"
+    },
+    "IRC_UNHEALTHY": {
+      "label": "IRC usunt",
+      "description": "IRC-nettverket usunt i 15 minutter, eller stoppet etter en kritisk feil"
+    },
+    "IRC_HEALTHY": {
+      "label": "IRC sunt",
+      "description": "IRC-nettverket sunt igjen etter å ha blitt meldt usunt"
+    },
+    "LIST_REFRESH_SUCCESS": {
+      "label": "Liste oppdatert",
+      "description": "Listen er oppdatert og filtrene er endret"
+    },
+    "LIST_REFRESH_ERROR": {
+      "label": "Feil ved oppdatering av liste",
+      "description": "Oppdatering av listen mislyktes"
+    },
+    "FEED_REFRESH_SUCCESS": {
+      "label": "Feed oppdatert",
+      "description": "Feeden er oppdatert"
+    },
+    "FEED_REFRESH_ERROR": {
+      "label": "Feil ved oppdatering av feed",
+      "description": "Oppdatering av feeden mislyktes"
     },
     "APP_UPDATE_AVAILABLE": {
       "label": "Ny oppdatering",

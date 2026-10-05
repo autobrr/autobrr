@@ -165,7 +165,8 @@
     "PUSHOVER": "Pushover",
     "SHOUTRRR": "Shoutrrr",
     "TELEGRAM": "Telegram",
-    "WEBHOOK": "Webhook"
+    "WEBHOOK": "Webhook",
+    "BUILTIN": "Intégrée"
   },
   "event": {
     "PUSH_REJECTED": {
@@ -187,6 +188,30 @@
     "IRC_RECONNECTED": {
       "label": "IRC reconnecté",
       "description": "Reconnecté au réseau IRC après une erreur"
+    },
+    "IRC_UNHEALTHY": {
+      "label": "IRC défaillant",
+      "description": "Réseau IRC défaillant depuis 15 minutes ou arrêté suite à une erreur fatale"
+    },
+    "IRC_HEALTHY": {
+      "label": "IRC rétabli",
+      "description": "Réseau IRC rétabli après avoir été signalé défaillant"
+    },
+    "LIST_REFRESH_SUCCESS": {
+      "label": "Liste actualisée",
+      "description": "Liste actualisée et filtres mis à jour"
+    },
+    "LIST_REFRESH_ERROR": {
+      "label": "Erreur d'actualisation de liste",
+      "description": "L'actualisation de la liste a échoué"
+    },
+    "FEED_REFRESH_SUCCESS": {
+      "label": "Feed actualisé",
+      "description": "Le feed a été actualisé"
+    },
+    "FEED_REFRESH_ERROR": {
+      "label": "Erreur d'actualisation du feed",
+      "description": "L'actualisation du feed a échoué"
     },
     "APP_UPDATE_AVAILABLE": {
       "label": "Nouvelle mise à jour",

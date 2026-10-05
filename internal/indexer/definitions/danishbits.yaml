@@ -1,0 +1,96 @@
+---
+version: 2
+#id: danishbits
+name: DanishBits
+identifier: danishbits
+description: DanishBits (DB) is a private Danish torrent tracker for MOVIES / TV / GENERAL.
+language: da-dk
+urls:
+  - https://danishbits.me/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS Key
+    help: "Go to your profile, Settings > RSS key, and copy the RSS Key (RID)"
+
+irc:
+  network: DanishBits
+  server: irc.danishbits.me
+  port: 6697
+  tls: true
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Must be site username
+
+    - name: pass
+      type: secret
+      required: true
+      label: Network password (API key)
+      help: Your site API key
+
+  channels:
+    - name: "#announce"
+      announcers:
+        - DanishBits
+      parse:
+        type: single
+        lines:
+          - pattern: '^NEW \| (?P<category>.+?) \| (?P<releaseName>.+?) \| (?P<torrentSize>.+?)(?: \| (?P<freeleechPercent>\d+)% FL)? \| DU:(?P<doubleUpload>\d) \| (?P<uploader>.*?)(?: \| (?P<imdb>tt\d+)?,?(?P<tmdb>\d+)?)? \| (?P<baseUrl>https?://.+?/)torrents/(?P<torrentId>\d+)$'
+            tests:
+              - line: 'NEW | TV | Faangat.paa.polisens.kamera.S01.Retail.DKSubs.1080p.WEB-DL.H.264.DDP2.0-TWASERiES | 61.62 GiB | 100% FL | DU:0 | Anonymous | tt10000,22424 | https://danishbits.me/torrents/1143'
+                expect:
+                  category: TV
+                  releaseName: Faangat.paa.polisens.kamera.S01.Retail.DKSubs.1080p.WEB-DL.H.264.DDP2.0-TWASERiES
+                  torrentSize: 61.62 GiB
+                  freeleechPercent: "100"
+                  doubleUpload: "0"
+                  uploader: Anonymous
+                  imdb: tt10000
+                  tmdb: "22424"
+                  baseUrl: https://danishbits.me/
+                  torrentId: "1143"
+
+              - line: 'NEW | Movies | Some.Movie.2024.2160p.UHD.BluRay.REMUX.HDR.HEVC.DTS-HD.MA.5.1-GROUP | 54.1 GiB | DU:1 | someuser | https://danishbits.me/torrents/1144'
+                expect:
+                  category: Movies
+                  releaseName: Some.Movie.2024.2160p.UHD.BluRay.REMUX.HDR.HEVC.DTS-HD.MA.5.1-GROUP
+                  torrentSize: 54.1 GiB
+                  freeleechPercent: ""
+                  doubleUpload: "1"
+                  uploader: someuser
+                  imdb: ""
+                  tmdb: ""
+                  baseUrl: https://danishbits.me/
+                  torrentId: "1144"
+
+              - line: 'NEW | Movies | Some.Other.Movie.1999.1080p.BluRay.x264-GROUP | 8.2 GiB | 50% FL | DU:0 | someuser | tt0000001 | https://danishbits.me/torrents/1145'
+                expect:
+                  category: Movies
+                  releaseName: Some.Other.Movie.1999.1080p.BluRay.x264-GROUP
+                  torrentSize: 8.2 GiB
+                  freeleechPercent: "50"
+                  doubleUpload: "0"
+                  uploader: someuser
+                  imdb: tt0000001
+                  tmdb: ""
+                  baseUrl: https://danishbits.me/
+                  torrentId: "1145"
+
+        mappings:
+          doubleUpload:
+            "1":
+              uploadVolumeFactor: 2
+
+        match:
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

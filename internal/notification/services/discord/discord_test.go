@@ -14,7 +14,6 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // shortenRetryDelay must only be used in sequential tests: parallel tests are
@@ -44,7 +43,7 @@ func TestClient_SendMessage(t *testing.T) {
 		assert.Equal(t, "autobrr", r.Header.Get("User-Agent"))
 
 		var payload Message
-		require.NoError(t, json.NewDecoder(r.Body).Decode(&payload))
+		assert.NoError(t, json.NewDecoder(r.Body).Decode(&payload))
 		assert.Equal(t, "New release: Best.Show.Ever.S18E21.1080p.AMZN.WEB-DL.DDP2.0.H.264-GROUP", payload.Content)
 
 		w.WriteHeader(http.StatusNoContent)
@@ -62,7 +61,7 @@ func TestClient_SendMessage_RateLimitedThenSuccess(t *testing.T) {
 	var requests atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		assert.NotEmpty(t, body, "retried request must not have an empty body")
 
 		if requests.Add(1) == 1 {
@@ -99,11 +98,9 @@ func TestClient_SendMessage_RateLimitTooLong(t *testing.T) {
 	client := NewSender(zerolog.New(io.Discard), Config{WebHookURL: server.URL, Name: "mock"})
 
 	err := client.SendMessage(t.Context(), testMessage())
-	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "unexpected status: 429")
-		assert.Contains(t, err.Error(), "You are being rate limited.")
-		assert.Contains(t, err.Error(), "exceeds the retry budget")
-	}
+	assert.ErrorContains(t, err, "unexpected status: 429")
+	assert.ErrorContains(t, err, "You are being rate limited.")
+	assert.ErrorContains(t, err, "exceeds the retry budget")
 	assert.Equal(t, int32(1), requests.Load())
 }
 
@@ -146,10 +143,8 @@ func TestClient_SendMessage_RateLimitHTTPDateTooLong(t *testing.T) {
 	client := NewSender(zerolog.New(io.Discard), Config{WebHookURL: server.URL, Name: "mock"})
 
 	err := client.SendMessage(t.Context(), testMessage())
-	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "unexpected status: 429")
-		assert.Contains(t, err.Error(), "exceeds the retry budget")
-	}
+	assert.ErrorContains(t, err, "unexpected status: 429")
+	assert.ErrorContains(t, err, "exceeds the retry budget")
 	assert.Equal(t, int32(1), requests.Load())
 }
 
@@ -168,11 +163,9 @@ func TestClient_SendMessage_BadRequestNoRetry(t *testing.T) {
 	client := NewSender(zerolog.New(io.Discard), Config{WebHookURL: server.URL, Name: "mock"})
 
 	err := client.SendMessage(t.Context(), testMessage())
-	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "status: 400")
-		assert.Contains(t, err.Error(), "Cannot send an empty message")
-		assert.Contains(t, err.Error(), "50006")
-	}
+	assert.ErrorContains(t, err, "status: 400")
+	assert.ErrorContains(t, err, "Cannot send an empty message")
+	assert.ErrorContains(t, err, "50006")
 	assert.Equal(t, int32(1), requests.Load())
 }
 
@@ -191,10 +184,8 @@ func TestClient_SendMessage_NotFoundNoRetry(t *testing.T) {
 	client := NewSender(zerolog.New(io.Discard), Config{WebHookURL: server.URL, Name: "mock"})
 
 	err := client.SendMessage(t.Context(), testMessage())
-	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "Unknown Webhook")
-		assert.Contains(t, err.Error(), "check the webhook URL")
-	}
+	assert.ErrorContains(t, err, "Unknown Webhook")
+	assert.ErrorContains(t, err, "check the webhook URL")
 	assert.Equal(t, int32(1), requests.Load())
 }
 
@@ -212,9 +203,7 @@ func TestClient_SendMessage_ServerErrorRetries(t *testing.T) {
 	client := NewSender(zerolog.New(io.Discard), Config{WebHookURL: server.URL, Name: "mock"})
 
 	err := client.SendMessage(t.Context(), testMessage())
-	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "status: 500")
-		assert.Contains(t, err.Error(), "upstream exploded")
-	}
+	assert.ErrorContains(t, err, "status: 500")
+	assert.ErrorContains(t, err, "upstream exploded")
 	assert.Equal(t, int32(3), requests.Load())
 }

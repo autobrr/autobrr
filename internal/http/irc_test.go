@@ -11,6 +11,9 @@ import (
 	"testing"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
+
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -121,6 +124,47 @@ func TestIRCHandlerAcceptsCompatibleAuth(t *testing.T) {
 
 			assert.Equal(t, 1, service.storeCalls)
 			assert.Equal(t, 1, service.updateCalls)
+		})
+	}
+}
+
+type ircManualProcessService struct {
+	ircAuthValidationService
+	err error
+}
+
+func (s *ircManualProcessService) ManualProcessAnnounce(context.Context, *domain.IRCManualProcessRequest) error {
+	return s.err
+}
+
+func TestIRCHandlerManualProcessAnnounceErrors(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want int
+	}{
+		{name: "processed", err: nil, want: http.StatusNoContent},
+		{name: "network_not_found", err: errors.Wrap(domain.ErrRecordNotFound, "could not find irc handler with id: 1"), want: http.StatusNotFound},
+		{name: "channel_not_found", err: errors.Wrap(domain.ErrIRCChannelNotFound, "channel: #nordicbytes"), want: http.StatusNotFound},
+		{name: "no_announce_processor", err: errors.Wrap(errors.Wrap(domain.ErrIRCChannelNoAnnounceProcessor, "channel: #nordicbytes"), "could not send manual announce to processor"), want: http.StatusBadRequest},
+		{name: "internal", err: errors.New("queue full"), want: http.StatusInternalServerError},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			handler := newIrcHandler(encoder{}, nil, &ircManualProcessService{err: tt.err})
+
+			rctx := chi.NewRouteContext()
+			rctx.URLParams.Add("networkID", "1")
+			rctx.URLParams.Add("channel", "nordicbytes")
+
+			recorder := httptest.NewRecorder()
+			request := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{"msg":"[N]-[TV]-[WEB-DL]"}`))
+			request = request.WithContext(context.WithValue(request.Context(), chi.RouteCtxKey, rctx))
+
+			handler.announceProcess(recorder, request)
+
+			assert.Equal(t, tt.want, recorder.Code)
 		})
 	}
 }

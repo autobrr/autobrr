@@ -82,3 +82,48 @@ test("changing the type keeps the name, enabled flag and selected events", async
     events: ["PUSH_APPROVED"]
   });
 });
+
+const notifiarr: ServiceNotification = {
+  id: 8,
+  name: "Notifiarr",
+  enabled: true,
+  type: "NOTIFIARR",
+  events: ["PUSH_APPROVED"],
+  api_key: "<redacted>"
+};
+
+test("a stored notifiarr api key saves without being re-entered", async () => {
+  const update = vi.spyOn(APIClient.notifications, "update").mockResolvedValue(undefined as never);
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <NotificationUpdateForm isOpen={true} toggle={() => {}} data={notifiarr} />
+    </QueryClientProvider>
+  );
+
+  await act(async () => {
+    fireEvent.click(screen.getByText("Save"));
+  });
+
+  expect(update).toHaveBeenCalledTimes(1);
+  expect(update.mock.calls[0][0]).toMatchObject({ api_key: "<redacted>" });
+});
+
+test.each([
+  ["", "Required"],
+  ["not-a-uuid", "Must be a 36 character API key of a-z, 0-9 and dashes"]
+])("notifiarr api key %j blocks saving", async (apiKey, message) => {
+  const update = vi.spyOn(APIClient.notifications, "update").mockResolvedValue(undefined as never);
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <NotificationUpdateForm isOpen={true} toggle={() => {}} data={notifiarr} />
+    </QueryClientProvider>
+  );
+
+  fireEvent.change(screen.getByLabelText(/^API Key/), { target: { value: apiKey } });
+  await act(async () => {
+    fireEvent.click(screen.getByText("Save"));
+  });
+
+  expect(update).not.toHaveBeenCalled();
+  expect(await screen.findByText(message)).toBeTruthy();
+});

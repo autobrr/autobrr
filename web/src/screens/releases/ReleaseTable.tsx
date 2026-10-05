@@ -434,7 +434,7 @@ export const ReleaseTable = () => {
                   onClick={toggleReleaseNames}
                   className="p-2 absolute bottom-0 right-0 bg-gray-750 text-white rounded-full opacity-10 hover:opacity-100 transition-opacity duration-300 cursor-pointer"
                   aria-label={t("releaseTable.toggleView")}
-                  title={t("releaseTable.goIncognito")}
+                  title={t(settings.incognitoMode ? "releaseTable.exitIncognito" : "releaseTable.goIncognito")}
                 >
                   {settings.incognitoMode ? (
                     <EyeIcon className="h-4 w-4"/>

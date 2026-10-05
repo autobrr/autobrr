@@ -3,7 +3,11 @@
 
 package domain
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/require"
+)
 
 // TestIndexerIRCV2_GetChannel_CaseInsensitive is a regression test for the
 // "announce: no channel found for name" log spam: many indexer definitions use
@@ -35,9 +39,8 @@ func TestIndexerIRCV2_GetChannel_CaseInsensitive(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if _, ok := def.IRC.GetChannel(tt.lookup); ok != tt.want {
-				t.Fatalf("GetChannel(%q) ok = %v, want %v", tt.lookup, ok, tt.want)
-			}
+			_, ok := def.IRC.GetChannel(tt.lookup)
+			require.Equalf(t, tt.want, ok, "GetChannel(%q)", tt.lookup)
 		})
 	}
 }

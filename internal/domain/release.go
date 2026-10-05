@@ -692,8 +692,9 @@ func (r *Release) ParseString(title string) {
 
 	r.TorrentName = title
 
-	r.Source = rel.Source
-	r.Resolution = rel.Resolution
+	r.Source = cmp.Or(rel.Source, r.Source)
+	// announce values such as "1080p/i" are not normalized, so prefer the parsed one
+	r.Resolution = cmp.Or(rel.Resolution, r.Resolution)
 	r.Region = rel.Region
 
 	if rel.Language != nil {
@@ -703,7 +704,7 @@ func (r *Release) ParseString(title string) {
 	r.Audio = rel.Audio
 	r.AudioChannels = rel.Channels
 	r.Codec = rel.Codec
-	r.Container = rel.Container
+	r.Container = cmp.Or(r.Container, rel.Container)
 	r.HDR = rel.HDR
 	if rel.Artist != "" {
 		r.Artists = rel.Artist
@@ -1082,8 +1083,24 @@ func (r *Release) HasMagnetUri() bool {
 
 const MagnetURIPrefix = "magnet:?"
 
+// toBinarySizeUnit rewrites a decimal unit label to its binary form, so "7.63 GB" becomes "7.63 GiB".
+// Bare unit letters like "7.63 G" are left alone and still parse as decimal.
+func toBinarySizeUnit(size string) string {
+	size = strings.TrimSpace(size)
+	lower := strings.ToLower(size)
+	if len(lower) < 2 || !strings.HasSuffix(lower, "b") || strings.HasSuffix(lower, "ib") {
+		return size
+	}
+
+	if !strings.ContainsRune("kmgtpe", rune(lower[len(lower)-2])) {
+		return size
+	}
+
+	return size[:len(size)-1] + "iB"
+}
+
 // MapVars map vars from regex captures to fields on release
-func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error {
+func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string, sizeUnits SizeUnits) error {
 	releaseName, ok := getStringMapValueAlt(varMap, "releaseName", "torrentName")
 	if !ok {
 		return errors.New("failed parsing required field: torrentName or releaseName")
@@ -1206,6 +1223,10 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error 
 			torrentSize = fmt.Sprintf("%s %s", torrentSize, forceSizeUnit)
 		}
 
+		if sizeUnits == SizeUnitsBinary {
+			torrentSize = toBinarySizeUnit(torrentSize)
+		}
+
 		size, parseErr := humanize.ParseBytes(torrentSize)
 		if parseErr == nil {
 			r.Size = size
@@ -1270,6 +1291,10 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string) error 
 
 	if resolution, ok := getStringMapValue(varMap, "resolution"); ok {
 		r.Resolution = resolution
+	}
+
+	if source, ok := getStringMapValue(varMap, "source"); ok {
+		r.Source = source
 	}
 
 	if releaseGroup, ok := getStringMapValue(varMap, "releaseGroup"); ok {

@@ -389,11 +389,8 @@ export const FilterDetails = () => {
     onSuccess: (newFilter, variables) => {
       queryClient.setQueryData(FilterKeys.detail(variables.id), newFilter);
 
-      queryClient.setQueriesData<Filter[]>({ queryKey: FilterKeys.lists() }, (previous) => {
-        if (previous) {
-          return previous.map((filter: Filter) => (filter.id === variables.id ? newFilter : filter));
-        }
-      });
+      // The update response does not populate list-only counts and metadata.
+      queryClient.invalidateQueries({ queryKey: FilterKeys.lists() });
 
       toast.custom((tst) => (
         <Toast type="success" body={t("list.updated", {name: newFilter.name})} t={tst} />

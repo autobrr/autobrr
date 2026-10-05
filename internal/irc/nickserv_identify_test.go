@@ -10,6 +10,8 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 
 	"github.com/ergochat/irc-go/ircmsg"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // hasConnectError reports whether any recorded network-level error contains substr.
@@ -92,11 +94,9 @@ func TestAuthenticateGatesNickServOnMechanism(t *testing.T) {
 
 			h.authenticate()
 
-			if h.authenticated != tt.wantAuthenticated {
-				t.Fatalf("authenticated = %v, want %v", h.authenticated, tt.wantAuthenticated)
-			}
-			if tt.wantAuthenticated && h.identifyOutstanding {
-				t.Fatal("authentication that skips NickServ must not leave an IDENTIFY outstanding")
+			require.Equal(t, tt.wantAuthenticated, h.authenticated)
+			if tt.wantAuthenticated {
+				require.False(t, h.identifyOutstanding, "authentication that skips NickServ must not leave an IDENTIFY outstanding")
 			}
 		})
 	}
@@ -121,12 +121,8 @@ func TestHandleNickServRequiresOutstandingIdentify(t *testing.T) {
 
 			h.handleNickServ(nickServNotice("user_bot", "Password incorrect."))
 
-			if h.Stopped() {
-				t.Fatal("unsolicited NickServ notice stopped the network")
-			}
-			if len(h.connectionErrors) != 0 {
-				t.Fatalf("unsolicited NickServ notice added errors: %v", h.connectionErrors)
-			}
+			require.False(t, h.Stopped(), "unsolicited NickServ notice stopped the network")
+			require.Empty(t, h.connectionErrors, "unsolicited NickServ notice added errors")
 		})
 	}
 }
@@ -140,9 +136,7 @@ func TestOnConnectedSkipsNickServForNone(t *testing.T) {
 
 	h.stateMachine.OnConnected()
 
-	if state := h.stateMachine.GetState(); state == StateAuthenticating {
-		t.Fatal("mechanism NONE entered the NickServ authentication state")
-	}
+	require.NotEqual(t, StateAuthenticating, h.stateMachine.GetState(), "mechanism NONE entered the NickServ authentication state")
 }
 
 // TestNoticeAllowsIdentifyEscalation covers the verbatim replies of each
@@ -172,9 +166,7 @@ func TestNoticeAllowsIdentifyEscalation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := noticeAllowsIdentifyEscalation(tt.notice); got != tt.want {
-				t.Errorf("noticeAllowsIdentifyEscalation(%q) = %v, want %v", tt.notice, got, tt.want)
-			}
+			assert.Equal(t, tt.want, noticeAllowsIdentifyEscalation(tt.notice))
 		})
 	}
 }
@@ -258,9 +250,7 @@ func TestCanEscalateIdentify(t *testing.T) {
 				tt.setup(h)
 			}
 
-			if got := h.canEscalateIdentify(tt.currentNick); got != tt.want {
-				t.Errorf("canEscalateIdentify(%q) = %v, want %v", tt.currentNick, got, tt.want)
-			}
+			assert.Equal(t, tt.want, h.canEscalateIdentify(tt.currentNick))
 		})
 	}
 }
@@ -271,30 +261,20 @@ func TestIdentifyEscalationLifecycle(t *testing.T) {
 	h, _ := newTestHandler()
 	withNickServAuth(h, "test_bot")
 
-	if !h.canEscalateIdentify("user_bot") {
-		t.Fatal("expected escalation to be available on a fresh connection")
-	}
+	require.True(t, h.canEscalateIdentify("user_bot"), "expected escalation to be available on a fresh connection")
 
 	h.escalateIdentify()
 
-	if h.identifyAttempt != identifyFormAccount {
-		t.Error("expected identifyAttempt to be identifyFormAccount after escalation")
-	}
+	assert.Equal(t, identifyFormAccount, h.identifyAttempt, "expected identifyAttempt to be identifyFormAccount after escalation")
 
-	if h.canEscalateIdentify("user_bot") {
-		t.Error("expected escalation to be spent after one attempt")
-	}
+	assert.False(t, h.canEscalateIdentify("user_bot"), "expected escalation to be spent after one attempt")
 
 	// a reconnect starts over: the nick we get back may differ
 	h.onDisconnect(ircmsg.Message{Command: "DISCONNECT"})
 
-	if h.identifyAttempt != identifyFormBare {
-		t.Error("expected identifyAttempt to reset to identifyFormBare on disconnect")
-	}
+	assert.Equal(t, identifyFormBare, h.identifyAttempt, "expected identifyAttempt to reset to identifyFormBare on disconnect")
 
-	if !h.canEscalateIdentify("user_bot") {
-		t.Error("expected escalation to be re-armed after a disconnect")
-	}
+	assert.True(t, h.canEscalateIdentify("user_bot"), "expected escalation to be re-armed after a disconnect")
 }
 
 // TestIdentifyFormIsStickyPerNetwork verifies a successful escalation is
@@ -308,19 +288,13 @@ func TestIdentifyFormIsStickyPerNetwork(t *testing.T) {
 	h.identifyOutstanding = true
 	h.handleNickServ(nickServNotice("user_bot", "Password accepted - you are now recognized."))
 
-	if !h.authenticated {
-		t.Fatal("expected the escalated identify to authenticate")
-	}
+	require.True(t, h.authenticated, "expected the escalated identify to authenticate")
 
 	h.onDisconnect(ircmsg.Message{Command: "DISCONNECT"})
 
-	if h.identifyAttempt != identifyFormAccount {
-		t.Error("expected the reconnect to start on the account-qualified form")
-	}
+	assert.Equal(t, identifyFormAccount, h.identifyAttempt, "expected the reconnect to start on the account-qualified form")
 
-	if got := h.identifyCommand(); got != "IDENTIFY test_bot hunter2" {
-		t.Errorf("identifyCommand() = %q, want the account-qualified form", got)
-	}
+	assert.Equal(t, "IDENTIFY test_bot hunter2", h.identifyCommand())
 }
 
 // TestIdentifyFormStaysBareWhenBareWorks keeps the default path untouched: a
@@ -332,9 +306,7 @@ func TestIdentifyFormStaysBareWhenBareWorks(t *testing.T) {
 	h.handleNickServ(nickServNotice("user_bot", "Password accepted - you are now recognized."))
 	h.onDisconnect(ircmsg.Message{Command: "DISCONNECT"})
 
-	if h.identifyAttempt != identifyFormBare {
-		t.Error("expected a network that authenticates bare to stay on the bare form")
-	}
+	assert.Equal(t, identifyFormBare, h.identifyAttempt, "expected a network that authenticates bare to stay on the bare form")
 }
 
 // TestIdentifyFormUnlearnedAfterRejection covers the heal path: once a
@@ -358,9 +330,7 @@ func TestIdentifyFormUnlearnedAfterRejection(t *testing.T) {
 
 			h.handleNickServ(nickServNotice("user_bot", tt.notice))
 
-			if h.identifyFormLearned != identifyFormBare {
-				t.Error("expected the rejected account form to be forgotten")
-			}
+			assert.Equal(t, identifyFormBare, h.identifyFormLearned, "expected the rejected account form to be forgotten")
 		})
 	}
 }
@@ -406,9 +376,7 @@ func TestIdentifyFormClearedOnAuthChange(t *testing.T) {
 
 			h.UpdateNetwork(&updated)
 
-			if cleared := h.identifyFormLearned == identifyFormBare; cleared != tt.cleared {
-				t.Errorf("learned form cleared = %v, want %v", cleared, tt.cleared)
-			}
+			assert.Equal(t, tt.cleared, h.identifyFormLearned == identifyFormBare, "learned form cleared")
 		})
 	}
 }
@@ -423,17 +391,11 @@ func TestHandleNickServEscalatesBeforeStopping(t *testing.T) {
 
 	h.handleNickServ(nickServNotice("user_bot", "Nick user_bot isn't registered."))
 
-	if h.identifyAttempt != identifyFormAccount {
-		t.Error("expected the notice to escalate to the account-qualified form")
-	}
+	assert.Equal(t, identifyFormAccount, h.identifyAttempt, "expected the notice to escalate to the account-qualified form")
 
-	if h.Stopped() {
-		t.Error("expected the network to stay up while the account form is retried")
-	}
+	assert.False(t, h.Stopped(), "expected the network to stay up while the account form is retried")
 
-	if len(h.connectionErrors) != 0 {
-		t.Errorf("expected no connection errors during escalation, got %v", h.connectionErrors)
-	}
+	assert.Empty(t, h.connectionErrors, "expected no connection errors during escalation")
 }
 
 // TestHandleNickServStopsWhenAccountUnknownAfterEscalation verifies the ladder
@@ -446,13 +408,9 @@ func TestHandleNickServStopsWhenAccountUnknownAfterEscalation(t *testing.T) {
 	h.identifyOutstanding = true
 	h.handleNickServ(nickServNotice("user_bot", "Nick test_bot isn't registered."))
 
-	if !h.Stopped() {
-		t.Error("expected the network to stop once the account form also failed")
-	}
+	assert.True(t, h.Stopped(), "expected the network to stop once the account form also failed")
 
-	if !hasConnectError(h, "account does not exist") {
-		t.Errorf("expected an account-does-not-exist error, got %v", h.connectionErrors)
-	}
+	assert.Truef(t, hasConnectError(h, "account does not exist"), "expected an account-does-not-exist error, got %v", h.connectionErrors)
 }
 
 // TestHandleNickServBadCredentialsAfterEscalation covers the Anope 1.8 hazard:
@@ -467,13 +425,9 @@ func TestHandleNickServBadCredentialsAfterEscalation(t *testing.T) {
 	h.identifyOutstanding = true
 	h.handleNickServ(nickServNotice("user_bot", "Password incorrect."))
 
-	if !h.Stopped() {
-		t.Fatal("expected the network to stop on a rejected password")
-	}
+	require.True(t, h.Stopped(), "expected the network to stop on a rejected password")
 
-	if !hasConnectError(h, "account-qualified") {
-		t.Errorf("expected the ambiguous account-qualified error, got %v", h.connectionErrors)
-	}
+	assert.Truef(t, hasConnectError(h, "account-qualified"), "expected the ambiguous account-qualified error, got %v", h.connectionErrors)
 }
 
 // TestHandleNickServBadCredentialsBare keeps the pre-existing message for a
@@ -484,13 +438,9 @@ func TestHandleNickServBadCredentialsBare(t *testing.T) {
 
 	h.handleNickServ(nickServNotice("user_bot", "Password incorrect."))
 
-	if !h.Stopped() {
-		t.Fatal("expected the network to stop on a rejected password")
-	}
+	require.True(t, h.Stopped(), "expected the network to stop on a rejected password")
 
-	if !hasConnectError(h, "Bad account credentials") {
-		t.Errorf("expected the bad-credentials error, got %v", h.connectionErrors)
-	}
+	assert.Truef(t, hasConnectError(h, "Bad account credentials"), "expected the bad-credentials error, got %v", h.connectionErrors)
 }
 
 // TestHandleNickServNoEscalationWithoutAccount preserves today's behaviour for
@@ -502,13 +452,9 @@ func TestHandleNickServNoEscalationWithoutAccount(t *testing.T) {
 
 	h.handleNickServ(nickServNotice("user_bot", "Nick user_bot isn't registered."))
 
-	if h.identifyAttempt != identifyFormBare {
-		t.Error("expected no escalation without a configured account")
-	}
+	assert.Equal(t, identifyFormBare, h.identifyAttempt, "expected no escalation without a configured account")
 
-	if !h.Stopped() {
-		t.Error("expected the network to stop when there is no account to retry with")
-	}
+	assert.True(t, h.Stopped(), "expected the network to stop when there is no account to retry with")
 }
 
 // TestHandleNickServShortParams guards the Params[1] index against a malformed
@@ -546,9 +492,7 @@ func TestNickServIdentifyCommand(t *testing.T) {
 			withNickServAuth(h, tt.account)
 			h.identifyAttempt = tt.form
 
-			if got := h.identifyCommand(); got != tt.want {
-				t.Errorf("identifyCommand() = %q, want %q", got, tt.want)
-			}
+			assert.Equal(t, tt.want, h.identifyCommand())
 		})
 	}
 }
@@ -592,9 +536,7 @@ func TestHandleLoggedIn(t *testing.T) {
 				Params:  params,
 			})
 
-			if h.authenticated != tt.want {
-				t.Errorf("authenticated = %v, want %v", h.authenticated, tt.want)
-			}
+			assert.Equal(t, tt.want, h.authenticated)
 		})
 	}
 }

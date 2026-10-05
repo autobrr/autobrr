@@ -13,6 +13,8 @@ import (
 
 	"github.com/ergochat/irc-go/ircevent"
 	"github.com/ergochat/irc-go/ircmsg"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestHandleJoinError_SurfacesChannelError verifies a failed JOIN (here a 475
@@ -27,23 +29,15 @@ func TestHandleJoinError_SurfacesChannelError(t *testing.T) {
 	msg := ircmsg.MakeMessage(nil, "irc.example.test", ircevent.ERR_BADCHANNELKEY, "bot", "#locked", "Cannot join channel (+k)")
 	h.handleJoinError(msg)
 
-	if !waitForState(sm, ChannelStateError, time.Second) {
-		t.Fatalf("expected channel Error after 475, got %s", sm.CurrentState())
-	}
+	require.Truef(t, waitForState(sm, ChannelStateError, time.Second), "expected channel Error after 475, got %s", sm.CurrentState())
 
 	ch, _ := h.channels.Get("#locked")
-	if !ch.HasConnectionErrors() {
-		t.Fatal("expected a connection error recorded on the channel")
-	}
-	if !sse.hasStateEvent("#locked", "Error") {
-		t.Error("expected a STATE=Error broadcast")
-	}
+	require.True(t, ch.HasConnectionErrors(), "expected a connection error recorded on the channel")
+	assert.True(t, sse.hasStateEvent("#locked", "Error"), "expected a STATE=Error broadcast")
 
 	// the Error STATE event must carry the reason so the UI can show it in real
 	// time (not only on the next health poll)
-	if !stateEventHasError(sse, "#locked", "Error", "+k") {
-		t.Error("STATE=Error broadcast should include connection_errors with the reason")
-	}
+	assert.True(t, stateEventHasError(sse, "#locked", "Error", "+k"), "STATE=Error broadcast should include connection_errors with the reason")
 
 	// a channel-scoped JOIN error must NOT leak into the network-level bucket - that
 	// bucket is reserved for network-wide failures (NickServ/SASL) and only clears
@@ -54,9 +48,7 @@ func TestHandleJoinError_SurfacesChannelError(t *testing.T) {
 	h.m.RUnlock()
 
 	for _, e := range errs {
-		if strings.Contains(e, "#locked") {
-			t.Fatalf("channel join error must not be added to the network-level errors, got %v", errs)
-		}
+		require.NotContains(t, e, "#locked", "channel join error must not be added to the network-level errors")
 	}
 }
 
@@ -79,9 +71,7 @@ func TestHandleJoinError_AllNumerics(t *testing.T) {
 
 			h.handleJoinError(ircmsg.MakeMessage(nil, "srv", numeric, "bot", "#chan", "reason"))
 
-			if !waitForState(sm, ChannelStateError, time.Second) {
-				t.Fatalf("numeric %s: expected channel Error, got %s", numeric, sm.CurrentState())
-			}
+			require.Truef(t, waitForState(sm, ChannelStateError, time.Second), "numeric %s: expected channel Error, got %s", numeric, sm.CurrentState())
 		})
 	}
 }
@@ -97,9 +87,7 @@ func TestHandleJoinError_TooFewParams(t *testing.T) {
 	h.m.RLock()
 	n := len(h.connectionErrors)
 	h.m.RUnlock()
-	if n != 0 {
-		t.Errorf("expected no errors for short param lists, got %d", n)
-	}
+	assert.Zero(t, n, "expected no errors for short param lists")
 }
 
 // TestHandleBannedStopsAndSurfacesReason verifies a 465 (ERR_YOUREBANNEDCREEP,
@@ -128,19 +116,13 @@ func TestHandleBannedStopsAndSurfacesReason(t *testing.T) {
 			found = true
 		}
 	}
-	if !found {
-		t.Fatalf("ban reason should be surfaced in the network errors, got %v", errs)
-	}
+	require.Truef(t, found, "ban reason should be surfaced in the network errors, got %v", errs)
 
 	// the network is stopped so it does not reconnect into the ban
-	if !h.Stopped() {
-		t.Fatal("network should be stopped after a 465 ban")
-	}
+	require.True(t, h.Stopped(), "network should be stopped after a 465 ban")
 
 	// and the reason is broadcast in real time (HEALTH event)
-	if !waitFor(func() bool { return healthEventHasError(sse, h.network.ID, "banned from network") }, time.Second) {
-		t.Fatal("a ban should broadcast a HEALTH event carrying the reason")
-	}
+	require.True(t, waitFor(func() bool { return healthEventHasError(sse, h.network.ID, "banned from network") }, time.Second), "a ban should broadcast a HEALTH event carrying the reason")
 }
 
 // TestHandleBannedNoReason verifies a 465 with no trailing reason still stops the
@@ -157,12 +139,9 @@ func TestHandleBannedNoReason(t *testing.T) {
 	h.m.RLock()
 	errs := slices.Clone(h.connectionErrors)
 	h.m.RUnlock()
-	if len(errs) != 1 || !strings.Contains(errs[0], "banned from network") {
-		t.Fatalf("expected a generic ban error, got %v", errs)
-	}
-	if !h.Stopped() {
-		t.Fatal("network should be stopped after a 465 ban")
-	}
+	require.Len(t, errs, 1)
+	require.Contains(t, errs[0], "banned from network")
+	require.True(t, h.Stopped(), "network should be stopped after a 465 ban")
 }
 
 // TestInitIndexersAppliesChannelPassword is a regression test for the +k channel:
@@ -184,13 +163,7 @@ func TestInitIndexersAppliesChannelPassword(t *testing.T) {
 	h.InitIndexers([]*domain.IndexerDefinition{def})
 
 	ch, found := h.channels.Get("#locked")
-	if !found {
-		t.Fatal("user-defined channel #locked was not registered")
-	}
-	if got := ch.GetPassword(); got != "sekret" {
-		t.Errorf("channel password = %q, want %q", got, "sekret")
-	}
-	if !ch.IsEnabled() {
-		t.Error("channel should be enabled")
-	}
+	require.True(t, found, "user-defined channel #locked was not registered")
+	assert.Equal(t, "sekret", ch.GetPassword())
+	assert.True(t, ch.IsEnabled(), "channel should be enabled")
 }

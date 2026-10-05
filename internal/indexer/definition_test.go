@@ -22,7 +22,7 @@ func TestIndexerYamlSecretSettings(t *testing.T) {
 	t.Parallel()
 	s := &Service{definitions: map[string]domain.IndexerDefinition{}}
 	err := s.LoadIndexerDefinitions()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	for _, d := range s.definitions {
 		for _, setting := range d.Settings {
@@ -37,7 +37,7 @@ func TestIndexerYamlExpectations(t *testing.T) {
 	t.Parallel()
 	s := &Service{definitions: map[string]domain.IndexerDefinition{}}
 	err := s.LoadIndexerDefinitions()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	for _, d := range s.definitions {
 		if d.IRC == nil {
@@ -99,6 +99,66 @@ irc:
 			require.NotNil(t, definition.IRC)
 			require.NotNil(t, definition.IRC.Auth)
 			assert.Equal(t, tt.want, definition.IRC.Auth.Mechanism)
+		})
+	}
+}
+
+func TestDefinitionIRCSizeUnits(t *testing.T) {
+	v1 := `name: Test
+identifier: test
+implementation: irc
+irc:
+  network: Test
+  server: irc.test
+  port: 6697
+  channels:
+    - "#announce"
+  parse:
+    type: single
+    sizeunits: `
+	v2 := `version: 2
+name: Test
+identifier: test
+implementation: irc
+irc:
+  network: Test
+  server: irc.test
+  port: 6697
+  channels:
+    - name: "#announce"
+      parse:
+        type: single
+        sizeunits: `
+
+	tests := []struct {
+		name      string
+		data      string
+		sizeUnits string
+		wantErr   bool
+	}{
+		{name: "v1 binary", data: v1, sizeUnits: "binary"},
+		{name: "v1 unknown", data: v1, sizeUnits: "binray", wantErr: true},
+		{name: "v2 default", data: v2, sizeUnits: `""`},
+		{name: "v2 binary", data: v2, sizeUnits: "binary"},
+		{name: "v2 wrong case", data: v2, sizeUnits: "Binary", wantErr: true},
+		{name: "v2 decimal", data: v2, sizeUnits: "decimal", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "definition.yaml")
+			require.NoError(t, os.WriteFile(file, []byte(tt.data+tt.sizeUnits+"\n"), 0o644))
+
+			definition, err := OpenAndProcessDefinition(file)
+			if tt.wantErr {
+				require.ErrorContains(t, err, "invalid size units")
+				return
+			}
+
+			require.NoError(t, err)
+			require.NotNil(t, definition.IRC)
+			require.Len(t, definition.IRC.Channels, 1)
+			assert.Equal(t, strings.Trim(tt.sizeUnits, `"`), definition.IRC.Channels[0].Parse.SizeUnits.String())
 		})
 	}
 }

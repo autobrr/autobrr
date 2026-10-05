@@ -3,13 +3,19 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-type NotificationType = "DISCORD" | "NOTIFIARR" | "TELEGRAM" | "PUSHOVER" | "GOTIFY" | "NTFY" | "LUNASEA" | "SHOUTRRR" | "WEBHOOK";
+type NotificationType = "DISCORD" | "NOTIFIARR" | "TELEGRAM" | "PUSHOVER" | "GOTIFY" | "NTFY" | "LUNASEA" | "SHOUTRRR" | "WEBHOOK" | "BUILTIN";
 type NotificationEvent =
   "PUSH_APPROVED"
   | "PUSH_REJECTED"
   | "PUSH_ERROR"
   | "IRC_DISCONNECTED"
   | "IRC_RECONNECTED"
+  | "IRC_UNHEALTHY"
+  | "IRC_HEALTHY"
+  | "LIST_REFRESH_SUCCESS"
+  | "LIST_REFRESH_ERROR"
+  | "FEED_REFRESH_SUCCESS"
+  | "FEED_REFRESH_ERROR"
   | "APP_UPDATE_AVAILABLE"
   | "RELEASE_NEW";
 
@@ -44,3 +50,34 @@ interface NotificationFilter {
 }
 
 type NotificationFilterEvent = "PUSH_APPROVED" | "PUSH_REJECTED" | "PUSH_ERROR" | "RELEASE_NEW";
+
+interface InboxMessage {
+  id: number;
+  event: NotificationEvent | "TEST";
+  title: string;
+  message: string;
+  release_name: string;
+  indexer: string;
+  filter_name: string;
+  filter_id: number;
+  action: string;
+  action_client: string;
+  rejections: string[];
+  url: string;
+  read_at: string | null;
+  created_at: string;
+}
+
+interface InboxResponse {
+  data: InboxMessage[];
+  count: number;
+  all_count: number;
+  unread_count: number;
+}
+
+interface InboxQueryParams {
+  limit: number;
+  offset: number;
+  unread: boolean;
+  event?: NotificationEvent;
+}

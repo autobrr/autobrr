@@ -165,7 +165,8 @@
     "PUSHOVER": "Pushover",
     "SHOUTRRR": "Shoutrrr",
     "TELEGRAM": "Telegram",
-    "WEBHOOK": "Webhook"
+    "WEBHOOK": "Webhook",
+    "BUILTIN": "内置"
   },
   "event": {
     "PUSH_REJECTED": {
@@ -187,6 +188,30 @@
     "IRC_RECONNECTED": {
       "label": "IRC 已重连",
       "description": "出错后重新连接到 IRC 网络"
+    },
+    "IRC_UNHEALTHY": {
+      "label": "IRC 异常",
+      "description": "IRC 网络异常已持续 15 分钟，或因严重错误已停止"
+    },
+    "IRC_HEALTHY": {
+      "label": "IRC 已恢复",
+      "description": "IRC 网络在报告异常后已恢复正常"
+    },
+    "LIST_REFRESH_SUCCESS": {
+      "label": "列表刷新成功",
+      "description": "列表已刷新，过滤器已更新"
+    },
+    "LIST_REFRESH_ERROR": {
+      "label": "列表刷新失败",
+      "description": "列表刷新出错"
+    },
+    "FEED_REFRESH_SUCCESS": {
+      "label": "订阅源刷新成功",
+      "description": "订阅源已刷新"
+    },
+    "FEED_REFRESH_ERROR": {
+      "label": "订阅源刷新失败",
+      "description": "订阅源刷新出错"
     },
     "APP_UPDATE_AVAILABLE": {
       "label": "发现新更新",

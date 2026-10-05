@@ -6,7 +6,7 @@ RUN npm install -g corepack@latest && \
 
 WORKDIR /web
 
-COPY web/package.json web/pnpm-lock.yaml ./
+COPY web/package.json web/pnpm-lock.yaml web/pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY web ./

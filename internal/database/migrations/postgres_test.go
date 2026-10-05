@@ -103,8 +103,8 @@ func setupPGTestDB(t *testing.T) (*database.DB, func(), error) {
 // Test full migration sequence
 func TestFullMigrationSequencePostgres(t *testing.T) {
 	db, cleanup, err := setupPGTestDB(t)
-	defer cleanup()
 	require.NoError(t, err)
+	defer cleanup()
 
 	log := logger.New(&domain.Config{LogLevel: "ERROR", LogPath: ""}, nil)
 
@@ -113,6 +113,9 @@ func TestFullMigrationSequencePostgres(t *testing.T) {
 
 	err = migrate.Migrate()
 	require.NoError(t, err)
+
+	// A fresh install only applies the base schema, so it must seed the built-in notification too.
+	validateBuiltinNotification(db.Handler, t)
 
 	//// Verify current schema version
 	//var version int
@@ -507,6 +510,46 @@ func TestRunMigrationTest_Postgres(t *testing.T) {
 				assert.Equal(t, 6667, port, "other networks must not be touched")
 				assert.False(t, tls)
 			},
+		},
+		{
+			Name:                "NordicBytes IRC network migration: not migrated",
+			MigrationIndex:      87,
+			MigrationsUntilName: "87_add_filter_max_downloads_period",
+			MigrationToRun:      "88_irc_update_nordicbytes_network",
+			SetupData:           setupNordicBytesNotMigrated,
+			ValidateResult:      validateNordicBytesNotMigrated,
+		},
+		{
+			Name:                "NordicBytes IRC network migration: already migrated",
+			MigrationIndex:      87,
+			MigrationsUntilName: "87_add_filter_max_downloads_period",
+			MigrationToRun:      "88_irc_update_nordicbytes_network",
+			SetupData:           setupNordicBytesAlreadyMigrated,
+			ValidateResult:      validateNordicBytesAlreadyMigrated,
+		},
+		{
+			Name:                "NordicBytes IRC network migration: not used",
+			MigrationIndex:      87,
+			MigrationsUntilName: "87_add_filter_max_downloads_period",
+			MigrationToRun:      "88_irc_update_nordicbytes_network",
+			SetupData:           setupNordicBytesNotUsed,
+			ValidateResult:      validateNordicBytesNotUsed,
+		},
+		{
+			Name:                "notification inbox migration seeds the built-in notification",
+			MigrationIndex:      88,
+			MigrationsUntilName: "88_irc_update_nordicbytes_network",
+			MigrationToRun:      "89_add_notification_inbox",
+			SetupData:           setupBuiltinNotificationExisting,
+			ValidateResult:      validateBuiltinNotificationKeepsExisting,
+		},
+		{
+			Name:                "notification inbox migration keeps an existing built-in notification",
+			MigrationIndex:      88,
+			MigrationsUntilName: "88_irc_update_nordicbytes_network",
+			MigrationToRun:      "89_add_notification_inbox",
+			SetupData:           setupBuiltinNotificationPresent,
+			ValidateResult:      validateBuiltinNotificationNotDuplicated,
 		},
 	}
 
