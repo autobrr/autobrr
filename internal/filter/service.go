@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/meta"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
@@ -92,6 +93,7 @@ type Service struct {
 	notificationSvc notificationService
 
 	httpClient *http.Client
+	userAgent  string
 }
 
 func NewService(log zerolog.Logger, repo filterRepo, actionSvc actionService, releaseRepo releaseRepo, apiService indexerAPIService, indexerSvc indexerService, downloadSvc downloadService, notificationSvc notificationService) *Service {
@@ -108,6 +110,7 @@ func NewService(log zerolog.Logger, repo filterRepo, actionSvc actionService, re
 			Timeout:   time.Second * 120,
 			Transport: sharedhttp.TransportTLSInsecure,
 		},
+		userAgent: meta.GetUserAgent(),
 	}
 }
 
@@ -1185,7 +1188,7 @@ func (s *Service) webhook(ctx context.Context, external domain.FilterExternal, r
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "autobrr")
+	req.Header.Set("User-Agent", s.userAgent)
 
 	if external.WebhookHeaders != "" {
 		for header := range strings.SplitSeq(external.WebhookHeaders, ";") {

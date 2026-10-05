@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/autobrr/autobrr/internal/meta"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
@@ -77,6 +78,7 @@ type Checker struct {
 	CurrentVersion string
 
 	httpClient *http.Client
+	userAgent  string
 }
 
 func NewChecker(owner, repo, currentVersion string) *Checker {
@@ -88,6 +90,7 @@ func NewChecker(owner, repo, currentVersion string) *Checker {
 			Timeout:   time.Second * 30,
 			Transport: sharedhttp.Transport,
 		},
+		userAgent: meta.GetUserAgent(),
 	}
 }
 
@@ -100,7 +103,7 @@ func (c *Checker) get(ctx context.Context) (*Release, error) {
 	}
 
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
-	req.Header.Set("User-Agent", c.buildUserAgent())
+	req.Header.Set("User-Agent", c.userAgent)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
