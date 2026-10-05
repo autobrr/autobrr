@@ -47,7 +47,9 @@ func Set(v, c, d string) {
 
 func GetVersion() string {
 	if version != devVersion {
-		if !strings.HasPrefix(version, "v") {
+		// Only semver gets the v prefix: CI builds pr-<n> and develop images, which
+		// pkg/version matches verbatim to skip update checks.
+		if version[0] >= '0' && version[0] <= '9' {
 			return "v" + version
 		}
 
@@ -101,8 +103,22 @@ func GetDate() string {
 	return time.Now().Format("2006-01-02")
 }
 
+// GetUserAgent returns the User-Agent for outgoing requests. The version comes from
+// packager ldflags, so it is reduced to RFC 9110 token characters to keep the product
+// token valid.
 func GetUserAgent() string {
-	return fmt.Sprintf("autobrr/%s (%s/%s)", GetVersion(), runtime.GOOS, runtime.GOARCH)
+	v := strings.Map(func(r rune) rune {
+		if r < 0x80 && (r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || strings.ContainsRune("!#$%&'*+-.^_`|~", r)) {
+			return r
+		}
+
+		return -1
+	}, GetVersion())
+	if v == "" {
+		v = devVersion
+	}
+
+	return fmt.Sprintf("autobrr/%s (%s/%s)", v, runtime.GOOS, runtime.GOARCH)
 }
 
 func GetMetaStr() string {
