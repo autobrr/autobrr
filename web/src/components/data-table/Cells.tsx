@@ -111,7 +111,7 @@ export const LinksCell = (props: CellContext<DataTableFeatures, Release, unknown
 };
 
 export const AgeCell = ({cell}: CellContext<DataTableFeatures, Release, unknown>) => (
-  <div className="text-sm text-gray-500" title={simplifyDate(cell.getValue() as string)}>
+  <div className="text-sm text-gray-500 dark:text-gray-400" title={simplifyDate(cell.getValue() as string)}>
     {formatDistanceToNowStrict(new Date(cell.getValue() as string), {addSuffix: false})}
   </div>
 );
