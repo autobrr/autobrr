@@ -4,6 +4,8 @@
 package feed
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -17,22 +19,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRSSJob_processItem(t *testing.T) {
+func TestRSSSource_toRelease(t *testing.T) {
 	t.Parallel()
 	now := time.Now()
-	nowMinusTime := time.Now().Add(time.Duration(-3000) * time.Second)
 
 	type fields struct {
-		Feed       *domain.Feed
-		Name       string
-		Log        zerolog.Logger
-		URL        string
-		Repo       jobFeedRepo
-		CacheRepo  jobFeedCacheRepo
-		ReleaseSvc jobReleaseSvc
-		attempts   int
-		errors     []error
-		JobID      int
+		Feed *domain.Feed
+		Name string
+		Log  zerolog.Logger
+		URL  string
 	}
 	type args struct {
 		item *gofeed.Item
@@ -55,14 +50,9 @@ func TestRSSJob_processItem(t *testing.T) {
 						IdentifierExternal: "Mock Indexer",
 					},
 				},
-				Name:       "test feed",
-				Log:        zerolog.Logger{},
-				URL:        "https://fake-feed.com/rss",
-				Repo:       nil,
-				ReleaseSvc: nil,
-				attempts:   0,
-				errors:     nil,
-				JobID:      0,
+				Name: "test feed",
+				Log:  zerolog.Logger{},
+				URL:  "https://fake-feed.com/rss",
 			},
 			args: args{item: &gofeed.Item{
 				Title: "Some.Release.Title.2022.09.22.720p.WEB.h264-GROUP",
@@ -149,14 +139,9 @@ func TestRSSJob_processItem(t *testing.T) {
 						IdentifierExternal: "Mock Indexer",
 					},
 				},
-				Name:       "test feed",
-				Log:        zerolog.Logger{},
-				URL:        "https://fake-feed.com/rss",
-				Repo:       nil,
-				ReleaseSvc: nil,
-				attempts:   0,
-				errors:     nil,
-				JobID:      0,
+				Name: "test feed",
+				Log:  zerolog.Logger{},
+				URL:  "https://fake-feed.com/rss",
 			},
 			args: args{item: &gofeed.Item{
 				Title: "Some.Release.Title.2022.09.22.720p.WEB.h264-GROUP",
@@ -243,14 +228,9 @@ func TestRSSJob_processItem(t *testing.T) {
 						IdentifierExternal: "Mock Indexer",
 					},
 				},
-				Name:       "test feed",
-				Log:        zerolog.Logger{},
-				URL:        "https://fake-feed.com/rss",
-				Repo:       nil,
-				ReleaseSvc: nil,
-				attempts:   0,
-				errors:     nil,
-				JobID:      0,
+				Name: "test feed",
+				Log:  zerolog.Logger{},
+				URL:  "https://fake-feed.com/rss",
 			},
 			args: args{item: &gofeed.Item{
 				Title: "Some.Release.Title.2022.09.22.720p.WEB.h264-GROUP",
@@ -262,7 +242,6 @@ func TestRSSJob_processItem(t *testing.T) {
 `,
 				Link: "https://fake-feed.com/details.php?id=00000&hit=1",
 				GUID: "Some.Release.Title.2022.09.22.720p.WEB.h264-GROUP",
-				//PublishedParsed: &nowMinusTime,
 			}},
 			want: &domain.Release{
 				ID:                              0,
@@ -325,35 +304,6 @@ func TestRSSJob_processItem(t *testing.T) {
 				Filter:                          (*domain.Filter)(nil),
 				ActionStatus:                    []domain.ReleaseActionStatus(nil),
 			},
-		},
-		{
-			name: "time_parse",
-			fields: fields{
-				Feed: &domain.Feed{
-					MaxAge: 360,
-				},
-				Name:       "test feed",
-				Log:        zerolog.Logger{},
-				URL:        "https://fake-feed.com/rss",
-				Repo:       nil,
-				ReleaseSvc: nil,
-				attempts:   0,
-				errors:     nil,
-				JobID:      0,
-			},
-			args: args{item: &gofeed.Item{
-				Title: "Some.Release.Title.2022.09.22.720p.WEB.h264-GROUP",
-				Description: `Category: Example
- Size: 1.49 GB
- Status: 27 seeders and 1 leechers
- Speed: 772.16 kB/s
- Added: 2022-09-29 16:06:08
-`,
-				Link:            "https://fake-feed.com/details.php?id=00000&hit=1",
-				GUID:            "Some.Release.Title.2022.09.22.720p.WEB.h264-GROUP",
-				PublishedParsed: &nowMinusTime,
-			}},
-			want: nil,
 		},
 		{
 			name: "magnet",
@@ -368,14 +318,9 @@ func TestRSSJob_processItem(t *testing.T) {
 					},
 					Settings: &domain.FeedSettingsJSON{DownloadType: domain.FeedDownloadTypeMagnet},
 				},
-				Name:       "Magnet feed",
-				Log:        zerolog.Logger{},
-				URL:        "https://fake-feed.com/rss",
-				Repo:       nil,
-				ReleaseSvc: nil,
-				attempts:   0,
-				errors:     nil,
-				JobID:      0,
+				Name: "Magnet feed",
+				Log:  zerolog.Logger{},
+				URL:  "https://fake-feed.com/rss",
 			},
 			args: args{item: &gofeed.Item{
 				Title:       "Some.Release.Title.2022.09.22.720p.WEB.h264-GROUP",
@@ -465,14 +410,9 @@ func TestRSSJob_processItem(t *testing.T) {
 						IdentifierExternal: "Mock Indexer",
 					},
 				},
-				Name:       "test feed",
-				Log:        zerolog.Logger{},
-				URL:        "https://fake-feed.com/rss",
-				Repo:       nil,
-				ReleaseSvc: nil,
-				attempts:   0,
-				errors:     nil,
-				JobID:      0,
+				Name: "test feed",
+				Log:  zerolog.Logger{},
+				URL:  "https://fake-feed.com/rss",
 			},
 			args: args{item: &gofeed.Item{
 				Title: "Some.Release.Title.2022.09.22.720p.WEB.h264-GROUP",
@@ -546,19 +486,10 @@ func TestRSSJob_processItem(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			j := &RSSJob{
-				Feed:       tt.fields.Feed,
-				Name:       tt.fields.Name,
-				Log:        tt.fields.Log,
-				URL:        tt.fields.URL,
-				Repo:       tt.fields.Repo,
-				CacheRepo:  tt.fields.CacheRepo,
-				ReleaseSvc: tt.fields.ReleaseSvc,
-				attempts:   tt.fields.attempts,
-				errors:     tt.fields.errors,
-				JobID:      tt.fields.JobID,
-			}
-			got := j.processItem(tt.args.item)
+			tt.fields.Feed.URL = tt.fields.URL
+			src := &rssSource{log: tt.fields.Log, feed: tt.fields.Feed}
+
+			got := src.toRelease(tt.args.item)
 			if got != nil {
 				got.Timestamp = now // override to match
 				got.TraceID = ""    // random per release, override to match
@@ -569,7 +500,7 @@ func TestRSSJob_processItem(t *testing.T) {
 	}
 }
 
-func TestRSSJob_processItemMagnet(t *testing.T) {
+func TestRSSSource_toReleaseMagnet(t *testing.T) {
 	t.Parallel()
 
 	const (
@@ -613,10 +544,10 @@ func TestRSSJob_processItemMagnet(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			j := &RSSJob{
-				Log: zerolog.Nop(),
-				URL: "https://fake-feed.com/rss",
-				Feed: &domain.Feed{
+			src := &rssSource{
+				log: zerolog.Nop(),
+				feed: &domain.Feed{
+					URL:      "https://fake-feed.com/rss",
 					Indexer:  domain.IndexerMinimal{Name: "Mock Feed", Identifier: "mock-feed"},
 					Settings: &domain.FeedSettingsJSON{DownloadType: tt.downloadType},
 				},
@@ -624,7 +555,7 @@ func TestRSSJob_processItemMagnet(t *testing.T) {
 
 			tt.item.Title = "Some.Release.Title.2022.09.22.720p.WEB.h264-GROUP"
 
-			got := j.processItem(tt.item)
+			got := src.toRelease(tt.item)
 			require.NotNil(t, got)
 
 			assert.Equal(t, tt.wantDownloadURL, got.DownloadURL, "download url")
@@ -738,4 +669,71 @@ func Test_readSizeFromDescription(t *testing.T) {
 			assert.Equal(t, wantBytes, r.Size)
 		})
 	}
+}
+
+func TestRSSSource_fetch(t *testing.T) {
+	const response = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+<title>Mock Feed</title>
+<item>
+<title>Item.With.Guid</title>
+<link>https://fake-feed.com/download/1</link>
+<guid>guid-1</guid>
+<pubDate>Mon, 05 Oct 2026 10:00:00 +0000</pubDate>
+</item>
+<item>
+<title>Item.Without.Guid</title>
+<link>https://fake-feed.com/download/2</link>
+</item>
+<item>
+<title>Item.With.Only.Title</title>
+</item>
+</channel>
+</rss>`
+
+	var gotCookie, gotUserAgent string
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotCookie = r.Header.Get("Cookie")
+		gotUserAgent = r.Header.Get("User-Agent")
+
+		w.Header().Set("Content-Type", "application/rss+xml")
+		_, _ = w.Write([]byte(response))
+	}))
+	defer srv.Close()
+
+	f := &domain.Feed{
+		Type:      string(domain.FeedTypeRSS),
+		URL:       srv.URL,
+		Cookie:    "uid=1; pass=secret",
+		UserAgent: "autobrr-test",
+		Indexer:   domain.IndexerMinimal{Name: "Mock Feed", Identifier: "mock-feed"},
+	}
+
+	src, err := (&Service{}).newSource(t.Context(), f, zerolog.Nop())
+	require.NoError(t, err)
+
+	res, err := src.fetch(t.Context())
+	require.NoError(t, err)
+
+	assert.Equal(t, "uid=1; pass=secret", gotCookie)
+	assert.Equal(t, "autobrr-test", gotUserAgent)
+	assert.Contains(t, res.raw, "Item.With.Guid")
+
+	require.Len(t, res.entries, 3)
+
+	keys := make([]string, 0, len(res.entries))
+	for _, e := range res.entries {
+		keys = append(keys, e.key)
+	}
+	assert.Equal(t, []string{"guid-1", "https://fake-feed.com/download/2", "Item.With.Only.Title"}, keys, "guid, then link, then title")
+
+	assert.Equal(t, time.Date(2026, time.October, 5, 10, 0, 0, 0, time.UTC), res.entries[0].pubDate.UTC())
+	assert.True(t, res.entries[1].pubDate.IsZero(), "missing pub date stays zero so max age skips it")
+
+	rls := res.entries[0].release()
+	assert.Equal(t, domain.ReleaseImplementationRSS, rls.Implementation)
+	assert.Equal(t, "https://fake-feed.com/download/1", rls.DownloadURL)
+	assert.Equal(t, "uid=1; pass=secret", rls.RawCookie)
 }

@@ -8,9 +8,6 @@ import (
 	"context"
 	"net/http"
 	"net/http/cookiejar"
-	"time"
-
-	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/mmcdole/gofeed"
 	"golang.org/x/net/publicsuffix"
@@ -24,46 +21,21 @@ type RSSParser struct {
 }
 
 // NewFeedParser wraps the gofeed.Parser using our own http client for full control
-func NewFeedParser(timeout time.Duration, cookie string, userAgent string, tlsSkipVerify bool) *RSSParser {
-	transport := sharedhttp.Transport
-	if tlsSkipVerify {
-		transport = sharedhttp.TransportTLSInsecure
-	}
-	httpClient := &http.Client{
-		Timeout:   time.Second * 60,
-		Transport: transport,
-	}
+func NewFeedParser(client *http.Client, cookie string, userAgent string) *RSSParser {
+	// a copy so every parser starts with its own cookie jar
+	httpClient := *client
+	jar, _ := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
+	httpClient.Jar = jar
 
-	if cookie != "" {
-		//store cookies in jar
-		jarOptions := &cookiejar.Options{PublicSuffixList: publicsuffix.List}
-		jar, _ := cookiejar.New(jarOptions)
-		httpClient.Jar = jar
-	}
+	parser := gofeed.NewParser()
+	parser.Client = &httpClient
 
-	c := &RSSParser{
-		parser:    gofeed.NewParser(),
-		http:      httpClient,
+	return &RSSParser{
+		parser:    parser,
+		http:      &httpClient,
 		cookie:    cookie,
 		userAgent: userAgent,
 	}
-
-	c.http.Timeout = timeout
-	c.parser.Client = httpClient
-
-	return c
-}
-
-func (c *RSSParser) WithHTTPClient(client *http.Client) {
-	httpClient := client
-	if client.Jar == nil {
-		jarOptions := &cookiejar.Options{PublicSuffixList: publicsuffix.List}
-		jar, _ := cookiejar.New(jarOptions)
-		httpClient.Jar = jar
-	}
-
-	c.http = httpClient
-	c.parser.Client = httpClient
 }
 
 func (c *RSSParser) ParseURLWithContext(ctx context.Context, feedURL string) (feed *gofeed.Feed, err error) {
