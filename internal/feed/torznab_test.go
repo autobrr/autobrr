@@ -120,7 +120,7 @@ func TestTorznabSource_fetch(t *testing.T) {
 		Indexer: domain.IndexerMinimal{Name: "Mock Feed", Identifier: "mock-feed"},
 	}
 
-	src, err := newSource(f, zerolog.Nop())
+	src, err := (&Service{}).newSource(t.Context(), f, zerolog.Nop())
 	require.NoError(t, err)
 
 	res, err := src.fetch(t.Context())

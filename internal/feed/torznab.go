@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/torznab"
 
 	"github.com/rs/zerolog"
@@ -28,7 +27,7 @@ type torznabSource struct {
 func (s *torznabSource) fetch(ctx context.Context) (*fetchResult, error) {
 	feed, err := s.client.Search(ctx, "", s.feed.Categories)
 	if err != nil {
-		return nil, errors.Wrap(err, "error fetching feed items")
+		return nil, err
 	}
 
 	res := &fetchResult{raw: feed.Raw, entries: make([]entry, 0, len(feed.Items))}
@@ -48,6 +47,15 @@ func (s *torznabSource) fetch(ctx context.Context) (*fetchResult, error) {
 	}
 
 	return res, nil
+}
+
+func (s *torznabSource) caps(ctx context.Context) (*domain.FeedCapabilities, error) {
+	caps, err := s.client.FetchCaps(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return domain.NewFeedCapabilitiesFromTorznab(caps), nil
 }
 
 func (s *torznabSource) toRelease(item *torznab.FeedItem) *domain.Release {

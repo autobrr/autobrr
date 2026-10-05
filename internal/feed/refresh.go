@@ -11,8 +11,6 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
-	"github.com/autobrr/autobrr/pkg/newznab"
-	"github.com/autobrr/autobrr/pkg/torznab"
 
 	"github.com/rs/zerolog"
 )
@@ -30,58 +28,8 @@ type jobReleaseSvc interface {
 	ProcessMultipleFromIndexer(ctx context.Context, releases []*domain.Release, indexer domain.IndexerMinimal) error
 }
 
-// source fetches one feed format and maps its items to releases; everything format
-// independent lives in refreshJob.
-type source interface {
-	fetch(ctx context.Context) (*fetchResult, error)
-}
-
-type fetchResult struct {
-	// raw is stored as the feed's last run data
-	raw     string
-	entries []entry
-}
-
-type entry struct {
-	key     string
-	title   string
-	pubDate time.Time
-	release func() *domain.Release
-}
-
 // minPubDate guards max age against feeds that send a zero or epoch pub date for unknown.
 var minPubDate = time.Date(1970, time.April, 1, 0, 0, 0, 0, time.UTC)
-
-func newSource(f *domain.Feed, log zerolog.Logger) (source, error) {
-	client, err := newHTTPClient(f)
-	if err != nil {
-		return nil, err
-	}
-
-	if f.UseProxy && f.Proxy != nil {
-		log.Debug().Str("proxy", f.Proxy.Name).Msg("using proxy for feed")
-	}
-
-	switch f.Type {
-	case string(domain.FeedTypeTorznab):
-		c := torznab.NewClient(torznab.Config{Host: f.URL, ApiKey: f.ApiKey, Log: log})
-		c.WithHTTPClient(client)
-
-		return &torznabSource{log: log, feed: f, client: c}, nil
-
-	case string(domain.FeedTypeNewznab):
-		c := newznab.NewClient(newznab.Config{Host: f.URL, ApiKey: f.ApiKey, Log: log})
-		c.WithHTTPClient(client)
-
-		return &newznabSource{log: log, feed: f, client: c}, nil
-
-	case string(domain.FeedTypeRSS):
-		return &rssSource{log: log, feed: f, client: client}, nil
-
-	default:
-		return nil, errors.New("unsupported feed type: %s", f.Type)
-	}
-}
 
 // refreshJob runs one feed refresh: fetch through the source, skip cached and too old items,
 // and hand the rest to the release pipeline.
@@ -94,7 +42,7 @@ type refreshJob struct {
 	releaseSvc jobReleaseSvc
 }
 
-func (j *refreshJob) RunE(ctx context.Context) error {
+func (j *refreshJob) Run(ctx context.Context) error {
 	res, err := j.src.fetch(ctx)
 	if err != nil {
 		return errors.Wrap(err, "could not fetch feed")

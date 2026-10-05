@@ -8,7 +8,6 @@ import (
 	"strconv"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/newznab"
 
 	"github.com/rs/zerolog"
@@ -23,7 +22,7 @@ type newznabSource struct {
 func (s *newznabSource) fetch(ctx context.Context) (*fetchResult, error) {
 	feed, err := s.client.Search(ctx, "", s.feed.Categories)
 	if err != nil {
-		return nil, errors.Wrap(err, "error fetching feed items")
+		return nil, err
 	}
 
 	res := &fetchResult{raw: feed.Raw, entries: make([]entry, 0, len(feed.Items))}
@@ -43,6 +42,15 @@ func (s *newznabSource) fetch(ctx context.Context) (*fetchResult, error) {
 	}
 
 	return res, nil
+}
+
+func (s *newznabSource) caps(ctx context.Context) (*domain.FeedCapabilities, error) {
+	caps, err := s.client.GetCaps(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return domain.NewFeedCapabilitiesFromNewznab(caps), nil
 }
 
 func (s *newznabSource) toRelease(item *newznab.FeedItem) *domain.Release {

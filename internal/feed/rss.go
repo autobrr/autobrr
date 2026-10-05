@@ -14,7 +14,6 @@ import (
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sanitize"
 
 	"github.com/dustin/go-humanize"
@@ -39,7 +38,7 @@ func (s *rssSource) fetch(ctx context.Context) (*fetchResult, error) {
 
 	feed, err := feedParser.ParseURLWithContext(ctx, s.feed.URL)
 	if err != nil {
-		return nil, errors.Wrap(err, "error fetching rss feed items")
+		return nil, err
 	}
 
 	res := &fetchResult{raw: feed.String(), entries: make([]entry, 0, len(feed.Items))}

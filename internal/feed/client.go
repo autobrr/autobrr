@@ -6,54 +6,12 @@ package feed
 import (
 	"cmp"
 	"context"
-	"crypto/tls"
 	"net/http"
 	"net/http/cookiejar"
-	"time"
-
-	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/proxy"
-	"github.com/autobrr/autobrr/pkg/errors"
-	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/mmcdole/gofeed"
 	"golang.org/x/net/publicsuffix"
 )
-
-const defaultTimeout = 60 * time.Second
-
-// newHTTPClient builds the client every feed request goes through, so proxy, TLS and timeout
-// settings apply the same way to refresh, test and caps.
-func newHTTPClient(f *domain.Feed) (*http.Client, error) {
-	timeout := defaultTimeout
-	if f.Timeout > 0 {
-		timeout = time.Duration(f.Timeout) * time.Second
-	}
-
-	if f.UseProxy && f.Proxy != nil {
-		client, err := proxy.GetProxiedHTTPClient(f.Proxy)
-		if err != nil {
-			return nil, errors.Wrap(err, "could not get proxy client")
-		}
-
-		if f.TLSSkipVerify {
-			if t, ok := client.Transport.(*http.Transport); ok {
-				t.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-			}
-		}
-
-		client.Timeout = timeout
-
-		return client, nil
-	}
-
-	transport := sharedhttp.Transport
-	if f.TLSSkipVerify {
-		transport = sharedhttp.TransportTLSInsecure
-	}
-
-	return &http.Client{Timeout: timeout, Transport: transport}, nil
-}
 
 type RSSParser struct {
 	parser    *gofeed.Parser

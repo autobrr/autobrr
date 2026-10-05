@@ -12,8 +12,6 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/pkg/errors"
-	"github.com/autobrr/autobrr/pkg/newznab"
-	"github.com/autobrr/autobrr/pkg/torznab"
 
 	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog"
@@ -401,13 +399,9 @@ func (s *Service) test(ctx context.Context, feed *domain.Feed) error {
 		feed.Cookie = existingFeed.Cookie
 	}
 
-	if err := s.loadProxy(ctx, feed); err != nil {
-		return err
-	}
-
 	l := s.log.With().Str("feed", feed.Name).Logger()
 
-	src, err := newSource(feed, l)
+	src, err := s.newSource(ctx, feed, l)
 	if err != nil {
 		return err
 	}
@@ -419,24 +413,6 @@ func (s *Service) test(ctx context.Context, feed *domain.Feed) error {
 	}
 
 	l.Info().Str("url", feed.URL).Int("items_count", len(res.entries)).Msg("feed test successful")
-
-	return nil
-}
-
-// loadProxy attaches the feed's proxy when it is set to use an enabled one.
-func (s *Service) loadProxy(ctx context.Context, f *domain.Feed) error {
-	if !f.UseProxy {
-		return nil
-	}
-
-	proxyConf, err := s.proxySvc.FindByID(ctx, f.ProxyID)
-	if err != nil {
-		return errors.Wrap(err, "could not find proxy for indexer feed")
-	}
-
-	if proxyConf.Enabled {
-		f.Proxy = proxyConf
-	}
 
 	return nil
 }
@@ -490,11 +466,10 @@ func (s *Service) start() error {
 	return nil
 }
 
-// newRefreshJob builds the refresh job for a feed, with its proxy already attached.
-func (s *Service) newRefreshJob(f *domain.Feed) (*refreshJob, error) {
+func (s *Service) newRefreshJob(ctx context.Context, f *domain.Feed) (*refreshJob, error) {
 	l := s.log.With().Str("feed", f.Name).Int("feed_id", f.ID).Str("implementation", f.Type).Logger()
 
-	src, err := newSource(f, l)
+	src, err := s.newSource(ctx, f, l)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create source for feed: %s", f.Name)
 	}
@@ -526,16 +501,12 @@ func (s *Service) startJob(f *domain.Feed) error {
 		return errors.New("no URL provided for feed: %s", f.Name)
 	}
 
-	if err := s.loadProxy(context.Background(), f); err != nil {
-		return err
-	}
-
-	job, err := s.newRefreshJob(f)
+	job, err := s.newRefreshJob(context.Background(), f)
 	if err != nil {
 		return err
 	}
 
-	if err := s.scheduleJob(f, job); err != nil {
+	if err := s.scheduleJob(job); err != nil {
 		return errors.Wrap(err, "schedule job %s failed", f.Name)
 	}
 
@@ -544,7 +515,8 @@ func (s *Service) startJob(f *domain.Feed) error {
 	return nil
 }
 
-func (s *Service) scheduleJob(f *domain.Feed, job refresher) error {
+func (s *Service) scheduleJob(job *refreshJob) error {
+	f := job.feed
 	identifierKey := feedKey{f.ID}.ToString()
 
 	l := s.log.With().Str("feed", f.Name).Int("feed_id", f.ID).Logger()
@@ -553,7 +525,7 @@ func (s *Service) scheduleJob(f *domain.Feed, job refresher) error {
 		guard: &s.feedGuard(f.ID).run,
 		log:   l,
 		run: func() {
-			if err := s.refresh(context.Background(), f, job); err != nil {
+			if err := s.refresh(context.Background(), job); err != nil {
 				l.Error().Err(err).Msg("could not refresh feed")
 			}
 		},
@@ -566,15 +538,11 @@ func (s *Service) scheduleJob(f *domain.Feed, job refresher) error {
 	return nil
 }
 
-type refresher interface {
-	RunE(ctx context.Context) error
-}
-
 // refresh runs the job and emits its outcome for notifications.
-func (s *Service) refresh(ctx context.Context, feed *domain.Feed, job refresher) error {
-	err := job.RunE(ctx)
+func (s *Service) refresh(ctx context.Context, job *refreshJob) error {
+	err := job.Run(ctx)
 
-	event := events.FeedRefreshEvent{Type: events.FeedRefreshSuccess, Feed: feed}
+	event := events.FeedRefreshEvent{Type: events.FeedRefreshSuccess, Feed: job.feed}
 	if err != nil {
 		event.Type = events.FeedRefreshError
 		event.Error = err.Error()
@@ -663,11 +631,7 @@ func (s *Service) ForceRun(ctx context.Context, id int) error {
 		return err
 	}
 
-	if err := s.loadProxy(ctx, feed); err != nil {
-		return err
-	}
-
-	job, err := s.newRefreshJob(feed)
+	job, err := s.newRefreshJob(ctx, feed)
 	if err != nil {
 		s.log.Error().Err(err).Msg("failed to initialize feed job")
 		return err
@@ -679,7 +643,7 @@ func (s *Service) ForceRun(ctx context.Context, id int) error {
 	}
 	defer guard.Unlock()
 
-	if err := s.refresh(ctx, feed, job); err != nil {
+	if err := s.refresh(ctx, job); err != nil {
 		s.log.Error().Err(err).Msg("failed to refresh feed")
 		return err
 	}
@@ -703,41 +667,17 @@ func (s *Service) FetchCaps(ctx context.Context, feed *domain.Feed) (*domain.Fee
 		return nil, errors.New("feed URL is required")
 	}
 
-	if err := s.loadProxy(ctx, feed); err != nil {
-		return nil, err
-	}
-
-	httpClient, err := newHTTPClient(feed)
+	src, err := s.newSource(ctx, feed, s.log.With().Str("feed", feed.Name).Logger())
 	if err != nil {
 		return nil, err
 	}
 
-	switch feed.Type {
-	case string(domain.FeedTypeTorznab):
-		client := torznab.NewClient(torznab.Config{Host: feed.URL, ApiKey: feed.ApiKey})
-		client.WithHTTPClient(httpClient)
-
-		caps, err := client.FetchCaps(ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		return domain.NewFeedCapabilitiesFromTorznab(caps), nil
-
-	case string(domain.FeedTypeNewznab):
-		client := newznab.NewClient(newznab.Config{Host: feed.URL, ApiKey: feed.ApiKey})
-		client.WithHTTPClient(httpClient)
-
-		caps, err := client.GetCaps(ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		return domain.NewFeedCapabilitiesFromNewznab(caps), nil
-
-	default:
-		return nil, errors.New("unsupported feed type: %s", feed.Type)
+	capsSrc, ok := src.(capsSource)
+	if !ok {
+		return nil, errors.New("feed type %s has no capabilities", feed.Type)
 	}
+
+	return capsSrc.caps(ctx)
 }
 
 func (s *Service) FetchCapsByID(ctx context.Context, id int) (*domain.FeedCapabilities, error) {

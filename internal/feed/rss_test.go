@@ -4,6 +4,8 @@
 package feed
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -667,4 +669,71 @@ func Test_readSizeFromDescription(t *testing.T) {
 			assert.Equal(t, wantBytes, r.Size)
 		})
 	}
+}
+
+func TestRSSSource_fetch(t *testing.T) {
+	const response = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+<title>Mock Feed</title>
+<item>
+<title>Item.With.Guid</title>
+<link>https://fake-feed.com/download/1</link>
+<guid>guid-1</guid>
+<pubDate>Mon, 05 Oct 2026 10:00:00 +0000</pubDate>
+</item>
+<item>
+<title>Item.Without.Guid</title>
+<link>https://fake-feed.com/download/2</link>
+</item>
+<item>
+<title>Item.With.Only.Title</title>
+</item>
+</channel>
+</rss>`
+
+	var gotCookie, gotUserAgent string
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotCookie = r.Header.Get("Cookie")
+		gotUserAgent = r.Header.Get("User-Agent")
+
+		w.Header().Set("Content-Type", "application/rss+xml")
+		_, _ = w.Write([]byte(response))
+	}))
+	defer srv.Close()
+
+	f := &domain.Feed{
+		Type:      string(domain.FeedTypeRSS),
+		URL:       srv.URL,
+		Cookie:    "uid=1; pass=secret",
+		UserAgent: "autobrr-test",
+		Indexer:   domain.IndexerMinimal{Name: "Mock Feed", Identifier: "mock-feed"},
+	}
+
+	src, err := (&Service{}).newSource(t.Context(), f, zerolog.Nop())
+	require.NoError(t, err)
+
+	res, err := src.fetch(t.Context())
+	require.NoError(t, err)
+
+	assert.Equal(t, "uid=1; pass=secret", gotCookie)
+	assert.Equal(t, "autobrr-test", gotUserAgent)
+	assert.Contains(t, res.raw, "Item.With.Guid")
+
+	require.Len(t, res.entries, 3)
+
+	keys := make([]string, 0, len(res.entries))
+	for _, e := range res.entries {
+		keys = append(keys, e.key)
+	}
+	assert.Equal(t, []string{"guid-1", "https://fake-feed.com/download/2", "Item.With.Only.Title"}, keys, "guid, then link, then title")
+
+	assert.Equal(t, time.Date(2026, time.October, 5, 10, 0, 0, 0, time.UTC), res.entries[0].pubDate.UTC())
+	assert.True(t, res.entries[1].pubDate.IsZero(), "missing pub date stays zero so max age skips it")
+
+	rls := res.entries[0].release()
+	assert.Equal(t, domain.ReleaseImplementationRSS, rls.Implementation)
+	assert.Equal(t, "https://fake-feed.com/download/1", rls.DownloadURL)
+	assert.Equal(t, "uid=1; pass=secret", rls.RawCookie)
 }

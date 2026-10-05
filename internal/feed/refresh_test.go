@@ -17,14 +17,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type stubRefreshJob struct {
-	err error
-}
-
-func (j *stubRefreshJob) RunE(context.Context) error {
-	return j.err
-}
-
 func TestServiceRefreshEmitsOutcome(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -33,7 +25,7 @@ func TestServiceRefreshEmitsOutcome(t *testing.T) {
 		wantError string
 	}{
 		{name: "success", wantType: events.FeedRefreshSuccess},
-		{name: "error", err: errors.New("unexpected status code: 503"), wantType: events.FeedRefreshError, wantError: "unexpected status code: 503"},
+		{name: "error", err: errors.New("unexpected status code: 503"), wantType: events.FeedRefreshError, wantError: "could not fetch feed: unexpected status code: 503"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -48,8 +40,20 @@ func TestServiceRefreshEmitsOutcome(t *testing.T) {
 			s := &Service{log: zerolog.Nop(), eventBus: bus}
 			f := &domain.Feed{ID: 4, Name: "Mock Indexer"}
 
-			err := s.refresh(context.Background(), f, &stubRefreshJob{err: tt.err})
-			assert.Equal(t, tt.err, err)
+			job := &refreshJob{
+				log:       zerolog.Nop(),
+				feed:      f,
+				src:       &stubSource{res: &fetchResult{}, err: tt.err},
+				repo:      &recordingFeedRepo{},
+				cacheRepo: &recordingCacheRepo{},
+			}
+
+			err := s.refresh(t.Context(), job)
+			if tt.err != nil {
+				require.ErrorIs(t, err, tt.err)
+			} else {
+				require.NoError(t, err)
+			}
 
 			require.Len(t, got, 1)
 			assert.Equal(t, tt.wantType, got[0].Type)
@@ -198,7 +202,7 @@ func TestRefreshJob_RunE(t *testing.T) {
 				releaseSvc: releaseSvc,
 			}
 
-			err := j.RunE(t.Context())
+			err := j.Run(t.Context())
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
