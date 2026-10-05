@@ -61,6 +61,7 @@ type Release struct {
 	TorrentHash                        string                `json:"-"`
 	TorrentName                        string                `json:"name"`            // full release name
 	RawVars                            map[string]string     `json:"-"`               // raw announce vars from indexer definition
+	CustomFields                       map[string]string     `json:"-"`               // arbitrary custom fields from feed items
 	NormalizedHash                     string                `json:"normalized_hash"` // normalized torrent name and md5 hashed
 	Size                               uint64                `json:"size"`
 	Title                              string                `json:"title"`     // Parsed title

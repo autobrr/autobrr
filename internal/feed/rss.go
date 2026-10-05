@@ -126,6 +126,35 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 
 	rls := domain.NewRelease(j.Feed.Indexer)
 	rls.Implementation = domain.ReleaseImplementationRSS
+	if len(item.Custom) > 0 || len(item.Extensions) > 0 {
+		rls.CustomFields = make(map[string]string, len(item.Custom))
+		for key, value := range item.Custom {
+			rls.CustomFields[key] = value
+		}
+		// Preserve namespaced extension fields as prefix:name so users can
+		// address tracker-specific RSS metadata without tracker-specific code.
+		for namespace, fields := range item.Extensions {
+			for name, values := range fields {
+				for i, extension := range values {
+					key := namespace + ":" + name
+					if i > 0 {
+						key += ":" + strconv.Itoa(i+1)
+					}
+					rls.CustomFields[key] = extension.Value
+					// Common name/value extension pattern, e.g.
+					// <torznab:attr name="seeders" value="5"/>.
+					if attrName, ok := extension.Attrs["name"]; ok {
+						if attrValue, ok := extension.Attrs["value"]; ok {
+							rls.CustomFields[key+"@"+attrName] = attrValue
+						}
+					}
+					for attrName, attrValue := range extension.Attrs {
+						rls.CustomFields[key+"@"+attrName] = attrValue
+					}
+				}
+			}
+		}
+	}
 
 	rls.ParseString(item.Title)
 

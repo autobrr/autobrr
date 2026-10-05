@@ -6,6 +6,7 @@ package database
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"maps"
 	"slices"
@@ -46,6 +47,46 @@ func windowTypeOrFixed(w domain.FilterMaxDownloadsWindowType) domain.FilterMaxDo
 	}
 
 	return w
+}
+
+func normalizeCustomFieldRules(rules []domain.FilterCustomFieldRule) {
+	for i := range rules {
+		rules[i].Field = strings.TrimSpace(rules[i].Field)
+	}
+}
+
+func marshalCustomFieldRules(rules []domain.FilterCustomFieldRule) (string, error) {
+	if rules == nil {
+		rules = []domain.FilterCustomFieldRule{}
+	}
+
+	data, err := json.Marshal(rules)
+	if err != nil {
+		return "", errors.Wrap(err, "could not marshal custom field rules")
+	}
+
+	return string(data), nil
+}
+
+func customFieldLogicOrAll(logic domain.FilterCustomFieldMatchLogic) domain.FilterCustomFieldMatchLogic {
+	if logic == "" {
+		return domain.FilterCustomFieldMatchAll
+	}
+
+	return logic
+}
+
+func unmarshalCustomFieldRules(raw sql.NullString) ([]domain.FilterCustomFieldRule, error) {
+	if !raw.Valid || raw.String == "" {
+		return nil, nil
+	}
+
+	var rules []domain.FilterCustomFieldRule
+	if err := json.Unmarshal([]byte(raw.String), &rules); err != nil {
+		return nil, errors.Wrap(err, "could not unmarshal custom field rules")
+	}
+
+	return rules, nil
 }
 
 var (
@@ -277,6 +318,8 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 			"f.match_description",
 			"f.except_description",
 			"f.use_regex_description",
+			"f.custom_fields",
+			"f.custom_fields_match_logic",
 			"f.scene",
 			"f.freeleech",
 			"f.freeleech_percent",
@@ -347,7 +390,7 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	var f domain.Filter
 
 	// filter
-	var minSize, maxSize, maxDownloadsUnit, maxDownloadsWindowType, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, months, days, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, matchRecordLabels, exceptRecordLabels, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
+	var minSize, maxSize, maxDownloadsUnit, maxDownloadsWindowType, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, customFields, customFieldsMatchLogic, freeleechPercent, shows, seasons, episodes, years, months, days, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, matchRecordLabels, exceptRecordLabels, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
 	var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac sql.NullBool
 	var delay, maxDownloads, maxDownloadsPeriod, logScore sql.NullInt32
 	var releaseProfileDuplicateId sql.NullInt64
@@ -376,6 +419,8 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 		&matchDescription,
 		&exceptDescription,
 		&f.UseRegexDescription,
+		&customFields,
+		&customFieldsMatchLogic,
 		&scene,
 		&freeleech,
 		&freeleechPercent,
@@ -449,6 +494,12 @@ func (r *FilterRepo) FindByID(ctx context.Context, filterID int) (*domain.Filter
 	f.ExceptReleaseTags = exceptReleaseTags.String
 	f.MatchDescription = matchDescription.String
 	f.ExceptDescription = exceptDescription.String
+	customFieldRules, err := unmarshalCustomFieldRules(customFields)
+	if err != nil {
+		return nil, err
+	}
+	f.CustomFields = customFieldRules
+	f.CustomFieldsMatchLogic = domain.FilterCustomFieldMatchLogic(customFieldsMatchLogic.String)
 	f.FreeleechPercent = freeleechPercent.String
 	f.Shows = shows.String
 	f.Seasons = seasons.String
@@ -511,6 +562,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			"f.match_description",
 			"f.except_description",
 			"f.use_regex_description",
+			"f.custom_fields",
+			"f.custom_fields_match_logic",
 			"f.scene",
 			"f.freeleech",
 			"f.freeleech_percent",
@@ -611,7 +664,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 	for rows.Next() {
 		var f domain.Filter
 
-		var minSize, maxSize, maxDownloadsUnit, maxDownloadsWindowType, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, freeleechPercent, shows, seasons, episodes, years, months, days, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, matchRecordLabels, exceptRecordLabels, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
+		var minSize, maxSize, maxDownloadsUnit, maxDownloadsWindowType, matchReleases, exceptReleases, matchReleaseGroups, exceptReleaseGroups, matchReleaseTags, exceptReleaseTags, matchDescription, exceptDescription, customFields, customFieldsMatchLogic, freeleechPercent, shows, seasons, episodes, years, months, days, artists, albums, matchCategories, exceptCategories, matchUploaders, exceptUploaders, matchRecordLabels, exceptRecordLabels, tags, exceptTags, tagsMatchLogic, exceptTagsMatchLogic sql.NullString
 		var useRegex, scene, freeleech, hasLog, hasCue, perfectFlac sql.NullBool
 		var delay, maxDownloads, maxDownloadsPeriod, logScore sql.NullInt32
 		var releaseProfileDuplicateID, rdpId sql.NullInt64
@@ -643,6 +696,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			&matchDescription,
 			&exceptDescription,
 			&f.UseRegexDescription,
+			&customFields,
+			&customFieldsMatchLogic,
 			&scene,
 			&freeleech,
 			&freeleechPercent,
@@ -735,6 +790,12 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 		f.ExceptReleaseTags = exceptReleaseTags.String
 		f.MatchDescription = matchDescription.String
 		f.ExceptDescription = exceptDescription.String
+		customFieldRules, err := unmarshalCustomFieldRules(customFields)
+		if err != nil {
+			return nil, err
+		}
+		f.CustomFields = customFieldRules
+		f.CustomFieldsMatchLogic = domain.FilterCustomFieldMatchLogic(customFieldsMatchLogic.String)
 		f.FreeleechPercent = freeleechPercent.String
 		f.Shows = shows.String
 		f.Seasons = seasons.String
@@ -916,6 +977,13 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 	// normalize on the struct so the caller echoes what gets stored
 	filter.MaxDownloadsPeriod = clampPeriod(filter.MaxDownloadsPeriod)
 	filter.MaxDownloadsWindowType = windowTypeOrFixed(filter.MaxDownloadsWindowType)
+	filter.CustomFieldsMatchLogic = customFieldLogicOrAll(filter.CustomFieldsMatchLogic)
+	normalizeCustomFieldRules(filter.CustomFields)
+
+	customFields, err := marshalCustomFieldRules(filter.CustomFields)
+	if err != nil {
+		return err
+	}
 
 	queryBuilder := r.db.squirrel.
 		Insert("filter").
@@ -942,6 +1010,8 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			"match_description",
 			"except_description",
 			"use_regex_description",
+			"custom_fields",
+			"custom_fields_match_logic",
 			"scene",
 			"freeleech",
 			"freeleech_percent",
@@ -1013,6 +1083,8 @@ func (r *FilterRepo) Store(ctx context.Context, filter *domain.Filter) error {
 			filter.MatchDescription,
 			filter.ExceptDescription,
 			filter.UseRegexDescription,
+			customFields,
+			filter.CustomFieldsMatchLogic,
 			filter.Scene,
 			filter.Freeleech,
 			filter.FreeleechPercent,
@@ -1079,8 +1151,12 @@ func (r *FilterRepo) Update(ctx context.Context, filter *domain.Filter) error {
 	// normalize on the struct so the caller echoes what gets stored
 	filter.MaxDownloadsPeriod = clampPeriod(filter.MaxDownloadsPeriod)
 	filter.MaxDownloadsWindowType = windowTypeOrFixed(filter.MaxDownloadsWindowType)
+	filter.CustomFieldsMatchLogic = customFieldLogicOrAll(filter.CustomFieldsMatchLogic)
 
-	var err error
+	customFields, err := marshalCustomFieldRules(filter.CustomFields)
+	if err != nil {
+		return err
+	}
 
 	queryBuilder := r.db.squirrel.
 		Update("filter").
@@ -1106,6 +1182,8 @@ func (r *FilterRepo) Update(ctx context.Context, filter *domain.Filter) error {
 		Set("match_description", filter.MatchDescription).
 		Set("except_description", filter.ExceptDescription).
 		Set("use_regex_description", filter.UseRegexDescription).
+		Set("custom_fields", customFields).
+		Set("custom_fields_match_logic", filter.CustomFieldsMatchLogic).
 		Set("scene", filter.Scene).
 		Set("freeleech", filter.Freeleech).
 		Set("freeleech_percent", filter.FreeleechPercent).
@@ -1245,6 +1323,16 @@ func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpda
 	}
 	if filter.UseRegexDescription != nil {
 		q = q.Set("use_regex_description", filter.UseRegexDescription)
+	}
+	if filter.CustomFields != nil {
+		customFields, err := marshalCustomFieldRules(*filter.CustomFields)
+		if err != nil {
+			return err
+		}
+		q = q.Set("custom_fields", customFields)
+	}
+	if filter.CustomFieldsMatchLogic != nil {
+		q = q.Set("custom_fields_match_logic", customFieldLogicOrAll(*filter.CustomFieldsMatchLogic))
 	}
 	if filter.Scene != nil {
 		q = q.Set("scene", filter.Scene)
