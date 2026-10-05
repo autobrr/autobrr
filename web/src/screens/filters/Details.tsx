@@ -224,7 +224,7 @@ const customFieldValueSchema = z.string().refine((value) => {
     return false;
   }
 
-  const decimalNumber = /^[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][+-]?\\d+)?$/.test(trimmed);
+  const decimalNumber = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(trimmed);
   return decimalNumber || Number.isFinite(Number(trimmed));
 }, { message: 'Use a number or double-quoted text, e.g. 10 or "AV1"' }).transform((value) => value.trim());
 
