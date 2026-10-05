@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/autobrr/autobrr/internal/meta"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
@@ -38,6 +39,7 @@ type Client struct {
 
 	headers    map[string]string
 	httpClient *http.Client
+	userAgent  string
 }
 
 func NewSender(log zerolog.Logger, config Config) *Client {
@@ -53,6 +55,7 @@ func NewSender(log zerolog.Logger, config Config) *Client {
 			Timeout:   time.Second * 30,
 			Transport: sharedhttp.Transport,
 		},
+		userAgent: meta.GetUserAgent(),
 	}
 }
 
@@ -96,7 +99,7 @@ func (c *Client) SendMessage(ctx context.Context, message *Message) error {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "autobrr")
+	req.Header.Set("User-Agent", c.userAgent)
 	req.Header.Set("X-Autobrr-Event", message.Event)
 
 	res, err := c.httpClient.Do(req)

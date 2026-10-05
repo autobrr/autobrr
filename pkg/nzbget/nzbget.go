@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/autobrr/autobrr/internal/meta"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
@@ -24,7 +25,8 @@ type Client struct {
 
 	log zerolog.Logger
 
-	http *http.Client
+	http      *http.Client
+	userAgent string
 }
 
 type Options struct {
@@ -52,6 +54,7 @@ func New(opts Options) *Client {
 			Timeout:   time.Second * 60,
 			Transport: transport,
 		},
+		userAgent: meta.GetUserAgent(),
 	}
 }
 
@@ -92,6 +95,7 @@ func (c *Client) call(ctx context.Context, method string, params []any, result a
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", c.userAgent)
 
 	if c.username != "" || c.password != "" {
 		req.SetBasicAuth(c.username, c.password)

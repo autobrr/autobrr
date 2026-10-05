@@ -10,6 +10,7 @@ builds:
       - CGO_ENABLED=0
     flags:
       - -pgo=cpu.pprof
+      - -trimpath
     goos:
       - linux
       - windows
@@ -37,6 +38,8 @@ builds:
   - id: autobrrctl
     env:
       - CGO_ENABLED=0
+    flags:
+      - -trimpath
     goos:
       - linux
       - windows

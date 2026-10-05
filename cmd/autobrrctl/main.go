@@ -23,6 +23,7 @@ import (
 	"github.com/autobrr/autobrr/internal/database/tools"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/internal/meta"
 	"github.com/autobrr/autobrr/internal/user"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
@@ -71,6 +72,14 @@ func init() {
 }
 
 func main() {
+	meta.Set(version, commit, date)
+
+	var (
+		version = meta.GetVersion()
+		commit  = meta.GetCommit()
+		date    = meta.GetDate()
+	)
+
 	var configPath string
 	flag.StringVar(&configPath, "config", "", "path to configuration file")
 	flag.Parse()
@@ -123,7 +132,7 @@ func main() {
 		}
 
 		// read config
-		cfg := config.New(configPath, version)
+		cfg := config.New(configPath)
 
 		// init new logger
 		l := logger.New(cfg.Config, nil)
@@ -173,7 +182,7 @@ func main() {
 		}
 
 		// read config
-		cfg := config.New(configPath, version)
+		cfg := config.New(configPath)
 
 		// init new logger
 		l := logger.New(cfg.Config, nil)
@@ -257,7 +266,7 @@ func main() {
 			ExcludeTables: strings.Split(excludeTables, ","),
 		}
 
-		l := logger.New(&domain.Config{LogLevel: "TRACE", Version: "dev"}, nil)
+		l := logger.New(&domain.Config{LogLevel: "TRACE"}, nil)
 
 		c := tools.NewConverter(l, sqliteDBPath, postgresDBURL)
 		if err := c.Convert(ctx, opts); err != nil {
@@ -324,7 +333,7 @@ func main() {
 		}
 
 		// read config
-		cfg := config.New(configPath, version)
+		cfg := config.New(configPath)
 
 		// init new logger
 		l := logger.New(cfg.Config, nil)
