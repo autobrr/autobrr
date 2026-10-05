@@ -5,13 +5,14 @@ package irc
 
 import (
 	"bytes"
-	"strings"
 	"testing"
 
 	"github.com/autobrr/autobrr/internal/domain"
 
 	"github.com/ergochat/irc-go/ircmsg"
 	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestIRCCaseMapping(t *testing.T) {
@@ -28,9 +29,7 @@ func TestIRCCaseMapping(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.caseMapping.fold(tt.identifier); got != tt.want {
-				t.Errorf("fold(%q) = %q, want %q", tt.identifier, got, tt.want)
-			}
+			assert.Equalf(t, tt.want, tt.caseMapping.fold(tt.identifier), "fold(%q)", tt.identifier)
 		})
 	}
 }
@@ -52,9 +51,8 @@ func TestParseIRCCaseMapping(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.value, func(t *testing.T) {
 			got, ok := parseIRCCaseMapping(tt.value)
-			if got != tt.want || ok != tt.ok {
-				t.Fatalf("parseIRCCaseMapping(%q) = (%d, %v), want (%d, %v)", tt.value, got, ok, tt.want, tt.ok)
-			}
+			assert.Equalf(t, tt.want, got, "parseIRCCaseMapping(%q)", tt.value)
+			assert.Equalf(t, tt.ok, ok, "parseIRCCaseMapping(%q)", tt.value)
 		})
 	}
 }
@@ -72,15 +70,13 @@ func TestStrictCaseMappingAliases(t *testing.T) {
 				Params:  []string{"autobrr", "CASEMAPPING=" + alias, "are supported"},
 			})
 
-			if _, _, found := h.getChannel("#ANNOUNCE^{"); !found {
-				t.Fatal("strict RFC1459 should equate [ with { and ASCII letter case")
-			}
-			if _, _, found := h.getChannel("#announce~{"); found {
-				t.Fatal("strict RFC1459 must keep ^ and ~ distinct")
-			}
-			if channel.IsValidAnnouncer("bot~{") {
-				t.Fatal("strict RFC1459 must keep ^ and ~ distinct in nicks")
-			}
+			_, _, found := h.getChannel("#ANNOUNCE^{")
+			assert.True(t, found, "strict RFC1459 should equate [ with { and ASCII letter case")
+
+			_, _, found = h.getChannel("#announce~{")
+			assert.False(t, found, "strict RFC1459 must keep ^ and ~ distinct")
+
+			assert.False(t, channel.IsValidAnnouncer("bot~{"), "strict RFC1459 must keep ^ and ~ distinct in nicks")
 		})
 	}
 }
@@ -96,15 +92,12 @@ func TestUnknownISupportCaseMappingUsesASCII(t *testing.T) {
 		Params:  []string{"autobrr", "CASEMAPPING=unicode", "are supported"},
 	})
 
-	if got := h.getCaseMapping(); got != ircCaseMappingASCII {
-		t.Fatalf("unknown CASEMAPPING selected %d, want ASCII", got)
-	}
-	if _, _, found := h.getChannel("#announce^{"); found {
-		t.Fatal("an unknown explicit CASEMAPPING must not grant RFC1459 channel equivalences")
-	}
-	if channel.IsValidAnnouncer("bot^{") {
-		t.Fatal("an unknown explicit CASEMAPPING must not grant RFC1459 nick equivalences")
-	}
+	assert.Equal(t, ircCaseMappingASCII, h.getCaseMapping(), "unknown CASEMAPPING should fall back to ASCII")
+
+	_, _, found := h.getChannel("#announce^{")
+	assert.False(t, found, "an unknown explicit CASEMAPPING must not grant RFC1459 channel equivalences")
+
+	assert.False(t, channel.IsValidAnnouncer("bot^{"), "an unknown explicit CASEMAPPING must not grant RFC1459 nick equivalences")
 }
 
 func TestValuelessISupportCaseMappingUsesASCII(t *testing.T) {
@@ -116,9 +109,7 @@ func TestValuelessISupportCaseMappingUsesASCII(t *testing.T) {
 				Params:  []string{"autobrr", token, "are supported"},
 			})
 
-			if got := h.getCaseMapping(); got != ircCaseMappingASCII {
-				t.Fatalf("%s selected %d, want ASCII", token, got)
-			}
+			assert.Equalf(t, ircCaseMappingASCII, h.getCaseMapping(), "%s should fall back to ASCII", token)
 		})
 	}
 }
@@ -132,27 +123,20 @@ func TestRemovedISupportCaseMappingRestoresRFC1459(t *testing.T) {
 		Params:  []string{"autobrr", "-CASEMAPPING", "are supported"},
 	})
 
-	if got := h.getCaseMapping(); got != ircCaseMappingRFC1459 {
-		t.Fatalf("removed CASEMAPPING selected %d, want RFC1459 default", got)
-	}
+	assert.Equal(t, ircCaseMappingRFC1459, h.getCaseMapping(), "removed CASEMAPPING should restore the RFC1459 default")
 }
 
 func TestChannelMapKeyPreservesUnicodeLowercasing(t *testing.T) {
-	if got, want := channelMapKey("#ÄNNOUNCE"), "#ännounce"; got != want {
-		t.Fatalf("channelMapKey() = %q, want %q", got, want)
-	}
+	assert.Equal(t, "#ännounce", channelMapKey("#ÄNNOUNCE"))
 }
 
 func TestRejectedRunDoesNotResetNegotiatedCaseMapping(t *testing.T) {
 	h, _ := newTestHandler()
 	h.setCaseMapping(ircCaseMappingASCII)
 
-	if err := h.Run(); err != connectionInProgress {
-		t.Fatalf("Run() error = %v, want %v", err, connectionInProgress)
-	}
-	if got := h.getCaseMapping(); got != ircCaseMappingASCII {
-		t.Fatalf("rejected Run reset CASEMAPPING to %d", got)
-	}
+	require.ErrorIs(t, h.Run(), connectionInProgress)
+
+	assert.Equal(t, ircCaseMappingASCII, h.getCaseMapping(), "rejected Run must not reset CASEMAPPING")
 }
 
 func TestDisconnectResetsPerConnectionCaseMapping(t *testing.T) {
@@ -165,12 +149,8 @@ func TestDisconnectResetsPerConnectionCaseMapping(t *testing.T) {
 
 	h.onDisconnect(ircmsg.Message{})
 
-	if got := h.getCaseMapping(); got != ircCaseMappingRFC1459 {
-		t.Fatalf("disconnect left CASEMAPPING at %d, want RFC1459 default", got)
-	}
-	if !channel.IsValidAnnouncer("bot{") {
-		t.Fatal("disconnect did not rebuild announcer keys for the default mapping")
-	}
+	assert.Equal(t, ircCaseMappingRFC1459, h.getCaseMapping(), "disconnect should restore the RFC1459 default")
+	assert.True(t, channel.IsValidAnnouncer("bot{"), "disconnect did not rebuild announcer keys for the default mapping")
 }
 
 func TestBouncerWildcardIsLimitedToEndOfNames(t *testing.T) {
@@ -178,12 +158,8 @@ func TestBouncerWildcardIsLimitedToEndOfNames(t *testing.T) {
 	h.network.UseBouncer = true
 	h.setCurrentNick("autobrr")
 
-	if !h.isOurEndOfNamesTarget("*") {
-		t.Fatal("bouncer wildcard should be accepted for end-of-NAMES")
-	}
-	if h.isOurCurrentNick("*") {
-		t.Fatal("bouncer wildcard must not be accepted as our nick for arbitrary events")
-	}
+	assert.True(t, h.isOurEndOfNamesTarget("*"), "bouncer wildcard should be accepted for end-of-NAMES")
+	assert.False(t, h.isOurCurrentNick("*"), "bouncer wildcard must not be accepted as our nick for arbitrary events")
 }
 
 func TestChannelReconcileUsesNegotiatedCaseMapping(t *testing.T) {
@@ -192,13 +168,10 @@ func TestChannelReconcileUsesNegotiatedCaseMapping(t *testing.T) {
 		h.AddChannel(domain.IrcChannel{Name: "#extra[", Enabled: false})
 		h.AddChannel(domain.IrcChannel{Name: "#extra{", Enabled: false})
 
-		if got := h.channels.Len(); got != 1 {
-			t.Fatalf("RFC1459-equivalent channel add created %d entries, want 1", got)
-		}
+		require.Equal(t, uintptr(1), h.channels.Len(), "RFC1459-equivalent channel add should create one entry")
+
 		h.RemoveChannel("#extra{")
-		if got := h.channels.Len(); got != 0 {
-			t.Fatalf("equivalent channel remove left %d entries", got)
-		}
+		assert.Equal(t, uintptr(0), h.channels.Len(), "equivalent channel remove should delete the entry")
 	})
 
 	t.Run("ascii distinct", func(t *testing.T) {
@@ -207,9 +180,7 @@ func TestChannelReconcileUsesNegotiatedCaseMapping(t *testing.T) {
 		h.AddChannel(domain.IrcChannel{Name: "#extra[", Enabled: false})
 		h.AddChannel(domain.IrcChannel{Name: "#extra{", Enabled: false})
 
-		if got := h.channels.Len(); got != 2 {
-			t.Fatalf("ASCII-distinct channel add created %d entries, want 2", got)
-		}
+		assert.Equal(t, uintptr(2), h.channels.Len(), "ASCII-distinct channel add should create two entries")
 	})
 }
 
@@ -219,27 +190,19 @@ func TestHandleISupportUpdatesIdentifierComparisons(t *testing.T) {
 	channel.RegisterAnnouncers([]string{"Announce[Bot]"})
 	h.channels.Set(channelMapKey(channel.Name), channel)
 
-	if _, _, found := h.getChannel("#ANNOUNCE{"); !found {
-		t.Fatal("rfc1459 should treat [ and { as equivalent in channel names")
-	}
-	if !channel.IsValidAnnouncer("announce{bot}") {
-		t.Fatal("rfc1459 should treat [ and { as equivalent in announcer nicks")
-	}
+	_, _, found := h.getChannel("#ANNOUNCE{")
+	require.True(t, found, "rfc1459 should treat [ and { as equivalent in channel names")
+	require.True(t, channel.IsValidAnnouncer("announce{bot}"), "rfc1459 should treat [ and { as equivalent in announcer nicks")
 
 	h.handleISupport(ircmsg.Message{
 		Command: "005",
 		Params:  []string{"autobrr", "CHANTYPES=#", "CASEMAPPING=ascii", "are supported"},
 	})
 
-	if _, _, found := h.getChannel("#ANNOUNCE{"); found {
-		t.Fatal("ascii CASEMAPPING must keep [ and { distinct in channel names")
-	}
-	if channel.IsValidAnnouncer("announce{bot}") {
-		t.Fatal("ascii CASEMAPPING must keep [ and { distinct in announcer nicks")
-	}
-	if !channel.IsValidAnnouncer("ANNOUNCE[BOT]") {
-		t.Fatal("ascii CASEMAPPING should still compare ASCII letters case-insensitively")
-	}
+	_, _, found = h.getChannel("#ANNOUNCE{")
+	assert.False(t, found, "ascii CASEMAPPING must keep [ and { distinct in channel names")
+	assert.False(t, channel.IsValidAnnouncer("announce{bot}"), "ascii CASEMAPPING must keep [ and { distinct in announcer nicks")
+	assert.True(t, channel.IsValidAnnouncer("ANNOUNCE[BOT]"), "ascii CASEMAPPING should still compare ASCII letters case-insensitively")
 }
 
 func TestOnPrivMessageMatchesNickAndChannelCaseInsensitively(t *testing.T) {
@@ -255,9 +218,7 @@ func TestOnPrivMessageMatchesNickAndChannelCaseInsensitively(t *testing.T) {
 			Params:  []string{"macley", "hello"},
 		})
 
-		if strings.Contains(logs.String(), "channel not found") {
-			t.Fatalf("case-variant DM target was treated as a channel: %s", logs.String())
-		}
+		assert.NotContains(t, logs.String(), "channel not found", "case-variant DM target was treated as a channel")
 	})
 
 	t.Run("channel target", func(t *testing.T) {
@@ -271,9 +232,7 @@ func TestOnPrivMessageMatchesNickAndChannelCaseInsensitively(t *testing.T) {
 			Params:  []string{"#MiXeD", "hello"},
 		})
 
-		if got := len(channel.Messages.GetMessages()); got != 1 {
-			t.Fatalf("mixed-case channel message count = %d, want 1", got)
-		}
+		assert.Len(t, channel.Messages.GetMessages(), 1, "mixed-case channel message should be routed to the channel")
 	})
 }
 
@@ -287,9 +246,7 @@ func TestOwnNickChangeUsesServerCaseMappingAndUpdatesShadow(t *testing.T) {
 		Params:  []string{"Nick_"},
 	})
 
-	if got := h.CurrentNick(); got != "Nick_" {
-		t.Fatalf("current nick = %q, want server-observed new nick", got)
-	}
+	assert.Equal(t, "Nick_", h.CurrentNick(), "current nick should follow the server-observed new nick")
 }
 
 func TestOtherUsersNickChangeDoesNotUpdateShadow(t *testing.T) {
@@ -302,16 +259,12 @@ func TestOtherUsersNickChangeDoesNotUpdateShadow(t *testing.T) {
 		Params:  []string{"Else"},
 	})
 
-	if got := h.CurrentNick(); got != "autobrr" {
-		t.Fatalf("other user's NICK changed current nick to %q", got)
-	}
+	assert.Equal(t, "autobrr", h.CurrentNick(), "other user's NICK must not change our current nick")
 }
 
 func TestWelcomeTracksServerSelectedNick(t *testing.T) {
 	h, _ := newTestHandler()
 	h.handleWelcome(ircmsg.Message{Command: "001", Params: []string{"autobrr_"}})
 
-	if got := h.CurrentNick(); got != "autobrr_" {
-		t.Fatalf("current nick = %q, want %q", got, "autobrr_")
-	}
+	assert.Equal(t, "autobrr_", h.CurrentNick())
 }

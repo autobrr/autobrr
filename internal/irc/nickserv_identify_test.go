@@ -56,9 +56,7 @@ func TestOnNoticeMatchesNickServCaseInsensitively(t *testing.T) {
 	msg.Source = "NICKSERV!services@services.example.test"
 	h.onNotice(msg)
 
-	if !h.authenticated {
-		t.Fatal("case-variant NickServ notice did not authenticate the connection")
-	}
+	assert.True(t, h.authenticated, "case-variant NickServ notice did not authenticate the connection")
 }
 
 func TestAuthenticateGatesNickServOnMechanism(t *testing.T) {

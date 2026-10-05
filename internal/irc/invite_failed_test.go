@@ -230,9 +230,8 @@ func TestBouncerIgnoresInviteResponseAddressedToStaleNick(t *testing.T) {
 	})
 
 	time.Sleep(3 * testInviteGrace)
-	if sm.channel.HasConnectionErrors() {
-		t.Fatalf("bouncer playback for an old nick raised an invite failure: %v", sm.channel.ConnectionErrorsCopy())
-	}
+
+	require.Falsef(t, sm.channel.HasConnectionErrors(), "bouncer playback for an old nick raised an invite failure: %v", sm.channel.ConnectionErrorsCopy())
 }
 
 // TestHandleInviteResponseIgnoresNonAwaitingChannel verifies a channel that is not

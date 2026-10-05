@@ -196,12 +196,9 @@ func TestInitIndexersMatchesInviteBotNickExactly(t *testing.T) {
 			h.InitIndexers([]*domain.IndexerDefinition{definition})
 
 			channel, _, found := h.getChannel("#chan")
-			if !found {
-				t.Fatal("configured channel was not registered")
-			}
-			if got := channel.InviteCommand(); got != tt.want {
-				t.Errorf("invite command = %q, want %q", got, tt.want)
-			}
+			require.True(t, found, "configured channel was not registered")
+
+			assert.Equal(t, tt.want, channel.InviteCommand())
 		})
 	}
 }
@@ -216,34 +213,22 @@ func TestCaseMappingChangeReassociatesInviteCommand(t *testing.T) {
 	h.InitIndexers([]*domain.IndexerDefinition{definition})
 
 	channel, _, found := h.getChannel("#chan")
-	if !found {
-		t.Fatal("configured channel was not registered")
-	}
-	if got := channel.InviteCommand(); got != h.network.InviteCommand {
-		t.Fatalf("RFC1459 invite command = %q, want %q", got, h.network.InviteCommand)
-	}
+	require.True(t, found, "configured channel was not registered")
+	require.Equal(t, h.network.InviteCommand, channel.InviteCommand(), "RFC1459 should match the invite bot")
 
 	h.handleISupport(ircmsg.Message{
 		Command: "005",
 		Params:  []string{"autobrr", "CASEMAPPING=rfc1459-strict", "are supported"},
 	})
-	if got := channel.InviteCommand(); got != "" {
-		t.Fatalf("strict RFC1459 retained non-equivalent invite bot command %q", got)
-	}
-	if got := channel.StateMachine().inviteCommand; got != "" {
-		t.Fatalf("state machine retained non-equivalent invite bot command %q", got)
-	}
+	assert.Empty(t, channel.InviteCommand(), "strict RFC1459 retained non-equivalent invite bot command")
+	assert.Empty(t, channel.StateMachine().inviteCommand, "state machine retained non-equivalent invite bot command")
 
 	h.handleISupport(ircmsg.Message{
 		Command: "005",
 		Params:  []string{"autobrr", "CASEMAPPING=rfc1459", "are supported"},
 	})
-	if got := channel.InviteCommand(); got != h.network.InviteCommand {
-		t.Fatalf("restored RFC1459 invite command = %q, want %q", got, h.network.InviteCommand)
-	}
-	if got := channel.StateMachine().inviteCommand; got != h.network.InviteCommand {
-		t.Fatalf("state machine RFC1459 invite command = %q, want %q", got, h.network.InviteCommand)
-	}
+	assert.Equal(t, h.network.InviteCommand, channel.InviteCommand(), "restored RFC1459 should match the invite bot again")
+	assert.Equal(t, h.network.InviteCommand, channel.StateMachine().inviteCommand, "state machine should pick up the restored invite command")
 }
 
 func TestInviteCommandOwnerStaysWithSelectedChannelDefinition(t *testing.T) {
@@ -258,18 +243,12 @@ func TestInviteCommandOwnerStaysWithSelectedChannelDefinition(t *testing.T) {
 	h.InitIndexers([]*domain.IndexerDefinition{first, second})
 
 	channel, _, found := h.getChannel("#shared")
-	if !found {
-		t.Fatal("shared channel was not registered")
-	}
-	if got, want := channel.InviteCommand(), "SecondBot enter two"; got != want {
-		t.Fatalf("initial invite command = %q, want %q", got, want)
-	}
+	require.True(t, found, "shared channel was not registered")
+	require.Equal(t, "SecondBot enter two", channel.InviteCommand(), "initial invite command")
 
 	h.handleISupport(ircmsg.Message{
 		Command: "005",
 		Params:  []string{"autobrr", "CASEMAPPING=ascii", "are supported"},
 	})
-	if got, want := channel.InviteCommand(), "SecondBot enter two"; got != want {
-		t.Fatalf("invite command after remap = %q, want %q", got, want)
-	}
+	assert.Equal(t, "SecondBot enter two", channel.InviteCommand(), "invite command after remap")
 }

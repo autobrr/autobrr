@@ -62,9 +62,8 @@ func TestBouncerWildcardEndOfNames(t *testing.T) {
 	inst.WaitForMonitoring("#bouncer", 10*time.Second)
 
 	srv.Announce("#bouncer", "announcer", "New torrent: Bouncer.Release.2026.1080p.WEB-DL.x264-GRP in TV")
-	if _, ok := inst.Releases.Wait(5 * time.Second); !ok {
-		t.Fatal("no release produced after wildcard end-of-NAMES")
-	}
+	_, ok := inst.Releases.Wait(5 * time.Second)
+	require.True(t, ok, "no release produced after wildcard end-of-NAMES")
 }
 
 // TestMixedCaseSelfNickChange covers irc-go's exact source-nick comparison: the
@@ -80,13 +79,10 @@ func TestMixedCaseSelfNickChange(t *testing.T) {
 	inst.WaitForMonitoring("#nick", 10*time.Second)
 
 	srv.SendNickChange("AutoBrr", "AUTOBRR", "AutoBrr_")
-	deadline := time.Now().Add(5 * time.Second)
-	for inst.Handler.CurrentNick() != "AutoBrr_" && time.Now().Before(deadline) {
-		time.Sleep(10 * time.Millisecond)
-	}
-	if got := inst.Handler.CurrentNick(); got != "AutoBrr_" {
-		t.Fatalf("current nick = %q after mixed-case NICK event", got)
-	}
+
+	require.Eventually(t, func() bool {
+		return inst.Handler.CurrentNick() == "AutoBrr_"
+	}, 5*time.Second, 10*time.Millisecond, "current nick did not follow the mixed-case NICK event")
 }
 
 // ---- auth
