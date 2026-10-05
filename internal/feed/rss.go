@@ -494,6 +494,16 @@ func isNewerThanMaxAge(maxAge int, item, now time.Time) bool {
 	return false
 }
 
+// parseMetaID returns a numeric metadata id from a feed attribute, or 0 when it is empty or not a number.
+func parseMetaID(value string) int {
+	id, err := strconv.Atoi(value)
+	if err != nil {
+		return 0
+	}
+
+	return id
+}
+
 // isFreeleech basic freeleech parsing
 func isFreeleech(str []string) bool {
 	for _, s := range str {

@@ -72,24 +72,40 @@ func Test_arrDownloadClient(t *testing.T) {
 func TestArrPublishDate(t *testing.T) {
 	t.Parallel()
 
+	pubDate := time.Date(2026, time.September, 24, 5, 58, 24, 0, time.UTC)
+
 	t.Run("uses the feed publish date when set", func(t *testing.T) {
 		t.Parallel()
 
-		pubDate := time.Date(2026, time.September, 24, 5, 58, 24, 0, time.UTC)
-		got := arrPublishDate(&domain.Release{PublishDate: pubDate})
-
-		assert.Equal(t, pubDate.Format(time.RFC3339), got)
+		assert.Equal(t, "2026-09-24T05:58:24Z", arrPublishDate(&domain.Release{PublishDate: pubDate}))
 	})
 
-	t.Run("falls back to now when the feed publish date is zero", func(t *testing.T) {
+	t.Run("formats a non utc feed date in utc", func(t *testing.T) {
 		t.Parallel()
 
-		before := time.Now().Add(-time.Second)
-		got, err := time.Parse(time.RFC3339, arrPublishDate(&domain.Release{}))
+		local := pubDate.In(time.FixedZone("BST", 60*60))
 
-		assert.NoError(t, err)
-		assert.WithinDuration(t, before, got, 5*time.Second)
+		assert.Equal(t, "2026-09-24T05:58:24Z", arrPublishDate(&domain.Release{PublishDate: local}))
 	})
+
+	fallback := []struct {
+		name        string
+		publishDate time.Time
+	}{
+		{name: "falls back to now when the feed publish date is zero"},
+		{name: "falls back to now when the feed publish date is in the future", publishDate: time.Now().Add(2 * time.Hour)},
+	}
+
+	for _, tt := range fallback {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := time.Parse(time.RFC3339, arrPublishDate(&domain.Release{PublishDate: tt.publishDate}))
+			require.NoError(t, err)
+
+			assert.WithinDuration(t, time.Now(), got, 5*time.Second)
+		})
+	}
 }
 
 type fakeDownloaderService struct {
@@ -178,4 +194,61 @@ func TestService_runSonarr_indexerFound(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, rejections)
 	assert.Equal(t, []string{"IPTorrents"}, pushed())
+}
+
+// newSonarrCaptureServer accepts every release/push and returns the raw JSON body of the last one,
+// so a test can tell an omitted field from a zero value.
+func newSonarrCaptureServer(t *testing.T) (*httptest.Server, func() map[string]any) {
+	t.Helper()
+
+	var (
+		m      sync.Mutex
+		pushed map[string]any
+	)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/api/v3/release/push", func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&body))
+
+		m.Lock()
+		pushed = body
+		m.Unlock()
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`[{"approved":true,"rejected":false,"rejections":[]}]`))
+	})
+
+	ts := httptest.NewServer(mux)
+	t.Cleanup(ts.Close)
+
+	return ts, func() map[string]any {
+		m.Lock()
+		defer m.Unlock()
+
+		return pushed
+	}
+}
+
+func TestService_runSonarr_pushesFeedMetadata(t *testing.T) {
+	ts, pushed := newSonarrCaptureServer(t)
+
+	release := newSonarrTestRelease()
+	release.MetaTVDB = 12345
+	release.PublishDate = time.Date(2026, time.September, 24, 5, 58, 24, 0, time.UTC)
+
+	_, err := newSonarrTestService(ts.URL).runSonarr(t.Context(), &domain.Action{ClientID: 1}, release)
+	require.NoError(t, err)
+
+	assert.EqualValues(t, 12345, pushed()["tvdbId"])
+	assert.Equal(t, "2026-09-24T05:58:24Z", pushed()["publishDate"])
+}
+
+func TestService_runSonarr_omitsMissingTvdbID(t *testing.T) {
+	ts, pushed := newSonarrCaptureServer(t)
+
+	_, err := newSonarrTestService(ts.URL).runSonarr(t.Context(), &domain.Action{ClientID: 1}, newSonarrTestRelease())
+	require.NoError(t, err)
+
+	assert.NotContains(t, pushed(), "tvdbId")
 }

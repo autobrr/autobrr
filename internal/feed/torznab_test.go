@@ -113,9 +113,9 @@ func TestTorznabJob_processItems_metadata(t *testing.T) {
 
 	item := torznab.FeedItem{
 		Title:   "That Show S01 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-NOGROUP",
-		TvdbId:  "0",
-		ImdbId:  "0",
-		TmdbId:  "0",
+		TvdbId:  "12345",
+		ImdbId:  "tt1234567",
+		TmdbId:  "54321",
 		PubDate: torznab.Time{Time: pubDate},
 	}
 
@@ -123,9 +123,9 @@ func TestTorznabJob_processItems_metadata(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, releases, 1)
 
-	assert.Equal(t, 0, releases[0].MetaTVDB, "tvdb id")
-	assert.Equal(t, "0", releases[0].MetaIMDB, "imdb id")
-	assert.Equal(t, 0, releases[0].MetaTMDB, "tmdb id")
+	assert.Equal(t, 12345, releases[0].MetaTVDB, "tvdb id")
+	assert.Equal(t, "tt1234567", releases[0].MetaIMDB, "imdb id")
+	assert.Equal(t, 54321, releases[0].MetaTMDB, "tmdb id")
 	assert.Equal(t, pubDate, releases[0].PublishDate, "publish date")
 }
 

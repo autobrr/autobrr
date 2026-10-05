@@ -122,7 +122,7 @@ type Release struct {
 	MetaIMDB                           string                `json:"-"`
 	MetaTMDB                           int                   `json:"-"`
 	MetaTVDB                           int                   `json:"-"`
-	PublishDate                        time.Time             `json:"-"` // publish date from feeds (RSS/Torznab/Newznab)
+	PublishDate                        time.Time             `json:"-"` // zero for IRC announces, which carry no publish date
 }
 
 // Hash return md5 hashed normalized release name
