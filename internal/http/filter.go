@@ -56,7 +56,7 @@ func (h filterHandler) Routes(r chi.Router) {
 		r.Patch("/", h.updatePartial)
 		r.Delete("/", h.delete)
 
-		r.Get("/duplicate", h.duplicate)
+		r.With(requireAccess(domain.APIResourceFilters, domain.APIAccessWrite)).Get("/duplicate", h.duplicate)
 		r.Put("/enabled", h.toggleEnabled)
 
 		r.Route("/notifications", func(r chi.Router) {

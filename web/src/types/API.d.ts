@@ -10,6 +10,13 @@ interface APIKey {
   created_at: Date;
 }
 
+type APIKeyAccess = "read" | "write";
+
+interface APIKeyResource {
+  name: string;
+  access: APIKeyAccess[];
+}
+
 interface UserUpdate {
   username_current: string;
   username_new?: string;

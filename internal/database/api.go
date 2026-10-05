@@ -54,6 +54,25 @@ func (r *APIRepo) Store(ctx context.Context, key *domain.APIKey) error {
 	return nil
 }
 
+func (r *APIRepo) Update(ctx context.Context, key *domain.APIKey) error {
+	queryBuilder := r.db.squirrel.
+		Update("api_key").
+		Set("name", key.Name).
+		Set("scopes", pq.Array(key.Scopes)).
+		Where(sq.Eq{"key": key.Key}).
+		Suffix("RETURNING created_at").RunWith(r.db.Handler)
+
+	if err := queryBuilder.QueryRowContext(ctx).Scan(&key.CreatedAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.ErrRecordNotFound
+		}
+
+		return errors.Wrap(err, "error executing query")
+	}
+
+	return nil
+}
+
 func (r *APIRepo) Delete(ctx context.Context, key string) error {
 	queryBuilder := r.db.squirrel.Delete("api_key").Where(sq.Eq{"key": key})
 

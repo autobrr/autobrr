@@ -12,14 +12,14 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/render"
 )
 
 type apikeyService interface {
 	List(ctx context.Context) ([]domain.APIKey, error)
 	Store(ctx context.Context, key *domain.APIKey) error
+	Update(ctx context.Context, key *domain.APIKey) error
 	Delete(ctx context.Context, key string) error
-	ValidateAPIKey(ctx context.Context, token string) bool
+	ValidateAPIKey(ctx context.Context, token string) (*domain.APIKey, bool)
 }
 
 type apikeyHandler struct {
@@ -37,7 +37,11 @@ func newAPIKeyHandler(encoder encoder, service apikeyService) *apikeyHandler {
 func (h apikeyHandler) Routes(r chi.Router) {
 	r.Get("/", h.list)
 	r.Post("/", h.store)
-	r.Delete("/{apikey}", h.delete)
+
+	r.Route("/{apikey}", func(r chi.Router) {
+		r.Put("/", h.update)
+		r.Delete("/", h.delete)
+	})
 }
 
 func (h apikeyHandler) list(w http.ResponseWriter, r *http.Request) {
@@ -47,22 +51,55 @@ func (h apikeyHandler) list(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	render.JSON(w, r, keys)
+	h.encoder.StatusResponse(w, http.StatusOK, keys)
 }
 
 func (h apikeyHandler) store(w http.ResponseWriter, r *http.Request) {
-	var data domain.APIKey
+	var data *domain.APIKey
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	if err := h.service.Store(r.Context(), &data); err != nil {
+	if err := h.service.Store(r.Context(), data); err != nil {
+		if errors.Is(err, domain.ErrInvalidAPIKeyScopes) {
+			h.encoder.BadRequestErr(w, err)
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}
 
-	h.encoder.StatusResponse(w, http.StatusCreated, data)
+	h.encoder.StatusCreatedData(w, data)
+}
+
+func (h apikeyHandler) update(w http.ResponseWriter, r *http.Request) {
+	apiKey := chi.URLParam(r, "apikey")
+
+	var data *domain.APIKey
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		h.encoder.Error(w, err)
+		return
+	}
+
+	data.Key = apiKey
+
+	if err := h.service.Update(r.Context(), data); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("api key %s not found", apiKey))
+			return
+		}
+		if errors.Is(err, domain.ErrInvalidAPIKeyScopes) {
+			h.encoder.BadRequestErr(w, err)
+			return
+		}
+
+		h.encoder.Error(w, err)
+		return
+	}
+
+	h.encoder.StatusResponse(w, http.StatusOK, data)
 }
 
 func (h apikeyHandler) delete(w http.ResponseWriter, r *http.Request) {

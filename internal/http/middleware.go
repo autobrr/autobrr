@@ -4,11 +4,15 @@
 package http
 
 import (
+	"cmp"
+	"context"
 	"fmt"
 	"net/http"
 	"runtime/debug"
 	"strings"
 	"time"
+
+	"github.com/autobrr/autobrr/internal/domain"
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog"
@@ -70,41 +74,85 @@ func (s *secureSessionResponseWriter) Unwrap() http.ResponseWriter {
 
 func (s *Server) IsAuthenticated(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if token := r.Header.Get("X-API-Token"); token != "" {
-			// check header
-			if !s.apiService.ValidateAPIKey(r.Context(), token) {
+		if token := cmp.Or(r.Header.Get("X-API-Token"), r.URL.Query().Get("apikey")); token != "" {
+			apiKey, ok := s.apiService.ValidateAPIKey(r.Context(), token)
+			if !ok {
 				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 				return
 			}
 
-		} else if key := r.URL.Query().Get("apikey"); key != "" {
-			// check query param like ?apikey=TOKEN
-			if !s.apiService.ValidateAPIKey(r.Context(), key) {
-				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), apiKeyContextKey{}, apiKey)))
+			return
+		}
+
+		authenticated := s.sessionManager.GetBool(r.Context(), "authenticated")
+		if !authenticated {
+			s.log.Debug().Msg("session not authenticated")
+			if err := s.sessionManager.Destroy(r.Context()); err != nil {
+				s.log.Error().Err(err).Msg("failed to destroy session")
+			}
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+			return
+		}
+
+		deadline := s.sessionManager.Deadline(r.Context())
+		if time.Until(deadline) <= 7*24*time.Hour {
+			s.log.Trace().Time("deadline", deadline).Msg("session expiring in less than 7 days, extending")
+
+			if err := s.sessionManager.RenewToken(r.Context()); err != nil {
+				s.log.Error().Err(err).Str("username", s.sessionManager.GetString(r.Context(), "username")).Str("remote_addr", r.RemoteAddr).Msg("failed to renew session token")
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
-		} else {
-			// check session
-			authenticated := s.sessionManager.GetBool(r.Context(), "authenticated")
-			if !authenticated {
-				s.log.Debug().Msg("session not authenticated")
-				if err := s.sessionManager.Destroy(r.Context()); err != nil {
-					s.log.Error().Err(err).Msg("failed to destroy session")
-				}
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+type apiKeyContextKey struct{}
+
+// requireScope limits API key requests to keys with access to resource, deriving the access level from the
+// request method. Session requests are not scoped.
+func requireScope(resource domain.APIResource) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			access := domain.APIAccessWrite
+			switch r.Method {
+			case http.MethodGet, http.MethodHead, http.MethodOptions:
+				access = domain.APIAccessRead
+			}
+
+			if apiKey, ok := r.Context().Value(apiKeyContextKey{}).(*domain.APIKey); ok && !apiKey.HasAccess(resource, access) {
 				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 				return
 			}
 
-			deadline := s.sessionManager.Deadline(r.Context())
-			if time.Until(deadline) <= 7*24*time.Hour {
-				s.log.Trace().Time("deadline", deadline).Msg("session expiring in less than 7 days, extending")
+			next.ServeHTTP(w, r)
+		})
+	}
+}
 
-				if err := s.sessionManager.RenewToken(r.Context()); err != nil {
-					s.log.Error().Err(err).Str("username", s.sessionManager.GetString(r.Context(), "username")).Str("remote_addr", r.RemoteAddr).Msg("failed to renew session token")
-					http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-					return
-				}
+// requireAccess is requireScope with a fixed access level, for routes whose method does not match what they do.
+func requireAccess(resource domain.APIResource, access domain.APIAccess) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if apiKey, ok := r.Context().Value(apiKeyContextKey{}).(*domain.APIKey); ok && !apiKey.HasAccess(resource, access) {
+				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+				return
 			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// requireFullAccess keeps scoped API keys away from routes that could escalate their own access.
+func requireFullAccess(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if apiKey, ok := r.Context().Value(apiKeyContextKey{}).(*domain.APIKey); ok && !apiKey.HasFullAccess() {
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+			return
 		}
 
 		next.ServeHTTP(w, r)

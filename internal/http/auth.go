@@ -68,7 +68,7 @@ func (h *authHandler) Routes(r chi.Router) {
 
 		r.Post("/logout", h.logout)
 		r.Get("/validate", h.validate)
-		r.Patch("/user/{username}", h.updateUser)
+		r.With(requireFullAccess).Patch("/user/{username}", h.updateUser)
 	})
 }
 

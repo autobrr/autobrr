@@ -521,7 +521,88 @@
     "createCta": "创建 API 密钥",
     "removeTitle": "移除 API 密钥：{{name}}",
     "removeText": "确定要移除此 API 密钥吗？此操作无法撤销。",
-    "deleteKey": "删除密钥"
+    "deleteKey": "删除密钥",
+    "updated": "API 密钥 {{name}} 已更新",
+    "updateTitle": "编辑 API 密钥",
+    "updateDescription": "更新此 API 密钥的名称和权限。",
+    "save": "保存",
+    "editKey": "编辑密钥",
+    "permissions": "权限",
+    "permissionsDescription": "请只选择满足需求的最小权限。",
+    "permissionsRequired": "请选择完全访问或至少添加一项权限",
+    "fullAccess": "完全访问",
+    "fullAccessDescription": "对所有内容的读写权限，包括 API 密钥和用户设置。",
+    "customAccess": "自定义权限",
+    "customAccessDescription": "仅限所选资源和访问级别。",
+    "addPermissions": "添加权限",
+    "selectPermissions": "选择权限",
+    "searchPermissions": "搜索",
+    "noPermissions": "尚未添加任何权限。",
+    "noPermissionsFound": "未找到权限",
+    "removePermission": "移除 {{name}} 权限",
+    "accessLabel": "访问：",
+    "access": {
+      "read": "只读",
+      "write": "读写"
+    },
+    "accessShort": {
+      "read": "读",
+      "write": "写"
+    },
+    "resources": {
+      "filters": {
+        "label": "过滤器",
+        "description": "过滤器及其动作。"
+      },
+      "releases": {
+        "label": "发布",
+        "description": "发布历史、统计、清理任务和动作重试。"
+      },
+      "indexers": {
+        "label": "索引器",
+        "description": "索引器及其设置。"
+      },
+      "irc": {
+        "label": "IRC",
+        "description": "IRC 网络、频道和公告处理。"
+      },
+      "feeds": {
+        "label": "订阅源",
+        "description": "RSS、Torznab 和 Newznab 订阅源。"
+      },
+      "downloaders": {
+        "label": "下载客户端",
+        "description": "下载客户端和连接测试。"
+      },
+      "lists": {
+        "label": "列表",
+        "description": "列表及列表刷新。"
+      },
+      "webhooks": {
+        "label": "Webhooks",
+        "description": "通过 webhook 触发列表刷新，例如来自 Sonarr 或 Radarr。"
+      },
+      "notifications": {
+        "label": "通知",
+        "description": "通知服务。"
+      },
+      "proxies": {
+        "label": "代理",
+        "description": "代理和代理测试。"
+      },
+      "config": {
+        "label": "应用配置",
+        "description": "应用设置，例如日志级别和更新检查。"
+      },
+      "logs": {
+        "label": "日志",
+        "description": "日志文件和实时日志流。"
+      },
+      "updates": {
+        "label": "更新",
+        "description": "检查 autobrr 新版本。"
+      }
+    }
   },
     "notification": {
       "settings": "设置",

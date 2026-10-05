@@ -5,12 +5,12 @@
 
 import { useRef } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { TrashIcon } from "@heroicons/react/24/outline";
+import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
 
 import { KeyField } from "@components/fields/text";
 import { DeleteModal } from "@components/modals";
-import { APIKeyAddForm } from "@forms/settings/APIKeyAddForm";
+import { APIKeyAddForm, APIKeyUpdateForm } from "@forms/settings/APIKeyForms";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { APIClient } from "@api/APIClient";
@@ -19,6 +19,7 @@ import { ApiKeys } from "@api/query_keys";
 import { useToggle } from "@hooks/hooks";
 import { classNames } from "@utils";
 import { EmptySimple } from "@components/emptystates";
+import { API_KEY_FULL_ACCESS } from "@domain/constants";
 import { Section } from "./_components";
 import { PlusIcon } from "@heroicons/react/24/solid";
 
@@ -52,8 +53,11 @@ function APISettings() {
             <div className="col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               {t("forms.apiKey.name")}
             </div>
-            <div className="col-span-8 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <div className="col-span-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               {t("forms.apiKey.key")}
+            </div>
+            <div className="col-span-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              {t("forms.apiKey.permissions")}
             </div>
           </li>
 
@@ -79,6 +83,7 @@ function APIListItem({ apikey }: ApiKeyItemProps) {
   const { t } = useTranslation("settings");
   const cancelModalButtonRef = useRef(null);
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
+  const [updateFormIsOpen, toggleUpdateForm] = useToggle(false);
 
   const queryClient = useQueryClient();
 
@@ -100,6 +105,8 @@ function APIListItem({ apikey }: ApiKeyItemProps) {
 
   return (
     <li className="text-gray-500 dark:text-gray-400">
+      <APIKeyUpdateForm isOpen={updateFormIsOpen} toggle={toggleUpdateForm} data={apikey} />
+
       <DeleteModal
         isOpen={deleteModalIsOpen}
         isLoading={deleteMutation.isPending}
@@ -117,12 +124,23 @@ function APIListItem({ apikey }: ApiKeyItemProps) {
         <div className="col-span-3 px-2 sm:px-6 py-2 sm:py-0 truncate block sm:text-sm text-md font-medium text-gray-900 dark:text-white">
           <div className="flex justify-between">
             <div className="pl-1 py-2">{apikey.name}</div>
-            <div>
+            <div className="sm:hidden">
               <button
                 className={classNames(
                   "cursor-pointer",
                   "text-gray-900 dark:text-gray-300",
-                  "sm:hidden font-medium group rounded-md items-center px-2 py-2 text-sm"
+                  "font-medium group rounded-md items-center px-2 py-2 text-sm"
+                )}
+                onClick={toggleUpdateForm}
+                title={t("forms.apiKey.editKey")}
+              >
+                <PencilSquareIcon className="w-5 h-5" aria-hidden="true" />
+              </button>
+              <button
+                className={classNames(
+                  "cursor-pointer",
+                  "text-gray-900 dark:text-gray-300",
+                  "font-medium group rounded-md items-center px-2 py-2 text-sm"
                 )}
                 onClick={toggleDeleteModal}
                 title={t("forms.apiKey.deleteKey")}
@@ -135,11 +153,26 @@ function APIListItem({ apikey }: ApiKeyItemProps) {
             </div>
           </div>
         </div>
-        <div className="col-span-8 flex items-center text-sm font-medium text-gray-900 dark:text-white">
+        <div className="col-span-5 flex items-center text-sm font-medium text-gray-900 dark:text-white">
           <KeyField value={apikey.key} />
         </div>
 
+        <div className="col-span-3 flex flex-wrap gap-1 px-2 sm:px-0 py-2 sm:py-0">
+          <APIKeyScopes scopes={apikey.scopes} />
+        </div>
+
         <div className="col-span-1 hidden sm:flex items-center text-sm font-medium text-gray-900 dark:text-white">
+          <button
+            className={classNames(
+              "cursor-pointer",
+              "text-gray-900 dark:text-gray-300",
+              "font-medium group flex rounded-md items-center px-2 py-2 text-sm"
+            )}
+            onClick={toggleUpdateForm}
+            title={t("forms.apiKey.editKey")}
+          >
+            <PencilSquareIcon className="w-5 h-5" aria-hidden="true" />
+          </button>
           <button
             className={classNames(
               "cursor-pointer",
@@ -156,5 +189,34 @@ function APIListItem({ apikey }: ApiKeyItemProps) {
     </li>
   );
 }
+
+interface APIKeyScopesProps {
+  scopes: string[];
+}
+
+const APIKeyScopes = ({ scopes }: APIKeyScopesProps) => {
+  const { t } = useTranslation("settings");
+
+  if (scopes.includes(API_KEY_FULL_ACCESS)) {
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-yellow-100 dark:bg-yellow-400/10 text-yellow-600 dark:text-yellow-400">
+        {t("forms.apiKey.fullAccess")}
+      </span>
+    );
+  }
+
+  return scopes.map((scope) => {
+    const [resource, access] = scope.split(":");
+
+    return (
+      <span
+        key={scope}
+        className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400"
+      >
+        {t(`forms.apiKey.resources.${resource}.label`)}: {t(`forms.apiKey.accessShort.${access}`)}
+      </span>
+    );
+  });
+};
 
 export default APISettings;
