@@ -4,4 +4,5 @@
  */
 
 export { TableButton, TablePageButton } from "./Buttons";
+export { TablePagination } from "./Pagination";
 export { AgeCell, IndexerCell, NameCell, TitleCell, ReleaseStatusCell, LinksCell } from "./Cells";

@@ -62,8 +62,6 @@
     "confirmDeleteOne": "Slette dette varselet? Dette kan ikke angres.",
     "confirmDeleteMany": "Slette {{selected}} valgte varsler? Dette kan ikke angres.",
     "cleared": "Varsler fjernet",
-    "previous": "Forrige",
-    "next": "Neste",
     "unread": "Ulest",
     "filterLabel": "Filtrer varsler",
     "filterAll": "Alle",
@@ -83,6 +81,12 @@
     "eventFilter": "Hendelsestype",
     "allEvents": "Alle hendelser",
     "moreActions": "Flere handlinger",
+    "columns": {
+      "age": "Alder",
+      "message": "Melding",
+      "event": "Hendelsestype",
+      "actions": "Handlinger"
+    },
     "fields": {
       "indexer": "Indekserer",
       "filter": "Filter",

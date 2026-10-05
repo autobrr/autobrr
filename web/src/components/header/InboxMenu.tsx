@@ -83,12 +83,12 @@ export const InboxMenu = () => {
 
       <PopoverPanel
         anchor={{ to: "bottom end", gap: 8 }}
-        className="z-20 w-96 max-w-[calc(100vw-2rem)] rounded-md border border-gray-250 dark:border-gray-775 bg-white dark:bg-gray-825 shadow-lg focus:outline-hidden"
+        className="z-20 flex flex-col w-96 max-w-[calc(100vw-2rem)] rounded-md border border-gray-250 dark:border-gray-775 bg-white dark:bg-gray-800 shadow-lg focus:outline-hidden"
       >
         {({ close }) => (
           <>
-            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-750 px-4 py-2">
-              <h3 className="text-sm font-medium text-gray-900 dark:text-white">{t("inbox.title")}</h3>
+            <div className="flex shrink-0 items-center justify-between rounded-t-md border-b border-gray-200 dark:border-gray-750 bg-gray-100 dark:bg-gray-850 px-4 py-2">
+              <h3 className="text-xs font-medium tracking-wider uppercase text-gray-600 dark:text-gray-400">{t("inbox.title")}</h3>
               <button
                 type="button"
                 onClick={() => {
@@ -96,14 +96,16 @@ export const InboxMenu = () => {
                   confirmMarkRead("all");
                 }}
                 disabled={unreadCount === 0 || markAllReadMutation.isPending}
-                className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 disabled:text-gray-400 dark:disabled:text-gray-600 cursor-pointer disabled:cursor-not-allowed"
+                className="inline-flex items-center px-2.5 py-1.5 rounded-md shadow-xs text-xs font-medium transition text-white bg-blue-600 hover:bg-blue-700 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500 dark:focus-visible:ring-offset-gray-850 disabled:opacity-50 disabled:hover:bg-blue-600 cursor-pointer disabled:cursor-not-allowed"
               >
                 {t("inbox.markAllRead")}
               </button>
             </div>
 
             {data && data.data.length > 0 ? (
-              <ul className="max-h-96 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-750">
+              // relative keeps the sr-only labels inside the list, and min-h-0 lets the list shrink when the
+              // anchored panel is capped to a short viewport; either one missing gives the panel its own scrollbar.
+              <ul className="relative min-h-0 max-h-96 overflow-y-auto divide-y divide-gray-150 dark:divide-gray-750">
                 {data.data.map((message) => (
                   <InboxMessageItem
                     key={message.id}
@@ -123,8 +125,8 @@ export const InboxMenu = () => {
               as={Link}
               to="/notifications"
               className={classNames(
-                "block rounded-b-md border-t border-gray-200 dark:border-gray-750 px-4 py-2 text-center text-sm font-medium",
-                "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-750 cursor-pointer"
+                "block shrink-0 rounded-b-md border-t border-gray-200 dark:border-gray-750 px-4 py-2.5 text-center text-sm font-medium",
+                "text-gray-700 dark:text-gray-300 hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-gray-750 dark:hover:text-white cursor-pointer"
               )}
             >
               {t("inbox.viewAll")}

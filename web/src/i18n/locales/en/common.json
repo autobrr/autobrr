@@ -62,8 +62,6 @@
     "confirmDeleteOne": "Delete this notification? This cannot be undone.",
     "confirmDeleteMany": "Delete {{selected}} selected notifications? This cannot be undone.",
     "cleared": "Notifications cleared",
-    "previous": "Previous",
-    "next": "Next",
     "unread": "Unread",
     "filterLabel": "Filter notifications",
     "filterAll": "All",
@@ -83,6 +81,12 @@
     "eventFilter": "Event type",
     "allEvents": "All events",
     "moreActions": "More actions",
+    "columns": {
+      "age": "Age",
+      "message": "Message",
+      "event": "Event type",
+      "actions": "Actions"
+    },
     "fields": {
       "indexer": "Indexer",
       "filter": "Filter",

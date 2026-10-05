@@ -19,7 +19,8 @@ export const TableButton = ({ children, className, disabled, onClick }: ButtonPr
     className={classNames(
       "cursor-pointer disabled:cursor-not-allowed",
       className ?? "",
-      "relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-800 text-sm font-medium rounded-md text-gray-700 dark:text-gray-500 bg-white dark:bg-gray-800 hover:bg-gray-50"
+      "relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-700 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700",
+      "disabled:opacity-50 disabled:hover:bg-white dark:disabled:hover:bg-gray-800"
     )}
     disabled={disabled}
     onClick={onClick}
@@ -34,8 +35,8 @@ export const TablePageButton = ({ children, className, disabled, onClick }: Butt
     className={classNames(
       className ?? "",
       disabled
-        ? "cursor-not-allowed text-gray-500 dark:text-gray-500 border-gray-300 dark:border-gray-700 dark:bg-gray-800"
-        : "cursor-pointer text-gray-500 dark:text-gray-350 border-gray-300 dark:border-gray-700 dark:bg-gray-850 hover:bg-gray-100 dark:hover:bg-gray-700",
+        ? "cursor-not-allowed text-gray-400 dark:text-gray-600 border-gray-300 dark:border-gray-700 dark:bg-gray-800"
+        : "cursor-pointer text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-700 dark:bg-gray-850 hover:bg-gray-100 dark:hover:bg-gray-700",
       "inline-flex items-center p-1.5 border text-sm font-medium transition"
     )}
     disabled={disabled}

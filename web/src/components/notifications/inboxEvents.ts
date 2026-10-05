@@ -4,6 +4,7 @@
  */
 
 import type { ComponentType, SVGProps } from "react";
+import type { TFunction } from "i18next";
 import {
   ArrowPathIcon,
   ArrowUpCircleIcon,
@@ -19,39 +20,27 @@ import {
 
 interface InboxEventStyle {
   icon: ComponentType<SVGProps<SVGSVGElement>>;
-  tile: string;
   text: string;
-  label: string;
 }
 
 const RED = {
-  tile: "bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400",
-  text: "text-red-600 dark:text-red-400",
-  label: "bg-red-50 text-red-700 ring-red-600/20 dark:bg-red-400/10 dark:text-red-400 dark:ring-red-400/25"
+  text: "text-red-600 dark:text-red-400"
 };
 
 const GREEN = {
-  tile: "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400",
-  text: "text-green-600 dark:text-green-400",
-  label: "bg-green-50 text-green-700 ring-green-600/20 dark:bg-green-400/10 dark:text-green-400 dark:ring-green-400/25"
+  text: "text-green-600 dark:text-green-400"
 };
 
 const AMBER = {
-  tile: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400",
-  text: "text-amber-600 dark:text-amber-400",
-  label: "bg-amber-50 text-amber-800 ring-amber-600/20 dark:bg-amber-400/10 dark:text-amber-400 dark:ring-amber-400/25"
+  text: "text-amber-600 dark:text-amber-400"
 };
 
 const BLUE = {
-  tile: "bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400",
-  text: "text-blue-600 dark:text-blue-400",
-  label: "bg-blue-50 text-blue-700 ring-blue-600/20 dark:bg-blue-400/10 dark:text-blue-400 dark:ring-blue-400/25"
+  text: "text-blue-600 dark:text-blue-400"
 };
 
 const GRAY = {
-  tile: "bg-gray-100 text-gray-600 dark:bg-gray-750 dark:text-gray-300",
-  text: "text-gray-500 dark:text-gray-400",
-  label: "bg-gray-50 text-gray-600 ring-gray-500/20 dark:bg-gray-400/10 dark:text-gray-400 dark:ring-gray-400/25"
+  text: "text-gray-500 dark:text-gray-400"
 };
 
 export const INBOX_EVENT_STYLES: Record<InboxMessage["event"], InboxEventStyle> = {
@@ -88,3 +77,17 @@ export const INBOX_FILTER_EVENTS: InboxFilterEvent[] = [
   "FEED_REFRESH_SUCCESS",
   "APP_UPDATE_AVAILABLE"
 ];
+
+/** inboxEventLabel returns the translated event name, or the stored title for test messages. */
+export const inboxEventLabel = (message: InboxMessage, t: TFunction) => message.event === "TEST"
+  ? message.title
+  : t(`options:event.${message.event}.label`, { defaultValue: message.title });
+
+/** inboxHeadline picks the most specific text a message has. */
+export const inboxHeadline = (message: InboxMessage, eventLabel: string) =>
+  message.release_name || message.message || eventLabel;
+
+/** inboxRejectionClass colors rejection text amber for rejected pushes and red for errors. */
+export const inboxRejectionClass = (event: InboxMessage["event"]) => event === "PUSH_REJECTED"
+  ? "text-amber-700 dark:text-amber-400"
+  : "text-red-600 dark:text-red-400";
