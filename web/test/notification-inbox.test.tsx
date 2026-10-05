@@ -14,7 +14,7 @@ import { NotificationUpdateForm } from "@forms/settings/NotificationForms";
 import { NotificationInbox } from "@screens/NotificationInbox";
 import { InboxMenu } from "@components/header/InboxMenu";
 import { useInboxEvents } from "@hooks/useInbox";
-import { NotificationKeys } from "@api/query_keys";
+import { AlertKeys, NotificationKeys } from "@api/query_keys";
 import { SettingsContext } from "@utils/Context";
 import i18n from "@app/i18n";
 import { NotificationInboxRoute } from "@app/routes";
@@ -380,7 +380,7 @@ test("the built-in notification can not change type or be removed", () => {
   expect(screen.queryByText("New Release")).toBeNull();
 });
 
-test("the inbox refetches every time the event stream connects", async () => {
+test("the inbox and alerts refetch every time the event stream connects", async () => {
   vi.useFakeTimers();
   vi.stubGlobal("EventSource", { CONNECTING: 0, OPEN: 1, CLOSED: 2 });
   const streams: EventSource[] = [];
@@ -397,11 +397,13 @@ test("the inbox refetches every time the event stream connects", async () => {
   });
 
   streams[0].onopen?.(new Event("open"));
-  expect(invalidate).toHaveBeenCalledTimes(1);
+  expect(invalidate).toHaveBeenCalledTimes(2);
+  expect(invalidate).toHaveBeenCalledWith({ queryKey: NotificationKeys.inbox.all() });
+  expect(invalidate).toHaveBeenCalledWith({ queryKey: AlertKeys.all });
 
   // The browser retries a dropped connection on the same EventSource.
   streams[0].onopen?.(new Event("open"));
-  expect(invalidate).toHaveBeenCalledTimes(2);
+  expect(invalidate).toHaveBeenCalledTimes(4);
 
   // A failed handshake closes the stream and our backoff opens a new one.
   Object.assign(streams[0], { readyState: 2 });
@@ -410,8 +412,7 @@ test("the inbox refetches every time the event stream connects", async () => {
   expect(streams).toHaveLength(2);
 
   streams[1].onopen?.(new Event("open"));
-  expect(invalidate).toHaveBeenCalledTimes(3);
-  expect(invalidate).toHaveBeenLastCalledWith({ queryKey: NotificationKeys.inbox.all() });
+  expect(invalidate).toHaveBeenCalledTimes(6);
 
   unmount();
 });

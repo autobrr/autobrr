@@ -7,7 +7,7 @@ import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { APIClient } from "@api/APIClient";
-import { NotificationKeys } from "@api/query_keys";
+import { AlertKeys, NotificationKeys } from "@api/query_keys";
 import i18n from "@app/i18n";
 import { SettingsContext } from "@utils/Context";
 
@@ -62,10 +62,15 @@ export function useInboxEvents() {
         void queryClient.invalidateQueries({ queryKey: NotificationKeys.inbox.all() });
       });
 
+      es.addEventListener("ALERTS_CHANGED", () => {
+        void queryClient.invalidateQueries({ queryKey: AlertKeys.all });
+      });
+
       // The stream has no replay, so anything published while disconnected is only in the database.
       es.onopen = () => {
         reconnectAttempt = 0;
         void queryClient.invalidateQueries({ queryKey: NotificationKeys.inbox.all() });
+        void queryClient.invalidateQueries({ queryKey: AlertKeys.all });
       };
 
       // The browser only retries transport errors. A non-2xx handshake (expired session,

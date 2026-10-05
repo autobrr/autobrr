@@ -37,7 +37,10 @@
     "openMainMenu": "打开主菜单",
     "newUpdateAvailable": "发现新版本更新！",
     "listRefreshFailed": "列表刷新失败！",
-    "multipleListRefreshesFailed": "多个列表刷新失败！"
+    "multipleListRefreshesFailed": "多个列表刷新失败！",
+    "ircNetworkUnhealthy": "IRC 网络异常！",
+    "multipleIrcNetworksUnhealthy": "多个 IRC 网络异常！",
+    "dismiss": "忽略"
   },
   "inbox": {
     "title": "通知",

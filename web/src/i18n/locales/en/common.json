@@ -37,7 +37,10 @@
     "openMainMenu": "Open main menu",
     "newUpdateAvailable": "New update available!",
     "listRefreshFailed": "List refresh failed!",
-    "multipleListRefreshesFailed": "Multiple list refreshes failed!"
+    "multipleListRefreshesFailed": "Multiple list refreshes failed!",
+    "ircNetworkUnhealthy": "IRC network unhealthy!",
+    "multipleIrcNetworksUnhealthy": "Multiple IRC networks unhealthy!",
+    "dismiss": "Dismiss"
   },
   "inbox": {
     "title": "Notifications",

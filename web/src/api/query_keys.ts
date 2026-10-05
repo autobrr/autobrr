@@ -23,6 +23,11 @@ export const SettingsKeys = {
   lists: () => [...SettingsKeys.all, "list"] as const,
 };
 
+export const AlertKeys = {
+  all: ["alerts"] as const,
+  lists: () => [...AlertKeys.all, "list"] as const
+};
+
 export const FilterKeys = {
   all: ["filters"] as const,
   lists: () => [...FilterKeys.all, "list"] as const,

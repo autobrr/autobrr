@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/events"
 )
 
@@ -41,6 +42,14 @@ type unhealthyEpisode struct {
 	handler  *Handler
 	since    time.Time
 	notified bool
+	reasons  []string
+}
+
+// reportedNetwork is a network in the published unhealthy snapshot. It keeps the handler so
+// a reader can drop networks disabled or deleted since the last check.
+type reportedNetwork struct {
+	handler *Handler
+	network domain.IrcUnhealthyNetwork
 }
 
 type networkHealthReport struct {
@@ -156,6 +165,8 @@ func (s *Service) checkNetworkHealth(ctx context.Context, now time.Time) {
 			s.unhealthyNetworks[id] = episode
 		}
 
+		episode.reasons = status.reasons
+
 		if episode.notified || (!status.stopped && now.Sub(episode.since) < unhealthyGracePeriod) {
 			continue
 		}
@@ -170,6 +181,9 @@ func (s *Service) checkNetworkHealth(ctx context.Context, now time.Time) {
 			delete(s.unhealthyNetworks, id)
 		}
 	}
+
+	// published before the events go out, so a subscriber reading it sees this check
+	s.publishUnhealthySnapshot()
 
 	if len(unhealthy) > 0 {
 		lines := make([]string, 0, len(unhealthy))
@@ -199,6 +213,51 @@ func (s *Service) checkNetworkHealth(ctx context.Context, now time.Time) {
 			Message: names,
 		})
 	}
+}
+
+func (s *Service) publishUnhealthySnapshot() {
+	snapshot := make([]reportedNetwork, 0, len(s.unhealthyNetworks))
+	for id, episode := range s.unhealthyNetworks {
+		if !episode.notified {
+			continue
+		}
+
+		snapshot = append(snapshot, reportedNetwork{
+			handler: episode.handler,
+			network: domain.IrcUnhealthyNetwork{
+				ID:      id,
+				Name:    episode.handler.GetNetwork().Name,
+				Reasons: episode.reasons,
+				Since:   episode.since,
+			},
+		})
+	}
+
+	slices.SortFunc(snapshot, func(a, b reportedNetwork) int {
+		return cmp.Compare(a.network.Name, b.network.Name)
+	})
+
+	s.unhealthySnapshot.Store(&snapshot)
+}
+
+// UnhealthyNetworks returns the networks reported unhealthy by the last health check that
+// have not recovered, so it agrees with the IRC unhealthy notification.
+func (s *Service) UnhealthyNetworks() []domain.IrcUnhealthyNetwork {
+	snapshot := s.unhealthySnapshot.Load()
+	if snapshot == nil {
+		return nil
+	}
+
+	networks := make([]domain.IrcUnhealthyNetwork, 0, len(*snapshot))
+	for _, reported := range *snapshot {
+		if handler, ok := s.networkHandlers.Get(reported.network.ID); !ok || handler != reported.handler {
+			continue
+		}
+
+		networks = append(networks, reported.network)
+	}
+
+	return networks
 }
 
 func sortReports(reports []networkHealthReport) []networkHealthReport {

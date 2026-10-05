@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { getRouteApi, redirect } from "@tanstack/react-router";
 import { Disclosure, DisclosureButton } from "@headlessui/react";
-import { Bars3Icon, ExclamationTriangleIcon, MegaphoneIcon, XMarkIcon  } from "@heroicons/react/24/outline";
+import { Bars3Icon, XMarkIcon  } from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
 
 import { APIClient } from "@api/APIClient";
@@ -16,27 +16,16 @@ import Toast from "@components/notifications/Toast";
 import { LeftNav } from "./LeftNav";
 import { RightNav } from "./RightNav";
 import { MobileNav } from "./MobileNav";
-import { ExternalLink } from "@components/ExternalLink";
-import { ConfigQueryOptions, ListsQueryOptions, UpdatesQueryOptions } from "@api/queries";
 import { useInboxEvents } from "@hooks/useInbox";
 import { AuthContext } from "@utils/Context";
 import { InboxMenu } from "./InboxMenu";
+import { AlertBanner } from "./AlertBanner";
 
 export const Header = () => {
   const { t } = useTranslation("common");
   const loginRoute = getRouteApi("/login");
 
-  const { data: config } = useQuery(ConfigQueryOptions(true));
-
-  const { data } = useQuery(UpdatesQueryOptions(config?.check_for_updates === true));
-
-  const { data: lists } = useQuery(ListsQueryOptions());
-
   useInboxEvents();
-
-  // Check if the last run of any list has errored
-  const hasErroredList = lists?.some(list => list.last_refresh_status === "ERROR");
-  const erroredLists = lists?.filter(list => list.last_refresh_status === "ERROR");
 
   const logoutMutation = useMutation({
     mutationFn: APIClient.auth.logout,
@@ -85,35 +74,7 @@ export const Header = () => {
               </div>
             </div>
 
-            {data?.html_url && (
-              <ExternalLink href={data.html_url}>
-                <div className="flex mt-4 py-2 bg-blue-500 rounded-sm justify-center">
-                  <MegaphoneIcon className="h-6 w-6 text-blue-100" />
-                  <span className="text-blue-100 font-medium mx-3">{t("header.newUpdateAvailable")}</span>
-                  <span className="inline-flex items-center rounded-md bg-blue-100 px-2.5 py-0.5 text-sm font-medium text-blue-800">{data?.name}</span>
-                </div>
-              </ExternalLink>
-            )}
-
-            {hasErroredList && (
-              <div className="flex mt-4 py-2 bg-red-500 rounded-sm justify-center">
-                <ExclamationTriangleIcon className="h-6 w-6 text-red-100" />
-                <span className="text-red-100 font-medium mx-3">
-                  {erroredLists?.length === 1 ? t("header.listRefreshFailed") : t("header.multipleListRefreshesFailed")}
-                </span>
-                {erroredLists?.length === 1 ? (
-                  <span className="inline-flex items-center rounded-md bg-red-100 px-2.5 py-0.5 text-sm font-medium text-red-800">
-                    {erroredLists[0].name}
-                  </span>
-                ) : (
-                  erroredLists?.map(list => (
-                    <span key={list.name} className="inline-flex items-center rounded-md bg-red-100 px-2.5 py-0.5 text-sm font-medium text-red-800 ml-1">
-                      {list.name}
-                    </span>
-                  ))
-                )}
-              </div>
-            )}
+            <AlertBanner />
           </div>
 
           <MobileNav logoutMutation={logoutMutation.mutate} />
