@@ -52,9 +52,9 @@ irc:
         type: single
         lines:
           # <announceType>|<id>|<category>|<Type>|<resolution>|<releasename>|<size>|<uploader>
-          - pattern: 'NEW\|(?P<torrentId>\d+)\|(?P<category>.+)\|(?P<releaseTags>.+)\|(?P<resolution>.+)?\|(?P<releaseName>.+)\|(?P<torrentSize>.+)\|Uploaded by (?P<uploader>.+)\|FL: (?P<freeleechPercent>\d+%)(?: UL: (?P<ul>2x))?'
+          - pattern: 'NEW\|(?P<torrentId>\d+)\|(?P<category>.+)\|(?P<releaseTags>.+)\|(?P<resolution>.+)?\|(?P<releaseName>.+)\|(?P<torrentSize>.+)\|Uploaded by (?P<uploader>.+)\|FL: (?P<freeleechPercent>\d+%) UL: (?P<doubleUp>\dx)'
             tests:
-              - line: 'NEW|5308|Movies|WEB-DL|1080p|Formula1 - 2026- Ronda 05 - Canadian Grand Prix, Circuit Gilles Villeneuve, Montreal - RACE - DAZN 1080p 60FPS [castellano]|10 GB|Uploaded by uploader1|FL: 100%'
+              - line: 'NEW|5308|Movies|WEB-DL|1080p|Formula1 - 2026- Ronda 05 - Canadian Grand Prix, Circuit Gilles Villeneuve, Montreal - RACE - DAZN 1080p 60FPS [castellano]|10 GB|Uploaded by uploader1|FL: 100% UL: 1x'
                 expect:
                   torrentId: "5308"
                   category: Movies
@@ -64,7 +64,7 @@ irc:
                   torrentSize: "10 GB"
                   uploader: uploader1
                   freeleechPercent: 100%
-                  ul: ""
+                  ul: "1x"
 
               - line: 'NEW|5308|Movies|WEB-DL|1080p|Formula1 - 2026- Ronda 05 - Canadian Grand Prix, Circuit Gilles Villeneuve, Montreal - RACE - DAZN 1080p 60FPS [castellano]|10 GB|Uploaded by uploader1|FL: 100% UL: 2x'
                 expect:
@@ -78,7 +78,7 @@ irc:
                   freeleechPercent: 100%
                   ul: "2x"
 
-              - line: 'NEW|5311|MotoGP|WEB-DL||MotoGP Moto2 Moto3 2026 Round07 Italy Practice DAZN 1080p WEB-DL Castellano AAC AVC|7.1 GB|Uploaded by uploader2|FL: 0%'
+              - line: 'NEW|5311|MotoGP|WEB-DL||MotoGP Moto2 Moto3 2026 Round07 Italy Practice DAZN 1080p WEB-DL Castellano AAC AVC|7.1 GB|Uploaded by uploader2|FL: 0% UL: 1x'
                 expect:
                   torrentId: "5311"
                   category: MotoGP
@@ -88,7 +88,7 @@ irc:
                   torrentSize: "7.1 GB"
                   uploader: uploader2
                   freeleechPercent: 0%
-                  ul: ""
+                  ul: "1x"
 
         mappings:
           ul:
