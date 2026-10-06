@@ -85,6 +85,11 @@ func getMockFilter() *domain.Filter {
 		MatchDescription:     "Anime, x264",
 		ExceptDescription:    "Anime, x264",
 		UseRegexDescription:  true,
+		CustomFields: []domain.FilterCustomFieldRule{
+			{Field: "audio_pt", Operator: domain.FilterCustomFieldEquals, Value: "1"},
+			{Field: "legenda_pt", Operator: domain.FilterCustomFieldEquals, Value: "1"},
+		},
+		CustomFieldsMatchLogic: domain.FilterCustomFieldMatchAll,
 	}
 }
 
@@ -130,6 +135,23 @@ func TestFilterRepo_Store(t *testing.T) {
 
 			// Cleanup
 			_ = repo.Delete(ctx, mockData.ID)
+		})
+
+		t.Run(fmt.Sprintf("Store_Normalizes_Custom_Field_Names [%s]", dbType), func(t *testing.T) {
+			filter := getMockFilter()
+			filter.CustomFields[0].Field = " audio_pt "
+
+			err := repo.Store(ctx, filter)
+			require.NoError(t, err)
+			assert.Equal(t, "audio_pt", filter.CustomFields[0].Field)
+
+			stored, err := repo.FindByID(ctx, filter.ID)
+			require.NoError(t, err)
+			require.NotNil(t, stored)
+			require.NotEmpty(t, stored.CustomFields)
+			assert.Equal(t, "audio_pt", stored.CustomFields[0].Field)
+
+			_ = repo.Delete(ctx, filter.ID)
 		})
 
 		t.Run(fmt.Sprintf("Store_Fails_With_Missing_or_empty_fields [%s]", dbType), func(t *testing.T) {
@@ -474,6 +496,8 @@ func TestFilterRepo_FindByID(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, filter)
 			assert.Equal(t, createdFilters[0].ID, filter.ID)
+			assert.Equal(t, mockData.CustomFields, filter.CustomFields)
+			assert.Equal(t, mockData.CustomFieldsMatchLogic, filter.CustomFieldsMatchLogic)
 
 			// Cleanup
 			_ = repo.Delete(ctx, createdFilters[0].ID)

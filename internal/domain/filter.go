@@ -5,6 +5,7 @@ package domain
 
 import (
 	"fmt"
+	"math/big"
 	"os/exec"
 	"slices"
 	"strconv"
@@ -105,6 +106,94 @@ type FilterQueryParams struct {
 	Search string
 }
 
+// FilterCustomFieldOperator defines how a custom feed field is compared.
+type FilterCustomFieldOperator string
+
+const (
+	FilterCustomFieldEquals             FilterCustomFieldOperator = "="
+	FilterCustomFieldNotEquals          FilterCustomFieldOperator = "!="
+	FilterCustomFieldLessThan           FilterCustomFieldOperator = "<"
+	FilterCustomFieldGreaterThan        FilterCustomFieldOperator = ">"
+	FilterCustomFieldLessThanOrEqual    FilterCustomFieldOperator = "<="
+	FilterCustomFieldGreaterThanOrEqual FilterCustomFieldOperator = ">="
+)
+
+// FilterCustomFieldMatchLogic defines whether all or any custom field rules must match.
+type FilterCustomFieldMatchLogic string
+
+const (
+	FilterCustomFieldMatchAll FilterCustomFieldMatchLogic = "ALL"
+	FilterCustomFieldMatchAny FilterCustomFieldMatchLogic = "ANY"
+)
+
+// FilterCustomFieldRule matches one arbitrary field exposed by a feed item.
+type FilterCustomFieldRule struct {
+	Field    string                    `json:"field"`
+	Operator FilterCustomFieldOperator `json:"operator"`
+	Value    string                    `json:"value"`
+}
+
+func parseCustomFieldRuleValue(value string) (string, *big.Rat, bool, error) {
+	trimmed := strings.TrimSpace(value)
+	if len(trimmed) >= 2 && strings.HasPrefix(trimmed, "\"") && strings.HasSuffix(trimmed, "\"") {
+		textValue := trimmed[1 : len(trimmed)-1]
+		if strings.ContainsAny(textValue, "\\\"") || strings.ContainsAny(textValue, "\r\n") {
+			return "", nil, false, errors.New("quoted text cannot contain quotes, backslashes, or newlines")
+		}
+		return textValue, nil, false, nil
+	}
+
+	if strings.Contains(trimmed, "/") {
+		return "", nil, false, errors.New("value must be a number or double-quoted text")
+	}
+
+	numberValue, ok := new(big.Rat).SetString(trimmed)
+	if !ok {
+		return "", nil, false, errors.New("value must be a number or double-quoted text")
+	}
+	return "", numberValue, true, nil
+}
+
+func (r FilterCustomFieldRule) matches(fields map[string]string) bool {
+	value, exists := fields[r.Field]
+	if !exists {
+		return false
+	}
+
+	textValue, numberValue, numeric, err := parseCustomFieldRuleValue(r.Value)
+	if err != nil {
+		return false
+	}
+
+	var comparison int
+	if numeric {
+		fieldNumber, ok := new(big.Rat).SetString(strings.TrimSpace(value))
+		if !ok {
+			return false
+		}
+		comparison = fieldNumber.Cmp(numberValue)
+	} else {
+		comparison = strings.Compare(value, textValue)
+	}
+
+	switch r.Operator {
+	case FilterCustomFieldEquals:
+		return comparison == 0
+	case FilterCustomFieldNotEquals:
+		return comparison != 0
+	case FilterCustomFieldLessThan:
+		return comparison < 0
+	case FilterCustomFieldGreaterThan:
+		return comparison > 0
+	case FilterCustomFieldLessThanOrEqual:
+		return comparison <= 0
+	case FilterCustomFieldGreaterThanOrEqual:
+		return comparison >= 0
+	default:
+		return false
+	}
+}
+
 type Filter struct {
 	ID                        int                          `json:"id"`
 	Name                      string                       `json:"name"`
@@ -177,6 +266,8 @@ type Filter struct {
 	MatchDescription          string                       `json:"match_description,omitempty"`
 	ExceptDescription         string                       `json:"except_description,omitempty"`
 	UseRegexDescription       bool                         `json:"use_regex_description,omitempty"`
+	CustomFields              []FilterCustomFieldRule      `json:"custom_fields,omitempty"`
+	CustomFieldsMatchLogic    FilterCustomFieldMatchLogic  `json:"custom_fields_match_logic,omitempty"`
 	MinSeeders                int                          `json:"min_seeders,omitempty"`
 	MaxSeeders                int                          `json:"max_seeders,omitempty"`
 	MinLeechers               int                          `json:"min_leechers,omitempty"`
@@ -298,6 +389,8 @@ type FilterUpdate struct {
 	MatchDescription          *string                       `json:"match_description,omitempty"`
 	ExceptDescription         *string                       `json:"except_description,omitempty"`
 	UseRegexDescription       *bool                         `json:"use_regex_description,omitempty"`
+	CustomFields              *[]FilterCustomFieldRule      `json:"custom_fields,omitempty"`
+	CustomFieldsMatchLogic    *FilterCustomFieldMatchLogic  `json:"custom_fields_match_logic,omitempty"`
 	Scene                     *bool                         `json:"scene,omitempty"`
 	Origins                   *[]string                     `json:"origins,omitempty"`
 	ExceptOrigins             *[]string                     `json:"except_origins,omitempty"`
@@ -355,6 +448,47 @@ type FilterUpdate struct {
 	Notifications             []FilterNotification          `json:"notifications,omitempty"`
 }
 
+func validateCustomFields(rules []FilterCustomFieldRule, logic FilterCustomFieldMatchLogic) error {
+	switch logic {
+	case "", FilterCustomFieldMatchAll, FilterCustomFieldMatchAny:
+	default:
+		return errors.New("validation: invalid custom fields match logic: %s", logic)
+	}
+
+	for i, rule := range rules {
+		if strings.TrimSpace(rule.Field) == "" {
+			return errors.New("validation: custom field rule %d has an empty field name", i)
+		}
+
+		switch rule.Operator {
+		case FilterCustomFieldEquals, FilterCustomFieldNotEquals, FilterCustomFieldLessThan, FilterCustomFieldGreaterThan, FilterCustomFieldLessThanOrEqual, FilterCustomFieldGreaterThanOrEqual:
+		default:
+			return errors.New("validation: custom field rule %d has invalid operator: %s", i, rule.Operator)
+		}
+
+		if _, _, _, err := parseCustomFieldRuleValue(rule.Value); err != nil {
+			return errors.New("validation: custom field rule %d has invalid value: %v", i, err)
+		}
+	}
+
+	return nil
+}
+
+// ValidateCustomFields validates custom-field values supplied by a partial update.
+func (f FilterUpdate) ValidateCustomFields() error {
+	var rules []FilterCustomFieldRule
+	if f.CustomFields != nil {
+		rules = *f.CustomFields
+	}
+
+	var logic FilterCustomFieldMatchLogic
+	if f.CustomFieldsMatchLogic != nil {
+		logic = *f.CustomFieldsMatchLogic
+	}
+
+	return validateCustomFields(rules, logic)
+}
+
 func (f *Filter) Validate() error {
 	if f.Name == "" {
 		return errors.New("validation: name can't be empty")
@@ -374,6 +508,10 @@ func (f *Filter) Validate() error {
 	case "", FilterMaxDownloadsWindowFixed, FilterMaxDownloadsWindowRolling:
 	default:
 		return errors.New("validation: invalid max downloads window type: %s", f.MaxDownloadsWindowType)
+	}
+
+	if err := validateCustomFields(f.CustomFields, f.CustomFieldsMatchLogic); err != nil {
+		return err
 	}
 
 	for _, external := range f.External {
@@ -443,7 +581,35 @@ func (f *Filter) Sanitize() error {
 	f.MatchRecordLabels = sanitize.FilterString(f.MatchRecordLabels)
 	f.ExceptRecordLabels = sanitize.FilterString(f.ExceptRecordLabels)
 
+	for i := range f.CustomFields {
+		f.CustomFields[i].Field = strings.TrimSpace(f.CustomFields[i].Field)
+	}
+
 	return nil
+}
+
+func (f *Filter) checkCustomFields(r *Release) bool {
+	logic := f.CustomFieldsMatchLogic
+	if logic == "" {
+		logic = FilterCustomFieldMatchAll
+	}
+
+	if logic == FilterCustomFieldMatchAny {
+		for _, rule := range f.CustomFields {
+			if rule.matches(r.CustomFields) {
+				return true
+			}
+		}
+		return false
+	}
+
+	for _, rule := range f.CustomFields {
+		if !rule.matches(r.CustomFields) {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (f *Filter) CheckFilter(r *Release) (*RejectionReasons, bool) {
@@ -719,6 +885,18 @@ func (f *Filter) CheckFilter(r *Release) (*RejectionReasons, bool) {
 		if f.ExceptDescription != "" && containsFuzzy(r.Description, f.ExceptDescription) {
 			f.RejectReasons.Add("except description", r.Description, f.ExceptDescription)
 		}
+	}
+
+	if len(f.CustomFields) > 0 && !f.checkCustomFields(r) {
+		fields := make([]string, 0, len(f.CustomFields))
+		for _, rule := range f.CustomFields {
+			fields = append(fields, rule.Field)
+		}
+		logic := f.CustomFieldsMatchLogic
+		if logic == "" {
+			logic = FilterCustomFieldMatchAll
+		}
+		f.RejectReasons.Add("custom fields: "+string(logic), "feed custom fields", fields)
 	}
 
 	// Min and Max Seeders/Leechers is only for Torznab feeds
