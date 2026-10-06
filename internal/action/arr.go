@@ -21,12 +21,10 @@ func arrDownloadClient(settings domain.DownloaderSettings, action *domain.Action
 }
 
 // arrPublishDate returns the release publish date for an arr push in RFC3339.
-// It prefers the date from the feed and falls back to the current time when there is none,
-// or when it lies in the future, since arr apps derive age from it and a negative age would
-// hold the release in a delay profile for longer than configured.
+// Placeholder and future dates fall back to now to avoid bypassing or extending arr delays.
 func arrPublishDate(release *domain.Release) string {
 	now := time.Now()
-	if release.PublishDate.IsZero() || release.PublishDate.After(now) {
+	if !release.PublishDate.After(time.Date(1970, time.April, 1, 0, 0, 0, 0, time.UTC)) || release.PublishDate.After(now) {
 		return now.UTC().Format(time.RFC3339)
 	}
 

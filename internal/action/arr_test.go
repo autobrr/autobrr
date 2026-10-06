@@ -88,11 +88,22 @@ func TestArrPublishDate(t *testing.T) {
 		assert.Equal(t, "2026-09-24T05:58:24Z", arrPublishDate(&domain.Release{PublishDate: local}))
 	})
 
+	t.Run("preserves dates after the feed placeholder cutoff", func(t *testing.T) {
+		t.Parallel()
+
+		date := time.Date(1970, time.April, 1, 0, 0, 1, 0, time.UTC)
+
+		assert.Equal(t, "1970-04-01T00:00:01Z", arrPublishDate(&domain.Release{PublishDate: date}))
+	})
+
 	fallback := []struct {
 		name        string
 		publishDate time.Time
 	}{
 		{name: "falls back to now when the feed publish date is zero"},
+		{name: "falls back to now when the feed publish date is before the epoch", publishDate: time.Date(1969, time.December, 31, 0, 0, 0, 0, time.UTC)},
+		{name: "falls back to now when the feed publish date is the epoch", publishDate: time.Unix(0, 0)},
+		{name: "falls back to now when the feed publish date is at the placeholder cutoff", publishDate: time.Date(1970, time.April, 1, 0, 0, 0, 0, time.UTC)},
 		{name: "falls back to now when the feed publish date is in the future", publishDate: time.Now().Add(2 * time.Hour)},
 	}
 
