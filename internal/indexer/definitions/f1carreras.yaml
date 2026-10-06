@@ -52,7 +52,7 @@ irc:
         type: single
         lines:
           # <announceType>|<id>|<category>|<Type>|<resolution>|<releasename>|<size>|<uploader>
-          - pattern: 'NEW\|(?P<torrentId>\d+)\|(?P<category>.+)\|(?P<releaseTags>.+)\|(?P<resolution>.+)?\|(?P<releaseName>.+)\|(?P<torrentSize>.+)\|Uploaded by (?P<uploader>.+)\|FL: (?P<freeleechPercent>\d+%) UL: (?P<doubleUp>\dx)'
+          - pattern: 'NEW\|(?P<torrentId>\d+)\|(?P<category>.+)\|(?P<releaseTags>.+)\|(?P<resolution>.+)?\|(?P<releaseName>.+)\|(?P<torrentSize>.+)\|Uploaded by (?P<uploader>.+)\|FL: (?P<freeleechPercent>\d+%) UL: (?P<ul>\dx)'
             tests:
               - line: 'NEW|5308|Movies|WEB-DL|1080p|Formula1 - 2026- Ronda 05 - Canadian Grand Prix, Circuit Gilles Villeneuve, Montreal - RACE - DAZN 1080p 60FPS [castellano]|10 GB|Uploaded by uploader1|FL: 100% UL: 1x'
                 expect:
