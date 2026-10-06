@@ -189,11 +189,9 @@ func (j *TorznabJob) processItems(items []torznab.FeedItem) ([]*domain.Release, 
 		rls.Uploader = item.Author
 
 		rls.MetaIMDB = item.ImdbId
-		if item.TmdbId != "" {
-			if tmdbId, err := strconv.Atoi(item.TmdbId); err == nil {
-				rls.MetaTMDB = tmdbId
-			}
-		}
+		rls.MetaTMDB = parseMetaID(item.TmdbId)
+		rls.MetaTVDB = parseMetaID(item.TvdbId)
+		rls.PublishDate = item.PubDate.Time
 
 		// Get freeleech percentage between 0 - 100
 		if freeleechPercentage := parseFreeleechTorznab(item.DownloadVolumeFactor); freeleechPercentage >= 0 {

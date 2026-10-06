@@ -5,7 +5,6 @@ package action
 
 import (
 	"context"
-	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/arr/sonarr"
@@ -47,8 +46,9 @@ func (s *Service) runSonarr(ctx context.Context, action *domain.Action, release 
 		Indexer:          release.Indexer.GetExternalIdentifier(),
 		DownloadProtocol: release.Protocol.String(),
 		Protocol:         release.Protocol.String(),
-		PublishDate:      time.Now().Format(time.RFC3339),
+		PublishDate:      arrPublishDate(release),
 		ImdbID:           release.MetaIMDB,
+		TvdbID:           release.MetaTVDB,
 	}
 
 	req.DownloadClientId, req.DownloadClient = arrDownloadClient(cfg.Settings, action)
