@@ -168,3 +168,31 @@ func TestRestartNetwork_RefusesDisabledProxy(t *testing.T) {
 		return h.clientState == ircStopped && len(h.connectionErrors) == 1 && strings.Contains(h.connectionErrors[0], "is disabled")
 	}, time.Second, 10*time.Millisecond, "handler must refuse to dial and surface the reason")
 }
+
+func TestCheckIfNetworkRestartNeeded_EquivalentChannelNamesStayDistinct(t *testing.T) {
+	t.Parallel()
+
+	network := domain.IrcNetwork{ID: 7, Name: "net", Server: "irc.example.test", Port: 6697, Nick: "bot", Enabled: true}
+	network.Channels = []domain.IrcChannel{{ID: 1, Name: "#chan[", Enabled: true, Password: "one"}}
+
+	s := NewService(zerolog.Nop(), noopEventBus{}, &mockSSEServer{}, newStubIrcRepo(network), nil, stubIndexerService{}, stubProxyService{})
+	h := runningHandler(s, network, nil)
+
+	updated := network
+	updated.Channels = []domain.IrcChannel{
+		{ID: 1, Name: "#chan[", Enabled: true, Password: "one"},
+		{ID: 2, Name: "#chan{", Enabled: true, Password: "two"},
+	}
+	require.NoError(t, s.checkIfNetworkRestartNeeded(&updated))
+
+	first, found := h.channels.Get("#chan[")
+	require.True(t, found, "existing channel lost its runtime entry")
+	second, found := h.channels.Get("#chan{")
+	require.True(t, found, "added channel has no runtime entry")
+
+	assert.Equal(t, int64(1), first.Snapshot().ID)
+	assert.Equal(t, "one", first.GetPassword())
+	assert.Equal(t, int64(2), second.Snapshot().ID)
+	assert.Equal(t, "two", second.GetPassword())
+	assert.NotEqual(t, ChannelStateIdle, second.StateMachine().CurrentState(), "the added channel was never started")
+}

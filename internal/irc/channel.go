@@ -76,8 +76,8 @@ func (b *MessageBuffer) AddMessage(msg domain.IrcMessage) {
 // Channel holds the runtime state of a monitored IRC channel.
 //
 // Mutable scalar/slice fields (ID, Enabled, Password, Topic, Monitoring,
-// MonitoringSince, LastAnnounce, ConnectionErrors, inviteCommand) and the
-// announcers set are guarded by m: they are written from the IRC-callback and
+// MonitoringSince, LastAnnounce, ConnectionErrors, inviteCommand, inviteBot) and the
+// announcers list are guarded by m: they are written from the IRC-callback and
 // channel-state-machine goroutines and read from the HTTP/health goroutine.
 // NetworkID, Name, DefaultChannel, Messages, announceProcessor and stateMachine
 // are set at construction (stateMachine before the channel is made visible) and
@@ -97,12 +97,15 @@ type Channel struct {
 	MonitoringSince  time.Time
 	LastAnnounce     time.Time
 	inviteCommand    string
+	inviteBot        string
 
-	// announcers is the set of registered announcer nicks (from the indexer
-	// definition) that are allowed to announce in this channel. autobrr does not
-	// track the channel user list or announcer presence - it only validates that
-	// an announce line came from a known announcer.
-	announcers       map[string]struct{}
+	// announcers are the registered announcer nicks (from the indexer definition)
+	// that are allowed to announce in this channel, kept as written. They are
+	// folded with the connection's CASEMAPPING at lookup time, so a channel never
+	// holds a mapping that can go stale while the server renegotiates it.
+	// autobrr does not track the channel user list or announcer presence - it
+	// only validates that an announce line came from a known announcer.
+	announcers       []string
 	DefaultChannel   bool
 	SkipCleanMessage bool
 
@@ -140,7 +143,7 @@ func NewChannel(log zerolog.Logger, networkID int64, name string, defaultChannel
 		MonitoringSince:   time.Time{},
 		LastAnnounce:      time.Time{},
 		inviteCommand:     "",
-		announcers:        make(map[string]struct{}),
+		announcers:        make([]string, 0),
 		DefaultChannel:    defaultChannel,
 		SkipCleanMessage:  skipCleanMessage,
 		announceProcessor: announceProcessor,
@@ -151,7 +154,7 @@ func NewChannel(log zerolog.Logger, networkID int64, name string, defaultChannel
 // OnMsg records the message in the channel history and queues it for announce
 // parsing. It returns the stored message so callers broadcast the same text
 // that went into history, honoring SkipCleanMessage.
-func (c *Channel) OnMsg(msg ircmsg.Message) (domain.IrcMessage, bool) {
+func (c *Channel) OnMsg(msg ircmsg.Message, caseMapping ircCaseMapping) (domain.IrcMessage, bool) {
 	if len(msg.Params) < 2 {
 		return domain.IrcMessage{}, false
 	}
@@ -179,7 +182,7 @@ func (c *Channel) OnMsg(msg ircmsg.Message) (domain.IrcMessage, bool) {
 	c.Messages.AddMessage(newMsg)
 
 	// check if the message is from announce bot, if not return
-	if !c.IsValidAnnouncer(nick) {
+	if !c.IsValidAnnouncer(nick, caseMapping) {
 		c.log.Trace().Str("nick", nick).Str("msg", cleanedMsg).Msg("not a valid announcer, ignoring")
 		return newMsg, true
 	}
@@ -197,20 +200,24 @@ func (c *Channel) OnMsg(msg ircmsg.Message) (domain.IrcMessage, bool) {
 // IsValidAnnouncer reports whether nick is a registered announcer for this
 // channel. It is a plain membership check against the list from the indexer
 // definition - autobrr does not track channel membership or presence.
-func (c *Channel) IsValidAnnouncer(nick string) bool {
-	nick = strings.ToLower(nick)
-
+func (c *Channel) IsValidAnnouncer(nick string, caseMapping ircCaseMapping) bool {
 	c.m.RLock()
 	defer c.m.RUnlock()
 
-	if _, ok := c.announcers[nick]; ok {
-		return true
+	nick = caseMapping.fold(nick)
+
+	for _, announcer := range c.announcers {
+		if caseMapping.fold(announcer) == nick {
+			return true
+		}
 	}
 
 	// experimental feature to allow for fuzzy announcer matching. This is not
 	// enabled by default because it will allow similar nicks to announce.
 	if featureflags.IsEnabled(domain.IRCFuzzyAnnouncer) {
-		for announcer := range c.announcers {
+		for _, announcer := range c.announcers {
+			announcer = caseMapping.fold(announcer)
+
 			// nick is the announcer with one extra trailing character
 			if strings.HasPrefix(nick, announcer) && len(nick) == len(announcer)+1 {
 				c.log.Warn().Str("nick", nick).Msg("unknown announcer, but valid variant")
@@ -235,6 +242,7 @@ func (c *Channel) SetConnectionError(err string) {
 	if slices.Contains(c.ConnectionErrors, err) {
 		return
 	}
+
 	c.ConnectionErrors = append(c.ConnectionErrors, err)
 }
 
@@ -346,9 +354,7 @@ func (c *Channel) RegisterAnnouncers(announcers []string) {
 	c.m.Lock()
 	defer c.m.Unlock()
 
-	for _, announcer := range announcers {
-		c.announcers[strings.ToLower(announcer)] = struct{}{}
-	}
+	c.announcers = append(c.announcers, announcers...)
 }
 
 func (c *Channel) SetInviteCommand(cmd string) {
@@ -359,6 +365,28 @@ func (c *Channel) SetInviteCommand(cmd string) {
 	if c.stateMachine != nil {
 		c.stateMachine.SetInviteCommand(cmd)
 	}
+}
+
+func (c *Channel) syncInviteCommand(cmd string) {
+	c.m.Lock()
+	c.inviteCommand = cmd
+	c.m.Unlock()
+
+	if c.stateMachine != nil {
+		c.stateMachine.syncInviteCommand(cmd)
+	}
+}
+
+func (c *Channel) setInviteBot(nick string) {
+	c.m.Lock()
+	c.inviteBot = nick
+	c.m.Unlock()
+}
+
+func (c *Channel) getInviteBot() string {
+	c.m.RLock()
+	defer c.m.RUnlock()
+	return c.inviteBot
 }
 
 func (c *Channel) InviteCommand() string {

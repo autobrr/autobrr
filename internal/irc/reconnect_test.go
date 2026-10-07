@@ -112,7 +112,7 @@ func newTestHandler() (*Handler, *mockSSEServer) {
 	h := &Handler{
 		log:         zerolog.Nop(),
 		sse:         sseMock,
-		network:     &domain.IrcNetwork{ID: 1, Name: "TestNet", Server: "irc.example.test"},
+		network:     &domain.IrcNetwork{ID: 1, Name: "TestNet", Server: "irc.example.test", Nick: "autobrr"},
 		eventBus:    noopEventBus{},
 		definitions: map[string]*domain.IndexerDefinition{},
 		channels:    haxmap.New[string, *Channel](),
