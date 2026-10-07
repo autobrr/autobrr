@@ -585,7 +585,13 @@
         "label": "Štítky",
         "labelPlaceholder": "např. label1,label2",
         "renameToPath": "Nepřidávat název torrentu do cesty",
-        "renameDefault": "Ne"
+        "renameDefault": "Ne",
+        "priority": "Priorita",
+        "priorityDefault": "Výchozí",
+        "priorityTooltip": "Priorita šířky pásma v rTorrentu. Torrenty s vyšší prioritou dostanou větší podíl slotů pro odesílání a stahování.",
+        "ratioGroup": "Skupina ratia",
+        "ratioGroupPlaceholder": "např. rat_0",
+        "ratioGroupTooltip": "Skupina ratia v ruTorrentu, do které se torrent přidá. Plugin ratio pojmenovává skupiny rat_0 až rat_7 v pořadí, v jakém jsou uvedeny v nastavení ratia v ruTorrentu. Ponechte prázdné pro použití výchozí skupiny ratia."
       },
       "porla": {
         "preset": "Předvolba",

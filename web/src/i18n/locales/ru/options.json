@@ -10,6 +10,12 @@
     "FIXED": "Фиксированное (сброс по календарю)",
     "ROLLING": "Скользящее (скользящее окно)"
   },
+  "rtorrentPriority": {
+    "DEFAULT": "По умолчанию",
+    "LOW": "Низкий",
+    "NORMAL": "Обычный",
+    "HIGH": "Высокий"
+  },
   "downloadClient": {
     "QBITTORRENT": {
       "label": "qBittorrent",
