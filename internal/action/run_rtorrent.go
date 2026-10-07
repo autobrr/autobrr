@@ -5,6 +5,7 @@ package action
 
 import (
 	"context"
+	"slices"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -62,6 +63,30 @@ func (s *Service) runRTorrent(ctx context.Context, action *domain.Action, releas
 			})
 
 		}
+	}
+
+	switch action.PriorityLayout {
+	case domain.PriorityLayoutLow:
+		args = append(args, rtorrent.DPriority.SetValue("1"))
+	case domain.PriorityLayoutNormal:
+		args = append(args, rtorrent.DPriority.SetValue("2"))
+	case domain.PriorityLayoutHigh:
+		args = append(args, rtorrent.DPriority.SetValue("3"))
+	}
+
+	if action.RatioGroup != "" {
+		views, err := client.Views(ctx)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not get views from client: %s", cfg.Name)
+		}
+
+		// a load command for a missing view does not fail the add call, rTorrent adds
+		// the torrent anyway but leaves it stopped and flagged as hash failed
+		if !slices.Contains(views, rtorrent.View(action.RatioGroup)) {
+			return nil, errors.New("could not find ratio group '%s' on client: %s, check that the ruTorrent ratio plugin is enabled", action.RatioGroup, cfg.Name)
+		}
+
+		args = append(args, rtorrent.Command("view.set_visible", action.RatioGroup))
 	}
 
 	if release.HasMagnetUri() {

@@ -28,8 +28,8 @@ github.com/autobrr/go-deluge v1.4.0 h1:IW3mX90YQjJri304/br3JT18WZmjiwP8AaXlVaGj3
 github.com/autobrr/go-deluge v1.4.0/go.mod h1:ndiXT1eHWv/ATNk9TpE8GHIs8OSSUnsImt4Syk+y5LM=
 github.com/autobrr/go-qbittorrent v1.19.0 h1:gjR34fXbfsoAzlZ0TXJ6u4ARZN31v1oxgmbLIqyohlg=
 github.com/autobrr/go-qbittorrent v1.19.0/go.mod h1:5uSG7nI6+dvhjvywkxzqooBAH1RDZxGtoRacDRfOtTQ=
-github.com/autobrr/go-rtorrent v1.12.0 h1:9ErIBHFWHWG2HP17USfS+7SAhjwgdYeMQNNvsMCPmcw=
-github.com/autobrr/go-rtorrent v1.12.0/go.mod h1:xEJQEUNU2GfFk8mzIb02lxNgnIJ9SDOgqKVXA4tQqvw=
+github.com/autobrr/go-rtorrent v1.12.1-0.20261007105804-66fe14c7acb1 h1:FM+UUSCLgeU6ucMi/2pi9xz+sdR704X92SNQ/abKr2w=
+github.com/autobrr/go-rtorrent v1.12.1-0.20261007105804-66fe14c7acb1/go.mod h1:xEJQEUNU2GfFk8mzIb02lxNgnIJ9SDOgqKVXA4tQqvw=
 github.com/autobrr/go-torrent v1.1.1 h1:Vc5R3QGZlmAEoEyEYqT2B9j/CX7to82GzFlHhXbphCw=
 github.com/autobrr/go-torrent v1.1.1/go.mod h1:MNqAUt4SVvZTVyVSD3iQHXgi+ARVM3Z6dY0aTvXTnvY=
 github.com/autobrr/rls v0.8.1 h1:OjoFFVGcTibGrwf6b4pfk7JHsSYrGOX7F5P/8WtS3aE=

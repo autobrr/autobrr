@@ -10,6 +10,12 @@
     "FIXED": "固定（按日历重置）",
     "ROLLING": "滚动（滑动窗口）"
   },
+  "rtorrentPriority": {
+    "DEFAULT": "默认",
+    "LOW": "低",
+    "NORMAL": "普通",
+    "HIGH": "高"
+  },
   "downloadClient": {
     "QBITTORRENT": {
       "label": "qBittorrent",

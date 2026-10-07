@@ -10,6 +10,12 @@
     "FIXED": "Fixe (réinitialisation calendaire)",
     "ROLLING": "Glissante (fenêtre glissante)"
   },
+  "rtorrentPriority": {
+    "DEFAULT": "Par défaut",
+    "LOW": "Basse",
+    "NORMAL": "Normale",
+    "HIGH": "Haute"
+  },
   "downloadClient": {
     "QBITTORRENT": {
       "label": "qBittorrent",

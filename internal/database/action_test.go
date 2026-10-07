@@ -35,6 +35,8 @@ func getMockAction() *domain.Action {
 		SkipHashCheck:            false,
 		FirstLastPiecePrio:       false,
 		ContentLayout:            domain.ActionContentLayoutOriginal,
+		PriorityLayout:           domain.PriorityLayoutHigh,
+		RatioGroup:               "rat_1",
 		LimitUploadSpeed:         0,
 		LimitDownloadSpeed:       0,
 		LimitRatio:               0,
@@ -236,8 +238,8 @@ func TestActionRepo_FindByFilterID(t *testing.T) {
 			// Actual test for FindByFilterID
 			actions, err := repo.FindByFilterID(ctx, createdFilters[0].ID, nil, false)
 			require.NoError(t, err)
-			assert.NotNil(t, actions)
-			assert.Len(t, actions, 1)
+			require.Len(t, actions, 1)
+			assert.Equal(t, "rat_1", actions[0].RatioGroup)
 
 			// Cleanup
 			_ = repo.Delete(ctx, &domain.DeleteActionRequest{ActionId: createdActions[0].ID})
@@ -369,6 +371,8 @@ func TestActionRepo_Get(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, action)
 			assert.Equal(t, createdActions[0].ID, action.ID)
+			assert.Equal(t, domain.PriorityLayoutHigh, action.PriorityLayout)
+			assert.Equal(t, "rat_1", action.RatioGroup)
 
 			// Cleanup
 			_ = repo.Delete(ctx, &domain.DeleteActionRequest{ActionId: createdActions[0].ID})

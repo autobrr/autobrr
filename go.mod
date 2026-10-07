@@ -17,7 +17,7 @@ require (
 	github.com/autobrr/go-cache v1.0.0-rc1
 	github.com/autobrr/go-deluge v1.4.0
 	github.com/autobrr/go-qbittorrent v1.19.0
-	github.com/autobrr/go-rtorrent v1.12.0
+	github.com/autobrr/go-rtorrent v1.12.1-0.20261007105804-66fe14c7acb1
 	github.com/autobrr/go-torrent v1.1.1
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/avast/retry-go/v4 v4.7.0
