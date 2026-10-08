@@ -46,12 +46,10 @@ func NewService(log zerolog.Logger, bus eventBus, config *domain.Config, updateS
 }
 
 func (s *Service) Start() error {
-	s.log.Debug().Msg("scheduler.Start")
+	s.log.Debug().Msg("starting scheduler")
 
-	// start scheduler
 	s.cron.Start()
 
-	// init jobs
 	go s.addAppJobs()
 
 	return nil
@@ -76,7 +74,7 @@ func (s *Service) addAppJobs() {
 }
 
 func (s *Service) Stop() {
-	s.log.Debug().Msg("scheduler.Stop")
+	s.log.Debug().Msg("stopping scheduler..")
 	s.cron.Stop()
 }
 

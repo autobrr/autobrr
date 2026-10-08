@@ -48,7 +48,7 @@ func (s *SQLiteSeeder) Reset() error {
 }
 
 func (s *SQLiteSeeder) resetTable(db *sql.DB, table string) error {
-	if _, err := db.Exec("DELETE FROM ?", table); err != nil {
+	if _, err := db.Exec("DELETE FROM " + table); err != nil {
 		return fmt.Errorf("failed to delete rows from table %s: %v", table, err)
 	}
 

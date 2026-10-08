@@ -237,18 +237,18 @@ func (s *Service) StartHandlers() {
 }
 
 func (s *Service) StopHandlers() {
-	s.log.Info().Msg("stopping all irc handlers..")
+	s.log.Debug().Msg("stopping all irc handlers..")
 
 	if s.stopHealthMonitor != nil {
 		s.stopHealthMonitor()
 	}
 
 	for _, handler := range s.networkHandlers.Iterator() {
-		s.log.Info().Str("network", handler.network.Name).Msg("stop network")
+		s.log.Debug().Str("network", handler.network.Name).Msg("stop network")
 		handler.Stop()
 	}
 
-	s.log.Info().Msg("stopped all irc handlers")
+	s.log.Debug().Msg("stopped all irc handlers")
 }
 
 func (s *Service) startNetwork(network domain.IrcNetwork) error {
