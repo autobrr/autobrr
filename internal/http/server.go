@@ -174,7 +174,9 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	s.sse.Close()
 
 	if err := s.server.Shutdown(ctx); err != nil {
-		return s.server.Close()
+		_ = s.server.Close()
+
+		return errors.Wrap(err, "could not shut down gracefully")
 	}
 
 	return nil
