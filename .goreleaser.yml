@@ -35,6 +35,7 @@ builds:
         goarch: arm64
     main: ./cmd/autobrr/main.go
     binary: autobrr
+
   - id: autobrrctl
     env:
       - CGO_ENABLED=0
@@ -64,6 +65,22 @@ builds:
         goarch: arm64
     main: ./cmd/autobrrctl/main.go
     binary: autobrrctl
+
+  - id: autobrr-desktop
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -pgo=cpu.pprof
+      - -trimpath
+    ldflags:
+      - -s -w -H windowsgui
+      - -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+    goos:
+      - windows
+    goarch:
+      - amd64
+    main: ./cmd/autobrr-desktop/main.go
+    binary: autobrr-desktop
 
 archives:
   - id: autobrr

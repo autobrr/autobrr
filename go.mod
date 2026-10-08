@@ -30,6 +30,7 @@ require (
 	github.com/go-andiamo/splitter v1.2.5
 	github.com/go-chi/chi/v5 v5.3.2
 	github.com/go-chi/render v1.0.3
+	github.com/gogpu/systray v0.3.0
 	github.com/gosimple/slug v1.15.0
 	github.com/hashicorp/go-version v1.9.0
 	github.com/hekmon/transmissionrpc/v3 v3.0.0
@@ -80,6 +81,8 @@ require (
 	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
+	github.com/go-webgpu/goffi v0.6.3 // indirect
+	github.com/godbus/dbus/v5 v5.2.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/gosimple/unidecode v1.0.1 // indirect
