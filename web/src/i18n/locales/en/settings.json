@@ -393,6 +393,8 @@
       "maxAgeHelp": "Maximum age of feed content in seconds. Use 0 to disable the age filter and process all items.",
       "cacheTTL": "Cache TTL",
       "cacheTTLHelp": "Days to remember processed feed items. Items still present in the feed after expiry will be processed and downloaded again. Default is 31 days.",
+      "maxPages": "Max pages",
+      "maxPagesHelp": "Maximum number of pages to fetch per refresh when catching up on missed items. Pagination stops at the first item already processed. Default is 1 (first page only), max is 10.",
       "cookie": "Cookie",
       "cookieHelp": "Not commonly used",
       "userAgent": "User-Agent",

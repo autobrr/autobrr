@@ -11,7 +11,6 @@ import (
 	"math"
 	"net/http"
 	"net/url"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -47,8 +46,9 @@ type TorznabJob struct {
 	CacheRepo  jobFeedCacheRepo
 	ReleaseSvc jobReleaseSvc
 
-	attempts int
-	errors   []error
+	attempts   int
+	errors     []error
+	hasFetched bool
 
 	JobID int
 }
@@ -60,7 +60,7 @@ type RefreshFeedJob interface {
 
 type torznabClient interface {
 	WithHTTPClient(client *http.Client)
-	Search(ctx context.Context, query string, categories []int) (*torznab.SearchResponse, error)
+	Search(ctx context.Context, query string, categories []int, offset int) (*torznab.SearchResponse, error)
 }
 
 func NewTorznabJob(feed *domain.Feed, name string, log zerolog.Logger, url string, client torznabClient, repo jobFeedRepo, cacheRepo jobFeedCacheRepo, releaseSvc jobReleaseSvc) RefreshFeedJob {
@@ -132,7 +132,7 @@ func (j *TorznabJob) processItems(items []torznab.FeedItem) ([]*domain.Release, 
 		j.Log.Trace().Str("item", item.Title).Msg("processing item..")
 
 		if j.Feed.MaxAge > 0 {
-			if item.PubDate.After(time.Date(1970, time.April, 1, 0, 0, 0, 0, time.UTC)) {
+			if item.PubDate.After(minValidPubDate) {
 				if !isNewerThanMaxAge(j.Feed.MaxAge, item.PubDate.Time, now) {
 					j.Log.Debug().Str("item", item.Title).Int("feed_max_age", j.Feed.MaxAge).Time("pub_date", item.PubDate.Time).Msg("item is older than feed max age skipping")
 					continue
@@ -272,6 +272,17 @@ func mapFreeleechToBonus(percentage int) (string, bool) {
 	}
 }
 
+// maxPages fetches a single page when the cache holds no boundary from a previous run,
+// so a new or long-paused feed doesn't backfill old releases into filters.
+func (j *TorznabJob) maxPages() int {
+	if !j.hasFetched && !j.Feed.CacheCoversLastRun(time.Now()) {
+		j.Log.Debug().Time("last_run", j.Feed.LastRun).Msg("no cache boundary from a previous run, fetching only the first page")
+		return 1
+	}
+
+	return j.Feed.PaginationMaxPages()
+}
+
 func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
 	// add proxy if enabled and exists
 	if j.Feed.UseProxy && j.Feed.Proxy != nil {
@@ -291,75 +302,50 @@ func (j *TorznabJob) getFeed(ctx context.Context) ([]torznab.FeedItem, error) {
 		j.Log.Debug().Str("proxy", j.Feed.Proxy.Name).Msg("using proxy for feed")
 	}
 
-	// get feed
-	feed, err := j.Client.Search(ctx, "", j.Feed.Categories)
+	p := paginator[torznab.FeedItem]{
+		Log:       j.Log,
+		CacheRepo: j.CacheRepo,
+		FeedID:    j.Feed.ID,
+		TTL:       j.Feed.CacheTTL(),
+		MaxPages:  j.maxPages(),
+		KeyOf:     func(item torznab.FeedItem) string { return item.GUID },
+		TitleOf:   func(item torznab.FeedItem) string { return item.Title },
+		PubDateOf: func(item torznab.FeedItem) time.Time { return item.PubDate.Time },
+	}
+
+	if j.Feed.MaxAge > 0 {
+		p.Cutoff = time.Now().Add(-time.Duration(j.Feed.MaxAge) * time.Second)
+	}
+
+	items, err := p.Fetch(ctx, func(ctx context.Context, offset int) (page[torznab.FeedItem], error) {
+		feed, err := j.Client.Search(ctx, "", j.Feed.Categories, offset)
+		if err != nil {
+			return page[torznab.FeedItem]{}, errors.Wrap(err, "error fetching feed items")
+		}
+
+		if offset == 0 {
+			if err := j.Repo.UpdateLastRunWithData(ctx, j.Feed.ID, feed.Raw); err != nil {
+				j.Log.Error().Err(err).Msg("error updating last run for feed")
+			}
+		}
+
+		j.Log.Trace().Int("offset", offset).Int("items_count", len(feed.Items)).Msg("feed refresh fetched page")
+
+		items := make([]torznab.FeedItem, 0, len(feed.Items))
+		for _, item := range feed.Items {
+			items = append(items, *item)
+		}
+
+		return page[torznab.FeedItem]{Limit: feed.Limit, Total: feed.Total, Items: items}, nil
+	})
 	if err != nil {
-		return nil, errors.Wrap(err, "error fetching feed items")
+		return nil, err
 	}
 
-	if err := j.Repo.UpdateLastRunWithData(ctx, j.Feed.ID, feed.Raw); err != nil {
-		j.Log.Error().Err(err).Msg("error updating last run for feed")
-	}
+	j.hasFetched = true
 
-	items := make([]torznab.FeedItem, 0)
-	if len(feed.Items) == 0 {
-		j.Log.Trace().Int("items_count", len(feed.Items)).Msg("feed refresh found zero items")
-		return items, nil
-	}
-
-	j.Log.Trace().Int("items_count", len(feed.Items)).Msg("feed refresh found new items")
-
-	// Collect all valid GUIDs first
-	guidItemMap := make(map[string]*torznab.FeedItem)
-	var guids []string
-
-	for _, item := range feed.Items {
-		if item.GUID == "" {
-			j.Log.Error().Str("title", item.Title).Msg("missing GUID from feed item")
-			continue
-		}
-
-		guidItemMap[item.GUID] = item
-		guids = append(guids, item.GUID)
-	}
-
-	// reverse order so oldest items are processed first
-	slices.Reverse(guids)
-
-	// Batch check which GUIDs already exist in the cache
-	existingGuids, err := j.CacheRepo.ExistingItems(ctx, j.Feed.ID, guids)
-	if err != nil {
-		return nil, errors.Wrap(err, "could not check existing items")
-	}
-
-	ttl := j.Feed.CacheTTL()
-	toCache := make([]domain.FeedCacheItem, 0)
-
-	// Process items that don't exist in the cache
-	for _, guid := range guids {
-		item := guidItemMap[guid]
-		if existingGuids[guid] {
-			j.Log.Trace().Str("item", item.Title).Msg("cache item exists, skipping release..")
-			continue
-		}
-
-		j.Log.Debug().Str("item", item.Title).Msg("found new release")
-
-		toCache = append(toCache, domain.FeedCacheItem{
-			FeedId: strconv.Itoa(j.Feed.ID),
-			Key:    guid,
-			Value:  []byte(item.Title),
-			TTL:    ttl,
-		})
-
-		// Add item to result list
-		items = append(items, *item)
-	}
-
-	if len(toCache) > 0 {
-		if err := j.CacheRepo.PutMany(ctx, toCache); err != nil {
-			j.Log.Error().Err(err).Msg("cache.PutMany: error storing items in cache")
-		}
+	if len(items) == 0 {
+		j.Log.Trace().Msg("feed refresh found zero items")
 	}
 
 	// send to filters
