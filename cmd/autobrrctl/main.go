@@ -302,13 +302,8 @@ func main() {
 			}
 			fmt.Println("Database seeding completed successfully!")
 		} else {
-			if err := s.Reset(); err != nil {
-				fmt.Println("Error resetting the database:", err)
-				os.Exit(1)
-			}
-
-			if err := s.Seed(); err != nil {
-				fmt.Println("Error seeding the database:", err)
+			if err := s.ResetAndSeed(); err != nil {
+				fmt.Println("Error resetting and seeding the database:", err)
 				os.Exit(1)
 			}
 			fmt.Println("Database reset and reseed completed successfully!")

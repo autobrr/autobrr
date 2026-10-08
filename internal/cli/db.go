@@ -70,14 +70,8 @@ func CommandDbReset() *cobra.Command {
 	_ = command.MarkFlagRequired("seed-db")
 
 	command.RunE = func(cmd *cobra.Command, args []string) error {
-		seeder := tools.NewSQLiteSeeder(dbPath, seedPath)
-
-		if err := seeder.Reset(); err != nil {
-			return errors.Wrap(err, "could not reset database")
-		}
-
-		if err := seeder.Seed(); err != nil {
-			return errors.Wrap(err, "could not seed database")
+		if err := tools.NewSQLiteSeeder(dbPath, seedPath).ResetAndSeed(); err != nil {
+			return errors.Wrap(err, "could not reset and seed database")
 		}
 
 		fmt.Println("Database reset and reseed completed successfully!")
