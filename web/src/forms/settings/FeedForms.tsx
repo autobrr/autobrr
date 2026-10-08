@@ -122,7 +122,8 @@ export function FeedUpdateForm({ isOpen, toggle, data}: UpdateFormProps<Feed>) {
     capabilities: feed.capabilities || null,
     settings: {
       ...feed.settings,
-      cache_ttl_days: feed.settings?.cache_ttl_days || 31
+      cache_ttl_days: feed.settings?.cache_ttl_days || 31,
+      max_pages: feed.settings?.max_pages
     }
   };
 
@@ -223,6 +224,7 @@ function FormFieldsTorznab({ feedID }: { feedID: number }) {
       <NumberFieldWide name="timeout" label={t("forms.feed.refreshTimeout")} help={t("forms.feed.refreshTimeoutHelp")}/>
       <NumberFieldWide name="max_age" label={t("forms.feed.maxAge")} help={t("forms.feed.maxAgeHelp")}/>
       <NumberFieldWide name="settings.cache_ttl_days" label={t("forms.feed.cacheTTL")} help={t("forms.feed.cacheTTLHelp")}/>
+      <NumberFieldWide name="settings.max_pages" label={t("forms.feed.maxPages")} help={t("forms.feed.maxPagesHelp")} defaultValue={1} min={1} max={10}/>
 
       <FeedCategoriesSection feedID={feedID} />
     </div>
@@ -261,6 +263,7 @@ function FormFieldsNewznab({ feedID }: { feedID: number }) {
       <NumberFieldWide name="timeout" label={t("forms.feed.refreshTimeout")} help={t("forms.feed.refreshTimeoutHelp")}/>
       <NumberFieldWide name="max_age" label={t("forms.feed.maxAge")} help={t("forms.feed.maxAgeHelp")}/>
       <NumberFieldWide name="settings.cache_ttl_days" label={t("forms.feed.cacheTTL")} help={t("forms.feed.cacheTTLHelp")}/>
+      <NumberFieldWide name="settings.max_pages" label={t("forms.feed.maxPages")} help={t("forms.feed.maxPagesHelp")} defaultValue={1} min={1} max={10}/>
 
       <FeedCategoriesSection feedID={feedID} />
     </div>
