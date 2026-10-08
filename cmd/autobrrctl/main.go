@@ -166,7 +166,7 @@ func main() {
 			Password: hashed,
 		}
 
-		if err := userRepo.Store(ctx, req); err != nil {
+		if err := userSvc.CreateUser(ctx, req); err != nil {
 			log.Fatalf("failed to create user: %v", err)
 		}
 

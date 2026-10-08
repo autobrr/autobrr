@@ -49,8 +49,8 @@ func CommandUserCreate() *cobra.Command {
 		}
 		defer db.Close()
 
-		userRepo := database.NewUserRepo(l, db)
-		authSvc := auth.NewService(l, user.NewService(userRepo))
+		userSvc := user.NewService(database.NewUserRepo(l, db))
+		authSvc := auth.NewService(l, userSvc)
 
 		password, err := readPassword()
 		if err != nil {
@@ -67,7 +67,7 @@ func CommandUserCreate() *cobra.Command {
 			Password: hashed,
 		}
 
-		if err := userRepo.Store(cmd.Context(), req); err != nil {
+		if err := userSvc.CreateUser(cmd.Context(), req); err != nil {
 			return errors.Wrap(err, "could not create user: %s", username)
 		}
 
