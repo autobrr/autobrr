@@ -170,6 +170,21 @@ func (app *App) components(fail context.CancelCauseFunc) []component {
 
 	components = append(components,
 		component{
+			name: "http",
+			start: func(context.Context) error {
+				if err := app.httpServer.Listen(); err != nil {
+					return err
+				}
+
+				serve(app.httpServer.Serve, func(err error) {
+					fail(errors.Wrap(err, "http server stopped unexpectedly"))
+				})
+
+				return nil
+			},
+			stop: app.httpServer.Shutdown,
+		},
+		component{
 			name: "scheduler",
 			start: func(context.Context) error {
 				return app.scheduler.Start()
@@ -231,21 +246,6 @@ func (app *App) components(fail context.CancelCauseFunc) []component {
 
 				return nil
 			},
-		},
-		component{
-			name: "http",
-			start: func(context.Context) error {
-				if err := app.httpServer.Listen(); err != nil {
-					return err
-				}
-
-				serve(app.httpServer.Serve, func(err error) {
-					fail(errors.Wrap(err, "http server stopped unexpectedly"))
-				})
-
-				return nil
-			},
-			stop: app.httpServer.Shutdown,
 		},
 	)
 
