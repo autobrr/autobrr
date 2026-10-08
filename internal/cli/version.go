@@ -5,6 +5,7 @@ package cli
 
 import (
 	"github.com/autobrr/autobrr/internal/application"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/spf13/cobra"
 )
@@ -20,15 +21,19 @@ func CommandVersion() *cobra.Command {
 
 	command.Flags().StringVar(&output, "output", "text", "output as text or json. Default: text")
 
-	command.Run = func(cmd *cobra.Command, args []string) {
+	command.RunE = func(cmd *cobra.Command, args []string) error {
 		switch output {
 		case "json":
 			application.PrintVersionJSON()
 
 		case "text", "":
 			application.PrintVersion()
+
+		default:
+			return errors.New("unsupported output %q: must be text or json", output)
 		}
 
+		return nil
 	}
 
 	return command
