@@ -75,7 +75,7 @@ func CommandFilterExport() *cobra.Command {
 				continue
 			}
 
-			filePath := filepath.Join(outputDir, fmt.Sprintf("%s.json", sanitizeFilename(fullFilter.Name)))
+			filePath := filepath.Join(outputDir, fmt.Sprintf("%d-%s.json", fullFilter.ID, sanitizeFilename(fullFilter.Name)))
 
 			if err := os.WriteFile(filePath, jsonData, 0644); err != nil {
 				log.Printf("Error writing file %s: %v\n", filePath, err)

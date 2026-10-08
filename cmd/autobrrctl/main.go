@@ -384,7 +384,7 @@ func main() {
 			}
 
 			safeName := sanitizeFilename(fullFilter.Name)
-			filename := fmt.Sprintf("%s.json", safeName)
+			filename := fmt.Sprintf("%d-%s.json", fullFilter.ID, safeName)
 			filePath := filepath.Join(outputDir, filename)
 
 			if err := os.WriteFile(filePath, jsonData, 0644); err != nil {
