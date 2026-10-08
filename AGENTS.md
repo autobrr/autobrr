@@ -30,8 +30,8 @@ This file provides guidance to AI coding agents (Claude Code, Codex, Cursor, etc
 The backend follows a layered architecture with clear separation of concerns:
 
 - **`cmd/`**: Application entry points
-  - `autobrr/main.go`: Main server application
-  - `autobrrctl/main.go`: CLI tool for administration
+  - `autobrr/main.go`: cobra root; bare `autobrr` runs `serve`, subcommands live in `internal/cli/`
+  - `autobrrctl/main.go`: legacy admin CLI, kept until it is deprecated; new admin commands go in `internal/cli/`
 
 - **`internal/`**: Core application logic organized by domain
   - **Domain layer** (`internal/domain/`): Core business entities. It holds no repository or service interfaces - each consumer declares a small unexported interface listing only the methods it calls, and constructors return concrete `*Service` structs
@@ -66,7 +66,9 @@ The backend follows a layered architecture with clear separation of concerns:
 - Repository pattern for data access
 
 ### Service Wiring
-- `cmd/autobrr/main.go` constructs repos and services in two dependency-ordered `var` blocks; services talk across packages through the typed event bus in `internal/events/` when a direct dependency would create an import cycle
+- `internal/application` owns the lifecycle: `setup` constructs repos and services in dependency order, `components()` lists what starts (in order) and stops (in reverse) when `Run`'s context is cancelled
+- A new background service or listener is a `component` in that list, with a `stop` for anything it opens; mark it `optional` when its failure should be logged while the rest of the app keeps running
+- Services talk across packages through the typed event bus in `internal/events/` when a direct dependency would create an import cycle
 
 ## Code Style
 

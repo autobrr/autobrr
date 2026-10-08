@@ -166,7 +166,7 @@ func main() {
 			Password: hashed,
 		}
 
-		if err := userRepo.Store(ctx, req); err != nil {
+		if err := userSvc.CreateUser(ctx, req); err != nil {
 			log.Fatalf("failed to create user: %v", err)
 		}
 
@@ -302,13 +302,8 @@ func main() {
 			}
 			fmt.Println("Database seeding completed successfully!")
 		} else {
-			if err := s.Reset(); err != nil {
-				fmt.Println("Error resetting the database:", err)
-				os.Exit(1)
-			}
-
-			if err := s.Seed(); err != nil {
-				fmt.Println("Error seeding the database:", err)
+			if err := s.ResetAndSeed(); err != nil {
+				fmt.Println("Error resetting and seeding the database:", err)
 				os.Exit(1)
 			}
 			fmt.Println("Database reset and reseed completed successfully!")
@@ -384,7 +379,7 @@ func main() {
 			}
 
 			safeName := sanitizeFilename(fullFilter.Name)
-			filename := fmt.Sprintf("%s.json", safeName)
+			filename := fmt.Sprintf("%d-%s.json", fullFilter.ID, safeName)
 			filePath := filepath.Join(outputDir, filename)
 
 			if err := os.WriteFile(filePath, jsonData, 0644); err != nil {

@@ -4,6 +4,7 @@
 package http
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/config"
+	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/web"
 
 	"github.com/alexedwards/scs/v2"
@@ -23,9 +25,11 @@ import (
 )
 
 type Server struct {
-	log zerolog.Logger
-	sse *sse.Server
-	db  DatabaseHealth
+	log      zerolog.Logger
+	sse      *sse.Server
+	db       DatabaseHealth
+	server   *http.Server
+	listener net.Listener
 
 	buildInfo      buildInfo
 	config         *config.AppConfig
@@ -132,35 +136,50 @@ func NewServer(deps Deps) *Server {
 	return srv
 }
 
-func (s *Server) Open() error {
-	addr := fmt.Sprintf("%v:%v", s.config.Config.Host, s.config.Config.Port)
-
-	var err error
-	for _, proto := range []string{"tcp", "tcp4", "tcp6"} {
-		if err = s.tryToServe(addr, proto); err == nil {
-			break
-		}
-
-		s.log.Error().Err(err).Str("protocol", proto).Str("addr", addr).Msg("failed to start server")
-	}
-
-	return err
-}
-
-func (s *Server) tryToServe(addr, protocol string) error {
-	listener, err := net.Listen(protocol, addr)
+// Listen binds the configured address. It returns before serving so a port
+// conflict fails startup instead of surfacing later.
+func (s *Server) Listen() error {
+	listener, err := listen(s.log, fmt.Sprintf("%v:%v", s.config.Config.Host, s.config.Config.Port))
 	if err != nil {
 		return err
 	}
 
-	s.log.Info().Str("protocol", protocol).Str("addr", listener.Addr().String()).Msg("starting api server")
-
-	server := http.Server{
+	s.listener = listener
+	s.server = &http.Server{
 		Handler:           s.Handler(),
 		ReadHeaderTimeout: time.Second * 15,
 	}
 
-	return server.Serve(listener)
+	s.log.Info().Str("addr", listener.Addr().String()).Msg("starting api server")
+
+	return nil
+}
+
+// Serve blocks until the server is shut down. It requires a prior Listen.
+func (s *Server) Serve() error {
+	if err := s.server.Serve(s.listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+
+	return nil
+}
+
+// Shutdown ends the event streams first, since SSE handlers only return when
+// their stream closes and would otherwise hold Shutdown until ctx expires.
+func (s *Server) Shutdown(ctx context.Context) error {
+	if s.server == nil {
+		return nil
+	}
+
+	s.sse.Close()
+
+	if err := s.server.Shutdown(ctx); err != nil {
+		_ = s.server.Close()
+
+		return errors.Wrap(err, "could not shut down gracefully")
+	}
+
+	return nil
 }
 
 func (s *Server) Handler() http.Handler {
