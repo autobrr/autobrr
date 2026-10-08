@@ -83,6 +83,34 @@ func TestSQLiteSeeder_ResetAndSeed(t *testing.T) {
 			want:    []string{"existing"},
 		},
 		{
+			name: "sqlite3 dump wrapper is unwrapped",
+			seed: "PRAGMA foreign_keys=OFF;\nBEGIN TRANSACTION;\nINSERT INTO filter (name) VALUES ('seeded');\nCOMMIT;\n",
+			want: []string{"seeded"},
+		},
+		{
+			name: "commented wrapper is unwrapped",
+			seed: "-- seed\nbegin;\nINSERT INTO filter (name) VALUES ('seeded');\n/* done */ end;",
+			want: []string{"seeded"},
+		},
+		{
+			name:    "commit inside seed keeps existing rows",
+			seed:    "INSERT INTO filter (name) VALUES ('seeded'); COMMIT; INSERT INTO missing_table (name) VALUES ('x');",
+			wantErr: true,
+			want:    []string{"existing"},
+		},
+		{
+			name:    "rollback inside seed keeps existing rows",
+			seed:    "-- undo\nROLLBACK; INSERT INTO filter (name) VALUES ('seeded');",
+			wantErr: true,
+			want:    []string{"existing"},
+		},
+		{
+			name:    "unterminated begin keeps existing rows",
+			seed:    "BEGIN; INSERT INTO filter (name) VALUES ('seeded');",
+			wantErr: true,
+			want:    []string{"existing"},
+		},
+		{
 			name:    "empty seed keeps existing rows",
 			seed:    " ;\n ; ",
 			wantErr: true,

@@ -85,7 +85,73 @@ func (s *SQLiteSeeder) readSeed() ([]string, error) {
 		return nil, errors.New("seed file %s contains no SQL statements", s.seedFile)
 	}
 
+	stmts = unwrapTransaction(stmts)
+
+	for _, stmt := range stmts {
+		switch statementKeyword(stmt) {
+		case "BEGIN", "COMMIT", "END", "ROLLBACK", "SAVEPOINT", "RELEASE":
+			return nil, errors.New("seed file %s must not control transactions: %s", s.seedFile, strings.TrimSpace(stmt))
+		}
+	}
+
 	return stmts, nil
+}
+
+// unwrapTransaction drops the BEGIN ... COMMIT wrapper that `sqlite3 .dump`
+// emits, since the seed already runs inside our own transaction. Leading
+// PRAGMAs, which .dump puts before BEGIN, are kept.
+func unwrapTransaction(stmts []string) []string {
+	first := 0
+	for first < len(stmts) && statementKeyword(stmts[first]) == "PRAGMA" {
+		first++
+	}
+
+	last := len(stmts) - 1
+	if first >= last || statementKeyword(stmts[first]) != "BEGIN" {
+		return stmts
+	}
+
+	switch statementKeyword(stmts[last]) {
+	case "COMMIT", "END":
+	default:
+		return stmts
+	}
+
+	unwrapped := append([]string{}, stmts[:first]...)
+
+	return append(unwrapped, stmts[first+1:last]...)
+}
+
+// statementKeyword returns the first keyword of stmt in upper case, skipping
+// leading whitespace and comments.
+func statementKeyword(stmt string) string {
+	for {
+		stmt = strings.TrimSpace(stmt)
+
+		switch {
+		case strings.HasPrefix(stmt, "--"):
+			end := strings.IndexByte(stmt, '\n')
+			if end < 0 {
+				return ""
+			}
+			stmt = stmt[end+1:]
+		case strings.HasPrefix(stmt, "/*"):
+			end := strings.Index(stmt, "*/")
+			if end < 0 {
+				return ""
+			}
+			stmt = stmt[end+2:]
+		default:
+			end := strings.IndexFunc(stmt, func(r rune) bool {
+				return !('a' <= r && r <= 'z' || 'A' <= r && r <= 'Z')
+			})
+			if end < 0 {
+				end = len(stmt)
+			}
+
+			return strings.ToUpper(stmt[:end])
+		}
+	}
 }
 
 func (s *SQLiteSeeder) inTx(fn func(tx *sql.Tx) error) error {
