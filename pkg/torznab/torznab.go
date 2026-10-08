@@ -183,6 +183,7 @@ func (c *Client) pageLimit() int {
 	return defaultSearchLimit
 }
 
+// FetchFeed fetches the latest items from the feed in a single request.
 func (c *Client) FetchFeed(ctx context.Context) (*Feed, error) {
 	if err := c.getAndSetCaps(ctx); err != nil {
 		return nil, err
@@ -307,6 +308,7 @@ func (c *Client) GetCaps() *Caps {
 	return c.Capabilities
 }
 
+// Search queries the indexer for one page of results starting at offset.
 func (c *Client) Search(ctx context.Context, query string, categories []int, offset int) (*SearchResponse, error) {
 	if err := c.getAndSetCaps(ctx); err != nil {
 		return nil, err
