@@ -169,20 +169,14 @@ func (app *App) components(fail context.CancelCauseFunc) []component {
 	}
 
 	components = append(components,
+		// bind before anything dials out so a port conflict fails startup early,
+		// serving waits until the services behind the API have started
 		component{
-			name: "http",
+			name: "http listen",
 			start: func(context.Context) error {
-				if err := app.httpServer.Listen(); err != nil {
-					return err
-				}
-
-				serve(app.httpServer.Serve, func(err error) {
-					fail(errors.Wrap(err, "http server stopped unexpectedly"))
-				})
-
-				return nil
+				return app.httpServer.Listen()
 			},
-			stop: app.httpServer.Shutdown,
+			stop: app.httpServer.CloseListener,
 		},
 		component{
 			name: "scheduler",
@@ -246,6 +240,18 @@ func (app *App) components(fail context.CancelCauseFunc) []component {
 
 				return nil
 			},
+		},
+		// last to start so it stops first, before the services its handlers call
+		component{
+			name: "http",
+			start: func(context.Context) error {
+				serve(app.httpServer.Serve, func(err error) {
+					fail(errors.Wrap(err, "http server stopped unexpectedly"))
+				})
+
+				return nil
+			},
+			stop: app.httpServer.Shutdown,
 		},
 	)
 

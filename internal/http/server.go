@@ -182,6 +182,20 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	return nil
 }
 
+// CloseListener releases the port when Serve never ran. Once Serve has run,
+// Shutdown already closed the listener and this is a no-op.
+func (s *Server) CloseListener(context.Context) error {
+	if s.listener == nil {
+		return nil
+	}
+
+	if err := s.listener.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
+		return err
+	}
+
+	return nil
+}
+
 func (s *Server) Handler() http.Handler {
 	r := chi.NewRouter()
 
