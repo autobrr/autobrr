@@ -77,3 +77,31 @@ func TestFeedItem_parseAttributesMagnetURL(t *testing.T) {
 		})
 	}
 }
+
+func TestFeedItem_parseAttributesTvdb(t *testing.T) {
+	tests := []struct {
+		name       string
+		attributes Attributes
+		want       string
+	}{
+		{
+			name:       "tvdbid attr",
+			attributes: Attributes{{Name: "tvdbid", Value: "77537"}},
+			want:       "77537",
+		},
+		{
+			name:       "tvdb attr",
+			attributes: Attributes{{Name: "tvdb", Value: "77537"}},
+			want:       "77537",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f := &FeedItem{Attributes: tt.attributes}
+			f.parseAttributes()
+
+			assert.Equal(t, tt.want, f.TvdbId)
+		})
+	}
+}

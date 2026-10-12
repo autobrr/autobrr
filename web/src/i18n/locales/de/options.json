@@ -10,6 +10,12 @@
     "FIXED": "Fest (Kalender-Reset)",
     "ROLLING": "Gleitend (gleitendes Fenster)"
   },
+  "rtorrentPriority": {
+    "DEFAULT": "Standard",
+    "LOW": "Niedrig",
+    "NORMAL": "Normal",
+    "HIGH": "Hoch"
+  },
   "downloadClient": {
     "QBITTORRENT": {
       "label": "qBittorrent",

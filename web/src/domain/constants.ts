@@ -590,6 +590,13 @@ export const ActionPriorityOptions: SelectGenericOption<ActionPriorityLayout>[] 
   { label: "Disabled", description: "Disabled", value: "" }
 ];
 
+export const getRTorrentPriorityOptions = (t: TFunction): SelectGenericOption<ActionPriorityLayout>[] => [
+  { label: t("options:rtorrentPriority.HIGH"), description: t("options:rtorrentPriority.HIGH"), value: "HIGH" },
+  { label: t("options:rtorrentPriority.NORMAL"), description: t("options:rtorrentPriority.NORMAL"), value: "NORMAL" },
+  { label: t("options:rtorrentPriority.LOW"), description: t("options:rtorrentPriority.LOW"), value: "LOW" },
+  { label: t("options:rtorrentPriority.DEFAULT"), description: t("options:rtorrentPriority.DEFAULT"), value: "" }
+];
+
 export const ActionRtorrentRenameOptions: SelectGenericOption<ActionContentLayout>[] = [
   { label: "No", description: "No", value: "ORIGINAL" },
   { label: "Yes", description: "Yes", value: "SUBFOLDER_NONE" }

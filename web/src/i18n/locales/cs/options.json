@@ -10,6 +10,12 @@
       "FIXED": "Pevné (reset kalendáře)",
       "ROLLING": "Klouzavé (klouzavé okno)"
     },
+    "rtorrentPriority": {
+      "DEFAULT": "Výchozí",
+      "LOW": "Nízká",
+      "NORMAL": "Normální",
+      "HIGH": "Vysoká"
+    },
     "downloadClient": {
       "QBITTORRENT": {
         "label": "qBittorrent",

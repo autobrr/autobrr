@@ -406,7 +406,7 @@ func TestIndexersParseAndFilter(t *testing.T) {
 				{
 					name: "announce_resolution_not_in_name",
 					args: args{
-						announceLines: []string{"Category [TV] Type [WEB-DL] Name [The Show S01E01 NF WEB-DL DD+ 5.1 H.264-GRP] Resolution [1080p] Freeleech [0%] Internal [No] Double Upload [No] Size [1.38 GB] Uploader [Anonymous] Url [https://aither.cc/torrents/download/213123123]"},
+						announceLines: []string{"Category [TV] Type [WEB-DL] Name [The Show S01E01 NF WEB-DL DD+ 5.1 H.264-GRP] Resolution [1080p] Freeleech [0%] Upload Cap: [No] Internal [No] Double Upload [No] Size [1.38 GB] Uploader [Anonymous] Url [https://aither.cc/torrents/download/213123123]"},
 						filters: []filterTest{
 							{
 								filter: &domain.Filter{
