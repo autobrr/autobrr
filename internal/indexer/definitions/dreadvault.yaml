@@ -1,0 +1,94 @@
+---
+version: 2
+#id: dreadvault
+name: DreadVault
+identifier: dreadvault
+description: DreadVault is a private torrent tracker for HORROR, SLEAZE, EXPLOITATION, THRILLER and OFF BEAT CINEMA.
+language: en-us
+urls:
+  - https://dreadvault.org/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key
+    help: "Go to Settings > RSS Key, and copy your RSS Key"
+
+irc:
+  network: DreadVault
+  server: irc.dreadvault.org
+  port: 6697
+  tls: true
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  channels:
+    - name: "#announce"
+      announcers:
+        - DreadVaultBot
+      parse:
+        type: multi
+        lines:
+          - pattern: '\[DreadVault\] (?P<uploader>.+) has uploaded (?P<releaseName>.+) grab it now!'
+            tests:
+              - line: '[DreadVault] rptr has uploaded Sewer Gators 2022 1080p AMZN WEB-DL DD+ 2.0 H.264-BobDobbs grab it now!'
+                expect:
+                  uploader: rptr
+                  releaseName: Sewer Gators 2022 1080p AMZN WEB-DL DD+ 2.0 H.264-BobDobbs
+
+              - line: '[DreadVault] trvk has uploaded Shutter 2008 1080p BluRay DD 5.1 x264-OFT grab it now!'
+                expect:
+                  uploader: trvk
+                  releaseName: Shutter 2008 1080p BluRay DD 5.1 x264-OFT
+
+          - pattern: '\[Category: (?P<category>.+)\] \[Type: (?P<releaseTags>.+)\] \[Size: (?P<torrentSize>.+)\] \[TMDB vote average: .+\] \[TMDB vote count: .+\]'
+            tests:
+              - line: '[Category: Movies] [Type: WEB-DL] [Size: 3.07 GiB] [TMDB vote average: 0] [TMDB vote count: 0]'
+                expect:
+                  category: Movies
+                  releaseTags: WEB-DL
+                  torrentSize: "3.07 GiB"
+
+              - line: '[Category: Movies] [Type: Encode] [Size: 4 GiB] [TMDB vote average: 0] [TMDB vote count: 0]'
+                expect:
+                  category: Movies
+                  releaseTags: Encode
+                  torrentSize: "4 GiB"
+
+          - pattern: '\[Link: (?P<baseUrl>https?\:\/\/.+\/)torrents\/(?P<torrentId>\d+)\]'
+            tests:
+              - line: '[Link: https://dreadvault.org/torrents/8964]'
+                expect:
+                  baseUrl: https://dreadvault.org/
+                  torrentId: "8964"
+
+              - line: '[Link: https://dreadvault.org/torrents/8966]'
+                expect:
+                  baseUrl: https://dreadvault.org/
+                  torrentId: "8966"
+
+        match:
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
