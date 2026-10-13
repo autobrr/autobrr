@@ -49,6 +49,7 @@ require (
 	github.com/rs/xid v1.6.0
 	github.com/rs/zerolog v1.35.1
 	github.com/sasha-s/go-deadlock v0.3.9
+	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.12.1
@@ -85,6 +86,7 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hekmon/cunits/v2 v2.1.0 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/mattn/go-colorable v0.1.15 // indirect
