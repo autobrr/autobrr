@@ -26,11 +26,16 @@ type component struct {
 }
 
 // startComponents returns the components that started, so the caller can
-// stop exactly those when a later one fails.
+// stop exactly those when a later one fails. It stops early when ctx ends, so
+// a shutdown requested during startup does not dial out first.
 func (app *App) startComponents(ctx context.Context, components []component) ([]component, error) {
 	started := make([]component, 0, len(components))
 
 	for _, c := range components {
+		if ctx.Err() != nil {
+			return started, context.Cause(ctx)
+		}
+
 		if err := c.start(ctx); err != nil {
 			if c.optional {
 				app.log.Error().Err(err).Str("component", c.name).Msg("could not start component")

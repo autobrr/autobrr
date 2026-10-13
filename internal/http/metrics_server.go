@@ -82,7 +82,13 @@ func (s *MetricsServer) Shutdown(ctx context.Context) error {
 		return nil
 	}
 
-	return s.server.Shutdown(ctx)
+	if err := s.server.Shutdown(ctx); err != nil {
+		_ = s.server.Close()
+
+		return errors.Wrap(err, "could not shut down gracefully")
+	}
+
+	return nil
 }
 
 func (s *MetricsServer) Handler() http.Handler {

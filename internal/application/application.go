@@ -111,9 +111,22 @@ func New(configPath string) *App {
 
 // Run starts the application and blocks until ctx is cancelled or one of its
 // servers exits unexpectedly, then shuts everything down. Cancelling ctx is a
-// clean shutdown and returns nil.
+// clean shutdown and returns nil, also while still starting. An App runs once,
+// a host that restarts it builds a new one with New.
 func (app *App) Run(ctx context.Context) error {
+	// the event streams outlive a failed start, which never reaches the http
+	// shutdown that normally closes them
+	defer app.sse.Close()
+
+	if ctx.Err() != nil {
+		return nil
+	}
+
 	if err := app.setup(ctx); err != nil {
+		if ctx.Err() != nil {
+			return nil
+		}
+
 		return err
 	}
 
@@ -128,9 +141,7 @@ func (app *App) Run(ctx context.Context) error {
 
 	started, err := app.startComponents(runCtx, app.components(fail))
 	if err != nil {
-		app.stopComponents(started)
-
-		return err
+		fail(err)
 	}
 
 	<-runCtx.Done()
@@ -179,15 +190,9 @@ func (app *App) components(fail context.CancelCauseFunc) []component {
 			stop: app.httpServer.CloseListener,
 		},
 		component{
-			name: "scheduler",
-			start: func(context.Context) error {
-				return app.scheduler.Start()
-			},
-			stop: func(context.Context) error {
-				app.scheduler.Stop()
-
-				return nil
-			},
+			name:  "scheduler",
+			start: app.scheduler.Start,
+			stop:  app.scheduler.Stop,
 		},
 		component{
 			name:     "notifications",

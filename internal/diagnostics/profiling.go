@@ -70,5 +70,11 @@ func (p *Profiler) Shutdown(ctx context.Context) error {
 		return nil
 	}
 
-	return p.server.Shutdown(ctx)
+	if err := p.server.Shutdown(ctx); err != nil {
+		_ = p.server.Close()
+
+		return errors.Wrap(err, "could not shut down gracefully")
+	}
+
+	return nil
 }
