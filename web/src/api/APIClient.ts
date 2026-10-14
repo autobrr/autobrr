@@ -420,6 +420,9 @@ export const APIClient = {
     files: () => appClient.Get<LogFileResponse>("api/logs/files"),
     download: (filename: string) => appClient.Get<Response>(`api/logs/files/${encodeURIComponent(filename)}`)
   },
+  alerts: {
+    list: () => appClient.Get<Alert[]>("api/alerts")
+  },
   events: {
     logs: () => new EventSource(`${sseBaseUrl()}api/events?stream=logs`, { withCredentials: true }),
     notifications: () => new EventSource(`${sseBaseUrl()}api/events?stream=notifications`, { withCredentials: true })

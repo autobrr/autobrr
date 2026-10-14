@@ -10,6 +10,12 @@
     "FIXED": "Fast (kalendernullstilling)",
     "ROLLING": "Rullerende (glidende vindu)"
   },
+  "rtorrentPriority": {
+    "DEFAULT": "Standard",
+    "LOW": "Lav",
+    "NORMAL": "Normal",
+    "HIGH": "Høy"
+  },
   "downloadClient": {
     "QBITTORRENT": {
       "label": "qBittorrent",
@@ -157,6 +163,7 @@
     "PUSH_ERROR": "Feil"
   },
   "notificationType": {
+    "BARK": "Bark",
     "DISCORD": "Discord",
     "GOTIFY": "Gotify",
     "LUNASEA": "LunaSea",

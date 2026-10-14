@@ -27,6 +27,7 @@ const EVENT_OPTIONS = [
 ];
 
 const NOTIFICATION_TYPE_MAP: Record<string, string> = {
+  "BARK": "Bark",
   "DISCORD": "Discord",
   "NOTIFIARR": "Notifiarr",
   "TELEGRAM": "Telegram",

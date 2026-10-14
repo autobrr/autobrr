@@ -8,6 +8,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -73,6 +74,7 @@ type Service struct {
 
 	// unhealthyNetworks is owned by the health monitor goroutine
 	unhealthyNetworks map[int64]*unhealthyEpisode
+	unhealthySnapshot atomic.Pointer[[]reportedNetwork]
 	stopHealthMonitor context.CancelFunc
 
 	stopWG sync.WaitGroup
@@ -235,18 +237,18 @@ func (s *Service) StartHandlers() {
 }
 
 func (s *Service) StopHandlers() {
-	s.log.Info().Msg("stopping all irc handlers..")
+	s.log.Debug().Msg("stopping all irc handlers..")
 
 	if s.stopHealthMonitor != nil {
 		s.stopHealthMonitor()
 	}
 
 	for _, handler := range s.networkHandlers.Iterator() {
-		s.log.Info().Str("network", handler.network.Name).Msg("stop network")
+		s.log.Debug().Str("network", handler.network.Name).Msg("stop network")
 		handler.Stop()
 	}
 
-	s.log.Info().Msg("stopped all irc handlers")
+	s.log.Debug().Msg("stopped all irc handlers")
 }
 
 func (s *Service) startNetwork(network domain.IrcNetwork) error {
@@ -304,10 +306,13 @@ func (s *Service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 
 	s.log.Debug().Str("server", network.Server).Msg("decide if irc network handler needs restart or updating")
 
+	definitions := s.indexerService.GetIndexersByIRCNetwork(network.Server)
+
 	// a restart in flight sits in the stopped state for a moment and then runs with whatever
 	// config the handler holds, so swap the config now instead of dropping the change
 	if handler.Stopped() {
 		handler.UpdateNetwork(network)
+		handler.reloadChannels(definitions)
 
 		s.log.Debug().Str("server", network.Server).Msg("handler stopped, updated config without restart")
 		return nil
@@ -326,7 +331,7 @@ func (s *Service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 		handler.UpdateNetwork(network)
 
 		go func() {
-			if err := handler.Restart(); err != nil {
+			if err := handler.Restart(definitions); err != nil {
 				s.log.Error().Stack().Err(err).Str("network", handler.network.Name).Msg("failed to restart network")
 			}
 		}()
@@ -410,9 +415,6 @@ func (s *Service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 	// update network for currentNetwork
 	// TODO move all this restart logic inside currentNetwork to let it decide what to do
 	handler.SetNetwork(network)
-
-	// find indexer definitions for network and add
-	definitions := s.indexerService.GetIndexersByIRCNetwork(network.Server)
 
 	handler.InitIndexers(definitions)
 
@@ -799,8 +801,8 @@ func (s *Service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 		s.log.Debug().Interface("network", network).Msg("store network")
 
 		if network.Channels != nil {
-			for _, channel := range network.Channels {
-				if err := s.repo.StoreChannel(ctx, network.ID, &channel); err != nil {
+			for i := range network.Channels {
+				if err := s.repo.StoreChannel(ctx, network.ID, &network.Channels[i]); err != nil {
 					s.log.Error().Err(err).Msg("irc.storeChannel: error executing query")
 					return errors.Wrap(err, "error storing channel on network")
 				}
@@ -837,12 +839,11 @@ func (s *Service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 		return err
 	}
 
-	s.networkCache.Set(network.ID, existingNetwork)
-
 	if network.Channels != nil {
-		for _, channel := range network.Channels {
-			// add channels. Make sure it doesn't delete before
-			if err := s.repo.StoreChannel(ctx, existingNetwork.ID, &channel); err != nil {
+		// store through the slice element so the id from the insert reaches the
+		// channels handed to the handler and cache, not a loop copy
+		for i := range network.Channels {
+			if err := s.repo.StoreChannel(ctx, existingNetwork.ID, &network.Channels[i]); err != nil {
 				return err
 			}
 		}
@@ -858,6 +859,10 @@ func (s *Service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 			return err
 		}
 	}
+
+	// cache only once every write landed, so a failed one cannot leave
+	// unsaved channels or invite commands in the cache
+	s.networkCache.Set(existingNetwork.ID, existingNetwork)
 
 	if existingNetwork.Enabled {
 		// if server, tls, invite command, port : changed - restart

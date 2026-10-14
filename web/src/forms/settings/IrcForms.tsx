@@ -11,7 +11,7 @@ import { useTranslation } from "react-i18next";
 
 import { IrcAuthMechanismTypeOptions, OptionBasicTyped } from "@domain/constants";
 import { APIClient } from "@api/APIClient";
-import { IrcKeys } from "@api/query_keys";
+import { AlertKeys, IrcKeys } from "@api/query_keys";
 import { fieldHasError, useFormContext } from "@hooks/form";
 import type { FormFieldErrors } from "@hooks/form";
 import { NumberFieldWide, PasswordFieldWide, SwitchButton, SwitchGroupWide, TextFieldWide } from "@components/inputs";
@@ -312,6 +312,7 @@ export function IrcNetworkUpdateForm({ isOpen, toggle, data: network }: UpdateFo
     mutationFn: (network: IrcNetwork) => APIClient.irc.updateNetwork(network),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: AlertKeys.all });
 
       toast.custom((toastInstance) => <Toast type="success" body={t("forms.irc.updated", { name: network.name })} t={toastInstance} />);
 
@@ -325,6 +326,7 @@ export function IrcNetworkUpdateForm({ isOpen, toggle, data: network }: UpdateFo
     mutationFn: (id: number) => APIClient.irc.deleteNetwork(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: AlertKeys.all });
 
       toast.custom((toastInstance) => <Toast type="success" body={t("forms.irc.deleted", { name: network.name })} t={toastInstance} />);
 

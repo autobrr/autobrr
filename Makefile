@@ -21,7 +21,7 @@ deps:
 	go mod download
 
 test:
-	go test $(go list ./... | grep -v test/integration)
+	go test $$(go list ./... | grep -v test/integration)
 
 build: deps build/web build/app
 

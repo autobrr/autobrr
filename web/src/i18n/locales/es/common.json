@@ -37,7 +37,10 @@
     "openMainMenu": "Abrir menú principal",
     "newUpdateAvailable": "¡Nueva actualización disponible!",
     "listRefreshFailed": "¡Error al actualizar la lista!",
-    "multipleListRefreshesFailed": "¡Múltiples actualizaciones de lista fallaron!"
+    "multipleListRefreshesFailed": "¡Múltiples actualizaciones de lista fallaron!",
+    "ircNetworkUnhealthy": "¡Red IRC con problemas!",
+    "multipleIrcNetworksUnhealthy": "¡Varias redes IRC con problemas!",
+    "dismiss": "Descartar"
   },
   "inbox": {
     "title": "Notificaciones",
@@ -59,8 +62,6 @@
     "confirmDeleteOne": "¿Eliminar esta notificación? Esta acción no se puede deshacer.",
     "confirmDeleteMany": "¿Eliminar {{selected}} notificaciones seleccionadas? Esta acción no se puede deshacer.",
     "cleared": "Notificaciones borradas",
-    "previous": "Anterior",
-    "next": "Siguiente",
     "unread": "No leída",
     "filterLabel": "Filtrar notificaciones",
     "filterAll": "Todas",
@@ -80,6 +81,12 @@
     "eventFilter": "Tipo de evento",
     "allEvents": "Todos los eventos",
     "moreActions": "Más acciones",
+    "columns": {
+      "age": "Antigüedad",
+      "message": "Mensaje",
+      "event": "Tipo de evento",
+      "actions": "Acciones"
+    },
     "fields": {
       "indexer": "Indexador",
       "filter": "Filtro",

@@ -14,7 +14,7 @@ import { NotificationUpdateForm } from "@forms/settings/NotificationForms";
 import { NotificationInbox } from "@screens/NotificationInbox";
 import { InboxMenu } from "@components/header/InboxMenu";
 import { useInboxEvents } from "@hooks/useInbox";
-import { NotificationKeys } from "@api/query_keys";
+import { AlertKeys, NotificationKeys } from "@api/query_keys";
 import { SettingsContext } from "@utils/Context";
 import i18n from "@app/i18n";
 import { NotificationInboxRoute } from "@app/routes";
@@ -176,7 +176,7 @@ test("row actions do nothing when the confirmation is cancelled", async () => {
   renderInbox();
 
   await screen.findByText("P2P-Network");
-  const rows = screen.getAllByRole("listitem");
+  const rows = screen.getAllByRole("row").slice(1);
 
   fireEvent.click(within(rows[0]).getByRole("button", { name: "Mark as read" }));
   expect(within(await screen.findByRole("dialog")).getByText("Mark this notification as read?")).toBeTruthy();
@@ -263,25 +263,42 @@ test("rows link the release and filter", async () => {
   expect(screen.getByText("IRC Disconnected")).toBeTruthy();
 });
 
-test("pagination only shows when there is more than one page", async () => {
+test("pagination footer shows the page and pages through messages", async () => {
   const list = vi.spyOn(APIClient.notifications.inbox, "list").mockResolvedValue(response());
 
   renderInbox();
 
   await screen.findByText("P2P-Network");
-  expect(screen.queryByRole("navigation", { name: "Pagination" })).toBeNull();
+  expect(screen.getByText("Page 1 of 1")).toBeTruthy();
 
   cleanup();
   list.mockResolvedValue(response({ count: 60, all_count: 60 }));
   renderInbox();
 
   const nav = await screen.findByRole("navigation", { name: "Pagination" });
-  expect(nav.textContent).toContain("123");
+  expect(screen.getByText("Page 1 of 3")).toBeTruthy();
 
   await act(async () => {
-    fireEvent.click(screen.getByRole("button", { name: "2" }));
+    fireEvent.click(within(nav).getByRole("button", { name: "Next" }));
   });
   expect(list).toHaveBeenLastCalledWith({ limit: 25, offset: 25, unread: false, event: undefined });
+  expect(await screen.findByText("Page 2 of 3")).toBeTruthy();
+});
+
+test("an empty page keeps the footer while a custom page size is set so it can be reset", async () => {
+  const list = vi.spyOn(APIClient.notifications.inbox, "list").mockResolvedValue(response({ data: [], count: 0, unread_count: 0 }));
+
+  renderInbox("/notifications?unread=true&pageSize=100");
+
+  await screen.findByText("You're all caught up");
+  const select = screen.getByRole("combobox", { name: "Items Per Page" }) as HTMLSelectElement;
+  expect(select.value).toBe("100");
+
+  await act(async () => {
+    fireEvent.change(select, { target: { value: "25" } });
+  });
+  expect(list).toHaveBeenLastCalledWith({ limit: 25, offset: 0, unread: true, event: undefined });
+  expect(screen.queryByRole("navigation", { name: "Pagination" })).toBeNull();
 });
 
 test("a page past the end redirects to the last page without flashing the empty state", async () => {
@@ -306,7 +323,7 @@ test("a page past the end redirects to the last page without flashing the empty 
     resolveLastPage(response({ count: 30, all_count: 30 }));
   });
   expect(await screen.findByText("P2P-Network")).toBeTruthy();
-  expect(screen.getByRole("button", { name: "2" }).getAttribute("aria-current")).toBe("page");
+  expect(screen.getByText("Page 2 of 2")).toBeTruthy();
 
   observer.disconnect();
   expect(emptyStateRendered).toBe(false);
@@ -323,9 +340,9 @@ test.each([
 
   renderInbox(`/notifications?${search}`);
 
-  const nav = await screen.findByRole("navigation", { name: "Pagination" });
+  await screen.findByRole("navigation", { name: "Pagination" });
   expect(list).toHaveBeenLastCalledWith({ ...params, unread: false, event: undefined });
-  expect(nav.textContent).not.toContain("Infinity");
+  expect(screen.getByText(`Page ${params.offset / params.limit + 1} of ${Math.ceil(120 / params.limit)}`)).toBeTruthy();
   expect((screen.getByRole("combobox", { name: "Items Per Page" }) as HTMLSelectElement).value).toBe(String(params.limit));
 });
 
@@ -380,7 +397,7 @@ test("the built-in notification can not change type or be removed", () => {
   expect(screen.queryByText("New Release")).toBeNull();
 });
 
-test("the inbox refetches every time the event stream connects", async () => {
+test("the inbox and alerts refetch every time the event stream connects", async () => {
   vi.useFakeTimers();
   vi.stubGlobal("EventSource", { CONNECTING: 0, OPEN: 1, CLOSED: 2 });
   const streams: EventSource[] = [];
@@ -397,11 +414,13 @@ test("the inbox refetches every time the event stream connects", async () => {
   });
 
   streams[0].onopen?.(new Event("open"));
-  expect(invalidate).toHaveBeenCalledTimes(1);
+  expect(invalidate).toHaveBeenCalledTimes(2);
+  expect(invalidate).toHaveBeenCalledWith({ queryKey: NotificationKeys.inbox.all() });
+  expect(invalidate).toHaveBeenCalledWith({ queryKey: AlertKeys.all });
 
   // The browser retries a dropped connection on the same EventSource.
   streams[0].onopen?.(new Event("open"));
-  expect(invalidate).toHaveBeenCalledTimes(2);
+  expect(invalidate).toHaveBeenCalledTimes(4);
 
   // A failed handshake closes the stream and our backoff opens a new one.
   Object.assign(streams[0], { readyState: 2 });
@@ -410,8 +429,7 @@ test("the inbox refetches every time the event stream connects", async () => {
   expect(streams).toHaveLength(2);
 
   streams[1].onopen?.(new Event("open"));
-  expect(invalidate).toHaveBeenCalledTimes(3);
-  expect(invalidate).toHaveBeenLastCalledWith({ queryKey: NotificationKeys.inbox.all() });
+  expect(invalidate).toHaveBeenCalledTimes(6);
 
   unmount();
 });

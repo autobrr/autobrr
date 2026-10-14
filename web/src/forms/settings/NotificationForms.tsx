@@ -14,7 +14,7 @@ import { useTranslation } from "react-i18next";
 import { APIClient } from "@api/APIClient";
 import { NotificationKeys } from "@api/query_keys";
 import { PushoverSoundsQueryOptions } from "@api/queries";
-import { ExternalFilterWebhookMethodOptions, getEventOptions, getNotificationTypeOptions, PushoverSoundOptions, SelectOption } from "@domain/constants";
+import { ExternalFilterWebhookMethodOptions, getEventOptions, getNotificationTypeOptions, OptionBasicTyped, PushoverSoundOptions, SelectOption } from "@domain/constants";
 import { useAppForm, useFormContext, useFormValue, fieldErrors } from "@hooks/form";
 import type { FormFieldErrors } from "@hooks/form";
 import { FormDebug } from "@components/debug";
@@ -24,6 +24,7 @@ import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { selectComponents, selectStyles, selectTheme } from "@components/inputs/select_props";
 import { NumberFieldWide, PasswordFieldWide, SelectFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
+import { SelectFieldBasic } from "@components/inputs/select_wide";
 import { ErrorField } from "@components/inputs/common";
 import { Checkbox } from "@components/Checkbox";
 import { EmptySimple } from "@components/emptystates";
@@ -326,6 +327,63 @@ function FormFieldsNtfy() {
   );
 }
 
+function FormFieldsBark() {
+  const { t } = useTranslation("settings");
+  const levelOptions: OptionBasicTyped<number>[] = [
+    { label: t("forms.notification.barkLevelPassive"), value: -1 },
+    { label: t("forms.notification.barkLevelActive"), value: 0 },
+    { label: t("forms.notification.barkLevelTimeSensitive"), value: 1 },
+    { label: t("forms.notification.barkLevelCritical"), value: 2 }
+  ];
+
+  return (
+    <div className="border-t border-gray-200 dark:border-gray-700 py-4">
+      <div className="px-4">
+        <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+          {t("forms.notification.settings")}
+        </h2>
+      </div>
+
+      <TextFieldWide
+        name="host"
+        label={t("forms.notification.barkServerUrl")}
+        help={t("forms.notification.barkServerUrlHelp")}
+        placeholder={t("forms.notification.barkServerUrlPlaceholder")}
+        required={true}
+      />
+
+      <PasswordFieldWide
+        name="token"
+        label={t("forms.notification.deviceKey")}
+        help={t("forms.notification.barkDeviceKeyHelp")}
+        required={true}
+      />
+
+      <SelectFieldBasic
+        name="priority"
+        label={t("forms.notification.barkLevel")}
+        help={t("forms.notification.barkLevelHelp")}
+        placeholder={t("forms.notification.barkLevelActive")}
+        options={levelOptions}
+      />
+
+      <TextFieldWide
+        name="sound"
+        label={t("forms.notification.sound")}
+        help={t("forms.notification.barkSoundHelp")}
+        placeholder={t("forms.notification.barkSoundPlaceholder")}
+      />
+
+      <TextFieldWide
+        name="topic"
+        label={t("forms.notification.group")}
+        help={t("forms.notification.barkGroupHelp")}
+        placeholder={t("forms.notification.barkGroupPlaceholder")}
+      />
+    </div>
+  );
+}
+
 function FormFieldsShoutrrr() {
   const { t } = useTranslation("settings");
   return (
@@ -441,6 +499,7 @@ const componentMap: componentMapType = {
   PUSHOVER: <FormFieldsPushover />,
   GOTIFY: <FormFieldsGotify />,
   NTFY: <FormFieldsNtfy />,
+  BARK: <FormFieldsBark />,
   SHOUTRRR: <FormFieldsShoutrrr />,
   LUNASEA: <FormFieldsLunaSea />,
   WEBHOOK: <FormFieldsGenericWebhook />,
@@ -456,6 +515,7 @@ const NOTIFICATION_REQUIRED_FIELDS: Partial<Record<NotificationType, Notificatio
   PUSHOVER: ["api_key", "token"],
   GOTIFY: ["host", "token"],
   NTFY: ["host"],
+  BARK: ["host", "token"],
   SHOUTRRR: ["host"],
   LUNASEA: ["webhook"],
   WEBHOOK: ["webhook"]
@@ -464,12 +524,25 @@ const NOTIFICATION_REQUIRED_FIELDS: Partial<Record<NotificationType, Notificatio
 // Notifiarr API keys are lowercase UUIDs; notifiarr.com rejects anything else.
 const NOTIFIARR_API_KEY = /^[a-z0-9-]{36}$/;
 
+// URL() alone is laxer than the backend's url.Parse: it trims whitespace and accepts "http:host"
+const isBarkServerUrl = (value: string) => {
+  if (!/^https?:\/\/\S+$/i.test(value))
+    return false;
+
+  try {
+    const url = new URL(value);
+    return url.hostname !== "" && url.search === "";
+  } catch {
+    return false;
+  }
+};
+
 interface NotificationFormValues extends Partial<Record<NotificationRequiredField, string>> {
   name: string;
   type: NotificationType | "";
 }
 
-const validateNotification = (values: NotificationFormValues, required: string, invalidApiKey: string) => {
+const validateNotification = (values: NotificationFormValues, required: string, invalidApiKey: string, invalidUrl: string) => {
   const errors: FormFieldErrors = {};
   if (!values.name)
     errors.name = required;
@@ -483,6 +556,9 @@ const validateNotification = (values: NotificationFormValues, required: string, 
 
   if (values.type === "NOTIFIARR" && values.api_key && values.api_key !== "<redacted>" && !NOTIFIARR_API_KEY.test(values.api_key))
     errors.api_key = invalidApiKey;
+
+  if (values.type === "BARK" && values.host && !isBarkServerUrl(values.host))
+    errors.host = invalidUrl;
 
   return errors;
 };
@@ -527,7 +603,8 @@ function NotificationAddFormPanel({ toggle }: NotificationAddFormPanelProps) {
   const validate = (values: NotificationFormValues) => validateNotification(
     values,
     t("settings:forms.notification.required"),
-    t("settings:forms.notification.notifiarrApiKeyInvalid")
+    t("settings:forms.notification.notifiarrApiKeyInvalid"),
+    t("settings:forms.notification.barkServerUrlInvalid")
   );
 
   const initialValues = {
@@ -927,7 +1004,8 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
       validate={(values) => validateNotification(
         values,
         t("settings:forms.notification.required"),
-        t("settings:forms.notification.notifiarrApiKeyInvalid")
+        t("settings:forms.notification.notifiarrApiKeyInvalid"),
+        t("settings:forms.notification.barkServerUrlInvalid")
       )}
       testFn={testNotification}
     >

@@ -4,7 +4,6 @@
 package domain
 
 type Config struct {
-	Version                 string
 	ConfigPath              string
 	Host                    string `toml:"host"`
 	Port                    int    `toml:"port"`

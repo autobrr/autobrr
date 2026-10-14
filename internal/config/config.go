@@ -244,12 +244,11 @@ type AppConfig struct {
 	m      *sync.Mutex
 }
 
-func New(configPath string, version string) *AppConfig {
+func New(configPath string) *AppConfig {
 	c := &AppConfig{
 		m: new(sync.Mutex),
 	}
 	c.defaults()
-	c.Config.Version = version
 	c.Config.ConfigPath = configPath
 
 	c.load(configPath)
@@ -260,7 +259,6 @@ func New(configPath string, version string) *AppConfig {
 
 func (c *AppConfig) defaults() {
 	c.Config = &domain.Config{
-		Version:               "dev",
 		Host:                  "127.0.0.1",
 		Port:                  7474,
 		CorsAllowedOrigins:    "*",
@@ -480,9 +478,10 @@ func GetEnvInt(key string) int {
 	return int(i)
 }
 
+var validDbTypes = []string{"sqlite", "postgres"}
+
 func validDatabaseType(v string) bool {
-	valid := []string{"sqlite", "postgres"}
-	return slices.Contains(valid, v)
+	return slices.Contains(validDbTypes, v)
 }
 
 func (c *AppConfig) load(configPath string) {
