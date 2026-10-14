@@ -24,7 +24,7 @@ require (
 	github.com/coreos/go-oidc/v3 v3.21.0
 	github.com/dcarbone/zadapters/zstdlog v1.1.0
 	github.com/dustin/go-humanize v1.1.0
-	github.com/ergochat/irc-go v0.7.0
+	github.com/ergochat/irc-go v0.7.1-0.20260823204108-4f1eced8085d
 	github.com/fergusstrange/embedded-postgres v1.34.0
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/go-andiamo/splitter v1.2.5

@@ -29,6 +29,7 @@ func TestConnectJoinAnnounce(t *testing.T) {
 	network := domain.IrcNetwork{
 		ID:       1,
 		Name:     "Test",
+		Enabled:  true,
 		Server:   srv.Host(),
 		Port:     srv.Port(),
 		Nick:     "autobrr",
@@ -39,6 +40,11 @@ func TestConnectJoinAnnounce(t *testing.T) {
 	inst := harness.Start(t, network, []*domain.IndexerDefinition{def})
 
 	inst.WaitForMonitoring("#test", 10*time.Second)
+
+	var status domain.IrcNetworkWithHealth
+	inst.Handler.ReportStatus(&status)
+	require.True(t, status.Connected, "a registered network must report connected")
+	require.False(t, status.ConnectedSince.IsZero())
 
 	srv.Announce("#test", "announcer", "New torrent: Some.Release.2024.1080p.BluRay.x264-GRP in Movies")
 

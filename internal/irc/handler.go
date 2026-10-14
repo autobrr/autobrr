@@ -482,7 +482,6 @@ func (h *Handler) Run() (err error) {
 	client.AddCallback(ircevent.ERR_NEEDREGGEDNICK, h.handleJoinError) // 477
 	client.AddCallback(ircevent.ERR_NOSUCHNICK, h.handleErrNoSuchNick)
 
-	//h.setConnectionStatus()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -577,7 +576,7 @@ func (h *Handler) Run() (err error) {
 			retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),
 		)
 	}(); err != nil {
-		if errors.Is(err, context.Canceled) {
+		if errors.Is(err, context.Canceled) || errors.Is(err, ircevent.ClientHasQuit) {
 			return clientManuallyDisconnected
 		}
 
@@ -588,8 +587,8 @@ func (h *Handler) Run() (err error) {
 	h.m.Lock()
 	switch {
 	case h.clientState == ircStopped, h.connectGen != connectGen:
-		// concurrent Stop(), possibly followed by a new Run that owns the state now. Stop
-		// cannot abort a Connect in progress, so this client may have registered anyway
+		// a Stop, possibly followed by a new Run that owns the state now, landed after
+		// Connect returned, so this client registered anyway
 		shouldDisconnect = true
 	case h.clientState == ircConnecting:
 		h.clientState = ircLive
@@ -605,8 +604,7 @@ func (h *Handler) Run() (err error) {
 		return clientManuallyDisconnected
 	}
 
-	go client.Loop()
-
+	// a successful Connect has started irc-go's reconnect loop; Quit ends it
 	return nil
 }
 
@@ -621,14 +619,6 @@ func (h *Handler) isOurCurrentNick(nick string) bool {
 	// CurrentNick() and usesBouncer() each take h.m independently (never nested)
 	// so this stays safe to call from the IRC callbacks.
 	return h.CurrentNick() == nick || (h.usesBouncer() && nick == "*")
-}
-
-func (h *Handler) setConnectionStatus() {
-	h.m.Lock()
-	if h.client != nil && h.client.Connected() {
-		h.connectedSince = time.Now()
-	}
-	h.m.Unlock()
 }
 
 func (h *Handler) GetNetwork() *domain.IrcNetwork {
@@ -727,21 +717,22 @@ func (h *Handler) Restart(definitions []*domain.IndexerDefinition) error {
 
 // onConnect handles registration completing on the client that emitted it.
 func (h *Handler) onConnect(client *ircevent.Connection, _ ircmsg.Message) {
+	h.m.Lock()
 	// a client replaced by Stop can still finish registering, and driving the state
 	// machine from it would climb past Connected before the new client gets there
-	if h.getClient() != client {
+	if h.client != client {
+		h.m.Unlock()
 		h.log.Debug().Msg("ignoring registration of a stopped client")
 		return
 	}
 
-	h.setConnectionStatus()
+	// not gated on client.Connected(): irc-go only reports the connection as
+	// active once Connect returns, after the connect callbacks have run
+	h.connectedSince = time.Now()
 
-	networkName := h.GetNetwork().Name
-
-	h.m.Lock()
+	networkName := h.network.Name
 	reconnected := h.haveDisconnected && h.clientState == ircLive
 	if reconnected {
-		// reset haveDisconnected
 		h.haveDisconnected = false
 	}
 	h.m.Unlock()
