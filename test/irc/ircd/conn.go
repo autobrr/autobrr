@@ -273,7 +273,7 @@ func (c *conn) joinOne(name, key string) {
 	c.srv.broadcast(ch, fmt.Sprintf(":%s!%s JOIN %s", c.nick, userHost, ch.name), nil)
 
 	c.sendf(":%s 353 %s = %s :%s", serverName, c.nick, ch.name, strings.Join(names, " "))
-	c.sendf(":%s 366 %s %s :End of /NAMES list.", serverName, c.nick, ch.name)
+	c.sendf(":%s 366 %s %s :End of /NAMES list.", serverName, c.srv.endOfNamesTarget(c.nick), ch.name)
 }
 
 // namesList returns the NAMES entries for a channel: the joining client, other
