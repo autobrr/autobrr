@@ -1,0 +1,96 @@
+---
+version: 2
+#id: echelonhd
+name: EchelonHD
+identifier: echelonhd
+description: EchelonHD is a private tracker for MOVIES, TV and GENERAL.
+language: en-us
+urls:
+  - https://echelonhd.me/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key
+    help: "Go to Settings > Keys & API, and copy your RSS Key"
+
+irc:
+  network: EchelonHD
+  server: echelonhd.me
+  port: 6697
+  tls: true
+  auth:
+    mechanism: SASL_PLAIN
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Your exact site username.
+
+    - name: auth.account
+      type: text
+      required: true
+      label: Username
+      help: Your exact site username.
+
+    - name: auth.password
+      type: secret
+      required: true
+      label: IRC Key
+      help: Generate a key in your profile under Keys & API.
+
+  channels:
+    - name: "#announce"
+      announcers:
+        - EchBot
+      parse:
+        type: single
+        lines:
+          - pattern: 'New Torrent: (?P<releaseName>.+) \| Category: (?P<category>.+) \| Type: (?P<releaseTags>.+) \| Resolution: (?P<resolution>.+) \| Size: (?P<torrentSize>.+) \| Freeleech: (?P<freeleechPercent>\d+)% \| Uploader: (?P<uploader>.+) \| (?P<baseUrl>https?\:\/\/.+\/)torrents\/(?P<torrentId>\d+)'
+            tests:
+              - line: 'New Torrent: Men in Black International 2019 1080p HC HDRip X264-EVO | Category: Movies | Type: Encode | Resolution: 1080p | Size: 3.83 GiB | Freeleech: 0% | Uploader: EchelonHD | https://echelonhd.me/torrents/1395'
+                expect:
+                  releaseName: Men in Black International 2019 1080p HC HDRip X264-EVO
+                  category: Movies
+                  releaseTags: Encode
+                  resolution: 1080p
+                  torrentSize: 3.83 GiB
+                  freeleechPercent: "0"
+                  uploader: EchelonHD
+                  baseUrl: https://echelonhd.me/
+                  torrentId: "1395"
+
+              - line: 'New Torrent: The Pale Blue Eye 2022 1080p WEBRip x264 AAC-AOC | Category: Movies | Type: WEBRip | Resolution: 1080p | Size: 2.75 GiB | Freeleech: 0% | Uploader: EchelonHD | https://echelonhd.me/torrents/1397'
+                expect:
+                  releaseName: The Pale Blue Eye 2022 1080p WEBRip x264 AAC-AOC
+                  category: Movies
+                  releaseTags: WEBRip
+                  resolution: 1080p
+                  torrentSize: 2.75 GiB
+                  freeleechPercent: "0"
+                  uploader: EchelonHD
+                  baseUrl: https://echelonhd.me/
+                  torrentId: "1397"
+
+              - line: 'New Torrent: Super Friends S01 1080p USA Blu-ray AVC DTS-HD MA 2.0-IBA | Category: TV | Type: Full Disc | Resolution: 1080p | Size: 133.54 GiB | Freeleech: 100% | Uploader: anonymous | https://echelonhd.me/torrents/1350'
+                expect:
+                  releaseName: Super Friends S01 1080p USA Blu-ray AVC DTS-HD MA 2.0-IBA
+                  category: TV
+                  releaseTags: Full Disc
+                  resolution: 1080p
+                  torrentSize: 133.54 GiB
+                  freeleechPercent: "100"
+                  uploader: anonymous
+                  baseUrl: https://echelonhd.me/
+                  torrentId: "1350"
+
+        match:
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
