@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	stdErr "errors"
 	"fmt"
+	"maps"
 	"net/url"
 	"slices"
 	"strconv"
@@ -92,7 +93,11 @@ type Handler struct {
 	network            *domain.IrcNetwork
 	releaseSvc         releaseService
 	announceProcessors map[string]announce.Processor
-	definitions        map[string]*domain.IndexerDefinition
+
+	// definitionsM serializes channel (re)builds: a reload from the service can
+	// race the one a restart in flight runs before reconnecting.
+	definitionsM sync.Mutex
+	definitions  map[string]*domain.IndexerDefinition
 
 	client           *ircevent.Connection
 	clientState      ircState
@@ -145,6 +150,48 @@ func NewHandler(log zerolog.Logger, eventBus eventBus, sse sseServer, network do
 }
 
 func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
+	h.definitionsM.Lock()
+	defer h.definitionsM.Unlock()
+
+	added := make([]*domain.IndexerDefinition, 0, len(definitions))
+	for _, definition := range definitions {
+		if _, ok := h.definitions[definition.Identifier]; ok {
+			continue
+		}
+
+		h.definitions[definition.Identifier] = definition
+		added = append(added, definition)
+	}
+
+	h.initChannels(added)
+}
+
+// reloadChannels drops every tracked channel and rebuilds the set from the
+// current network config and definitions, so channels and invite commands
+// changed since the handler was built are picked up. It sends no JOIN or PART,
+// so only call it on a stopped handler; the next Run joins the rebuilt set.
+func (h *Handler) reloadChannels(definitions []*domain.IndexerDefinition) {
+	h.definitionsM.Lock()
+	defer h.definitionsM.Unlock()
+
+	for _, channel := range h.channels.Iterator() {
+		if sm := channel.StateMachine(); sm != nil {
+			sm.Reset()
+		}
+	}
+	h.channels.Clear()
+
+	for _, definition := range definitions {
+		h.definitions[definition.Identifier] = definition
+	}
+
+	h.initChannels(slices.Collect(maps.Values(h.definitions)))
+}
+
+// initChannels creates the channels of definitions that are configured on this
+// network, plus any configured channel no definition announces in.
+// The caller must hold h.definitionsM.
+func (h *Handler) initChannels(definitions []*domain.IndexerDefinition) {
 	network := h.GetNetwork()
 
 	connectCommands := make([]string, 0)
@@ -172,12 +219,6 @@ func (h *Handler) InitIndexers(definitions []*domain.IndexerDefinition) {
 	// Networks can be shared by multiple indexers but channels are unique
 	// so let's add a new AnnounceProcessor per channel
 	for _, definition := range definitions {
-		if _, ok := h.definitions[definition.Identifier]; ok {
-			continue
-		}
-
-		h.definitions[definition.Identifier] = definition
-
 		// handle invite command
 		inviteCommand := ""
 		defaultInvCmd := ""
@@ -626,11 +667,14 @@ func (h *Handler) Stopped() bool {
 	return h.clientState == ircStopped
 }
 
-// Restart stops the network and then runs it
-func (h *Handler) Restart() error {
+// Restart stops the network, rebuilds its channels from the current config and
+// runs it again.
+func (h *Handler) Restart(definitions []*domain.IndexerDefinition) error {
 	h.Stop()
 
 	time.Sleep(2 * time.Second)
+
+	h.reloadChannels(definitions)
 
 	return h.Run()
 }

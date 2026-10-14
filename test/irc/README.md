@@ -30,7 +30,9 @@ first (e.g. a per-package profiling script) must pass the tag to `go list` too:
 
 ## Layout
 
-- `ircd/` - the minimal test IRC server. It implements just enough of the protocol
+- `ircd/` - the minimal test IRC server. It also builds under the `e2e` tag, so
+  browser tests in `test/e2e/` can drive invite and auth setups the mock indexer
+  does not model. It implements just enough of the protocol
   for the `ergochat/irc-go` client to register and operate: CAP/SASL PLAIN
   negotiation, NickServ IDENTIFY, channel modes `+k` (key), `+i` (invite-only) and
   `+r` (registered-only), auditorium-style hidden announcers, and **virtual bots**
