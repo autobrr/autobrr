@@ -839,8 +839,6 @@ func (s *Service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 		return err
 	}
 
-	s.networkCache.Set(existingNetwork.ID, existingNetwork)
-
 	if network.Channels != nil {
 		// store through the slice element so the id from the insert reaches the
 		// channels handed to the handler and cache, not a loop copy
@@ -861,6 +859,10 @@ func (s *Service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 			return err
 		}
 	}
+
+	// cache only once every write landed, so a failed one cannot leave
+	// unsaved channels or invite commands in the cache
+	s.networkCache.Set(existingNetwork.ID, existingNetwork)
 
 	if existingNetwork.Enabled {
 		// if server, tls, invite command, port : changed - restart

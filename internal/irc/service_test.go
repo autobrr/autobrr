@@ -12,6 +12,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/events"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -25,6 +26,7 @@ type stubIrcRepo struct {
 	toggled map[int64]bool
 
 	lastChannelID int64
+	inviteErr     error
 }
 
 func newStubIrcRepo(network domain.IrcNetwork) *stubIrcRepo {
@@ -69,7 +71,7 @@ func (r *stubIrcRepo) StoreChannel(_ context.Context, _ int64, channel *domain.I
 	return nil
 }
 func (r *stubIrcRepo) UpdateChannel(*domain.IrcChannel) error  { return nil }
-func (r *stubIrcRepo) UpdateInviteCommand(int64, string) error { return nil }
+func (r *stubIrcRepo) UpdateInviteCommand(int64, string) error { return r.inviteErr }
 func (r *stubIrcRepo) StoreNetworkChannels(context.Context, int64, []domain.IrcChannel) error {
 	return nil
 }
@@ -229,4 +231,35 @@ func TestStoreNetwork_ExistingNetworkRegistersNewChannel(t *testing.T) {
 	require.True(t, cached)
 	require.Len(t, cachedNetwork.Channels, 1)
 	assert.Equal(t, int64(1), cachedNetwork.Channels[0].ID, "the cache must carry the stored channel id")
+}
+
+// A failed write must not leave the merged network's unsaved invite command in
+// the cache, which serves the network list.
+func TestStoreNetwork_FailedInviteCommandUpdateKeepsCache(t *testing.T) {
+	t.Parallel()
+
+	existing := domain.IrcNetwork{ID: 7, Name: "DigitalCore", Server: "irc.example.test", Port: 7000, Nick: "bot", Enabled: true, InviteCommand: "ENDOR !invite user dckey"}
+
+	repo := newStubIrcRepo(existing)
+	repo.inviteErr = errors.New("database is locked")
+
+	s := NewService(zerolog.Nop(), noopEventBus{}, &mockSSEServer{}, repo, nil, stubIndexerService{}, stubProxyService{})
+
+	cachedBefore := existing
+	s.networkCache.Set(existing.ID, &cachedBefore)
+
+	err := s.StoreNetwork(t.Context(), &domain.IrcNetwork{
+		Server:        "irc.example.test",
+		Port:          7000,
+		Nick:          "bot",
+		InviteCommand: "DirtyBytes !invite user dbkey",
+		Channels:      []domain.IrcChannel{{Name: "#dirtybytes-announce", Enabled: true}},
+	})
+	require.Error(t, err)
+
+	cached, found := s.networkCache.Get(existing.ID)
+	require.True(t, found)
+	assert.Same(t, &cachedBefore, cached, "a failed store must keep the previous cache entry")
+	assert.Equal(t, "ENDOR !invite user dckey", cached.InviteCommand)
+	assert.Empty(t, cached.Channels)
 }
