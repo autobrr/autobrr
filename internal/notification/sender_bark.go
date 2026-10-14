@@ -17,6 +17,7 @@ type barkSender struct {
 	client *bark.Client
 }
 
+// NewBarkSender returns a sender that delivers notifications to a Bark device.
 func NewBarkSender(log zerolog.Logger, settings *domain.Notification) *barkSender {
 	return &barkSender{
 		baseSender: newBaseSender("bark", settings),

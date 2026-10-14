@@ -20,12 +20,14 @@ import (
 	"github.com/rs/zerolog"
 )
 
+// Config holds the Bark server URL, the device key and the notification name used in logs.
 type Config struct {
 	Host      string
 	DeviceKey string
 	Name      string
 }
 
+// Message is a Bark push; empty optional fields are omitted so the Bark app defaults apply.
 type Message struct {
 	Title string `json:"title,omitempty"`
 	Body  string `json:"body"`
@@ -41,6 +43,7 @@ type pushRequest struct {
 	*Message
 }
 
+// Client sends notifications to a bark-server through its v2 push API.
 type Client struct {
 	log    zerolog.Logger
 	config Config
@@ -49,6 +52,7 @@ type Client struct {
 	userAgent  string
 }
 
+// NewSender returns a Client for the server and device key in config.
 func NewSender(log zerolog.Logger, config Config) *Client {
 	return &Client{
 		log:    log.With().Str("sender", "bark").Str("name", config.Name).Logger(),
@@ -61,10 +65,12 @@ func NewSender(log zerolog.Logger, config Config) *Client {
 	}
 }
 
+// Name returns the sender name used in logs.
 func (c *Client) Name() string {
 	return "bark"
 }
 
+// SendMessage posts message to the configured device and points failed responses at the setting to check.
 func (c *Client) SendMessage(ctx context.Context, message *Message) error {
 	endpoint, err := url.JoinPath(c.config.Host, "push")
 	if err != nil {
