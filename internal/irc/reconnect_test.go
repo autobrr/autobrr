@@ -280,27 +280,171 @@ func TestRestartDuringConnectBackoffKeepsNewRun(t *testing.T) {
 	first := runAsync(h)
 	time.Sleep(200 * time.Millisecond)
 
-	h.Stop()
-	second := runAsync(h)
+	// Stop and the claim of a new Run, made before the first Run is cancelled. A real
+	// Stop cancels first, and the first Run often unwinds before the new Run claims the
+	// handler, which would pass without the generation check.
+	h.m.Lock()
+	cancel := h.cancelConnect
+	h.cancelConnect = nil
+	h.connectGen++
+	h.clientState = ircConnecting
+	h.m.Unlock()
+	h.stateMachine.OnDisconnected()
+	h.stateMachine.OnConnecting()
+
+	require.NotNil(t, cancel)
+	cancel()
 
 	select {
-	case <-first:
+	case err := <-first:
+		require.ErrorIs(t, err, clientManuallyDisconnected)
 	case <-time.After(2 * time.Second):
 		t.Fatal("first Run did not return after Stop")
 	}
 
-	// give the second Run time to fail its first attempt and enter the backoff
-	time.Sleep(200 * time.Millisecond)
-
 	assert.False(t, h.Stopped(), "the first Run unwinding stopped the second one")
 	assert.Equal(t, StateConnecting, h.stateMachine.GetState())
+}
+
+// registrationServer is an IRC server that completes a client's registration only
+// when the test says so, holding a connect attempt in flight for as long as needed.
+type registrationServer struct {
+	port  int
+	conns chan net.Conn
+}
+
+func newRegistrationServer(t *testing.T) *registrationServer {
+	t.Helper()
+
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+
+	s := &registrationServer{port: ln.Addr().(*net.TCPAddr).Port, conns: make(chan net.Conn, 4)}
+
+	var accepted []net.Conn
+	var m sync.Mutex
+
+	t.Cleanup(func() {
+		ln.Close()
+
+		m.Lock()
+		defer m.Unlock()
+		for _, conn := range accepted {
+			conn.Close()
+		}
+	})
+
+	go func() {
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				return
+			}
+
+			m.Lock()
+			accepted = append(accepted, conn)
+			m.Unlock()
+
+			s.conns <- conn
+		}
+	}()
+
+	return s
+}
+
+func (s *registrationServer) network() *domain.IrcNetwork {
+	return &domain.IrcNetwork{ID: 1, Name: "TestNet", Server: "127.0.0.1", Port: s.port, Nick: "autobrr", Enabled: true}
+}
+
+func (s *registrationServer) accept(t *testing.T) net.Conn {
+	t.Helper()
+
+	select {
+	case conn := <-s.conns:
+		return conn
+	case <-time.After(2 * time.Second):
+		t.Fatal("no connect attempt reached the server")
+		return nil
+	}
+}
+
+func (s *registrationServer) register(t *testing.T, conn net.Conn) {
+	t.Helper()
+
+	_, err := conn.Write([]byte(":irc.test 001 autobrr :Welcome\r\n:irc.test 422 autobrr :MOTD File is missing\r\n"))
+	require.NoError(t, err)
+}
+
+// TestStopDuringConnectAttempt verifies a client that finishes registering after
+// Stop, which cannot abort a Connect in progress, is dropped and does not drive
+// the network state machine.
+func TestStopDuringConnectAttempt(t *testing.T) {
+	srv := newRegistrationServer(t)
+
+	h, _ := newTestHandler()
+	h.network = srv.network()
+	h.clientState = ircStopped
+
+	done := runAsync(h)
+	conn := srv.accept(t)
+
+	h.Stop()
+	srv.register(t, conn)
+
+	select {
+	case err := <-done:
+		require.ErrorIs(t, err, clientManuallyDisconnected)
+	case <-time.After(2 * time.Second):
+		t.Fatal("Run did not return after Stop")
+	}
+
+	assert.True(t, h.Stopped())
+	assert.Nil(t, h.getClient())
+
+	// onConnect waits a second before it advances the state machine
+	assert.Never(t, func() bool { return h.stateMachine.GetState() != StateDisconnected }, 1500*time.Millisecond, 50*time.Millisecond)
+}
+
+// TestStaleRunDoesNotTakeOverRestart verifies a Run whose Connect was in flight
+// across a restart, and registers before the new Run does, neither goes live nor
+// drives the state machine, leaving the network to the new Run.
+func TestStaleRunDoesNotTakeOverRestart(t *testing.T) {
+	srv := newRegistrationServer(t)
+
+	h, _ := newTestHandler()
+	h.network = srv.network()
+	h.clientState = ircStopped
+
+	first := runAsync(h)
+	staleConn := srv.accept(t)
 
 	h.Stop()
 
+	second := runAsync(h)
+	conn := srv.accept(t)
+
+	srv.register(t, staleConn)
+
 	select {
-	case err := <-second:
+	case err := <-first:
 		require.ErrorIs(t, err, clientManuallyDisconnected)
 	case <-time.After(2 * time.Second):
-		t.Fatal("second Run did not return after Stop")
+		t.Fatal("stale Run did not return")
 	}
+
+	assert.False(t, h.Stopped(), "the stale Run stopped the new one")
+	assert.Never(t, func() bool { return h.stateMachine.GetState() != StateConnecting }, 1500*time.Millisecond, 50*time.Millisecond)
+
+	srv.register(t, conn)
+
+	select {
+	case err := <-second:
+		require.NoError(t, err)
+	case <-time.After(2 * time.Second):
+		t.Fatal("new Run did not return")
+	}
+
+	require.Eventually(t, func() bool { return h.stateMachine.GetState() == StateJoiningChannels }, 3*time.Second, 50*time.Millisecond)
+
+	h.Stop()
 }

@@ -69,6 +69,12 @@ func TestStopThenRunRejoins(t *testing.T) {
 	require.NoError(t, inst.Handler.Run())
 
 	inst.WaitForStateSince("#none", "Monitoring", since, 10*time.Second)
+
+	srv.Announce("#none", "ann", "New torrent: Some.Release.2024.1080p.BluRay.x264-GRP in Movies")
+
+	rls, ok := inst.Releases.Wait(5 * time.Second)
+	require.True(t, ok, "no release produced from an announce after the restart")
+	require.Equal(t, "Some.Release.2024.1080p.BluRay.x264-GRP", rls.TorrentName)
 }
 
 // ---- auth

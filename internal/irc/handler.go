@@ -444,7 +444,9 @@ func (h *Handler) Run() (err error) {
 		}
 	}
 
-	client.AddConnectCallback(h.onConnect)
+	client.AddConnectCallback(func(msg ircmsg.Message) {
+		h.onConnect(client, msg)
+	})
 	client.AddDisconnectCallback(func(msg ircmsg.Message) {
 		h.onClientDisconnect(client, msg)
 	})
@@ -485,6 +487,12 @@ func (h *Handler) Run() (err error) {
 	defer cancel()
 
 	h.m.Lock()
+	// a Stop, possibly followed by a new Run, landed while we built the client;
+	// taking over h.client now would hide the new Run's client from Stop
+	if h.connectGen != connectGen || h.clientState == ircStopped {
+		h.m.Unlock()
+		return clientManuallyDisconnected
+	}
 	h.saslauthed = false
 	h.client = client
 	h.cancelConnect = cancel
@@ -505,7 +513,7 @@ func (h *Handler) Run() (err error) {
 
 				// #1239: don't retry if the user manually disconnected with Stop()
 				h.m.RLock()
-				manuallyDisconnected := h.clientState == ircStopped
+				manuallyDisconnected := h.clientState == ircStopped || h.connectGen != connectGen
 				h.m.RUnlock()
 
 				if manuallyDisconnected {
@@ -523,7 +531,7 @@ func (h *Handler) Run() (err error) {
 					// loop immediately instead of waiting out the 15s backoff before
 					// the next attempt notices the stop.
 					h.m.RLock()
-					stopped := h.clientState == ircStopped
+					stopped := h.clientState == ircStopped || h.connectGen != connectGen
 					h.m.RUnlock()
 					if stopped {
 						return retry.Unrecoverable(err)
@@ -578,15 +586,14 @@ func (h *Handler) Run() (err error) {
 
 	shouldDisconnect := false
 	h.m.Lock()
-	switch h.clientState {
-	case ircStopped:
-		// concurrent Stop(), bail
+	switch {
+	case h.clientState == ircStopped, h.connectGen != connectGen:
+		// concurrent Stop(), possibly followed by a new Run that owns the state now. Stop
+		// cannot abort a Connect in progress, so this client may have registered anyway
 		shouldDisconnect = true
-	case ircConnecting:
-		// success!
-		//h.client = client
+	case h.clientState == ircConnecting:
 		h.clientState = ircLive
-	case ircLive:
+	case h.clientState == ircLive:
 		// impossible
 		h.log.Error().Stack().Msg("two concurrent connection attempts detected")
 		shouldDisconnect = true
@@ -718,8 +725,15 @@ func (h *Handler) Restart(definitions []*domain.IndexerDefinition) error {
 	return h.Run()
 }
 
-// onConnect is the connect callback
-func (h *Handler) onConnect(m ircmsg.Message) {
+// onConnect handles registration completing on the client that emitted it.
+func (h *Handler) onConnect(client *ircevent.Connection, _ ircmsg.Message) {
+	// a client replaced by Stop can still finish registering, and driving the state
+	// machine from it would climb past Connected before the new client gets there
+	if h.getClient() != client {
+		h.log.Debug().Msg("ignoring registration of a stopped client")
+		return
+	}
+
 	h.setConnectionStatus()
 
 	networkName := h.GetNetwork().Name
@@ -747,6 +761,10 @@ func (h *Handler) onConnect(m ircmsg.Message) {
 	h.log.Info().Msg("network connected")
 
 	time.Sleep(1 * time.Second)
+
+	if h.getClient() != client {
+		return
+	}
 
 	// Notify state machine of connection - it will handle auth and channel joining
 	h.stateMachine.OnConnected()
