@@ -54,6 +54,10 @@ func (n *Notification) IsEnabled() bool {
 	}
 
 	switch n.Type {
+	case NotificationTypeBark:
+		if n.Host != "" && n.Token != "" {
+			return true
+		}
 	case NotificationTypeDiscord:
 		if n.Webhook != "" {
 			return true
@@ -99,6 +103,13 @@ func (n *Notification) IsEnabled() bool {
 // Validate checks that the provider-specific fields a sender needs are present and well-formed.
 func (n *Notification) Validate() error {
 	switch n.Type {
+	case NotificationTypeBark:
+		if strings.TrimSpace(n.Host) == "" {
+			return errors.Wrap(ErrNotificationInvalid, "missing bark server url")
+		}
+		if strings.TrimSpace(n.Token) == "" {
+			return errors.Wrap(ErrNotificationInvalid, "missing bark device key")
+		}
 	case NotificationTypeDiscord, NotificationTypeLunaSea, NotificationTypeWebhook:
 		if strings.TrimSpace(n.Webhook) == "" {
 			return errors.Wrap(ErrNotificationInvalid, "missing webhook url")
@@ -207,6 +218,7 @@ const (
 	NotificationTypeLunaSea   NotificationType = "LUNASEA"
 	NotificationTypeShoutrrr  NotificationType = "SHOUTRRR"
 	NotificationTypeWebhook   NotificationType = "WEBHOOK"
+	NotificationTypeBark      NotificationType = "BARK"
 	NotificationTypeBuiltin   NotificationType = "BUILTIN"
 )
 

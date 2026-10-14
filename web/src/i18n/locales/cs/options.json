@@ -163,6 +163,7 @@
       "PUSH_ERROR": "Chyba"
     },
     "notificationType": {
+      "BARK": "Bark",
       "DISCORD": "Discord",
       "GOTIFY": "Gotify",
       "LUNASEA": "LunaSea",

@@ -127,3 +127,82 @@ test.each([
   expect(update).not.toHaveBeenCalled();
   expect(await screen.findByText(message)).toBeTruthy();
 });
+
+const bark: ServiceNotification = {
+  id: 9,
+  name: "Bark",
+  enabled: true,
+  type: "BARK",
+  events: ["PUSH_APPROVED"],
+  host: "https://api.day.app",
+  token: "<redacted>",
+  sound: "minuet",
+  topic: "autobrr",
+  priority: 1
+};
+
+test("a stored bark notification saves its device key, sound, group and level", async () => {
+  const update = vi.spyOn(APIClient.notifications, "update").mockResolvedValue(undefined as never);
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <NotificationUpdateForm isOpen={true} toggle={() => {}} data={bark} />
+    </QueryClientProvider>
+  );
+
+  expect((screen.getByLabelText("Sound") as HTMLInputElement).value).toBe("minuet");
+  expect((screen.getByLabelText("Group") as HTMLInputElement).value).toBe("autobrr");
+  expect(screen.getByText("Time Sensitive")).toBeTruthy();
+
+  await act(async () => {
+    fireEvent.click(screen.getByText("Save"));
+  });
+
+  expect(update).toHaveBeenCalledTimes(1);
+  expect(update.mock.calls[0][0]).toMatchObject({
+    type: "BARK",
+    host: "https://api.day.app",
+    token: "<redacted>",
+    sound: "minuet",
+    topic: "autobrr",
+    priority: 1
+  });
+});
+
+test("picking a bark interruption level saves it as priority", async () => {
+  const update = vi.spyOn(APIClient.notifications, "update").mockResolvedValue(undefined as never);
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <NotificationUpdateForm isOpen={true} toggle={() => {}} data={bark} />
+    </QueryClientProvider>
+  );
+
+  const picker = document.querySelector("#priority input") as HTMLInputElement;
+  fireEvent.keyDown(picker, { key: "ArrowDown", keyCode: 40 });
+  await act(async () => {
+    fireEvent.click(await screen.findByText("Critical"));
+  });
+
+  await act(async () => {
+    fireEvent.click(screen.getByText("Save"));
+  });
+
+  expect(update).toHaveBeenCalledTimes(1);
+  expect(update.mock.calls[0][0]).toMatchObject({ type: "BARK", priority: 2 });
+});
+
+test("bark requires a server url before saving", async () => {
+  const update = vi.spyOn(APIClient.notifications, "update").mockResolvedValue(undefined as never);
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <NotificationUpdateForm isOpen={true} toggle={() => {}} data={bark} />
+    </QueryClientProvider>
+  );
+
+  fireEvent.change(screen.getByLabelText(/^Server URL/), { target: { value: "" } });
+  await act(async () => {
+    fireEvent.click(screen.getByText("Save"));
+  });
+
+  expect(update).not.toHaveBeenCalled();
+  expect(await screen.findByText("Required")).toBeTruthy();
+});
