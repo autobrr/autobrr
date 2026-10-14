@@ -16,6 +16,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/alphadose/haxmap"
+	"github.com/ergochat/irc-go/ircevent"
 	"github.com/r3labs/sse/v2"
 	"github.com/rs/zerolog"
 )
@@ -77,8 +78,15 @@ type Service struct {
 	unhealthySnapshot atomic.Pointer[[]reportedNetwork]
 	stopHealthMonitor context.CancelFunc
 
-	stopWG sync.WaitGroup
-	lock   sync.RWMutex
+	// lifecycleM serializes starting, restarting and removing handlers. Each of
+	// those looks a handler up and then acts on it, and two of them interleaved on
+	// one network either connect two handlers or revive one that was just stopped.
+	lifecycleM sync.Mutex
+	stopped    bool
+
+	// wg tracks the background connects and the health monitor, so shutdown can
+	// wait for them
+	wg sync.WaitGroup
 }
 
 func NewService(log zerolog.Logger, eventBus eventBus, sse sseServer, repo ircRepo, releaseSvc releaseService, indexerSvc indexerService, proxySvc proxyService) *Service {
@@ -195,6 +203,9 @@ func (s *Service) StartHandlers() {
 		s.log.Error().Err(err).Msg("failed to list networks")
 	}
 
+	s.lifecycleM.Lock()
+	defer s.lifecycleM.Unlock()
+
 	for _, network := range networks {
 		if !network.Enabled {
 			continue
@@ -206,100 +217,130 @@ func (s *Service) StartHandlers() {
 			s.log.Error().Err(err).Str("server", network.Server).Msg("failed to get proxy for network")
 		}
 
-		channels, err := s.repo.ListChannels(network.ID)
-		if err != nil {
-			s.log.Error().Err(err).Str("server", network.Server).Msg("failed to list channels for network")
-		}
-
-		// find indexer definitions for network and add
-		definitions := s.indexerService.GetIndexersByIRCNetwork(network.Server)
-
-		network.Channels = channels
-
-		// init new irc handler
-		handler := NewHandler(s.log, s.eventBus, s.sse, network, definitions, s.releaseService)
-
-		s.networkHandlers.Set(network.ID, handler)
-
-		s.log.Debug().Str("network", network.Name).Msg("starting network")
-
-		go func(network domain.IrcNetwork) {
-			if err := handler.Run(); err != nil {
-				s.log.Error().Err(err).Str("network", network.Name).Msg("failed to start irc handler")
-			}
-		}(network)
+		s.startNetwork(network)
 	}
 
 	healthCtx, cancel := context.WithCancel(ctx)
 	s.stopHealthMonitor = cancel
 
-	go s.monitorHealth(healthCtx)
+	s.wg.Go(func() {
+		s.monitorHealth(healthCtx)
+	})
 }
 
-func (s *Service) StopHandlers() {
+// StopHandlers stops every network and waits, until ctx is done, for the
+// connects in flight to give up and the connections to close.
+func (s *Service) StopHandlers(ctx context.Context) {
 	s.log.Debug().Msg("stopping all irc handlers..")
+
+	s.lifecycleM.Lock()
+	s.stopped = true
 
 	if s.stopHealthMonitor != nil {
 		s.stopHealthMonitor()
 	}
 
+	clients := make([]*ircevent.Connection, 0, s.networkHandlers.Len())
 	for _, handler := range s.networkHandlers.Iterator() {
-		s.log.Debug().Str("network", handler.network.Name).Msg("stop network")
-		handler.Stop()
-	}
+		s.log.Debug().Str("network", handler.GetNetwork().Name).Msg("stop network")
 
-	s.log.Debug().Msg("stopped all irc handlers")
+		if client := handler.stop(); client != nil {
+			clients = append(clients, client)
+		}
+	}
+	s.lifecycleM.Unlock()
+
+	closed := make(chan struct{})
+	go func() {
+		s.wg.Wait()
+		for _, client := range clients {
+			client.Wait()
+		}
+		close(closed)
+	}()
+
+	select {
+	case <-closed:
+		s.log.Debug().Msg("stopped all irc handlers")
+
+	case <-ctx.Done():
+		s.log.Warn().Err(ctx.Err()).Msg("irc connections did not close before shutdown")
+	}
 }
 
-func (s *Service) startNetwork(network domain.IrcNetwork) error {
-	// look if we have the network in handlers already, if so start it
+// startHandler claims handler and connects it in the background.
+// The caller must hold s.lifecycleM.
+func (s *Service) startHandler(handler *Handler) {
+	connectGen, err := handler.claimConnect()
+	if err != nil {
+		s.log.Debug().Err(err).Str("network", handler.GetNetwork().Name).Msg("network already connecting")
+		return
+	}
+
+	s.wg.Go(func() {
+		if err := handler.connect(connectGen); err != nil && !errors.Is(err, clientManuallyDisconnected) {
+			s.log.Error().Err(err).Str("network", handler.GetNetwork().Name).Msg("failed to start irc handler")
+		}
+	})
+}
+
+// startNetwork starts the handler of network, building it first if there is none.
+// The caller must hold s.lifecycleM.
+func (s *Service) startNetwork(network domain.IrcNetwork) {
+	if s.stopped {
+		return
+	}
+
 	if existingHandler, found := s.networkHandlers.Get(network.ID); found {
 		s.log.Debug().Str("network", network.Name).Msg("starting network")
 
 		if existingHandler.Stopped() {
-			go func(handler *Handler) {
-				if err := handler.Run(); err != nil {
-					s.log.Error().Err(err).Str("network", handler.network.Name).Msg("failed to start irc handler")
-				}
-			}(existingHandler)
+			s.startHandler(existingHandler)
 		}
 
-		return nil
+		return
 	}
 
-	// if not found in handlers, lets add it and run it
 	channels, err := s.repo.ListChannels(network.ID)
 	if err != nil {
 		s.log.Error().Err(err).Str("server", network.Server).Msg("failed to list channels for network")
 	}
 
-	// find indexer definitions for network and add
-	definitions := s.indexerService.GetIndexersByIRCNetwork(network.Server)
-
 	network.Channels = channels
 
-	// init new irc handler
+	definitions := s.indexerService.GetIndexersByIRCNetwork(network.Server)
+
 	handler := NewHandler(s.log, s.eventBus, s.sse, network, definitions, s.releaseService)
 
 	s.networkHandlers.Set(network.ID, handler)
 
 	s.log.Debug().Str("network", network.Name).Msg("starting network")
 
-	go func(network domain.IrcNetwork) {
-		if err := handler.Run(); err != nil {
-			s.log.Error().Err(err).Str("network", network.Name).Msg("failed to start irc handler")
-		}
-	}(network)
+	s.startHandler(handler)
+}
 
-	return nil
+// restartHandler reconnects handler with the config of network.
+// The caller must hold s.lifecycleM.
+func (s *Service) restartHandler(handler *Handler, network *domain.IrcNetwork, definitions []*domain.IndexerDefinition) {
+	handler.StopAndWait(restartQuitTimeout)
+
+	if s.stopped {
+		return
+	}
+
+	handler.UpdateNetwork(network)
+	handler.reloadChannels(definitions)
+
+	s.startHandler(handler)
 }
 
 func (s *Service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error {
+	s.lifecycleM.Lock()
+	defer s.lifecycleM.Unlock()
+
 	handler, found := s.networkHandlers.Get(network.ID)
 	if !found {
-		if err := s.startNetwork(*network); err != nil {
-			s.log.Error().Err(err).Str("network", network.Name).Msg("failed to start network")
-		}
+		s.startNetwork(*network)
 
 		return nil
 	}
@@ -308,13 +349,13 @@ func (s *Service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 
 	definitions := s.indexerService.GetIndexersByIRCNetwork(network.Server)
 
-	// a restart in flight sits in the stopped state for a moment and then runs with whatever
-	// config the handler holds, so swap the config now instead of dropping the change
+	// a handler in the map is only stopped after a fatal failure (ban, auth, TLS,
+	// flapping), and the edit may be what fixes it
 	if handler.Stopped() {
-		handler.UpdateNetwork(network)
-		handler.reloadChannels(definitions)
+		s.log.Debug().Str("server", network.Server).Msg("handler stopped, starting with updated config")
 
-		s.log.Debug().Str("server", network.Server).Msg("handler stopped, updated config without restart")
+		s.restartHandler(handler, network, definitions)
+
 		return nil
 	}
 
@@ -327,16 +368,8 @@ func (s *Service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 		s.log.Debug().Interface("diff", diff).Str("server", network.Server).Msg("fields changed, restarting network")
 		s.log.Info().Str("server", network.Server).Msg("restarting network")
 
-		// we need to reinitialize with the new network config
-		handler.UpdateNetwork(network)
+		s.restartHandler(handler, network, definitions)
 
-		go func() {
-			if err := handler.Restart(definitions); err != nil {
-				s.log.Error().Stack().Err(err).Str("network", handler.network.Name).Msg("failed to restart network")
-			}
-		}()
-
-		// return now since the restart will read the network again
 		return nil
 	}
 
@@ -422,7 +455,7 @@ func (s *Service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 }
 
 func (s *Service) RestartNetwork(ctx context.Context, networkID int64) error {
-	network, err := s.repo.GetNetworkByID(ctx, networkID)
+	network, err := s.GetNetworkByID(ctx, networkID)
 	if err != nil {
 		return err
 	}
@@ -435,38 +468,32 @@ func (s *Service) RestartNetwork(ctx context.Context, networkID int64) error {
 		return err
 	}
 
-	return s.restartNetwork(*network)
-}
+	s.lifecycleM.Lock()
+	defer s.lifecycleM.Unlock()
 
-func (s *Service) restartNetwork(network domain.IrcNetwork) error {
-	// look if we have the network in handlers, if so restart it
-	if err := s.StopNetwork(network.ID); err != nil {
-		return err
+	handler, found := s.networkHandlers.Get(network.ID)
+	if !found {
+		s.startNetwork(*network)
+
+		return nil
 	}
 
-	return s.startNetwork(network)
-}
-
-func (s *Service) StopAndRemoveNetwork(networkID int64) error {
-	handler, found := s.networkHandlers.Get(networkID)
-	if found {
-		handler.Stop()
-
-		// remove from handlers
-		s.networkHandlers.Del(networkID)
-
-		s.log.Debug().Int64("network_id", networkID).Msg("stopped network")
-	}
+	s.restartHandler(handler, network, s.indexerService.GetIndexersByIRCNetwork(network.Server))
 
 	return nil
 }
 
-func (s *Service) StopNetwork(networkID int64) error {
+func (s *Service) StopAndRemoveNetwork(networkID int64) error {
+	s.lifecycleM.Lock()
+	defer s.lifecycleM.Unlock()
+
 	handler, found := s.networkHandlers.Get(networkID)
 	if found {
 		handler.Stop()
-		s.log.Debug().Str("server", handler.network.Server).Msg("stopped network")
 
+		s.networkHandlers.Del(networkID)
+
+		s.log.Debug().Int64("network_id", networkID).Msg("stopped network")
 	}
 
 	return nil
@@ -818,10 +845,9 @@ func (s *Service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 
 		// if network is enabled, start it immediately
 		if network.Enabled {
-			if err := s.startNetwork(*network); err != nil {
-				s.log.Error().Err(err).Str("network", network.Name).Msg("could not start network")
-				return errors.New("could not start network: %s", network.Name)
-			}
+			s.lifecycleM.Lock()
+			s.startNetwork(*network)
+			s.lifecycleM.Unlock()
 		}
 
 		return nil

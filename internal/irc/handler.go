@@ -69,6 +69,10 @@ const (
 	flappingWindow             = 15 * time.Minute
 )
 
+// restartQuitTimeout bounds how long a restart waits for the server to close the
+// old connection after QUIT before connecting again.
+const restartQuitTimeout = 3 * time.Second
+
 const (
 	connectRetryDelay     = 15 * time.Second
 	connectRetryMaxDelay  = 5 * time.Minute
@@ -303,11 +307,37 @@ func (h *Handler) removeIndexer() {
 	// TODO remove announceProcessor
 }
 
-func (h *Handler) Run() (err error) {
-	// TODO validate
-	// check if network requires nickserv
-	// check if network or channels requires invite command
+// Run connects the network and blocks until the connection is live, the network
+// is stopped, or the attempt fails for good.
+func (h *Handler) Run() error {
+	connectGen, err := h.claimConnect()
+	if err != nil {
+		return err
+	}
 
+	return h.connect(connectGen)
+}
+
+// claimConnect moves a stopped handler to connecting. The service claims
+// synchronously and connects in the background, so a Stop that lands after the
+// claim cancels the attempt instead of being overtaken by it.
+func (h *Handler) claimConnect() (uint64, error) {
+	h.m.Lock()
+	if h.clientState != ircStopped {
+		h.m.Unlock()
+		return 0, connectionInProgress
+	}
+	h.clientState = ircConnecting
+	h.connectGen++
+	connectGen := h.connectGen
+	h.m.Unlock()
+
+	h.stateMachine.OnConnecting()
+
+	return connectGen, nil
+}
+
+func (h *Handler) connect(connectGen uint64) (err error) {
 	// snapshot the network once so a concurrent SetNetwork/UpdateNetwork cannot
 	// tear the config we build the connection from
 	network := h.GetNetwork()
@@ -321,22 +351,6 @@ func (h *Handler) Run() (err error) {
 	// this used to be TraceLevel but was changed to DebugLevel during connect to see the info without needing to change loglevel
 	// we change back to TraceLevel in the handleJoined method.
 	subLogger := zstdlog.NewStdLoggerWithLevel(h.log.With().Logger(), zerolog.TraceLevel)
-
-	shouldConnect := false
-	h.m.Lock()
-	if h.clientState == ircStopped {
-		shouldConnect = true
-		h.clientState = ircConnecting
-		h.connectGen++
-	}
-	connectGen := h.connectGen
-	h.m.Unlock()
-
-	if !shouldConnect {
-		return connectionInProgress
-	}
-
-	h.stateMachine.OnConnecting()
 
 	// either we will successfully transition to `StateRunning`, or else
 	// we need to reset the state to `ircStopped`. A Stop followed by a new Run can
@@ -667,6 +681,33 @@ func (h *Handler) resetChannelState() {
 
 // Stop the network and quit
 func (h *Handler) Stop() {
+	h.stop()
+}
+
+// StopAndWait stops the network and waits up to timeout for the old connection
+// to close, so the next connection does not race it for the nick. Never call it
+// from an irc-go callback: the connection waits for its callbacks to return.
+func (h *Handler) StopAndWait(timeout time.Duration) {
+	client := h.stop()
+	if client == nil {
+		return
+	}
+
+	closed := make(chan struct{})
+	go func() {
+		client.Wait()
+		close(closed)
+	}()
+
+	select {
+	case <-closed:
+	case <-time.After(timeout):
+		h.log.Debug().Dur("timeout", timeout).Msg("connection did not close in time")
+	}
+}
+
+// stop returns the client it quit, if any.
+func (h *Handler) stop() *ircevent.Connection {
 	h.m.Lock()
 	h.connectedSince = time.Time{}
 	h.haveDisconnected = false
@@ -697,6 +738,8 @@ func (h *Handler) Stop() {
 		h.resetChannelState()
 		client.Quit()
 	}
+
+	return client
 }
 
 func (h *Handler) Stopped() bool {
@@ -708,9 +751,7 @@ func (h *Handler) Stopped() bool {
 // Restart stops the network, rebuilds its channels from the current config and
 // runs it again.
 func (h *Handler) Restart(definitions []*domain.IndexerDefinition) error {
-	h.Stop()
-
-	time.Sleep(2 * time.Second)
+	h.StopAndWait(restartQuitTimeout)
 
 	h.reloadChannels(definitions)
 
