@@ -7,13 +7,17 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 	_ "time/tzdata"
 
 	"github.com/autobrr/autobrr/internal/application"
 	"github.com/autobrr/autobrr/internal/cli"
+	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/meta"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/spf13/cobra"
 )
@@ -63,21 +67,62 @@ func run(ctx context.Context, configPath string) error {
 	ctx, cancel := cli.ShutdownContext(ctx)
 	defer cancel()
 
-	app := application.New(configPath)
+	app, err := newApp(configPath)
+	if err != nil {
+		showError("autobrr", err.Error())
+
+		return err
+	}
 
 	tray := newTray(app, cancel)
 
-	errc := make(chan error, 1)
+	var runErr error
+	done := make(chan struct{})
 	go func() {
-		errc <- app.Run(ctx)
+		runErr = app.Run(ctx)
+		close(done)
 		tray.Remove()
 	}()
+
+	if err := onSessionEnd(func() {
+		cancel()
+		<-done
+	}); err != nil {
+		app.Log().Error().Err(err).Msg("could not watch for session end")
+	}
 
 	if err := tray.Run(); err != nil {
 		app.Log().Error().Err(err).Msg("tray stopped unexpectedly")
 	}
 
 	cancel()
+	<-done
 
-	return <-errc
+	if runErr != nil {
+		showError("autobrr", fmt.Sprintf("autobrr stopped: %v\n\nLog file: %s", runErr, app.Config().LogPath))
+	}
+
+	return runErr
+}
+
+// newApp defaults to the OS config directory, because a desktop launch has no
+// --config and its working directory is often read-only, and to a log file in
+// it, because the GUI build has no console to log to.
+func newApp(configPath string) (*application.App, error) {
+	if configPath == "" {
+		dir, err := os.UserConfigDir()
+		if err != nil {
+			return nil, errors.Wrap(err, "could not find config directory")
+		}
+
+		configPath = filepath.Join(dir, "autobrr")
+	}
+
+	cfg := config.New(configPath)
+
+	if cfg.Config.LogPath == "" {
+		cfg.Config.LogPath = filepath.Join(configPath, "logs", "autobrr.log")
+	}
+
+	return application.NewFromConfig(cfg), nil
 }
