@@ -10,62 +10,31 @@ import (
 	"strings"
 	"time"
 
-	"github.com/autobrr/autobrr/internal/events"
-
 	"github.com/dustin/go-humanize"
 	"github.com/rs/zerolog"
 )
 
-type eventBus interface {
-	EmitAppUpdate(ctx context.Context, event events.AppUpdateEvent)
-}
-
 type CheckUpdatesJob struct {
 	name          string
 	log           zerolog.Logger
-	eventBus      eventBus
-	version       string
 	updateService updateChecker
-
-	lastCheckVersion string
 }
 
-func NewUpdateCheckerJob(log zerolog.Logger, bus eventBus, name, version string, updateService updateChecker) *CheckUpdatesJob {
+func NewUpdateCheckerJob(log zerolog.Logger, name string, updateService updateChecker) *CheckUpdatesJob {
 	return &CheckUpdatesJob{
-		log:              log.With().Str("job", name).Logger(),
-		eventBus:         bus,
-		name:             name,
-		version:          version,
-		lastCheckVersion: version,
-		updateService:    updateService,
+		log:           log.With().Str("job", name).Logger(),
+		name:          name,
+		updateService: updateService,
 	}
 }
 
+// Run checks for a new release. The update service emits the AppUpdateEvent.
 func (j *CheckUpdatesJob) Run() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	newRelease, err := j.updateService.CheckUpdateAvailable(ctx)
-	if err != nil {
+	if _, err := j.updateService.CheckUpdateAvailable(ctx); err != nil {
 		j.log.Error().Err(err).Msg("could not check for new release")
-		return
-	}
-
-	if newRelease != nil {
-		// this is not persisted so this can trigger more than once
-		// lets check if we have different versions between runs
-		if newRelease.TagName != j.lastCheckVersion {
-			j.log.Info().Str("version", newRelease.TagName).Msg("new release available")
-
-			j.eventBus.EmitAppUpdate(ctx, events.AppUpdateEvent{
-				Type:           events.ApplicationUpdate,
-				CurrentVersion: j.version,
-				NewVersion:     newRelease.TagName,
-				URL:            newRelease.HtmlURL,
-			})
-		}
-
-		j.lastCheckVersion = newRelease.TagName
 	}
 }
 

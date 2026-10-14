@@ -32,6 +32,7 @@ The backend follows a layered architecture with clear separation of concerns:
 - **`cmd/`**: Application entry points
   - `autobrr/main.go`: cobra root; bare `autobrr` runs `serve`, subcommands live in `internal/cli/`
   - `autobrrctl/main.go`: legacy admin CLI, kept until it is deprecated; new admin commands go in `internal/cli/`
+  - `autobrr-desktop/`: Windows tray build around `application.Run`; Win32-only code (error dialog, logoff/shutdown handling) lives in `platform_windows.go` and only cross-compiles off Windows
 
 - **`internal/`**: Core application logic organized by domain
   - **Domain layer** (`internal/domain/`): Core business entities. It holds no repository or service interfaces - each consumer declares a small unexported interface listing only the methods it calls, and constructors return concrete `*Service` structs
