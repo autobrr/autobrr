@@ -190,11 +190,14 @@ test("picking a bark interruption level saves it as priority", async () => {
   expect(update.mock.calls[0][0]).toMatchObject({ type: "BARK", priority: 2 });
 });
 
+const invalidBarkUrl = "Must be an http:// or https:// URL without query parameters";
+
 test.each([
   ["", "Required"],
-  ["api.day.app", "Must be an http:// or https:// URL"],
-  ["http://:8080", "Must be an http:// or https:// URL"],
-  ["https://?x", "Must be an http:// or https:// URL"]
+  ["api.day.app", invalidBarkUrl],
+  ["http://:8080", invalidBarkUrl],
+  ["https://?x", invalidBarkUrl],
+  ["https://api.day.app?device_key=other", invalidBarkUrl]
 ])("bark server url %j blocks saving", async (host, message) => {
   const update = vi.spyOn(APIClient.notifications, "update").mockResolvedValue(undefined as never);
   render(

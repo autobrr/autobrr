@@ -618,7 +618,7 @@
       "barkServerUrl": "Server-URL",
       "barkServerUrlHelp": "Bark-Server-URL. Für den offiziellen Server https://api.day.app verwenden",
       "barkServerUrlPlaceholder": "https://api.day.app",
-      "barkServerUrlInvalid": "Muss eine http://- oder https://-URL sein",
+      "barkServerUrlInvalid": "Muss eine http://- oder https://-URL ohne Query-Parameter sein",
       "deviceKey": "Geräteschlüssel",
       "barkDeviceKeyHelp": "Der Schlüssel nach der Server-URL in der Bark-Push-URL",
       "barkLevel": "Unterbrechungsstufe",

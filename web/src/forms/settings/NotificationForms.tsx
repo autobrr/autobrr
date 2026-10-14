@@ -530,7 +530,8 @@ const isBarkServerUrl = (value: string) => {
     return false;
 
   try {
-    return new URL(value).hostname !== "";
+    const url = new URL(value);
+    return url.hostname !== "" && url.search === "";
   } catch {
     return false;
   }

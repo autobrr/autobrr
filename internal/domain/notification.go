@@ -108,8 +108,8 @@ func (n *Notification) Validate() error {
 		if strings.TrimSpace(n.Host) == "" {
 			return errors.Wrap(ErrNotificationInvalid, "missing bark server url")
 		}
-		if serverURL, err := url.Parse(n.Host); err != nil || serverURL.Hostname() == "" || (serverURL.Scheme != "http" && serverURL.Scheme != "https") {
-			return errors.Wrap(ErrNotificationInvalid, "bark server url must be an http or https url")
+		if serverURL, err := url.Parse(n.Host); err != nil || serverURL.Hostname() == "" || serverURL.RawQuery != "" || (serverURL.Scheme != "http" && serverURL.Scheme != "https") {
+			return errors.Wrap(ErrNotificationInvalid, "bark server url must be an http or https url without query parameters")
 		}
 		if strings.TrimSpace(n.Token) == "" {
 			return errors.Wrap(ErrNotificationInvalid, "missing bark device key")

@@ -618,7 +618,7 @@
         "barkServerUrl": "URL serveru",
         "barkServerUrlHelp": "URL serveru Bark. Pro oficiální server použijte https://api.day.app",
         "barkServerUrlPlaceholder": "https://api.day.app",
-        "barkServerUrlInvalid": "Musí to být URL s http:// nebo https://",
+        "barkServerUrlInvalid": "Musí to být URL s http:// nebo https:// bez parametrů dotazu",
         "deviceKey": "Klíč zařízení",
         "barkDeviceKeyHelp": "Klíč za URL serveru ve vaší push URL z aplikace Bark",
         "barkLevel": "Úroveň přerušení",
