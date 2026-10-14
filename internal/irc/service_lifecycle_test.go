@@ -262,3 +262,119 @@ func TestService_EditThenRestartKeepsChannelsJoined(t *testing.T) {
 	require.Eventually(t, monitoring, 10*time.Second, 50*time.Millisecond, "channel not monitored after an edit and a restart")
 	assert.Never(t, func() bool { return !monitoring() }, restartQuitTimeout+time.Second, 50*time.Millisecond, "channel dropped out of monitoring after the restarts settled")
 }
+
+// staleReadRepo persists UpdateNetwork and can park one GetNetworkByID after it
+// has read the row, like a request descheduled between its read and its restart.
+type staleReadRepo struct {
+	*stubIrcRepo
+	park    atomic.Bool
+	parked  chan struct{}
+	release chan struct{}
+}
+
+func (r *staleReadRepo) UpdateNetwork(_ context.Context, network *domain.IrcNetwork) error {
+	r.m.Lock()
+	defer r.m.Unlock()
+
+	r.network = *network
+	return nil
+}
+
+func (r *staleReadRepo) GetNetworkByID(context.Context, int64) (*domain.IrcNetwork, error) {
+	row := r.row()
+	if r.park.CompareAndSwap(true, false) {
+		close(r.parked)
+		<-r.release
+	}
+
+	return row, nil
+}
+
+func TestService_RestartDoesNotReviveDisabledNetwork(t *testing.T) {
+	srv := ircd.New(t)
+	p := newCountingProxy(t, srv.Addr())
+	network := lifecycleNetwork(p.port(), "lifecycle")
+
+	repo := &staleReadRepo{stubIrcRepo: newStubIrcRepo(network), parked: make(chan struct{}), release: make(chan struct{})}
+	release := sync.OnceFunc(func() { close(repo.release) })
+	defer release()
+
+	s := newLifecycleService(repo)
+	require.NoError(t, s.UpdateNetwork(t.Context(), new(network)))
+	p.waitLive(t, 1)
+
+	repo.park.Store(true)
+
+	var wg sync.WaitGroup
+	wg.Go(func() {
+		_ = s.RestartNetwork(t.Context(), network.ID)
+	})
+	<-repo.parked
+
+	disabled := network
+	disabled.Enabled = false
+	wg.Go(func() {
+		_ = s.UpdateNetwork(t.Context(), &disabled)
+	})
+
+	time.Sleep(200 * time.Millisecond)
+	release()
+	wg.Wait()
+
+	_, found := s.networkHandlers.Get(network.ID)
+	assert.False(t, found, "restart revived a network disabled while it was loading the config")
+
+	p.waitLive(t, 0)
+	p.staysLive(t, 0, restartQuitTimeout+time.Second)
+}
+
+// stalledChannelsRepo blocks ListChannels, which startNetwork calls while it
+// holds the lifecycle lock.
+type stalledChannelsRepo struct {
+	*stubIrcRepo
+	entered chan struct{}
+	release chan struct{}
+}
+
+func (r stalledChannelsRepo) ListChannels(int64) ([]domain.IrcChannel, error) {
+	close(r.entered)
+	<-r.release
+
+	return nil, nil
+}
+
+func TestService_StopHandlersKeepsDeadlineWhileLifecycleBusy(t *testing.T) {
+	srv := ircd.New(t)
+	p := newCountingProxy(t, srv.Addr())
+	network := lifecycleNetwork(p.port(), "lifecycle")
+
+	repo := stalledChannelsRepo{stubIrcRepo: newStubIrcRepo(network), entered: make(chan struct{}), release: make(chan struct{})}
+	release := sync.OnceFunc(func() { close(repo.release) })
+	defer release()
+
+	s := newLifecycleService(repo)
+
+	var wg sync.WaitGroup
+	wg.Go(s.StartHandlers)
+	<-repo.entered
+
+	ctx, cancel := context.WithTimeout(t.Context(), 200*time.Millisecond)
+	defer cancel()
+
+	stopped := make(chan struct{})
+	go func() {
+		s.StopHandlers(ctx)
+		close(stopped)
+	}()
+
+	select {
+	case <-stopped:
+	case <-time.After(5 * time.Second):
+		t.Fatal("StopHandlers waited past its deadline for the lifecycle lock")
+	}
+
+	release()
+	wg.Wait()
+
+	p.staysLive(t, 0, time.Second)
+}

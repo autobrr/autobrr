@@ -81,8 +81,10 @@ type Service struct {
 	// lifecycleM serializes starting, restarting and removing handlers. Each of
 	// those looks a handler up and then acts on it, and two of them interleaved on
 	// one network either connect two handlers or revive one that was just stopped.
-	lifecycleM sync.Mutex
-	stopped    bool
+	// It is a one-slot channel rather than a sync.Mutex so StopHandlers can give
+	// up waiting for it at the shutdown deadline.
+	lifecycleM chan struct{}
+	stopped    atomic.Bool
 
 	// wg tracks the background connects and the health monitor, so shutdown can
 	// wait for them
@@ -100,6 +102,7 @@ func NewService(log zerolog.Logger, eventBus eventBus, sse sseServer, repo ircRe
 		proxyService:    proxySvc,
 		networkCache:    haxmap.New[int64, *domain.IrcNetwork](),
 		networkHandlers: haxmap.New[int64, *Handler](),
+		lifecycleM:      make(chan struct{}, 1),
 
 		unhealthyNetworks: map[int64]*unhealthyEpisode{},
 	}
@@ -203,8 +206,8 @@ func (s *Service) StartHandlers() {
 		s.log.Error().Err(err).Msg("failed to list networks")
 	}
 
-	s.lifecycleM.Lock()
-	defer s.lifecycleM.Unlock()
+	s.lifecycleM <- struct{}{}
+	defer func() { <-s.lifecycleM }()
 
 	for _, network := range networks {
 		if !network.Enabled {
@@ -220,6 +223,10 @@ func (s *Service) StartHandlers() {
 		s.startNetwork(network)
 	}
 
+	if s.stopped.Load() {
+		return
+	}
+
 	healthCtx, cancel := context.WithCancel(ctx)
 	s.stopHealthMonitor = cancel
 
@@ -233,8 +240,16 @@ func (s *Service) StartHandlers() {
 func (s *Service) StopHandlers(ctx context.Context) {
 	s.log.Debug().Msg("stopping all irc handlers..")
 
-	s.lifecycleM.Lock()
-	s.stopped = true
+	// set before waiting for the lock, so an operation holding it does not
+	// connect anything new
+	s.stopped.Store(true)
+
+	select {
+	case s.lifecycleM <- struct{}{}:
+	case <-ctx.Done():
+		s.log.Warn().Err(ctx.Err()).Msg("irc lifecycle busy, shutting down without stopping handlers")
+		return
+	}
 
 	if s.stopHealthMonitor != nil {
 		s.stopHealthMonitor()
@@ -248,7 +263,7 @@ func (s *Service) StopHandlers(ctx context.Context) {
 			clients = append(clients, client)
 		}
 	}
-	s.lifecycleM.Unlock()
+	<-s.lifecycleM
 
 	closed := make(chan struct{})
 	go func() {
@@ -271,6 +286,10 @@ func (s *Service) StopHandlers(ctx context.Context) {
 // startHandler claims handler and connects it in the background.
 // The caller must hold s.lifecycleM.
 func (s *Service) startHandler(handler *Handler) {
+	if s.stopped.Load() {
+		return
+	}
+
 	connectGen, err := handler.claimConnect()
 	if err != nil {
 		s.log.Debug().Err(err).Str("network", handler.GetNetwork().Name).Msg("network already connecting")
@@ -287,7 +306,7 @@ func (s *Service) startHandler(handler *Handler) {
 // startNetwork starts the handler of network, building it first if there is none.
 // The caller must hold s.lifecycleM.
 func (s *Service) startNetwork(network domain.IrcNetwork) {
-	if s.stopped {
+	if s.stopped.Load() {
 		return
 	}
 
@@ -324,7 +343,7 @@ func (s *Service) startNetwork(network domain.IrcNetwork) {
 func (s *Service) restartHandler(handler *Handler, network *domain.IrcNetwork, definitions []*domain.IndexerDefinition) {
 	handler.StopAndWait(restartQuitTimeout)
 
-	if s.stopped {
+	if s.stopped.Load() {
 		return
 	}
 
@@ -335,8 +354,8 @@ func (s *Service) restartHandler(handler *Handler, network *domain.IrcNetwork, d
 }
 
 func (s *Service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error {
-	s.lifecycleM.Lock()
-	defer s.lifecycleM.Unlock()
+	s.lifecycleM <- struct{}{}
+	defer func() { <-s.lifecycleM }()
 
 	handler, found := s.networkHandlers.Get(network.ID)
 	if !found {
@@ -455,6 +474,11 @@ func (s *Service) checkIfNetworkRestartNeeded(network *domain.IrcNetwork) error 
 }
 
 func (s *Service) RestartNetwork(ctx context.Context, networkID int64) error {
+	// load the config under the lock: an edit or disable that lands between a
+	// load outside it and the restart would be reverted
+	s.lifecycleM <- struct{}{}
+	defer func() { <-s.lifecycleM }()
+
 	network, err := s.GetNetworkByID(ctx, networkID)
 	if err != nil {
 		return err
@@ -467,9 +491,6 @@ func (s *Service) RestartNetwork(ctx context.Context, networkID int64) error {
 	if err := s.attachProxy(ctx, network); err != nil {
 		return err
 	}
-
-	s.lifecycleM.Lock()
-	defer s.lifecycleM.Unlock()
 
 	handler, found := s.networkHandlers.Get(network.ID)
 	if !found {
@@ -484,8 +505,8 @@ func (s *Service) RestartNetwork(ctx context.Context, networkID int64) error {
 }
 
 func (s *Service) StopAndRemoveNetwork(networkID int64) error {
-	s.lifecycleM.Lock()
-	defer s.lifecycleM.Unlock()
+	s.lifecycleM <- struct{}{}
+	defer func() { <-s.lifecycleM }()
 
 	handler, found := s.networkHandlers.Get(networkID)
 	if found {
@@ -845,9 +866,9 @@ func (s *Service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 
 		// if network is enabled, start it immediately
 		if network.Enabled {
-			s.lifecycleM.Lock()
+			s.lifecycleM <- struct{}{}
 			s.startNetwork(*network)
-			s.lifecycleM.Unlock()
+			<-s.lifecycleM
 		}
 
 		return nil
