@@ -492,10 +492,10 @@ func (h *Handler) Run() (err error) {
 		h.m.Unlock()
 		return clientManuallyDisconnected
 	}
-	h.saslauthed = false
 	h.client = client
 	h.cancelConnect = cancel
-	h.resetIdentifyForm()
+	h.failedNickServAttempts = 0
+	h.resetSessionLocked()
 	h.m.Unlock()
 
 	if err := func() error {
@@ -669,8 +669,10 @@ func (h *Handler) resetChannelState() {
 func (h *Handler) Stop() {
 	h.m.Lock()
 	h.connectedSince = time.Time{}
+	h.haveDisconnected = false
+	h.failedNickServAttempts = 0
 	h.resetFlappingBreakerLocked()
-	h.identifyOutstanding = false
+	h.resetSessionLocked()
 	client := h.client
 	h.clientState = ircStopped
 	h.client = nil
@@ -786,12 +788,9 @@ func (h *Handler) onClientDisconnect(client *ircevent.Connection, _ ircmsg.Messa
 
 	h.connectedSince = time.Time{}
 
-	// reset authenticated
-	h.authenticated = false
-
 	// a reconnect starts the identify ladder over: the nick we get back may
 	// differ, and the previous connection's escalation says nothing about this one
-	h.resetIdentifyForm()
+	h.resetSessionLocked()
 
 	h.haveDisconnected = true
 
@@ -2003,6 +2002,16 @@ func (h *Handler) escalateIdentify() {
 	h.identifyAttempt = identifyFormAccount
 	h.identifyEscalated = true
 	h.m.Unlock()
+}
+
+// resetSessionLocked clears what the previous session learned about our login,
+// so the next one authenticates again. Stop must call it too: the old client's
+// disconnect callback is ignored once Stop has replaced it.
+// The caller must hold h.m.
+func (h *Handler) resetSessionLocked() {
+	h.authenticated = false
+	h.saslauthed = false
+	h.resetIdentifyForm()
 }
 
 // resetIdentifyForm starts a connection on the form that last authenticated on
