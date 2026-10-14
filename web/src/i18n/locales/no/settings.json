@@ -618,6 +618,7 @@
       "barkServerUrl": "Server-URL",
       "barkServerUrlHelp": "Bark-server-URL. Bruk https://api.day.app for den offisielle serveren",
       "barkServerUrlPlaceholder": "https://api.day.app",
+      "barkServerUrlInvalid": "Må være en http://- eller https://-URL",
       "deviceKey": "Enhetsnøkkel",
       "barkDeviceKeyHelp": "Nøkkelen etter server-URL-en i Bark-push-URL-en din",
       "barkLevel": "Avbruddsnivå",

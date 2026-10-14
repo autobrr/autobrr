@@ -618,6 +618,7 @@
       "barkServerUrl": "服务器 URL",
       "barkServerUrlHelp": "Bark 服务器 URL，官方服务器为 https://api.day.app",
       "barkServerUrlPlaceholder": "https://api.day.app",
+      "barkServerUrlInvalid": "必须是以 http:// 或 https:// 开头的 URL",
       "deviceKey": "设备 Key",
       "barkDeviceKeyHelp": "Bark 推送 URL 中服务器地址之后的那段 Key",
       "barkLevel": "中断级别",

@@ -5,6 +5,7 @@ package domain
 
 import (
 	"encoding/json"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -106,6 +107,9 @@ func (n *Notification) Validate() error {
 	case NotificationTypeBark:
 		if strings.TrimSpace(n.Host) == "" {
 			return errors.Wrap(ErrNotificationInvalid, "missing bark server url")
+		}
+		if serverURL, err := url.Parse(n.Host); err != nil || serverURL.Host == "" || (serverURL.Scheme != "http" && serverURL.Scheme != "https") {
+			return errors.Wrap(ErrNotificationInvalid, "bark server url must be an http or https url")
 		}
 		if strings.TrimSpace(n.Token) == "" {
 			return errors.Wrap(ErrNotificationInvalid, "missing bark device key")

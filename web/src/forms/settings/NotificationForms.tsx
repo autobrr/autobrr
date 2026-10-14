@@ -524,12 +524,14 @@ const NOTIFICATION_REQUIRED_FIELDS: Partial<Record<NotificationType, Notificatio
 // Notifiarr API keys are lowercase UUIDs; notifiarr.com rejects anything else.
 const NOTIFIARR_API_KEY = /^[a-z0-9-]{36}$/;
 
+const BARK_SERVER_URL = /^https?:\/\/[^\s/]+(\/\S*)?$/i;
+
 interface NotificationFormValues extends Partial<Record<NotificationRequiredField, string>> {
   name: string;
   type: NotificationType | "";
 }
 
-const validateNotification = (values: NotificationFormValues, required: string, invalidApiKey: string) => {
+const validateNotification = (values: NotificationFormValues, required: string, invalidApiKey: string, invalidUrl: string) => {
   const errors: FormFieldErrors = {};
   if (!values.name)
     errors.name = required;
@@ -543,6 +545,9 @@ const validateNotification = (values: NotificationFormValues, required: string, 
 
   if (values.type === "NOTIFIARR" && values.api_key && values.api_key !== "<redacted>" && !NOTIFIARR_API_KEY.test(values.api_key))
     errors.api_key = invalidApiKey;
+
+  if (values.type === "BARK" && values.host && !BARK_SERVER_URL.test(values.host))
+    errors.host = invalidUrl;
 
   return errors;
 };
@@ -587,7 +592,8 @@ function NotificationAddFormPanel({ toggle }: NotificationAddFormPanelProps) {
   const validate = (values: NotificationFormValues) => validateNotification(
     values,
     t("settings:forms.notification.required"),
-    t("settings:forms.notification.notifiarrApiKeyInvalid")
+    t("settings:forms.notification.notifiarrApiKeyInvalid"),
+    t("settings:forms.notification.barkServerUrlInvalid")
   );
 
   const initialValues = {
@@ -987,7 +993,8 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
       validate={(values) => validateNotification(
         values,
         t("settings:forms.notification.required"),
-        t("settings:forms.notification.notifiarrApiKeyInvalid")
+        t("settings:forms.notification.notifiarrApiKeyInvalid"),
+        t("settings:forms.notification.barkServerUrlInvalid")
       )}
       testFn={testNotification}
     >

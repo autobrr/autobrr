@@ -190,7 +190,10 @@ test("picking a bark interruption level saves it as priority", async () => {
   expect(update.mock.calls[0][0]).toMatchObject({ type: "BARK", priority: 2 });
 });
 
-test("bark requires a server url before saving", async () => {
+test.each([
+  ["", "Required"],
+  ["api.day.app", "Must be an http:// or https:// URL"]
+])("bark server url %j blocks saving", async (host, message) => {
   const update = vi.spyOn(APIClient.notifications, "update").mockResolvedValue(undefined as never);
   render(
     <QueryClientProvider client={new QueryClient()}>
@@ -198,11 +201,11 @@ test("bark requires a server url before saving", async () => {
     </QueryClientProvider>
   );
 
-  fireEvent.change(screen.getByLabelText(/^Server URL/), { target: { value: "" } });
+  fireEvent.change(screen.getByLabelText(/^Server URL/), { target: { value: host } });
   await act(async () => {
     fireEvent.click(screen.getByText("Save"));
   });
 
   expect(update).not.toHaveBeenCalled();
-  expect(await screen.findByText("Required")).toBeTruthy();
+  expect(await screen.findByText(message)).toBeTruthy();
 });
