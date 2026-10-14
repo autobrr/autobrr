@@ -23,7 +23,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/alphadose/haxmap"
-	"github.com/avast/retry-go"
+	"github.com/avast/retry-go/v4"
 	"github.com/dcarbone/zadapters/zstdlog"
 	"github.com/ergochat/irc-go/ircevent"
 	"github.com/ergochat/irc-go/ircfmt"
@@ -69,6 +69,12 @@ const (
 	flappingWindow             = 15 * time.Minute
 )
 
+const (
+	connectRetryDelay     = 15 * time.Second
+	connectRetryMaxDelay  = 5 * time.Minute
+	connectRetryMaxJitter = 10 * time.Second
+)
+
 // identifyForm is the argument form of the outstanding NickServ IDENTIFY.
 //
 // The bare form is the default because its failures are always loud and are
@@ -101,6 +107,8 @@ type Handler struct {
 
 	client           *ircevent.Connection
 	clientState      ircState
+	connectGen       uint64
+	cancelConnect    context.CancelFunc
 	connectedSince   time.Time
 	haveDisconnected bool
 	shortSessionEnds []time.Time
@@ -319,7 +327,9 @@ func (h *Handler) Run() (err error) {
 	if h.clientState == ircStopped {
 		shouldConnect = true
 		h.clientState = ircConnecting
+		h.connectGen++
 	}
+	connectGen := h.connectGen
 	h.m.Unlock()
 
 	if !shouldConnect {
@@ -329,13 +339,19 @@ func (h *Handler) Run() (err error) {
 	h.stateMachine.OnConnecting()
 
 	// either we will successfully transition to `StateRunning`, or else
-	// we need to reset the state to `ircStopped`
+	// we need to reset the state to `ircStopped`. A Stop followed by a new Run can
+	// land before this deferred reset, so only touch the state if it is still ours.
 	defer func() {
 		h.m.Lock()
-		if h.clientState == ircConnecting {
+		failed := h.connectGen == connectGen && h.clientState != ircLive
+		if failed && h.clientState == ircConnecting {
 			h.clientState = ircStopped
 		}
 		h.m.Unlock()
+
+		if failed && h.stateMachine.GetState() == StateConnecting {
+			h.stateMachine.OnDisconnected()
+		}
 	}()
 
 	client := &ircevent.Connection{
@@ -465,9 +481,13 @@ func (h *Handler) Run() (err error) {
 	client.AddCallback(ircevent.ERR_NOSUCHNICK, h.handleErrNoSuchNick)
 
 	//h.setConnectionStatus()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	h.m.Lock()
 	h.saslauthed = false
 	h.client = client
+	h.cancelConnect = cancel
 	h.resetIdentifyForm()
 	h.m.Unlock()
 
@@ -476,8 +496,9 @@ func (h *Handler) Run() (err error) {
 		connectAttempts := 0
 		disconnectTime := time.Now()
 
-		// retry initial connect if network is down
-		// using exponential backoff of 15 seconds
+		// keep retrying until the server is back or the network is stopped: a tracker
+		// outage can last many hours, and giving up would leave the network down
+		// until someone restarts it by hand
 		return retry.Do(
 			func() error {
 				h.log.Debug().Int("attempt", connectAttempts).Msg("connect attempt")
@@ -540,14 +561,18 @@ func (h *Handler) Run() (err error) {
 					h.log.Debug().Uint("attempt", n).Msg("connect attempt")
 				}
 			}),
-			retry.Delay(time.Second*15),
-			retry.Attempts(25),
-			retry.MaxJitter(time.Second*10),
-			retry.DelayType(func(n uint, err error, config *retry.Config) time.Duration {
-				return retry.BackOffDelay(n, err, config)
-			}),
+			retry.Context(ctx),
+			retry.Attempts(0),
+			retry.Delay(connectRetryDelay),
+			retry.MaxDelay(connectRetryMaxDelay),
+			retry.MaxJitter(connectRetryMaxJitter),
+			retry.DelayType(retry.CombineDelay(retry.BackOffDelay, retry.RandomDelay)),
 		)
 	}(); err != nil {
+		if errors.Is(err, context.Canceled) {
+			return clientManuallyDisconnected
+		}
+
 		return err
 	}
 
@@ -652,7 +677,21 @@ func (h *Handler) Stop() {
 	client := h.client
 	h.clientState = ircStopped
 	h.client = nil
+	cancelConnect := h.cancelConnect
+	h.cancelConnect = nil
 	h.m.Unlock()
+
+	if cancelConnect != nil {
+		cancelConnect()
+	}
+
+	// Do not leave this to the old client's disconnect callback: it fires only once
+	// the server closes the socket, and a Run straight after this Stop gets there
+	// first. The callback then ignores the stale client, and the new connection's
+	// Connected transition is rejected from FullyOperational, so channels never join.
+	if h.stateMachine.GetState() != StateDisconnected {
+		h.stateMachine.OnDisconnected()
+	}
 
 	if client != nil {
 		h.log.Debug().Msg("Disconnecting...")

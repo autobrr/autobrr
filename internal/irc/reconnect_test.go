@@ -6,9 +6,11 @@ package irc
 import (
 	"context"
 	"encoding/json"
+	"net"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/events"
@@ -210,4 +212,95 @@ func TestResetFromMonitoring(t *testing.T) {
 	assert.Zero(t, sm.authAttempts, "Reset() left authAttempts")
 	assert.False(t, sm.joinAfterInvite, "Reset() left joinAfterInvite set")
 	assert.Truef(t, sseMock.hasStateEvent("#announce", "Idle"), "Reset() did not broadcast STATE=Idle, got %+v", sseMock.stateEvents())
+}
+
+// refusingNetwork returns a network pointing at a local port nothing listens on,
+// so every connect attempt is refused, like a tracker IRC server that is down.
+func refusingNetwork(t *testing.T) *domain.IrcNetwork {
+	t.Helper()
+
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+
+	port := ln.Addr().(*net.TCPAddr).Port
+	require.NoError(t, ln.Close())
+
+	return &domain.IrcNetwork{ID: 1, Name: "TestNet", Server: "127.0.0.1", Port: port, Nick: "autobrr", Enabled: true}
+}
+
+func runAsync(h *Handler) <-chan error {
+	done := make(chan error, 1)
+	go func() { done <- h.Run() }()
+
+	return done
+}
+
+// TestStopResetsConnectionState covers https://github.com/autobrr/autobrr/issues/2760:
+// Stop must leave the network state machine Disconnected so the next Run can climb
+// through Connected again, without waiting for the old client's disconnect callback.
+func TestStopResetsConnectionState(t *testing.T) {
+	h, _ := newTestHandler()
+	h.stateMachine.currentState = StateFullyOperational
+
+	h.Stop()
+
+	assert.Equal(t, StateDisconnected, h.stateMachine.GetState())
+}
+
+// TestStopInterruptsConnectBackoff verifies a network waiting out the connect
+// backoff, which keeps retrying for as long as the server is down, stops right away.
+func TestStopInterruptsConnectBackoff(t *testing.T) {
+	h, _ := newTestHandler()
+	h.network = refusingNetwork(t)
+	h.clientState = ircStopped
+
+	done := runAsync(h)
+
+	// the refusal is immediate, so this is well inside the first backoff delay
+	time.Sleep(200 * time.Millisecond)
+	h.Stop()
+
+	select {
+	case err := <-done:
+		require.ErrorIs(t, err, clientManuallyDisconnected)
+	case <-time.After(2 * time.Second):
+		t.Fatal("Run kept waiting out the connect backoff after Stop")
+	}
+
+	assert.Equal(t, StateDisconnected, h.stateMachine.GetState())
+}
+
+// TestRestartDuringConnectBackoffKeepsNewRun verifies the Run interrupted by a
+// restart does not reset the state of the Run that replaced it when it unwinds.
+func TestRestartDuringConnectBackoffKeepsNewRun(t *testing.T) {
+	h, _ := newTestHandler()
+	h.network = refusingNetwork(t)
+	h.clientState = ircStopped
+
+	first := runAsync(h)
+	time.Sleep(200 * time.Millisecond)
+
+	h.Stop()
+	second := runAsync(h)
+
+	select {
+	case <-first:
+	case <-time.After(2 * time.Second):
+		t.Fatal("first Run did not return after Stop")
+	}
+
+	// give the second Run time to fail its first attempt and enter the backoff
+	time.Sleep(200 * time.Millisecond)
+
+	assert.False(t, h.Stopped(), "the first Run unwinding stopped the second one")
+	assert.Equal(t, StateConnecting, h.stateMachine.GetState())
+
+	h.Stop()
+
+	select {
+	case err := <-second:
+		require.ErrorIs(t, err, clientManuallyDisconnected)
+	case <-time.After(2 * time.Second):
+		t.Fatal("second Run did not return after Stop")
+	}
 }

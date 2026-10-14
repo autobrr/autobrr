@@ -47,6 +47,30 @@ func TestConnectJoinAnnounce(t *testing.T) {
 	require.Equal(t, "Some.Release.2024.1080p.BluRay.x264-GRP", rls.TorrentName)
 }
 
+// TestStopThenRunRejoins covers https://github.com/autobrr/autobrr/issues/2760: a
+// network restart (Stop then Run, as RestartNetwork does) must rejoin its channels.
+// The old connection's disconnect callback fires after the new Run has started, so
+// a Stop that left the network state machine in FullyOperational rejected the new
+// connection's Connected transition and the channel stayed Idle.
+func TestStopThenRunRejoins(t *testing.T) {
+	srv := ircd.New(t)
+	srv.AddChannel("#none", ircd.Announcer("ann"))
+
+	def := harness.MinimalDefinition("none", "#none", "ann")
+	net := harness.Network(srv, "autobrr", harness.None(), harness.Channel("#none"))
+
+	inst := harness.Start(t, net, harness.Defs(def))
+	inst.WaitForMonitoring("#none", 10*time.Second)
+	inst.WaitForHealthy(10 * time.Second)
+
+	since := inst.StateCount("#none")
+
+	inst.Handler.Stop()
+	require.NoError(t, inst.Handler.Run())
+
+	inst.WaitForStateSince("#none", "Monitoring", since, 10*time.Second)
+}
+
 // ---- auth
 
 // TestSASLAuth verifies a SASL PLAIN login: the +r (registered-only) channel can
