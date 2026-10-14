@@ -78,6 +78,14 @@ type stubIndexerService struct{}
 
 func (stubIndexerService) GetIndexersByIRCNetwork(string) []*domain.IndexerDefinition { return nil }
 
+type stubDefinitionsIndexerService struct {
+	definitions []*domain.IndexerDefinition
+}
+
+func (s stubDefinitionsIndexerService) GetIndexersByIRCNetwork(string) []*domain.IndexerDefinition {
+	return s.definitions
+}
+
 type stubProxyService struct {
 	proxy *domain.Proxy
 	err   error
@@ -167,4 +175,40 @@ func TestRestartNetwork_RefusesDisabledProxy(t *testing.T) {
 
 		return h.clientState == ircStopped && len(h.connectionErrors) == 1 && strings.Contains(h.connectionErrors[0], "is disabled")
 	}, time.Second, 10*time.Millisecond, "handler must refuse to dial and surface the reason")
+}
+
+// Adding a sister site merges its channel and invite command into the existing
+// network. Before the fix the handler kept its old channel set, so the new
+// channel was stored but never joined until autobrr restarted.
+func TestStoreNetwork_ExistingNetworkRegistersNewChannel(t *testing.T) {
+	t.Parallel()
+
+	existing := domain.IrcNetwork{ID: 7, Name: "DigitalCore", Server: "irc.example.test", Port: 7000, Nick: "bot", Enabled: true, InviteCommand: "ENDOR !invite user dckey"}
+	definitions := []*domain.IndexerDefinition{
+		defWithInvite("digitalcore", "irc.example.test", "#announce", "ENDOR", "ENDOR"),
+		defWithInvite("dirtybytes", "irc.example.test", "#dirtybytes-announce", "DirtyBytes", "DirtyBytes"),
+	}
+
+	s := NewService(zerolog.Nop(), noopEventBus{}, &mockSSEServer{}, newStubIrcRepo(existing), nil, stubDefinitionsIndexerService{definitions: definitions}, stubProxyService{})
+
+	// a handler parked by a restart in flight, which the update must not bypass
+	h := NewHandler(zerolog.Nop(), noopEventBus{}, &mockSSEServer{}, existing, definitions[:1], nil)
+	s.networkHandlers.Set(existing.ID, h)
+
+	err := s.StoreNetwork(t.Context(), &domain.IrcNetwork{
+		Server:        "irc.example.test",
+		Port:          7000,
+		Nick:          "bot",
+		InviteCommand: "DirtyBytes !invite user dbkey",
+		Channels:      []domain.IrcChannel{{Name: "#dirtybytes-announce", Enabled: true}},
+	})
+	require.NoError(t, err)
+
+	ch, found := h.channels.Get("#dirtybytes-announce")
+	require.True(t, found, "the merged channel must be registered on the running handler")
+	assert.NotNil(t, ch.announceProcessor)
+	assert.Equal(t, "DirtyBytes !invite user dbkey", ch.InviteCommand())
+
+	_, cached := s.networkCache.Get(0)
+	assert.False(t, cached, "the merged network must be cached under the existing network id")
 }

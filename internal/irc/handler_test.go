@@ -78,6 +78,64 @@ func defWithChannel(identifier, server, channel, announcer string) *domain.Index
 	}
 }
 
+// defWithInvite is defWithChannel for an indexer gated by an invite bot, the
+// way sister sites on a shared network each have their own.
+func defWithInvite(identifier, server, channel, announcer, inviteBot string) *domain.IndexerDefinition {
+	def := defWithChannel(identifier, server, channel, announcer)
+	def.IRC.Settings = []domain.IndexerSetting{
+		{Name: "invite_command", Default: inviteBot + " !invite USERNAME IRCKEY"},
+	}
+
+	return def
+}
+
+// A sister site added to a running shared network changes the invite command,
+// which restarts the handler. The restart must rebuild the channel set from the
+// new config, or the new channel is stored but never joined.
+func TestReloadChannelsPicksUpConfigChanges(t *testing.T) {
+	h, _ := newTestHandler()
+	h.network.Channels = []domain.IrcChannel{{ID: 1, Name: "#announce", Enabled: true}}
+	h.network.InviteCommand = "ENDOR !invite user oldkey"
+
+	dc := defWithInvite("digitalcore", "irc.example.test", "#announce", "ENDOR", "ENDOR")
+	db := defWithInvite("dirtybytes", "irc.example.test", "#dirtybytes-announce", "DirtyBytes", "DirtyBytes")
+
+	h.InitIndexers([]*domain.IndexerDefinition{dc})
+	require.Equal(t, uintptr(1), h.channels.Len())
+
+	h.UpdateNetwork(&domain.IrcNetwork{
+		ID:            1,
+		Server:        "irc.example.test",
+		InviteCommand: "ENDOR !invite user newkey,DirtyBytes !invite user dbkey",
+		Channels: []domain.IrcChannel{
+			{ID: 1, Name: "#announce", Enabled: true},
+			{ID: 2, Name: "#dirtybytes-announce", Enabled: true},
+		},
+	})
+	h.reloadChannels([]*domain.IndexerDefinition{dc, db})
+
+	announceCh, found := h.channels.Get("#announce")
+	require.True(t, found)
+	assert.Equal(t, "ENDOR !invite user newkey", announceCh.InviteCommand(), "an edited invite command must replace the old one")
+
+	sisterCh, found := h.channels.Get("#dirtybytes-announce")
+	require.True(t, found, "the sister site's channel must be registered so the restart joins it")
+	assert.Equal(t, int64(2), sisterCh.ID)
+	assert.NotNil(t, sisterCh.announceProcessor)
+	assert.Equal(t, "DirtyBytes !invite user dbkey", sisterCh.InviteCommand())
+
+	h.UpdateNetwork(&domain.IrcNetwork{
+		ID:       1,
+		Server:   "irc.example.test",
+		Channels: []domain.IrcChannel{{ID: 2, Name: "#dirtybytes-announce", Enabled: true}},
+	})
+	h.reloadChannels(nil)
+
+	_, found = h.channels.Get("#announce")
+	assert.False(t, found, "a channel removed from the config must not be rejoined")
+	assert.Equal(t, uintptr(1), h.channels.Len())
+}
+
 // TestInitIndexersOnlyJoinsConfiguredChannels is a regression test for the
 // multi-instance bug: three separate network instances share one server
 // (different nicks/usernames), so each handler is handed the definitions of all
