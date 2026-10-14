@@ -192,7 +192,8 @@ test("picking a bark interruption level saves it as priority", async () => {
 
 test.each([
   ["", "Required"],
-  ["api.day.app", "Must be an http:// or https:// URL"]
+  ["api.day.app", "Must be an http:// or https:// URL"],
+  ["http://:8080", "Must be an http:// or https:// URL"]
 ])("bark server url %j blocks saving", async (host, message) => {
   const update = vi.spyOn(APIClient.notifications, "update").mockResolvedValue(undefined as never);
   render(

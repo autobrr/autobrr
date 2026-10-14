@@ -524,7 +524,7 @@ const NOTIFICATION_REQUIRED_FIELDS: Partial<Record<NotificationType, Notificatio
 // Notifiarr API keys are lowercase UUIDs; notifiarr.com rejects anything else.
 const NOTIFIARR_API_KEY = /^[a-z0-9-]{36}$/;
 
-const BARK_SERVER_URL = /^https?:\/\/[^\s/]+(\/\S*)?$/i;
+const BARK_SERVER_URL = /^https?:\/\/(?!:)[^\s/]+(\/\S*)?$/i;
 
 interface NotificationFormValues extends Partial<Record<NotificationRequiredField, string>> {
   name: string;

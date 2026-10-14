@@ -134,6 +134,7 @@ func TestNotification_Validate(t *testing.T) {
 		{name: "bark missing device key", notification: Notification{Type: NotificationTypeBark, Host: "https://api.day.app"}, wantErr: "missing bark device key"},
 		{name: "bark host without scheme", notification: Notification{Type: NotificationTypeBark, Host: "api.day.app", Token: "key"}, wantErr: "bark server url must be an http or https url"},
 		{name: "bark host with unsupported scheme", notification: Notification{Type: NotificationTypeBark, Host: "ftp://api.day.app", Token: "key"}, wantErr: "bark server url must be an http or https url"},
+		{name: "bark host without hostname", notification: Notification{Type: NotificationTypeBark, Host: "http://:8080", Token: "key"}, wantErr: "bark server url must be an http or https url"},
 		{name: "bark host with whitespace", notification: Notification{Type: NotificationTypeBark, Host: "https://api.day.app ", Token: "key"}, wantErr: "bark server url must be an http or https url"},
 		{name: "bark valid", notification: Notification{Type: NotificationTypeBark, Host: "https://api.day.app", Token: "key"}},
 		{name: "bark self-hosted with credentials and prefix", notification: Notification{Type: NotificationTypeBark, Host: "http://user:pass@bark.local:8080/bark/", Token: "key"}},
