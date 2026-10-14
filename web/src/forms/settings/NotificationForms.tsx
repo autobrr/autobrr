@@ -329,7 +329,6 @@ function FormFieldsNtfy() {
 
 function FormFieldsBark() {
   const { t } = useTranslation("settings");
-  // stored in priority on the Pushover scale, see barkLevels in the backend sender
   const levelOptions: OptionBasicTyped<number>[] = [
     { label: t("forms.notification.barkLevelPassive"), value: -1 },
     { label: t("forms.notification.barkLevelActive"), value: 0 },
