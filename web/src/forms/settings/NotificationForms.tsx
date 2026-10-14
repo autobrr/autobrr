@@ -524,7 +524,17 @@ const NOTIFICATION_REQUIRED_FIELDS: Partial<Record<NotificationType, Notificatio
 // Notifiarr API keys are lowercase UUIDs; notifiarr.com rejects anything else.
 const NOTIFIARR_API_KEY = /^[a-z0-9-]{36}$/;
 
-const BARK_SERVER_URL = /^https?:\/\/(?!:)[^\s/]+(\/\S*)?$/i;
+// URL() alone is laxer than the backend's url.Parse: it trims whitespace and accepts "http:host"
+const isBarkServerUrl = (value: string) => {
+  if (!/^https?:\/\/\S+$/i.test(value))
+    return false;
+
+  try {
+    return new URL(value).hostname !== "";
+  } catch {
+    return false;
+  }
+};
 
 interface NotificationFormValues extends Partial<Record<NotificationRequiredField, string>> {
   name: string;
@@ -546,7 +556,7 @@ const validateNotification = (values: NotificationFormValues, required: string, 
   if (values.type === "NOTIFIARR" && values.api_key && values.api_key !== "<redacted>" && !NOTIFIARR_API_KEY.test(values.api_key))
     errors.api_key = invalidApiKey;
 
-  if (values.type === "BARK" && values.host && !BARK_SERVER_URL.test(values.host))
+  if (values.type === "BARK" && values.host && !isBarkServerUrl(values.host))
     errors.host = invalidUrl;
 
   return errors;
