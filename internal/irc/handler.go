@@ -10,6 +10,7 @@ import (
 	stdErr "errors"
 	"fmt"
 	"maps"
+	"net"
 	"net/url"
 	"slices"
 	"strconv"
@@ -431,6 +432,31 @@ func (h *Handler) connect(connectGen uint64) (err error) {
 		client.DialContext = proxyContextDialer.DialContext
 	}
 
+	// ctx lives until Stop, which cancels it. It ends the backoff between connect
+	// attempts and aborts a dial in flight, including the ones irc-go makes when
+	// it reconnects on its own: irc-go dials with a context of its own, which
+	// Quit cannot cancel.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer func() {
+		if err != nil {
+			cancel()
+		}
+	}()
+
+	dial := client.DialContext
+	if dial == nil {
+		dial = (&net.Dialer{}).DialContext
+	}
+	client.DialContext = func(dialCtx context.Context, network, addr string) (net.Conn, error) {
+		dialCtx, cancelDial := context.WithCancel(dialCtx)
+		defer cancelDial()
+
+		stop := context.AfterFunc(ctx, cancelDial)
+		defer stop()
+
+		return dial(dialCtx, network, addr)
+	}
+
 	if network.Auth.Mechanism == domain.IRCAuthMechanismSASLPlain {
 		if network.Auth.Account != "" && network.Auth.Password != "" {
 			client.SASLLogin = network.Auth.Account
@@ -495,9 +521,6 @@ func (h *Handler) connect(connectGen uint64) (err error) {
 	client.AddCallback(ircevent.ERR_BADCHANNELKEY, h.handleJoinError)  // 475
 	client.AddCallback(ircevent.ERR_NEEDREGGEDNICK, h.handleJoinError) // 477
 	client.AddCallback(ircevent.ERR_NOSUCHNICK, h.handleErrNoSuchNick)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	h.m.Lock()
 	// a Stop, possibly followed by a new Run, landed while we built the client;
@@ -847,6 +870,10 @@ func (h *Handler) onClientDisconnect(client *ircevent.Connection, _ ircmsg.Messa
 		h.haveDisconnected = false
 		h.clientState = ircStopped
 		h.client = nil
+		if h.cancelConnect != nil {
+			h.cancelConnect()
+			h.cancelConnect = nil
+		}
 		h.resetFlappingBreakerLocked()
 		h.resetChannelState()
 		h.stateMachine.OnError(flappingError)
