@@ -6,6 +6,8 @@ package indexer
 import (
 	"context"
 	"maps"
+	"strconv"
+	"sync"
 	"testing"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -212,4 +214,37 @@ func TestServiceRejectsArchivedMutations(t *testing.T) {
 			assert.False(t, repo.toggled)
 		})
 	}
+}
+
+func TestService_ConcurrentIRCLookup(t *testing.T) {
+	service := NewService(zerolog.Nop(), &stubEventBus{}, nil, &stubIndexerRepo{}, nil, nil)
+	service.definitions["mock"] = domain.IndexerDefinition{
+		Identifier:     "mock",
+		Implementation: domain.IndexerImplementationIRC,
+		IRC:            &domain.IndexerIRCV2{Server: "irc.example.test"},
+	}
+
+	var wg sync.WaitGroup
+	wg.Go(func() {
+		for i := range 500 {
+			_, err := service.Store(t.Context(), domain.Indexer{
+				ID:             int64(i),
+				Name:           "mock " + strconv.Itoa(i),
+				Identifier:     "mock",
+				Implementation: domain.IndexerImplementationIRC,
+				Settings:       map[string]string{},
+			})
+			assert.NoError(t, err)
+		}
+	})
+	wg.Go(func() {
+		for range 500 {
+			_ = service.GetIndexersByIRCNetwork("irc.example.test")
+			_, _ = service.GetMappedDefinitionByName("mock")
+			_, _ = service.GetAll()
+		}
+	})
+	wg.Wait()
+
+	require.Len(t, service.GetIndexersByIRCNetwork("irc.example.test"), 1)
 }
