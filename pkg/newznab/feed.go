@@ -24,12 +24,24 @@ func (f Feed) Len() int {
 type Channel struct {
 	Title string      `xml:"title"`
 	Items []*FeedItem `xml:"item"`
+	// Paging matches newznab:response, torznab:response and un-namespaced response elements.
+	Paging Paging `xml:"response"`
+}
+
+// Paging is the response element carrying the offset and total item count of the query.
+type Paging struct {
+	Offset int `xml:"offset,attr"`
+	Total  int `xml:"total,attr"`
 }
 
 type SearchResponse struct {
 	Title string      `xml:"title"`
 	Items []*FeedItem `xml:"item"`
 	Raw   string
+	// Limit is the page size requested from the indexer.
+	Limit int
+	// Total is the item count the indexer reports for the query, zero when unreported.
+	Total int
 }
 
 type Response struct {
