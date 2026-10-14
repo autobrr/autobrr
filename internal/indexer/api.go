@@ -11,7 +11,6 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/mock"
 	"github.com/autobrr/autobrr/internal/proxy"
-	"github.com/autobrr/autobrr/pkg/btn"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/ggn"
 	"github.com/autobrr/autobrr/pkg/ops"
@@ -116,13 +115,6 @@ func (s *APIService) AddClient(indexer string, settings map[string]string, proxy
 
 	// init client
 	switch indexer {
-	case "btn":
-		key, ok := settings["api_key"]
-		if !ok || key == "" {
-			return errors.New("api.Service.AddClient: could not initialize btn client: missing var 'api_key'")
-		}
-		s.apiClients[indexer] = btn.NewClient(key, btn.WithHTTPClient(proxyHttpClient), btn.WithLog(subLogger))
-
 	case "ggn":
 		key, ok := settings["api_key"]
 		if !ok || key == "" {
@@ -186,12 +178,6 @@ func (s *APIService) getClientForTest(req domain.IndexerTestApiRequest) (apiClie
 
 	// init client
 	switch req.Identifier {
-	case "btn":
-		if req.ApiKey == "" {
-			return nil, errors.New("api.Service.AddClient: could not initialize btn client: missing var 'api_key'")
-		}
-		return btn.NewClient(req.ApiKey, btn.WithHTTPClient(proxyHttpClient), btn.WithLog(subLogger)), nil
-
 	case "ggn":
 		if req.ApiKey == "" {
 			return nil, errors.New("api.Service.AddClient: could not initialize ggn client: missing var 'api_key'")
