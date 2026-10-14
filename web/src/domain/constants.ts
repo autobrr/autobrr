@@ -711,6 +711,10 @@ export const ListTypeNameMap: Record<ListType, string> = {
 
 export const NotificationTypeOptions: OptionBasicTyped<NotificationType>[] = [
   {
+    label: "Bark",
+    value: "BARK"
+  },
+  {
     label: "Discord",
     value: "DISCORD"
   },
@@ -749,6 +753,7 @@ export const NotificationTypeOptions: OptionBasicTyped<NotificationType>[] = [
 ];
 
 export const getNotificationTypeOptions = (t: TFunction): OptionBasicTyped<NotificationType>[] => [
+  { label: t("options:notificationType.BARK"), value: "BARK" },
   { label: t("options:notificationType.DISCORD"), value: "DISCORD" },
   { label: t("options:notificationType.GOTIFY"), value: "GOTIFY" },
   { label: t("options:notificationType.LUNASEA"), value: "LUNASEA" },

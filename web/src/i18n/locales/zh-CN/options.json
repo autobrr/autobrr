@@ -163,6 +163,7 @@
     "PUSH_ERROR": "错误"
   },
   "notificationType": {
+    "BARK": "Bark",
     "DISCORD": "Discord",
     "GOTIFY": "Gotify",
     "LUNASEA": "LunaSea",
