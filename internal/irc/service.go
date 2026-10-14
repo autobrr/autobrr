@@ -801,8 +801,8 @@ func (s *Service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 		s.log.Debug().Interface("network", network).Msg("store network")
 
 		if network.Channels != nil {
-			for _, channel := range network.Channels {
-				if err := s.repo.StoreChannel(ctx, network.ID, &channel); err != nil {
+			for i := range network.Channels {
+				if err := s.repo.StoreChannel(ctx, network.ID, &network.Channels[i]); err != nil {
 					s.log.Error().Err(err).Msg("irc.storeChannel: error executing query")
 					return errors.Wrap(err, "error storing channel on network")
 				}
@@ -842,9 +842,10 @@ func (s *Service) StoreNetwork(ctx context.Context, network *domain.IrcNetwork) 
 	s.networkCache.Set(existingNetwork.ID, existingNetwork)
 
 	if network.Channels != nil {
-		for _, channel := range network.Channels {
-			// add channels. Make sure it doesn't delete before
-			if err := s.repo.StoreChannel(ctx, existingNetwork.ID, &channel); err != nil {
+		// store through the slice element so the id from the insert reaches the
+		// channels handed to the handler and cache, not a loop copy
+		for i := range network.Channels {
+			if err := s.repo.StoreChannel(ctx, existingNetwork.ID, &network.Channels[i]); err != nil {
 				return err
 			}
 		}

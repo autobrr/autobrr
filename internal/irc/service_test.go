@@ -23,6 +23,8 @@ type stubIrcRepo struct {
 	m       sync.Mutex
 	network domain.IrcNetwork
 	toggled map[int64]bool
+
+	lastChannelID int64
 }
 
 func newStubIrcRepo(network domain.IrcNetwork) *stubIrcRepo {
@@ -55,9 +57,19 @@ func (r *stubIrcRepo) ToggleNetworkEnabled(_ context.Context, id int64, enabled 
 	r.network.Enabled = enabled
 	return nil
 }
-func (r *stubIrcRepo) StoreChannel(context.Context, int64, *domain.IrcChannel) error { return nil }
-func (r *stubIrcRepo) UpdateChannel(*domain.IrcChannel) error                        { return nil }
-func (r *stubIrcRepo) UpdateInviteCommand(int64, string) error                       { return nil }
+func (r *stubIrcRepo) StoreChannel(_ context.Context, _ int64, channel *domain.IrcChannel) error {
+	r.m.Lock()
+	defer r.m.Unlock()
+
+	if channel.ID == 0 {
+		r.lastChannelID++
+		channel.ID = r.lastChannelID
+	}
+
+	return nil
+}
+func (r *stubIrcRepo) UpdateChannel(*domain.IrcChannel) error  { return nil }
+func (r *stubIrcRepo) UpdateInviteCommand(int64, string) error { return nil }
 func (r *stubIrcRepo) StoreNetworkChannels(context.Context, int64, []domain.IrcChannel) error {
 	return nil
 }
@@ -208,7 +220,13 @@ func TestStoreNetwork_ExistingNetworkRegistersNewChannel(t *testing.T) {
 	require.True(t, found, "the merged channel must be registered on the running handler")
 	assert.NotNil(t, ch.announceProcessor)
 	assert.Equal(t, "DirtyBytes !invite user dbkey", ch.InviteCommand())
+	assert.Equal(t, int64(1), ch.Snapshot().ID, "the handler must carry the stored channel id")
 
 	_, cached := s.networkCache.Get(0)
 	assert.False(t, cached, "the merged network must be cached under the existing network id")
+
+	cachedNetwork, cached := s.networkCache.Get(existing.ID)
+	require.True(t, cached)
+	require.Len(t, cachedNetwork.Channels, 1)
+	assert.Equal(t, int64(1), cachedNetwork.Channels[0].ID, "the cache must carry the stored channel id")
 }
