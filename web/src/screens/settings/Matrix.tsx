@@ -1,0 +1,717 @@
+/*
+ * Copyright (c) 2021 - 2026, Ludvig Lundgren and the autobrr contributors.
+ * SPDX-License-Identifier: GPL-2.0-or-later
+ */
+
+import { Fragment, MouseEvent, useCallback, useMemo, useRef, useState } from "react";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { ArrowPathIcon, LockClosedIcon, LockOpenIcon, PlusIcon } from "@heroicons/react/24/solid";
+import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/react";
+import {
+  ArrowsPointingInIcon,
+  ArrowsPointingOutIcon,
+  Cog6ToothIcon,
+  EllipsisHorizontalIcon,
+  ExclamationCircleIcon,
+  PencilSquareIcon,
+  TrashIcon
+} from "@heroicons/react/24/outline";
+import { useTranslation } from "react-i18next";
+
+import { classNames, IsEmptyDate, isMatrixServer, simplifyDate } from "@utils";
+import { MatrixNetworkAddForm, MatrixNetworkUpdateForm } from "@forms/settings/MatrixForms";
+import { useToggle } from "@hooks/hooks";
+import { APIClient } from "@api/APIClient";
+import { AlertKeys, IrcKeys } from "@api/query_keys";
+import { IrcQueryOptions } from "@api/queries";
+import { EmptySimple } from "@components/emptystates";
+import { DeleteModal } from "@components/modals";
+import { toast } from "@components/hot-toast";
+import Toast from "@components/notifications/Toast";
+import { SettingsContext } from "@utils/Context";
+import { Checkbox } from "@components/Checkbox";
+import {
+  useIrcNetworkHealthSync,
+  useIrcNetworkStateSync,
+  type IrcHealthEvent,
+  type IrcStateEvent
+} from "@hooks/useIrcEvents";
+
+import { Section } from "./_components";
+import { Events } from "./Irc";
+
+interface SortConfig {
+  key: keyof ListItemProps["network"] | "enabled";
+  direction: "ascending" | "descending";
+}
+
+function useSort(items: ListItemProps["network"][], config?: SortConfig) {
+  const [sortConfig, setSortConfig] = useState(config);
+
+  const sortedItems = useMemo(() => {
+    if (!sortConfig) {
+      return items;
+    }
+
+    const sortableItems = [...items];
+
+    sortableItems.sort((a, b) => {
+      const aValue = sortConfig.key === "enabled" ? (a[sortConfig.key] ?? false) as number | boolean | string : a[sortConfig.key] as number | boolean | string;
+      const bValue = sortConfig.key === "enabled" ? (b[sortConfig.key] ?? false) as number | boolean | string : b[sortConfig.key] as number | boolean | string;
+
+      if (aValue < bValue) {
+        return sortConfig.direction === "ascending" ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortConfig.direction === "ascending" ? 1 : -1;
+      }
+      return 0;
+    });
+
+    return sortableItems;
+  }, [items, sortConfig]);
+
+  const requestSort = (key: keyof ListItemProps["network"]) => {
+    let direction: "ascending" | "descending" = "ascending";
+    if (
+      sortConfig &&
+      sortConfig.key === key &&
+      sortConfig.direction === "ascending"
+    ) {
+      direction = "descending";
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIndicator = (key: keyof ListItemProps["network"]) => {
+    if (!sortConfig || sortConfig.key !== key) {
+      return "";
+    }
+
+    return sortConfig.direction === "ascending" ? "↑" : "↓";
+  };
+
+  return { items: sortedItems, requestSort, sortConfig, getSortIndicator };
+}
+
+const MatrixSettings = () => {
+  const { t } = useTranslation("settings");
+  const [expandNetworks, toggleExpand] = useToggle(true);
+  const [addNetworkIsOpen, toggleAddNetwork] = useToggle(false);
+
+  const queryClient = useQueryClient();
+  const ircQuery = useSuspenseQuery(IrcQueryOptions());
+
+  const matrixNetworks = useMemo(
+    () => (ircQuery.data ?? []).filter((n) => isMatrixServer(n.server)),
+    [ircQuery.data]
+  );
+
+  const networkIds = useMemo(
+    () => matrixNetworks.map((n) => n.id),
+    [matrixNetworks]
+  );
+
+  const handleHealthEvent = useCallback((healthEvent: IrcHealthEvent) => {
+    queryClient.setQueryData<IrcNetworkWithHealth[]>(
+      IrcKeys.lists(),
+      (oldData) => {
+        if (!oldData) return oldData;
+
+        return oldData.map((network) =>
+          network.id === healthEvent.network
+            ? {
+                ...network,
+                healthy: healthEvent.healthy,
+                connected_since: healthEvent.connected_since || network.connected_since,
+                connection_errors: healthEvent.connection_errors || network.connection_errors
+              }
+            : network
+        );
+      }
+    );
+  }, [queryClient]);
+
+  useIrcNetworkHealthSync(networkIds, handleHealthEvent);
+
+  const handleStateEvent = useCallback((stateEvent: IrcStateEvent) => {
+    queryClient.setQueryData<IrcNetworkWithHealth[]>(
+      IrcKeys.lists(),
+      (oldData) => {
+        if (!oldData) return oldData;
+
+        return oldData.map((network) => {
+          if (network.id !== stateEvent.network) return network;
+
+          const updatedNetwork = {
+            ...network,
+            channels: network.channels.map((channel) => {
+              if (channel.name !== stateEvent.channel) return channel;
+
+              return {
+                ...channel,
+                state: stateEvent.state,
+                monitoring: stateEvent.state === "Monitoring",
+                connection_errors: stateEvent.state === "Monitoring"
+                  ? []
+                  : (stateEvent.connection_errors ?? channel.connection_errors)
+              };
+            })
+          };
+
+          updatedNetwork.healthy = stateEvent.healthy;
+          return updatedNetwork;
+        });
+      }
+    );
+  }, [queryClient]);
+
+  useIrcNetworkStateSync(networkIds, handleStateEvent);
+
+  const sortedNetworks = useSort(matrixNetworks);
+
+  return (
+    <Section
+      title={t("forms.matrix.listTitle")}
+      description={t("forms.matrix.listDescription")}
+      rightSide={
+        <button
+          type="button"
+          onClick={toggleAddNetwork}
+          className="relative inline-flex items-center px-4 py-2 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 cursor-pointer"
+        >
+          <PlusIcon className="h-5 w-5 mr-1" />
+          {t("forms.irc.addNew")}
+        </button>
+      }
+    >
+      <MatrixNetworkAddForm isOpen={addNetworkIsOpen} toggle={toggleAddNetwork} />
+
+      <div className="flex justify-between flex-col md:flex-row px-1">
+        <ul className="flex flex-col md:flex-row pb-4 md:pb-0 md:divide-x md:divide-gray-200 md:dark:divide-gray-700">
+          <li className="flex items-center md:px-2 py-1 md:py-0">
+            <span
+              className="mr-2 flex h-4 w-4 relative"
+              title={t("forms.irc.networkHealthy")}
+            >
+              <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+              <span className="inline-flex absolute rounded-full h-4 w-4 bg-green-500" />
+            </span>
+            <span className="text-sm text-gray-800 dark:text-gray-500">{t("forms.irc.networkHealthy")}</span>
+          </li>
+
+          <li className="flex items-center md:px-2 py-1 md:py-0">
+            <span
+              className="mr-2 flex h-4 w-4 rounded-full opacity-75 bg-yellow-400 over:text-yellow-600"
+              title={t("forms.irc.networkUnhealthy")}
+            />
+            <span className="text-sm text-gray-800 dark:text-gray-500">{t("forms.irc.networkUnhealthy")}</span>
+          </li>
+
+          <li className="flex items-center md:px-2 py-1 md:py-0">
+            <span
+              className="mr-2 flex h-4 w-4 rounded-full opacity-75 bg-gray-500"
+              title={t("forms.irc.networkDisabled")}
+            />
+            <span className="text-sm text-gray-800 dark:text-gray-500">{t("forms.irc.networkDisabled")}</span>
+          </li>
+        </ul>
+        <div className="flex gap-x-2">
+          <button
+            className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded-sm shadow-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 cursor-pointer"
+            onClick={toggleExpand}
+            title={expandNetworks ? t("forms.irc.collapseTitle") : t("forms.irc.expandTitle")}
+          >
+            {expandNetworks
+              ? <span className="flex items-center text-sm">{t("forms.irc.collapse")} <ArrowsPointingInIcon className="ml-1 w-4 h-4" /></span>
+              : <span className="flex items-center text-sm">{t("forms.irc.expand")} <ArrowsPointingOutIcon className="ml-1 w-4 h-4" /></span>
+            }
+          </button>
+          <MatrixLogsDropdown />
+        </div>
+      </div>
+
+      {matrixNetworks.length > 0 ? (
+        <ul className="mt-6 min-w-full relative text-sm">
+          <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400">
+            <div
+              className="flex col-span-2 md:col-span-1 pl-2 sm:px-3 py-3 text-left uppercase tracking-wider cursor-pointer"
+              onClick={() => sortedNetworks.requestSort("enabled")}
+            >
+              {t("forms.irc.enabled")} <span className="sort-indicator pl-1">{sortedNetworks.getSortIndicator("enabled")}</span>
+            </div>
+            <div
+              className="col-span-10 md:col-span-3 px-11 py-3 text-left uppercase tracking-wider cursor-pointer"
+              onClick={() => sortedNetworks.requestSort("name")}
+            >
+              {t("forms.matrix.homeserver")} <span className="sort-indicator pl-1">{sortedNetworks.getSortIndicator("name")}</span>
+            </div>
+            <div
+              className="hidden md:flex col-span-4 px-6 py-3 text-left uppercase tracking-wider cursor-pointer"
+              onClick={() => sortedNetworks.requestSort("server")}
+            >
+              {t("forms.irc.server")} <span className="sort-indicator pl-1">{sortedNetworks.getSortIndicator("server")}</span>
+            </div>
+            <div
+              className="hidden md:flex col-span-3 px-5 py-3 text-left uppercase tracking-wider cursor-pointer"
+              onClick={() => sortedNetworks.requestSort("nick")}
+            >
+              {t("forms.matrix.username")} <span className="sort-indicator pl-1">{sortedNetworks.getSortIndicator("nick")}</span>
+            </div>
+          </li>
+          {sortedNetworks.items.map((network) => (
+            <ListItem key={network.id} expanded={expandNetworks} network={network} />
+          ))}
+        </ul>
+      ) : (
+        <EmptySimple
+          title={t("forms.matrix.emptyTitle")}
+          subtitle={t("forms.matrix.emptySubtitle")}
+          buttonText={t("forms.matrix.emptyButton")}
+          buttonAction={toggleAddNetwork}
+        />
+      )}
+    </Section>
+  );
+};
+
+interface ListItemProps {
+  network: IrcNetworkWithHealth;
+  expanded: boolean;
+}
+
+const ListItem = ({ network, expanded }: ListItemProps) => {
+  const { t } = useTranslation("settings");
+  const [updateIsOpen, toggleUpdate] = useToggle(false);
+  const [edit, toggleEdit] = useToggle(false);
+
+  const queryClient = useQueryClient();
+
+  const updateMutation = useMutation({
+    mutationFn: (net: IrcNetwork) => APIClient.irc.updateNetwork(net).then(() => net),
+    onSuccess: (net: IrcNetwork) => {
+      queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: AlertKeys.all });
+      toast.custom((toastItem) => (
+        <Toast
+          type="success"
+          body={t("forms.irc.toggleSuccess", {
+            name: net.name,
+            state: net.enabled ? t("forms.irc.enabledState") : t("forms.irc.disabledState")
+          })}
+          t={toastItem}
+        />
+      ));
+    }
+  });
+
+  const onToggleMutation = (newState: boolean) => {
+    updateMutation.mutate({
+      ...network,
+      enabled: newState
+    });
+  };
+
+  return (
+    <li>
+      <div
+        className={classNames(
+          "grid grid-cols-12 gap-2 lg:gap-4 items-center mt-1 p-2.5 cursor-pointer first:bg-gray-100 last:bg-transparent dark:first:bg-gray-775 dark:last:bg-gray-800 first:rounded-t-md last:rounded-b-md transition",
+          network.enabled && !network.healthy
+            ? "first:bg-red-200 last:bg-red-200 first:hover:bg-red-275 last:hover:bg-red-275 dark:first:bg-red-900 dark:last:bg-red-900 dark:first:hover:bg-red-800 dark:last:hover:bg-red-800"
+            : "hover:bg-gray-200 dark:hover:bg-gray-700"
+        )}
+        onClick={(e) => {
+          if (e.defaultPrevented) return;
+          e.preventDefault();
+          toggleEdit();
+        }}
+      >
+        <MatrixNetworkUpdateForm
+          isOpen={updateIsOpen}
+          toggle={toggleUpdate}
+          data={network}
+        />
+        <div className="col-span-2 md:col-span-1 flex pl-1 sm:pl-2.5 text-gray-500 dark:text-gray-400">
+          <Checkbox
+            name="enabled"
+            value={network.enabled}
+            setValue={onToggleMutation}
+          />
+        </div>
+        <div className="col-span-8 xs:col-span-3 md:col-span-3 items-center pl-8 font-medium text-gray-900 dark:text-white cursor-pointer">
+          <div className="flex">
+            <span className="relative inline-flex items-center ml-1">
+              {network.enabled ? (
+                network.healthy ? (
+                  <span
+                    className="mr-3 flex h-3 w-3 relative"
+                    title={t("forms.irc.connectedSince", { time: simplifyDate(network.connected_since) })}
+                  >
+                    <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                    <span className="inline-flex absolute rounded-full h-3 w-3 bg-green-500" />
+                  </span>
+                ) : (
+                  <span
+                    className="mr-3 flex items-center"
+                    title={network.connection_errors.toString()}
+                  >
+                    <ExclamationCircleIcon className="h-4 w-4 text-yellow-400 hover:text-yellow-600" />
+                  </span>
+                )
+              ) : (
+                <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" />
+              )}
+            </span>
+            <div className="block text-sm truncate">
+              {network.name}
+            </div>
+          </div>
+        </div>
+        <div className="hidden md:flex col-span-4 md:pl-6 text-gray-500 dark:text-gray-400">
+          <div
+            className="overflow-x-auto flex items-center"
+            title={network.tls ? t("forms.irc.tlsSecured") : t("forms.irc.tlsInsecure")}
+          >
+            <div className="min-h-2 min-w-2">
+              {network.tls ? (
+                <LockClosedIcon
+                  className={classNames(
+                    "mr-2 h-4 w-4",
+                    network.enabled ? "text-green-600" : "text-gray-500"
+                  )}
+                />
+              ) : (
+                <LockOpenIcon
+                  className={classNames(
+                    "mr-2 h-4 w-4",
+                    network.enabled ? "text-red-500" : "text-yellow-500"
+                  )}
+                />
+              )}
+            </div>
+            <p className="block text-sm truncate">
+              {network.server.replace(/^matrix:\/\//, "")}:{network.port}
+            </p>
+          </div>
+        </div>
+        <div className="hidden md:flex col-span-3 items-center md:pl-6 text-gray-500 dark:text-gray-400">
+          <div className="block text-sm truncate">
+            {network.nick}
+          </div>
+        </div>
+        <div className="col-span-1 text-gray-500 dark:text-gray-400">
+          <ListItemDropdown network={network} toggleUpdate={toggleUpdate} />
+        </div>
+      </div>
+      {(edit || expanded) && (
+        <div className="px-4 py-4 flex bg-gray-100 dark:bg-gray-775 rounded-b-md">
+          <div className="min-w-full">
+            {network.connection_errors && network.connection_errors.length > 0 && (
+              <div className="mb-3 p-2.5 rounded bg-amber-100 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 text-xs text-amber-900 dark:text-amber-200">
+                {network.connection_errors.map((err, i) => (
+                  <div key={i}>{err}</div>
+                ))}
+              </div>
+            )}
+            {network.channels.length > 0 ? (
+              <ul>
+                <li className="grid grid-cols-12 gap-4 text-xs font-medium text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                  <div className="col-span-5 sm:col-span-4 sm:px-6 py-3 text-left uppercase tracking-wider truncate">
+                    {t("forms.matrix.roomAlias")}
+                  </div>
+                  <div className="hidden sm:flex col-span-4 sm:px-6 py-3 text-left uppercase tracking-wider truncate">
+                    {t("forms.irc.monitoringSince")}
+                  </div>
+                  <div className="col-span-6 sm:col-span-4 sm:px-6 py-3 text-left uppercase tracking-wider truncate">
+                    {t("forms.irc.lastAnnounce")}
+                  </div>
+                </li>
+                {network.channels.map((c) => (
+                  <ChannelItem key={`${network.id}.${c.id}`} network={network} channel={c} />
+                ))}
+              </ul>
+            ) : (
+              <div className="flex text-center justify-center py-4 dark:text-gray-500">
+                <p>{t("forms.matrix.noRoomsConfigured")}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </li>
+  );
+};
+
+interface ChannelItemProps {
+  network: IrcNetwork;
+  channel: IrcChannelWithHealth;
+}
+
+const ChannelItem = ({ network, channel }: ChannelItemProps) => {
+  const { t } = useTranslation("settings");
+  const [viewChannel, toggleView] = useToggle(false);
+
+  return (
+    <li
+      className={classNames(
+        "mt-1 mb-2 text-gray-500 dark:text-gray-400 hover:cursor-pointer rounded-md",
+        viewChannel ? "bg-gray-200 dark:bg-gray-800 rounded-md" : "hover:bg-gray-300 dark:hover:bg-gray-800"
+      )}
+    >
+      <div
+        className="grid grid-cols-12 gap-4 items-center py-4 cursor-pointer"
+        onClick={toggleView}
+      >
+        <div className="col-span-5 sm:col-span-4 flex flex-col md:px-6 pl-2 sm:pl-0">
+          <span className="relative inline-flex items-center">
+            {network.enabled ? (
+              <MatrixChannelStatePill state={channel.state} errors={channel.connection_errors} />
+            ) : (
+              <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" />
+            )}
+            {channel.name}
+          </span>
+          {network.enabled && channel.connection_errors && channel.connection_errors.length > 0 && (
+            <span
+              className="ml-6 text-xs text-red-500 truncate"
+              title={channel.connection_errors.join(", ")}
+            >
+              {channel.connection_errors[0]}
+            </span>
+          )}
+        </div>
+        <div className="col-span-4 hidden sm:flex items-center md:px-6">
+          <span title={simplifyDate(channel.monitoring_since)}>
+            {IsEmptyDate(channel.monitoring_since)}
+          </span>
+        </div>
+        <div className="col-span-6 sm:col-span-3 flex items-center md:px-6">
+          <span title={simplifyDate(channel.last_announce)}>
+            {IsEmptyDate(channel.last_announce)}
+          </span>
+        </div>
+        <div className="col-span-1 flex items-center justify-end">
+          <button className="hover:text-gray-500 px-2 mx-2 py-1 dark:bg-gray-800 rounded-sm dark:border-gray-900 cursor-pointer">
+            {viewChannel ? t("forms.irc.hide") : t("forms.irc.view")}
+          </button>
+        </div>
+      </div>
+      {viewChannel && (
+        <Events network={network} channel={channel.name} />
+      )}
+    </li>
+  );
+};
+
+function MatrixChannelStatePill({ state, errors }: { state: IrcChannelState; errors?: string[] }) {
+  const title = errors && errors.length > 0 ? errors.join(", ") : state;
+
+  switch (state) {
+    case "Monitoring":
+      return (
+        <span className="mr-3 flex h-3 w-3 relative" title={title}>
+          <span className="animate-ping inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+          <span className="inline-flex absolute rounded-full h-3 w-3 bg-green-500" />
+        </span>
+      );
+    case "Joining":
+      return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-blue-500" title={title} />;
+    case "Error":
+      return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-red-500" title={title} />;
+    default:
+      return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" title={title} />;
+  }
+}
+
+interface ListItemDropdownProps {
+  network: IrcNetwork;
+  toggleUpdate: () => void;
+}
+
+const ListItemDropdown = ({ network, toggleUpdate }: ListItemDropdownProps) => {
+  const { t } = useTranslation("settings");
+  const cancelModalButtonRef = useRef(null);
+  const queryClient = useQueryClient();
+  const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => APIClient.irc.deleteNetwork(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: AlertKeys.all });
+      queryClient.invalidateQueries({ queryKey: IrcKeys.detail(network.id) });
+
+      toast.custom((toastItem) => <Toast type="success" body={t("forms.irc.networkDeleted", { name: network.name })} t={toastItem} />);
+      toggleDeleteModal();
+    }
+  });
+
+  const restartMutation = useMutation({
+    mutationFn: (id: number) => APIClient.irc.restartNetwork(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: IrcKeys.detail(network.id) });
+
+      toast.custom((toastItem) => <Toast type="success" body={t("forms.irc.networkRestarted", { name: network.name })} t={toastItem} />);
+    }
+  });
+
+  return (
+    <Menu
+      as="div"
+      onClick={(e: MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.nativeEvent.stopImmediatePropagation();
+      }}
+    >
+      <DeleteModal
+        isOpen={deleteModalIsOpen}
+        isLoading={deleteMutation.isPending}
+        toggle={toggleDeleteModal}
+        buttonRef={cancelModalButtonRef}
+        deleteAction={() => {
+          deleteMutation.mutate(network.id);
+          toggleDeleteModal();
+        }}
+        title={t("forms.irc.removeNetworkTitle", { name: network.name })}
+        text={t("forms.irc.removeNetworkText")}
+      />
+      <MenuButton className="px-4 py-2 cursor-pointer">
+        <EllipsisHorizontalIcon
+          className="w-5 h-5 text-gray-700 hover:text-gray-900 dark:text-gray-100 dark:hover:text-gray-400"
+          aria-hidden="true"
+        />
+      </MenuButton>
+      <Transition
+        as={Fragment}
+        enter="transition ease-out duration-100"
+        enterFrom="transform opacity-0 scale-95"
+        enterTo="transform opacity-100 scale-100"
+        leave="transition ease-in duration-75"
+        leaveFrom="transform opacity-100 scale-100"
+        leaveTo="transform opacity-0 scale-95"
+      >
+        <MenuItems
+          anchor={{ to: "bottom end", padding: "8px" }}
+          className="absolute w-56 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-250 dark:border-gray-750 focus:outline-hidden z-10"
+        >
+          <div className="px-1 py-1">
+            <MenuItem>
+              {({ active }) => (
+                <button
+                  className={classNames(
+                    "cursor-pointer",
+                    active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300",
+                    "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
+                  )}
+                  onClick={() => toggleUpdate()}
+                >
+                  <PencilSquareIcon
+                    className={classNames(active ? "text-white" : "text-blue-500", "w-5 h-5 mr-2")}
+                    aria-hidden="true"
+                  />
+                  {t("forms.irc.edit")}
+                </button>
+              )}
+            </MenuItem>
+            <MenuItem>
+              {({ active }) => (
+                <button
+                  className={classNames(
+                    "cursor-pointer disabled:cursor-not-allowed",
+                    "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm",
+                    network.enabled
+                      ? active ? "bg-blue-600 text-white" : "text-gray-900 dark:text-gray-300"
+                      : "text-gray-600 dark:text-gray-500"
+                  )}
+                  onClick={() => restartMutation.mutate(network.id)}
+                  disabled={!network.enabled}
+                >
+                  <ArrowPathIcon
+                    className={classNames(
+                      "w-5 h-5 mr-2",
+                      network.enabled
+                        ? active ? "text-white" : "text-blue-500 dark:text-blue-500"
+                        : "text-gray-600 dark:text-gray-500"
+                    )}
+                  />
+                  {t("forms.irc.restart")}
+                </button>
+              )}
+            </MenuItem>
+          </div>
+          <div className="px-1 py-1">
+            <MenuItem>
+              {({ active }) => (
+                <button
+                  className={classNames(
+                    "cursor-pointer",
+                    active ? "bg-red-600 text-white" : "text-gray-900 dark:text-gray-300",
+                    "font-medium group flex rounded-md items-center w-full px-2 py-2 text-sm"
+                  )}
+                  onClick={() => toggleDeleteModal()}
+                >
+                  <TrashIcon
+                    className={classNames(active ? "text-white" : "text-red-500", "w-5 h-5 mr-2")}
+                    aria-hidden="true"
+                  />
+                  {t("forms.irc.delete")}
+                </button>
+              )}
+            </MenuItem>
+          </div>
+        </MenuItems>
+      </Transition>
+    </Menu>
+  );
+};
+
+const MatrixLogsDropdown = () => {
+  const { t } = useTranslation("settings");
+  const [settings, setSettings] = SettingsContext.use();
+
+  const onSetValue = (key: "scrollOnNewLog", newValue: boolean) =>
+    setSettings((prevState) => ({
+      ...prevState,
+      [key]: newValue
+    }));
+
+  return (
+    <Menu as="div" className="relative">
+      <MenuButton className="flex items-center text-gray-800 dark:text-gray-400 p-1 px-2 rounded-sm shadow-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 cursor-pointer">
+        <span className="flex items-center">
+          {t("forms.irc.options")} <Cog6ToothIcon className="ml-1 w-4 h-4" />
+        </span>
+      </MenuButton>
+      <Transition
+        as={Fragment}
+        enter="transition ease-out duration-100"
+        enterFrom="transform opacity-0 scale-95"
+        enterTo="transform opacity-100 scale-100"
+        leave="transition ease-in duration-75"
+        leaveFrom="transform opacity-100 scale-100"
+        leaveTo="transform opacity-0 scale-95"
+      >
+        <MenuItems
+          anchor={{ to: "bottom end", padding: "8px" }}
+          className="absolute z-10 mt-2 px-3 py-2 bg-white dark:bg-gray-825 divide-y divide-gray-200 dark:divide-gray-750 rounded-md shadow-lg border border-gray-750 focus:outline-hidden"
+        >
+          <MenuItem>
+            {() => (
+              <Checkbox
+                name="scrollOnNewLog"
+                label={t("forms.irc.scrollOnNewMessage")}
+                value={settings.scrollOnNewLog}
+                setValue={(newValue) => onSetValue("scrollOnNewLog", newValue)}
+              />
+            )}
+          </MenuItem>
+        </MenuItems>
+      </Transition>
+    </Menu>
+  );
+};
+
+export default MatrixSettings;

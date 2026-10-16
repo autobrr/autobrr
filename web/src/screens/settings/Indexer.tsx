@@ -84,6 +84,12 @@ const ImplementationBadgeIRC = () => (
   </span>
 );
 
+const ImplementationBadgeMatrix = () => (
+  <span className="mr-2 inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-purple-200 dark:bg-purple-400 text-purple-800 dark:text-purple-900">
+    Matrix
+  </span>
+);
+
 const ImplementationBadgeTorznab = () => (
   <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-medium bg-orange-200 dark:bg-orange-400 text-orange-800 dark:text-amber-900">
     Torznab
@@ -104,6 +110,7 @@ const ImplementationBadgeRSS = () => (
 
 const ImplementationBadges: componentMapType = {
   irc: <ImplementationBadgeIRC />,
+  matrix: <ImplementationBadgeMatrix />,
   torznab: <ImplementationBadgeTorznab />,
   newznab: <ImplementationBadgeNewznab />,
   rss: <ImplementationBadgeRSS />

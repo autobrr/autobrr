@@ -182,8 +182,7 @@ func (s *Service) Update(ctx context.Context, indexer *domain.Indexer) error {
 		}
 	}
 
-	// only IRC indexers have baseURL set
-	if indexer.Implementation == domain.IndexerImplementationIRC {
+	if indexer.Implementation == domain.IndexerImplementationIRC || indexer.Implementation == domain.IndexerImplementationMatrix {
 		if indexer.BaseURL == "" {
 			return errors.New("indexer baseURL must not be empty")
 		}
@@ -533,7 +532,7 @@ func (s *Service) Start() error {
 
 	for _, indexer := range indexerDefinitions {
 		switch indexer.Implementation {
-		case domain.IndexerImplementationIRC:
+		case domain.IndexerImplementationIRC, domain.IndexerImplementationMatrix:
 			// add to irc server lookup table
 			s.mapIRCServerDefinitionLookup(indexer.IRC.Server, indexer)
 
@@ -567,7 +566,7 @@ func (s *Service) addIndexer(indexer domain.Indexer) error {
 	}
 
 	switch indexer.Implementation {
-	case domain.IndexerImplementationIRC:
+	case domain.IndexerImplementationIRC, domain.IndexerImplementationMatrix:
 		// add to irc server lookup table
 		s.mapIRCServerDefinitionLookup(indexerDefinition.IRC.Server, indexerDefinition)
 
@@ -595,7 +594,7 @@ func (s *Service) updateIndexer(indexer *domain.Indexer) error {
 	}
 
 	switch indexer.Implementation {
-	case domain.IndexerImplementationIRC:
+	case domain.IndexerImplementationIRC, domain.IndexerImplementationMatrix:
 		// add to irc server lookup table
 		s.mapIRCServerDefinitionLookup(indexerDefinition.IRC.Server, indexerDefinition)
 

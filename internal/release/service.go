@@ -361,7 +361,7 @@ func (s *Service) ProcessManual(ctx context.Context, req *domain.ReleaseProcessR
 	rls.TraceID = domain.TraceIDFromCtx(ctx)
 
 	switch req.IndexerImplementation {
-	case string(domain.IndexerImplementationIRC):
+	case string(domain.IndexerImplementationIRC), string(domain.IndexerImplementationMatrix):
 
 		// from announce/announce.go
 		tmpVars := map[string]string{}

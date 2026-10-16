@@ -1,0 +1,84 @@
+---
+version: 2
+#id: blu
+name: Blutopia
+identifier: blu
+implementation: matrix
+description: Blutopia (BLU) is a private tracker for HD MOVIES / TV (Matrix Announce)
+language: en-us
+urls:
+  - https://blutopia.cc/
+privacy: private
+protocol: torrent
+supports:
+  - matrix
+  - irc
+  - rss
+# source: UNIT3D (Matrix Watchtower)
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS Key (RID)
+    help: "Go to your profile -> My Settings -> Security -> RSS Key (RID), or enter your Blutopia API Token in the helper to extract it automatically."
+
+irc:
+  network: Watchtower-Matrix
+  server: matrix.watchtower.pm
+  port: 443
+  tls: true
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Matrix Username
+      help: Your Matrix username (e.g. paganini)
+
+    - name: pass
+      type: secret
+      required: false
+      label: Matrix Access / Refresh Token (Optional if using OAuth2 Device Link)
+      help: Leave empty to authenticate via 1-click OAuth2 Device Link in Settings -> Matrix, or paste an Access Token (mat_...) / Refresh Token (mar_...).
+
+  channels:
+    - name: "#blu-announce"
+      announcers:
+        - blubot
+        - "@blubot:matrix.watchtower.pm"
+      parse:
+        type: single
+        lines:
+          - pattern: '^\[Blutopia\] \[NEW\] (?P<uploader>.+?) has uploaded (?P<releaseName>.+?) grab it now! \[Category: (?P<category>[^\]]+)\] \[Type: (?P<releaseTags>[^\]]+)\] \[Size: (?P<torrentSize>[^\]]+)\] \[Freeleech: (?P<freeleechPercent>[^\]]+)\] \[DoubleUpload: (?P<tags>[^\]]+)\] \[Internal: (?P<internal>[^\]]+)\] \[PersonalRelease: [^\]]+\](?: \[TMDB: (?P<tmdb>\d+)\])?(?: \[IMDB: (?P<imdb>\d+)\])?.*\[Link: (?P<baseUrl>https?://.+/)torrents/(?P<torrentId>\d+)\]'
+            tests:
+              - line: '[Blutopia] [NEW] An anonymous user has uploaded Tenzing 2026 1080p ATVP WEB-DL DD+ 5.1 H.264-NTb grab it now! [Category: Movie] [Type: WEB-DL] [Size: 9.4 GiB] [Freeleech: 0%] [DoubleUpload: No] [Internal: No] [PersonalRelease: No] [TMDB: 1288069] [IMDB: 6262770] [TMDB vote average: 6.2] [TMDB vote count: 4] [Link: https://blutopia.cc/torrents/402585]'
+                expect:
+                  uploader: An anonymous user
+                  releaseName: Tenzing 2026 1080p ATVP WEB-DL DD+ 5.1 H.264-NTb
+                  category: Movie
+                  releaseTags: WEB-DL
+                  torrentSize: 9.4 GiB
+                  freeleechPercent: 0%
+                  tags: "No"
+                  internal: "No"
+                  tmdb: "1288069"
+                  imdb: "6262770"
+                  baseUrl: https://blutopia.cc/
+                  torrentId: "402585"
+              - line: '[Blutopia] [NEW] bearfish has uploaded True Story with Hamish & Andy S02 1080p STAN WEB-DL AAC 2.0 H.265-NYXIS grab it now! [Category: TV Show] [Type: WEB-DL] [Size: 4.75 GiB] [Freeleech: 0%] [DoubleUpload: No] [Internal: No] [PersonalRelease: Yes] [TMDB: 72242] [IMDB: 6974706] [TMDB vote average: 8.5] [TMDB vote count: 2] [Link: https://blutopia.cc/torrents/402579]'
+                expect:
+                  uploader: bearfish
+                  releaseName: True Story with Hamish & Andy S02 1080p STAN WEB-DL AAC 2.0 H.265-NYXIS
+                  category: TV Show
+                  releaseTags: WEB-DL
+                  torrentSize: 4.75 GiB
+                  freeleechPercent: 0%
+                  tags: "No"
+                  internal: "No"
+                  tmdb: "72242"
+                  imdb: "6974706"
+                  baseUrl: https://blutopia.cc/
+                  torrentId: "402579"
+
+        match:
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

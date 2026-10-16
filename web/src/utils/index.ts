@@ -6,6 +6,7 @@
 import { formatDistanceToNowStrict, formatISO9075 } from "date-fns";
 
 export { CopyTextToClipboard } from "./clipboard";
+export { isMatrixServer } from "./matrix";
 
 // sleep for x ms
 export function sleep(ms: number) {

@@ -8,5 +8,6 @@ export { FilterAddForm } from "./filters/FilterAddForm";
 export { DownloaderAddForm, DownloaderUpdateForm } from "./settings/DownloaderForms";
 export { IndexerAddForm, IndexerUpdateForm } from "./settings/IndexerForms";
 export { IrcNetworkAddForm, IrcNetworkUpdateForm } from "./settings/IrcForms";
+export { MatrixNetworkAddForm, MatrixNetworkUpdateForm } from "./settings/MatrixForms";
 export { ListAddForm, ListUpdateForm } from "./settings/ListForms";
 
