@@ -2,6 +2,7 @@
 #id: blu
 name: Blutopia
 identifier: blu
+implementation: matrix
 description: Blutopia (BLU) is a private tracker for HD MOVIES / TV (Matrix Announce)
 language: en-us
 urls:
@@ -9,6 +10,7 @@ urls:
 privacy: private
 protocol: torrent
 supports:
+  - matrix
   - irc
   - rss
 # source: UNIT3D (Matrix Watchtower)
@@ -17,7 +19,7 @@ settings:
     type: secret
     required: true
     label: RSS Key (RID)
-    help: "Go to your profile -> My Settings -> Security -> RSS Key (RID), or extracted via API."
+    help: "Go to your profile -> My Settings -> Security -> RSS Key (RID), or enter your Blutopia API Token in the helper to extract it automatically."
 
 irc:
   network: Watchtower-Matrix
@@ -33,9 +35,9 @@ irc:
 
     - name: pass
       type: secret
-      required: true
-      label: Matrix Token / Refresh Token
-      help: Matrix Access Token (mat_...) or OAuth2 Refresh Token (mrt_... or client_id|mrt_...)
+      required: false
+      label: Matrix Access / Refresh Token (Optional if using OAuth2 Device Link)
+      help: Leave empty to authenticate via 1-click OAuth2 Device Link in Settings -> Matrix, or paste an Access Token (mat_...) / Refresh Token (mar_...).
 
   channels:
     - name: "#blu-announce"

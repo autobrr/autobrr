@@ -21,6 +21,7 @@
     "logs": "Logger",
     "indexers": "Indekserere",
     "irc": "IRC",
+    "matrix": "Matrix",
     "feeds": "Feeder",
     "lists": "Lister",
     "clients": "Klienter",

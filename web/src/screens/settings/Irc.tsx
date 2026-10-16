@@ -96,6 +96,16 @@ function useSort(items: ListItemProps["network"][], config?: SortConfig) {
   return { items: sortedItems, requestSort, sortConfig, getSortIndicator };
 }
 
+function isMatrixServer(server: string): boolean {
+  const s = (server || "").trim().toLowerCase();
+  return (
+    s.startsWith("matrix.") ||
+    s.startsWith("matrix://") ||
+    s.includes(".matrix.") ||
+    s.endsWith(".watchtower.pm")
+  );
+}
+
 const IrcSettings = () => {
   const { t } = useTranslation("settings");
   const [expandNetworks, toggleExpand] = useToggle(false);
@@ -103,9 +113,13 @@ const IrcSettings = () => {
 
   const queryClient = useQueryClient();
   const ircQuery = useSuspenseQuery(IrcQueryOptions());
-  const networkIds = useMemo(
-    () => ircQuery.data?.map(n => n.id) ?? [],
+  const ircOnlyNetworks = useMemo(
+    () => (ircQuery.data ?? []).filter((n) => !isMatrixServer(n.server)),
     [ircQuery.data]
+  );
+  const networkIds = useMemo(
+    () => ircOnlyNetworks.map((n) => n.id),
+    [ircOnlyNetworks]
   );
 
   const handleHealthEvent = useCallback((healthEvent: IrcHealthEvent) => {
@@ -176,7 +190,7 @@ const IrcSettings = () => {
     handleStateEvent
   );
 
-  const sortedNetworks = useSort(ircQuery.data || []);
+  const sortedNetworks = useSort(ircOnlyNetworks);
 
   return (
     <Section
@@ -239,7 +253,7 @@ const IrcSettings = () => {
         </div>
       </div>
 
-      {ircQuery.data && ircQuery.data.length > 0 ? (
+      {ircOnlyNetworks.length > 0 ? (
         <ul className="mt-6 min-w-full relative text-sm">
           <li className="grid grid-cols-12 gap-4 border-b border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-500 dark:text-gray-400">
             <div className="flex col-span-2 md:col-span-1 pl-2 sm:px-3 py-3 text-left uppercase tracking-wider cursor-pointer"

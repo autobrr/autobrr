@@ -21,6 +21,7 @@
     "logs": "日志",
     "indexers": "索引器",
     "irc": "IRC",
+    "matrix": "Matrix",
     "feeds": "订阅源",
     "lists": "列表",
     "clients": "下载客户端",

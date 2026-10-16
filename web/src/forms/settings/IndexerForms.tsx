@@ -50,14 +50,20 @@ const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
     return null;
   }
 
+  const isMatrix = ind && ind.implementation === "matrix";
+
   return (
     <>
-      {ind && ind.implementation == "irc" && ind.irc && ind.irc.settings && (
+      {ind && (ind.implementation == "irc" || ind.implementation == "matrix") && ind.irc && ind.irc.settings && (
         <div className="border-t border-gray-200 dark:border-gray-700 py-5">
           <div className="px-4">
-            <h2 className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.indexer.settingsIrcTitle")}</h2>
+            <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+              {isMatrix ? "Matrix" : t("forms.indexer.settingsIrcTitle")}
+            </h2>
             <p className="text-sm text-gray-500 dark:text-gray-200">
-              {t("forms.indexer.settingsIrcDesc")}
+              {isMatrix
+                ? "Matrix homeserver and announce rooms are configured automatically in the background (Settings -> Matrix)."
+                : t("forms.indexer.settingsIrcDesc")}
             </p>
           </div>
 
@@ -608,7 +614,8 @@ function IndexerAddFormPanel({ toggle }: IndexerAddFormPanelProps) {
         return;
       }
 
-      case "irc": {
+      case "irc":
+      case "matrix": {
         const channels: IrcChannel[] = [];
         if (ind.irc?.channels.length) {
           let channelPass = "";
@@ -631,7 +638,7 @@ function IndexerAddFormPanel({ toggle }: IndexerAddFormPanelProps) {
         const network: IrcNetworkCreate = {
           name: ind.irc.network,
           pass: formData.irc.pass || "",
-          enabled: false,
+          enabled: formData.implementation === "matrix",
           connected: false,
           server: ind.irc.server,
           port: ind.irc.port,
@@ -735,7 +742,7 @@ function IndexerAddFormPanel({ toggle }: IndexerAddFormPanelProps) {
 
             <SwitchGroupWide name="enabled" label={t("forms.indexer.enabled")} />
 
-            {indexer.implementation == "irc" && (
+            {(indexer.implementation == "irc" || indexer.implementation == "matrix") && (
               <SelectFieldCreatable
                 name="base_url"
                 label={t("forms.indexer.baseUrl")}
@@ -1051,9 +1058,9 @@ export function IndexerUpdateForm({ isOpen, toggle, data: indexer }: UpdateFormP
           case "secret": {
             return (
               <PasswordFieldWide
-                key={idx}
                 name={`settings.${f.name}`}
                 label={f.label}
+                key={idx}
                 help={f.help}
                 tooltip={
                   <div>
@@ -1100,7 +1107,7 @@ export function IndexerUpdateForm({ isOpen, toggle, data: indexer }: UpdateFormP
       deleteAction={deleteAction}
       onSubmit={onSubmit}
       initialValues={initialValues}
-      extraButtons={(values) => <TestApiButton values={values} show={indexer.implementation === "irc" && indexer.supports.includes("api")} />}
+      extraButtons={(values) => <TestApiButton values={values} show={(indexer.implementation === "irc" || indexer.implementation === "matrix") && indexer.supports.includes("api")} />}
     >
       {(values) => (
         <div className="py-2 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
@@ -1117,7 +1124,7 @@ export function IndexerUpdateForm({ isOpen, toggle, data: indexer }: UpdateFormP
           <IndexerExternalIdentifierField fallbackName={indexer.name} />
           <SwitchGroupWide name="enabled" label={t("forms.indexer.enabled")}/>
 
-          {indexer.implementation == "irc" && (
+          {(indexer.implementation == "irc" || indexer.implementation == "matrix") && (
             <SelectFieldCreatable
               name="base_url"
               label={t("forms.indexer.baseUrl")}

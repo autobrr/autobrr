@@ -175,6 +175,7 @@ type IndexerImplementation string
 
 const (
 	IndexerImplementationIRC     IndexerImplementation = "irc"
+	IndexerImplementationMatrix  IndexerImplementation = "matrix"
 	IndexerImplementationTorznab IndexerImplementation = "torznab"
 	IndexerImplementationNewznab IndexerImplementation = "newznab"
 	IndexerImplementationRSS     IndexerImplementation = "rss"
@@ -185,6 +186,8 @@ func (i IndexerImplementation) String() string {
 	switch i {
 	case IndexerImplementationIRC:
 		return "irc"
+	case IndexerImplementationMatrix:
+		return "matrix"
 	case IndexerImplementationTorznab:
 		return "torznab"
 	case IndexerImplementationNewznab:

@@ -21,6 +21,7 @@
     "logs": "Journaux",
     "indexers": "Indexeurs",
     "irc": "IRC",
+    "matrix": "Matrix",
     "feeds": "Feeds",
     "lists": "Listes",
     "clients": "Clients",
