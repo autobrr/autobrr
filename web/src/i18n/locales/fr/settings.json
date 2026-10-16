@@ -761,6 +761,8 @@
       "rssDesc": "Feed RSS",
       "settingsIrcTitle": "IRC",
       "settingsIrcDesc": "Les réseaux et canaux sont configurés automatiquement en arrière-plan.",
+      "settingsMatrixTitle": "Matrix",
+      "settingsMatrixDesc": "Le serveur domestique Matrix et les salons d'annonces sont configurés automatiquement en arrière-plan.",
       "ircGuideTooltip": "Consulter notre guide IRC si tu n'es pas familier avec IRC.",
       "name": "Nom",
       "url": "URL",

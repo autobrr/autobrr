@@ -761,6 +761,8 @@
       "rssDesc": "RSS 订阅源",
       "settingsIrcTitle": "IRC",
       "settingsIrcDesc": "网络和频道会在后台自动配置。",
+      "settingsMatrixTitle": "Matrix",
+      "settingsMatrixDesc": "Matrix 主服务器和公告房间会在后台自动配置。",
       "ircGuideTooltip": "如果你对 IRC 不熟悉，请先阅读我们的 IRC 指南。",
       "name": "名称",
       "url": "URL",

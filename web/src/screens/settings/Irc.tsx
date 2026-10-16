@@ -18,7 +18,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
 
-import { classNames, IsEmptyDate, simplifyDate } from "@utils";
+import { classNames, IsEmptyDate, isMatrixServer, simplifyDate } from "@utils";
 import { IrcNetworkAddForm, IrcNetworkUpdateForm } from "@forms";
 import { useToggle } from "@hooks/hooks";
 import { APIClient } from "@api/APIClient";
@@ -94,16 +94,6 @@ function useSort(items: ListItemProps["network"][], config?: SortConfig) {
   };
 
   return { items: sortedItems, requestSort, sortConfig, getSortIndicator };
-}
-
-function isMatrixServer(server: string): boolean {
-  const s = (server || "").trim().toLowerCase();
-  return (
-    s.startsWith("matrix.") ||
-    s.startsWith("matrix://") ||
-    s.includes(".matrix.") ||
-    s.endsWith(".watchtower.pm")
-  );
 }
 
 const IrcSettings = () => {

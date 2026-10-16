@@ -244,6 +244,9 @@ export function MatrixNetworkUpdateForm({ isOpen, toggle, data: network }: Updat
       queryClient.invalidateQueries({ queryKey: AlertKeys.all });
       toast.custom((toastInstance) => <Toast type="success" body={t("forms.irc.updated", { name: network.name })} t={toastInstance} />);
       toggle();
+    },
+    onError: () => {
+      toast.custom((toastInstance) => <Toast type="error" body="Matrix homeserver could not be updated" t={toastInstance} />);
     }
   });
 

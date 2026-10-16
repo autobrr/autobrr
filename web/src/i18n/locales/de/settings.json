@@ -761,6 +761,8 @@
       "rssDesc": "RSS-Feed",
       "settingsIrcTitle": "IRC",
       "settingsIrcDesc": "Netzwerke und Kanäle werden automatisch im Hintergrund konfiguriert.",
+      "settingsMatrixTitle": "Matrix",
+      "settingsMatrixDesc": "Matrix-Homeserver und Ankündigungsräume werden automatisch im Hintergrund konfiguriert.",
       "ircGuideTooltip": "Bitte das IRC-Handbuch lesen, wenn du nicht mit IRC vertraut bist.",
       "name": "Name",
       "url": "URL",

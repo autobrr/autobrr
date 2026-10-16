@@ -761,6 +761,8 @@
         "rssDesc": "RSS kanál",
         "settingsIrcTitle": "IRC",
         "settingsIrcDesc": "Sítě a kanály jsou automaticky konfigurovány v pozadí.",
+        "settingsMatrixTitle": "Matrix",
+        "settingsMatrixDesc": "Homeserver Matrix a oznamovací místnosti jsou automaticky konfigurovány v pozadí.",
         "ircGuideTooltip": "Projděte si naši IRC příručku, pokud neznáte IRC.",
         "name": "Název",
         "url": "URL",

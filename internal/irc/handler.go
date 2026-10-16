@@ -427,6 +427,9 @@ func (h *Handler) Run() (err error) {
 	}
 
 	if isMatrixNetwork(network.Server) {
+		if network.UseProxy && network.Proxy == nil {
+			return errors.New("use_proxy enabled for matrix network '%s', but no proxy attached", network.Server)
+		}
 		client.UseTLS = false
 		client.DialContext = h.dialMatrixContext
 	} else if network.TLS {

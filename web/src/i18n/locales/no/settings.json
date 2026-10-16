@@ -761,6 +761,8 @@
       "rssDesc": "RSS-feed",
       "settingsIrcTitle": "IRC",
       "settingsIrcDesc": "Nettverk og kanaler konfigureres automatisk i bakgrunnen.",
+      "settingsMatrixTitle": "Matrix",
+      "settingsMatrixDesc": "Matrix-hjemmeserver og annonseringsrom konfigureres automatisk i bakgrunnen.",
       "ircGuideTooltip": "Vennligst les IRC-guiden vår hvis du ikke er kjent med IRC.",
       "name": "Navn",
       "url": "URL",

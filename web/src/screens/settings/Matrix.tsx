@@ -18,7 +18,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
 
-import { classNames, IsEmptyDate, simplifyDate } from "@utils";
+import { classNames, IsEmptyDate, isMatrixServer, simplifyDate } from "@utils";
 import { MatrixNetworkAddForm, MatrixNetworkUpdateForm } from "@forms/settings/MatrixForms";
 import { useToggle } from "@hooks/hooks";
 import { APIClient } from "@api/APIClient";
@@ -43,16 +43,6 @@ import { Events } from "./Irc";
 interface SortConfig {
   key: keyof ListItemProps["network"] | "enabled";
   direction: "ascending" | "descending";
-}
-
-function isMatrixServer(server: string): boolean {
-  const s = (server || "").trim().toLowerCase();
-  return (
-    s.startsWith("matrix.") ||
-    s.startsWith("matrix://") ||
-    s.includes(".matrix.") ||
-    s.endsWith(".watchtower.pm")
-  );
 }
 
 function useSort(items: ListItemProps["network"][], config?: SortConfig) {

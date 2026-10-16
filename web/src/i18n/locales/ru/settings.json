@@ -761,6 +761,8 @@
       "rssDesc": "Фид RSS",
       "settingsIrcTitle": "IRC",
       "settingsIrcDesc": "Сети и каналы настраиваются автоматически в фоновом режиме.",
+      "settingsMatrixTitle": "Matrix",
+      "settingsMatrixDesc": "Домашний сервер Matrix и комнаты объявлений настраиваются автоматически в фоновом режиме.",
       "ircGuideTooltip": "Пожалуйста, прочитайте наше руководство по IRC, если вы с ним не знакомы.",
       "name": "Имя",
       "url": "URL",

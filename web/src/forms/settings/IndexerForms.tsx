@@ -58,11 +58,11 @@ const IrcSettingFields = (ind: IndexerDefinition, indexer: string) => {
         <div className="border-t border-gray-200 dark:border-gray-700 py-5">
           <div className="px-4">
             <h2 className="text-lg font-medium text-gray-900 dark:text-white">
-              {isMatrix ? "Matrix" : t("forms.indexer.settingsIrcTitle")}
+              {isMatrix ? t("forms.indexer.settingsMatrixTitle") : t("forms.indexer.settingsIrcTitle")}
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-200">
               {isMatrix
-                ? "Matrix homeserver and announce rooms are configured automatically in the background (Settings -> Matrix)."
+                ? t("forms.indexer.settingsMatrixDesc")
                 : t("forms.indexer.settingsIrcDesc")}
             </p>
           </div>
