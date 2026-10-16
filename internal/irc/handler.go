@@ -426,7 +426,10 @@ func (h *Handler) Run() (err error) {
 		}
 	}
 
-	if network.TLS {
+	if isMatrixNetwork(network.Server) {
+		client.UseTLS = false
+		client.DialContext = h.dialMatrixContext
+	} else if network.TLS {
 		// In Go 1.22 old insecure ciphers was removed. A lot of old IRC networks still uses those, so we need to allow those.
 		unsafeCipherSuites := make([]uint16, 0, len(tls.InsecureCipherSuites())+len(tls.CipherSuites()))
 		for _, suite := range tls.InsecureCipherSuites() {
