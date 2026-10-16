@@ -86,10 +86,10 @@ func (h *Handler) isMatrix() bool {
 	return isMatrixNetwork(netw.Server)
 }
 
-func (h *Handler) dialMatrixContext(ctx context.Context, _, _ string) (net.Conn, error) {
+func (h *Handler) dialMatrixContext(_ context.Context, _, _ string) (net.Conn, error) {
 	clientConn, serverConn := net.Pipe()
 	netw := h.GetNetwork()
-	go h.serveMatrixPipe(ctx, serverConn, netw)
+	go h.serveMatrixPipe(serverConn, netw)
 	return clientConn, nil
 }
 
@@ -113,8 +113,8 @@ type matrixSyncResponse struct {
 	} `json:"rooms"`
 }
 
-func (h *Handler) serveMatrixPipe(parentCtx context.Context, conn net.Conn, network *domain.IrcNetwork) {
-	ctx, cancel := context.WithCancel(parentCtx)
+func (h *Handler) serveMatrixPipe(conn net.Conn, network *domain.IrcNetwork) {
+	ctx, cancel := context.WithCancel(context.Background())
 	defer func() {
 		cancel()
 		_ = conn.Close()
@@ -148,13 +148,6 @@ func (h *Handler) serveMatrixPipe(parentCtx context.Context, conn net.Conn, netw
 	rawPass := strings.TrimSpace(network.Pass)
 	if rawPass == "" {
 		rawPass = strings.TrimSpace(network.Auth.Password)
-	}
-
-	accessToken, err := h.ensureMatrixAccessToken(ctx, httpClient, serverHost, baseURL, rawPass)
-	if err != nil {
-		h.log.Error().Err(err).Str("server", serverHost).Msg("matrix authentication failed")
-		_ = sendIRC(fmt.Sprintf(":%s 464 autobrr :%s", serverHost, err.Error()))
-		return
 	}
 
 	var (
@@ -209,21 +202,28 @@ func (h *Handler) serveMatrixPipe(parentCtx context.Context, conn net.Conn, netw
 				if chName == "" {
 					continue
 				}
-				roomID, rErr := resolveMatrixRoom(ctx, httpClient, baseURL, serverHost, accessToken, chName)
-				if rErr != nil {
-					h.log.Error().Err(rErr).Str("channel", chName).Msg("matrix: failed to resolve room")
-					_ = sendIRC(fmt.Sprintf(":%s 473 %s %s :Cannot join room (%s)", serverHost, clientNick, chName, rErr.Error()))
-					continue
-				}
-				roomMu.Lock()
-				roomToChan[roomID] = strings.ToLower(chName)
-				roomMu.Unlock()
+				go func(chName string) {
+					tok, err := h.ensureMatrixAccessToken(ctx, httpClient, serverHost, baseURL, rawPass)
+					if err != nil {
+						h.log.Error().Err(err).Str("channel", chName).Msg("matrix: auth failed before room join")
+						return
+					}
+					roomID, rErr := resolveMatrixRoom(ctx, httpClient, baseURL, serverHost, tok, chName)
+					if rErr != nil {
+						h.log.Error().Err(rErr).Str("channel", chName).Msg("matrix: failed to resolve room")
+						_ = sendIRC(fmt.Sprintf(":%s 473 %s %s :Cannot join room (%s)", serverHost, clientNick, chName, rErr.Error()))
+						return
+					}
+					roomMu.Lock()
+					roomToChan[roomID] = strings.ToLower(chName)
+					roomMu.Unlock()
 
-				h.log.Info().Str("channel", chName).Str("room_id", roomID).Msg("matrix: monitoring room")
-				_ = sendIRC(fmt.Sprintf(":%s!matrix@%s JOIN %s", clientNick, serverHost, chName))
-				_ = sendIRC(fmt.Sprintf(":%s 332 %s %s :Matrix Room %s", serverHost, clientNick, chName, roomID))
-				_ = sendIRC(fmt.Sprintf(":%s 353 %s = %s :%s @blubot", serverHost, clientNick, chName, clientNick))
-				_ = sendIRC(fmt.Sprintf(":%s 366 %s %s :End of /NAMES list.", serverHost, clientNick, chName))
+					h.log.Info().Str("channel", chName).Str("room_id", roomID).Msg("matrix: monitoring room")
+					_ = sendIRC(fmt.Sprintf(":%s!matrix@%s JOIN %s", clientNick, serverHost, chName))
+					_ = sendIRC(fmt.Sprintf(":%s 332 %s %s :Matrix Room %s", serverHost, clientNick, chName, roomID))
+					_ = sendIRC(fmt.Sprintf(":%s 353 %s = %s :%s @blubot", serverHost, clientNick, chName, clientNick))
+					_ = sendIRC(fmt.Sprintf(":%s 366 %s %s :End of /NAMES list.", serverHost, clientNick, chName))
+				}(chName)
 			}
 		}
 
@@ -239,7 +239,12 @@ func (h *Handler) serveMatrixPipe(parentCtx context.Context, conn net.Conn, netw
 	}
 }
 
+var matrixAuthMu sync.Mutex
+
 func (h *Handler) ensureMatrixAccessToken(ctx context.Context, client *http.Client, serverHost, baseURL, rawPass string) (string, error) {
+	matrixAuthMu.Lock()
+	defer matrixAuthMu.Unlock()
+
 	creds, _ := loadMatrixCreds(serverHost)
 	if creds == nil {
 		creds = &matrixStoredCreds{
