@@ -71,7 +71,7 @@ const RoomsFieldArray = ({ channels }: RoomsFieldArrayProps) => {
           ))
         ) : (
           <span className="text-center text-sm text-grey-darker dark:text-white">
-            No rooms configured!
+            {t("forms.matrix.noRooms")}
           </span>
         )}
         <button
@@ -79,7 +79,7 @@ const RoomsFieldArray = ({ channels }: RoomsFieldArrayProps) => {
           className="border dark:border-gray-600 dark:bg-gray-700 my-4 px-4 py-2 text-sm text-gray-700 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-600 rounded-sm self-center text-center cursor-pointer"
           onClick={() => form.pushFieldValue("channels", { name: "", password: "", enabled: true })}
         >
-          Add Matrix Room
+          {t("forms.matrix.addRoom")}
         </button>
       </div>
     </div>
@@ -131,11 +131,11 @@ export function MatrixNetworkAddForm({ isOpen, toggle }: AddFormProps) {
     mutationFn: (network: IrcNetwork) => APIClient.irc.createNetwork(network),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
-      toast.custom((toastInstance) => <Toast type="success" body="Matrix homeserver added." t={toastInstance} />);
+      toast.custom((toastInstance) => <Toast type="success" body={t("forms.matrix.added")} t={toastInstance} />);
       toggle();
     },
     onError: () => {
-      toast.custom((toastInstance) => <Toast type="error" body="Matrix homeserver could not be added" t={toastInstance} />);
+      toast.custom((toastInstance) => <Toast type="error" body={t("forms.matrix.addFailed")} t={toastInstance} />);
     }
   });
 
@@ -161,7 +161,7 @@ export function MatrixNetworkAddForm({ isOpen, toggle }: AddFormProps) {
   return (
     <SlideOver
       type="CREATE"
-      title="Matrix Homeserver"
+      title={t("forms.matrix.title")}
       isOpen={isOpen}
       toggle={toggle}
       onSubmit={onSubmit}
@@ -173,7 +173,7 @@ export function MatrixNetworkAddForm({ isOpen, toggle }: AddFormProps) {
           <div className="flex justify-center dark:bg-purple-300 bg-purple-100 text-xs font-semibold text-center p-3 mx-4 rounded-md dark:text-purple-900 text-purple-900">
             <span className="flex items-center">
               <ExclamationTriangleIcon className="mr-2 h-5 w-5 shrink-0" />
-              Matrix homeservers are automatically created when you add a Matrix indexer (e.g. Blutopia).
+              {t("forms.matrix.notice")}
             </span>
           </div>
 
@@ -188,8 +188,8 @@ export function MatrixNetworkAddForm({ isOpen, toggle }: AddFormProps) {
 
           <TextFieldWide
             name="server"
-            label="Homeserver"
-            placeholder="matrix.watchtower.pm"
+            label={t("forms.matrix.server")}
+            placeholder={t("forms.matrix.serverPlaceholder")}
             required={true}
           />
           <NumberFieldWide
@@ -205,22 +205,22 @@ export function MatrixNetworkAddForm({ isOpen, toggle }: AddFormProps) {
 
           <TextFieldWide
             name="nick"
-            label="Matrix Username"
-            placeholder="Your Matrix username"
+            label={t("forms.matrix.nick")}
+            placeholder={t("forms.matrix.nickPlaceholder")}
             required={true}
           />
 
           <PasswordFieldWide
             name="pass"
-            label="Access Token"
-            help="Matrix Access Token (e.g. mat_... or syt_...) from Element Settings -> Help & About -> Access Token."
+            label={t("forms.matrix.token")}
+            help={t("forms.matrix.tokenHelp")}
           />
 
           <div className="border-t border-gray-200 dark:border-gray-700 py-5">
             <div className="px-4 space-y-1 mb-6">
-              <h2 className="text-lg font-medium text-gray-900 dark:text-white">Matrix Rooms</h2>
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.matrix.rooms")}</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Matrix room aliases (e.g. #blu-announce) or room IDs (!roomId:server) to monitor for announces.
+                {t("forms.matrix.roomsHelp")}
               </p>
             </div>
 
@@ -246,7 +246,7 @@ export function MatrixNetworkUpdateForm({ isOpen, toggle, data: network }: Updat
       toggle();
     },
     onError: () => {
-      toast.custom((toastInstance) => <Toast type="error" body="Matrix homeserver could not be updated" t={toastInstance} />);
+      toast.custom((toastInstance) => <Toast type="error" body={t("forms.matrix.updateFailed")} t={toastInstance} />);
     }
   });
 
@@ -287,7 +287,7 @@ export function MatrixNetworkUpdateForm({ isOpen, toggle, data: network }: Updat
   return (
     <SlideOver
       type="UPDATE"
-      title="Matrix Homeserver"
+      title={t("forms.matrix.title")}
       isOpen={isOpen}
       toggle={toggle}
       onSubmit={onSubmit}
@@ -308,8 +308,8 @@ export function MatrixNetworkUpdateForm({ isOpen, toggle, data: network }: Updat
 
           <TextFieldWide
             name="server"
-            label="Homeserver"
-            placeholder="matrix.watchtower.pm"
+            label={t("forms.matrix.server")}
+            placeholder={t("forms.matrix.serverPlaceholder")}
             required={true}
           />
           <NumberFieldWide
@@ -326,15 +326,15 @@ export function MatrixNetworkUpdateForm({ isOpen, toggle, data: network }: Updat
 
           <TextFieldWide
             name="nick"
-            label="Matrix Username"
-            placeholder="Your Matrix username"
+            label={t("forms.matrix.nick")}
+            placeholder={t("forms.matrix.nickPlaceholder")}
             required={true}
           />
 
           <PasswordFieldWide
             name="pass"
-            label="Access Token"
-            help="Matrix Access Token (e.g. mat_... or syt_...) from Element Settings -> Help & About -> Access Token."
+            label={t("forms.matrix.token")}
+            help={t("forms.matrix.tokenHelp")}
           />
 
           <div className="border-t border-gray-200 dark:border-gray-700 py-4">
@@ -344,7 +344,7 @@ export function MatrixNetworkUpdateForm({ isOpen, toggle, data: network }: Updat
                   {t("forms.irc.proxy")}
                 </h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Set a proxy to be used for connecting to the Matrix homeserver.
+                  {t("forms.matrix.proxyHelp")}
                 </p>
               </div>
               <SwitchButton name="use_proxy" />
@@ -364,9 +364,9 @@ export function MatrixNetworkUpdateForm({ isOpen, toggle, data: network }: Updat
 
           <div className="border-t border-gray-200 dark:border-gray-700 py-5">
             <div className="px-4 space-y-1 mb-6">
-              <h2 className="text-lg font-medium text-gray-900 dark:text-white">Matrix Rooms</h2>
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.matrix.rooms")}</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Rooms are added automatically when you set up Matrix indexers.
+                {t("forms.matrix.updateRoomsHelp")}
               </p>
             </div>
 

@@ -213,6 +213,7 @@ func buildMatrixHTTPClient(network *domain.IrcNetwork) (*http.Client, error) {
 
 	transport := &http.Transport{
 		TLSClientConfig: tlsConfig,
+		IdleConnTimeout: 90 * time.Second,
 	}
 
 	if network.UseProxy {
@@ -267,6 +268,7 @@ func (h *Handler) serveMatrixPipe(conn net.Conn, network *domain.IrcNetwork) {
 		h.broadcastHealth()
 		return
 	}
+	defer httpClient.CloseIdleConnections()
 
 	serverHost := strings.TrimSpace(network.Server)
 	serverHost = strings.TrimPrefix(serverHost, "matrix://")
@@ -377,9 +379,9 @@ func (h *Handler) serveMatrixPipe(conn net.Conn, network *domain.IrcNetwork) {
 						h.log.Error().Err(err).Str("channel", chName).Msg("matrix: auth failed before room join")
 						return
 					}
-					roomID, rErr := resolveMatrixRoom(ctx, httpClient, baseURL, serverHost, tok, chName)
+					roomID, rErr := joinMatrixRoom(ctx, httpClient, baseURL, serverHost, tok, chName)
 					if rErr != nil {
-						h.log.Error().Err(rErr).Str("channel", chName).Msg("matrix: failed to resolve room")
+						h.log.Error().Err(rErr).Str("channel", chName).Msg("matrix: failed to join room")
 						_ = sendIRC(fmt.Sprintf(":%s 473 %s %s :Cannot join room (%s)", serverHost, clientNick, chName, rErr.Error()))
 						return
 					}
@@ -408,11 +410,27 @@ func (h *Handler) serveMatrixPipe(conn net.Conn, network *domain.IrcNetwork) {
 	}
 }
 
-var matrixAuthMu sync.Mutex
+var (
+	matrixAuthLocksMu sync.Mutex
+	matrixAuthLocks   = make(map[string]*sync.Mutex)
+)
+
+func getMatrixAuthLock(serverHost, clientNick string) *sync.Mutex {
+	matrixAuthLocksMu.Lock()
+	defer matrixAuthLocksMu.Unlock()
+	key := accountKey(serverHost, clientNick)
+	l, ok := matrixAuthLocks[key]
+	if !ok {
+		l = &sync.Mutex{}
+		matrixAuthLocks[key] = l
+	}
+	return l
+}
 
 func (h *Handler) ensureMatrixAccessToken(ctx context.Context, client *http.Client, serverHost, clientNick, baseURL, rawPass string) (string, error) {
-	matrixAuthMu.Lock()
-	defer matrixAuthMu.Unlock()
+	mu := getMatrixAuthLock(serverHost, clientNick)
+	mu.Lock()
+	defer mu.Unlock()
 
 	creds, _ := loadMatrixCreds(serverHost, clientNick)
 	if creds == nil {
@@ -714,38 +732,36 @@ func refreshMatrixOAuthToken(ctx context.Context, client *http.Client, creds *ma
 	return creds.AccessToken, nil
 }
 
-func resolveMatrixRoom(ctx context.Context, client *http.Client, baseURL, serverHost, token, chName string) (string, error) {
-	if strings.HasPrefix(chName, "!") {
-		return chName, nil
-	}
-	alias := chName
-	if !strings.Contains(alias, ":") {
-		alias = alias + ":" + serverHost
-	}
-	if strings.EqualFold(alias, "#blu-announce:matrix.watchtower.pm") {
-		return "!xbWdAiMmRUgepJMvfV:matrix.watchtower.pm", nil
+func joinMatrixRoom(ctx context.Context, client *http.Client, baseURL, serverHost, token, chName string) (string, error) {
+	roomOrAlias := chName
+	if !strings.HasPrefix(roomOrAlias, "!") && !strings.Contains(roomOrAlias, ":") {
+		roomOrAlias = roomOrAlias + ":" + serverHost
 	}
 
-	dirURL := fmt.Sprintf("%s/_matrix/client/v3/directory/room/%s", baseURL, url.PathEscape(alias))
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, dirURL, nil)
+	joinURL := fmt.Sprintf("%s/_matrix/client/v3/join/%s", baseURL, url.PathEscape(roomOrAlias))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, joinURL, strings.NewReader("{}"))
 	if err != nil {
-		return "", errors.Wrap(err, "failed to create directory lookup request")
+		return "", errors.Wrap(err, "failed to create join request")
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to execute directory lookup request")
+		return "", errors.Wrap(err, "failed to execute join request")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", errors.New("directory lookup HTTP %d", resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		return "", errors.New("join HTTP %d: %s", resp.StatusCode, string(body))
 	}
+
 	var out struct {
 		RoomID string `json:"room_id"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil || out.RoomID == "" {
-		return "", errors.New("failed to resolve room id for alias %s", alias)
+		return "", errors.New("join returned no room_id for %s", roomOrAlias)
 	}
 	return out.RoomID, nil
 }

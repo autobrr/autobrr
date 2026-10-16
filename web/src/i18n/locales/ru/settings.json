@@ -285,7 +285,7 @@
     }
   },
   "forms": {
-      "downloadClient": {
+    "downloadClient": {
       "remove": "Удалить",
       "test": "Тест",
       "ok": "OK!",
@@ -866,9 +866,37 @@
       "executionHistory": "История выполнений",
       "lastRun": "Последний запуск:",
       "status": "Статус:"
+    },
+    "matrix": {
+      "listTitle": "Matrix",
+      "listDescription": "Серверы Matrix и каналы анонсов. Нажмите на сервер для просмотра статуса мониторинга комнат и анонсов в реальном времени.",
+      "title": "Сервер Matrix",
+      "notice": "Серверы Matrix создаются автоматически при добавлении индексатора Matrix (например, Blutopia).",
+      "server": "Сервер",
+      "serverPlaceholder": "matrix.watchtower.pm",
+      "nick": "Имя пользователя Matrix",
+      "nickPlaceholder": "Ваше имя пользователя Matrix",
+      "token": "Токен доступа",
+      "tokenHelp": "Токен доступа Matrix (например mat_... или syt_...) из Настройки Element -> Справка и О программе -> Токен доступа.",
+      "rooms": "Комнаты Matrix",
+      "roomsHelp": "Алиасы комнат Matrix (напр. #blu-announce) или ID комнат (!roomId:server) для мониторинга анонсов.",
+      "updateRoomsHelp": "Комнаты добавляются автоматически при настройке индексаторов Matrix.",
+      "noRooms": "Комнаты не настроены!",
+      "noRoomsConfigured": "Комнаты Matrix не настроены!",
+      "addRoom": "Добавить комнату Matrix",
+      "added": "Сервер Matrix добавлен.",
+      "addFailed": "Не удалось добавить сервер Matrix",
+      "updateFailed": "Не удалось обновить сервер Matrix",
+      "proxyHelp": "Укажите прокси для подключения к серверу Matrix.",
+      "homeserver": "Сервер",
+      "username": "Пользователь",
+      "roomAlias": "Комната / Алиас",
+      "emptyTitle": "Нет серверов Matrix",
+      "emptySubtitle": "Обычно настраивается через индексаторы (например, Blutopia)",
+      "emptyButton": "Добавить сервер Matrix"
     }
   },
-    "listScreens": {
+  "listScreens": {
     "common": {
       "enabled": "Включено",
       "name": "Имя",
@@ -992,5 +1020,33 @@
       "clearCacheTitle": "Вручную очистить весь кэш фида",
       "delete": "Удалить"
     }
+  },
+  "matrix": {
+    "listTitle": "Matrix",
+    "listDescription": "Серверы Matrix и каналы анонсов. Нажмите на сервер для просмотра статуса мониторинга комнат и анонсов в реальном времени.",
+    "title": "Сервер Matrix",
+    "notice": "Серверы Matrix создаются автоматически при добавлении индексатора Matrix (например, Blutopia).",
+    "server": "Сервер",
+    "serverPlaceholder": "matrix.watchtower.pm",
+    "nick": "Имя пользователя Matrix",
+    "nickPlaceholder": "Ваше имя пользователя Matrix",
+    "token": "Токен доступа",
+    "tokenHelp": "Токен доступа Matrix (например mat_... или syt_...) из Настройки Element -> Справка и О программе -> Токен доступа.",
+    "rooms": "Комнаты Matrix",
+    "roomsHelp": "Алиасы комнат Matrix (напр. #blu-announce) или ID комнат (!roomId:server) для мониторинга анонсов.",
+    "updateRoomsHelp": "Комнаты добавляются автоматически при настройке индексаторов Matrix.",
+    "noRooms": "Комнаты не настроены!",
+    "noRoomsConfigured": "Комнаты Matrix не настроены!",
+    "addRoom": "Добавить комнату Matrix",
+    "added": "Сервер Matrix добавлен.",
+    "addFailed": "Не удалось добавить сервер Matrix",
+    "updateFailed": "Не удалось обновить сервер Matrix",
+    "proxyHelp": "Укажите прокси для подключения к серверу Matrix.",
+    "homeserver": "Сервер",
+    "username": "Пользователь",
+    "roomAlias": "Комната / Алиас",
+    "emptyTitle": "Нет серверов Matrix",
+    "emptySubtitle": "Обычно настраивается через индексаторы (например, Blutopia)",
+    "emptyButton": "Добавить сервер Matrix"
   }
 }
