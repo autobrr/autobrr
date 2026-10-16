@@ -16,7 +16,7 @@ import { NumberFieldWide, PasswordFieldWide, SwitchButton, SwitchGroupWide, Text
 import { SlideOver } from "@components/panels";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
-import { classNames } from "@utils";
+import { classNames, isMatrixServer } from "@utils";
 import { ProxiesQueryOptions } from "@api/queries";
 import { AddFormProps, UpdateFormProps } from "@forms/_shared";
 import { SelectField } from "@forms/settings/IrcForms";
@@ -139,7 +139,13 @@ export function MatrixNetworkAddForm({ isOpen, toggle }: AddFormProps) {
     }
   });
 
-  const onSubmit = (data: MatrixNetworkFormValues) => mutation.mutate(data as IrcNetwork);
+  const onSubmit = (data: MatrixNetworkFormValues) => {
+    let server = data.server.trim();
+    if (!isMatrixServer(server)) {
+      server = `matrix://${server}`;
+    }
+    mutation.mutate({ ...data, server } as IrcNetwork);
+  };
 
   const initialValues: MatrixNetworkFormValues = {
     name: "Watchtower-Matrix",
@@ -250,7 +256,13 @@ export function MatrixNetworkUpdateForm({ isOpen, toggle, data: network }: Updat
     }
   });
 
-  const onSubmit = (data: MatrixNetworkFormValues) => updateMutation.mutate(data as IrcNetwork);
+  const onSubmit = (data: MatrixNetworkFormValues) => {
+    let server = data.server.trim();
+    if (!isMatrixServer(server)) {
+      server = `matrix://${server}`;
+    }
+    updateMutation.mutate({ ...data, server } as IrcNetwork);
+  };
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => APIClient.irc.deleteNetwork(id),
@@ -268,7 +280,7 @@ export function MatrixNetworkUpdateForm({ isOpen, toggle, data: network }: Updat
     id: network.id,
     name: network.name,
     enabled: network.enabled,
-    server: network.server,
+    server: network.server.replace(/^matrix:\/\//, ""),
     port: network.port,
     tls: network.tls,
     tls_skip_verify: network.tls_skip_verify,

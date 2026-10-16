@@ -391,7 +391,7 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
               )}
             </div>
             <p className="block text-sm truncate">
-              {network.server}:{network.port}
+              {network.server.replace(/^matrix:\/\//, "")}:{network.port}
             </p>
           </div>
         </div>

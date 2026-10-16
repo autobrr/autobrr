@@ -21,6 +21,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
+
 	"golang.org/x/net/proxy"
 )
 
@@ -775,9 +776,10 @@ func (h *Handler) matrixSyncLoop(
 	sendIRC func(string) error,
 ) {
 	var (
-		nextBatch   string
-		activeToken string
-		tokenExpiry time.Time
+		nextBatch         string
+		activeToken       string
+		tokenExpiry       time.Time
+		consecutiveErrors int
 	)
 
 	// Bounded FIFO ring buffer for seen event IDs to prevent unbounded memory growth
@@ -796,6 +798,8 @@ func (h *Handler) matrixSyncLoop(
 		if activeToken == "" || (!tokenExpiry.IsZero() && time.Now().After(tokenExpiry)) {
 			tok, err := h.ensureMatrixAccessToken(ctx, client, serverHost, clientNick, baseURL, rawPass)
 			if err != nil {
+				h.addConnectError("matrix: token refresh failed")
+				h.broadcastHealth()
 				h.log.Error().Err(err).Msg("matrix sync: token refresh failed, retrying in 15s")
 				select {
 				case <-ctx.Done():
@@ -828,6 +832,11 @@ func (h *Handler) matrixSyncLoop(
 			if ctx.Err() != nil {
 				return
 			}
+			consecutiveErrors++
+			if consecutiveErrors >= 3 {
+				h.addConnectError(fmt.Sprintf("matrix sync network error: %v", err))
+				h.broadcastHealth()
+			}
 			h.log.Warn().Err(err).Msg("matrix sync: request error, backing off 5s")
 			time.Sleep(5 * time.Second)
 			continue
@@ -842,6 +851,11 @@ func (h *Handler) matrixSyncLoop(
 
 		if resp.StatusCode != http.StatusOK {
 			resp.Body.Close()
+			consecutiveErrors++
+			if consecutiveErrors >= 3 {
+				h.addConnectError(fmt.Sprintf("matrix sync HTTP %d", resp.StatusCode))
+				h.broadcastHealth()
+			}
 			h.log.Warn().Int("status", resp.StatusCode).Msg("matrix sync: unexpected status, retrying in 5s")
 			time.Sleep(5 * time.Second)
 			continue
@@ -854,6 +868,12 @@ func (h *Handler) matrixSyncLoop(
 			h.log.Error().Err(decodeErr).Msg("matrix sync: failed to decode sync response")
 			time.Sleep(5 * time.Second)
 			continue
+		}
+
+		if consecutiveErrors > 0 {
+			consecutiveErrors = 0
+			h.clearConnectErrors()
+			h.broadcastHealth()
 		}
 
 		if syncData.NextBatch != "" {
@@ -890,12 +910,19 @@ func (h *Handler) matrixSyncLoop(
 					continue
 				}
 
-				nick := strings.TrimPrefix(ev.Sender, "@")
+				sender := ev.Sender
+				nick := strings.TrimPrefix(sender, "@")
+				senderDomain := ""
 				if idx := strings.IndexByte(nick, ':'); idx > 0 {
+					senderDomain = nick[idx+1:]
 					nick = nick[:idx]
 				}
 				if nick == "" {
-					nick = "blubot"
+					continue
+				}
+				if senderDomain != "" && !strings.EqualFold(senderDomain, serverHost) {
+					h.log.Debug().Str("sender", sender).Str("expected_host", serverHost).Msg("matrix: ignoring announce from foreign homeserver")
+					continue
 				}
 
 				cleanBody := strings.ReplaceAll(body, "\u00a0", " ")
