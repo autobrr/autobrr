@@ -254,15 +254,17 @@ func (h *Handler) ensureMatrixAccessToken(ctx context.Context, client *http.Clie
 		}
 	}
 
-	// Check if rawPass supplies a refresh token (mrt_... or client_id|mrt_...)
-	if strings.HasPrefix(rawPass, "mrt_") {
-		if creds.RefreshToken != rawPass {
+	// Check if rawPass supplies a refresh token (mrt_..., mar_..., or client_id|mar_...)
+	if strings.HasPrefix(rawPass, "mrt_") || strings.HasPrefix(rawPass, "mar_") {
+		if creds.RefreshToken != rawPass && creds.RefreshToken == "" {
 			creds.RefreshToken = rawPass
 		}
-	} else if strings.Contains(rawPass, "|mrt_") {
+	} else if strings.Contains(rawPass, "|mrt_") || strings.Contains(rawPass, "|mar_") {
 		sp := strings.SplitN(rawPass, "|", 2)
 		creds.ClientID = sp[0]
-		creds.RefreshToken = sp[1]
+		if creds.RefreshToken == "" {
+			creds.RefreshToken = sp[1]
+		}
 	} else if strings.HasPrefix(rawPass, "mat_") || strings.HasPrefix(rawPass, "syt_") || strings.HasPrefix(rawPass, "mct_") {
 		// Test if rawPass is currently active
 		if checkMatrixTokenActive(ctx, client, baseURL, rawPass) {
