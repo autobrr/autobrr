@@ -11,7 +11,9 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 
+	"github.com/ergochat/irc-go/ircevent"
 	"github.com/ergochat/irc-go/ircmsg"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -46,6 +48,12 @@ func noSuchNick(nick, target string) ircmsg.Message {
 		Command: "401",
 		Params:  []string{nick, target, "No such nick/channel"},
 	}
+}
+
+// withUnconnectedClient gives a handler a client that never connected: a
+// scheduled retry can come due, and any send on it fails.
+func withUnconnectedClient(h *Handler) {
+	h.client = &ircevent.Connection{}
 }
 
 // withNickServAuth configures a handler waiting for a NICKSERV reply with a bot
@@ -559,6 +567,7 @@ func TestHandleLoggedIn(t *testing.T) {
 func TestNickServAbsentSchedulesIdentifyRetry(t *testing.T) {
 	h, _ := newTestHandler()
 	withNickServAuth(h, "test_bot")
+	withUnconnectedClient(h)
 	h.stateMachine.currentState = StateAuthenticating
 	gen := h.identifyRetryGen
 
@@ -567,7 +576,7 @@ func TestNickServAbsentSchedulesIdentifyRetry(t *testing.T) {
 	assert.False(t, h.identifyOutstanding, "expected the unanswerable IDENTIFY to stop blocking authentication")
 	assert.Equal(t, 1, h.identifyRetries)
 	assert.NotEqual(t, gen, h.identifyRetryGen, "expected a retry to be scheduled")
-	assert.True(t, h.identifyRetryDue(h.identifyRetryGen), "expected the retry to be sent when it comes due")
+	assert.True(t, h.identifyRetryDueLocked(h.identifyRetryGen), "expected the retry to be sent when it comes due")
 
 	assert.False(t, h.Stopped(), "a missing NickServ must not stop the network")
 	assert.Empty(t, h.connectionErrors, "a missing NickServ must not be reported as an auth failure")
@@ -614,6 +623,7 @@ func TestIdentifyRetryCancelled(t *testing.T) {
 	}{
 		{name: "disconnect", supersede: func(h *Handler) { h.onDisconnect(ircmsg.Message{Command: "DISCONNECT"}) }},
 		{name: "stop", supersede: func(h *Handler) { h.Stop() }},
+		{name: "authenticated since", supersede: func(h *Handler) { h.authenticated = true }},
 		{
 			name: "later miss",
 			supersede: func(h *Handler) {
@@ -627,12 +637,14 @@ func TestIdentifyRetryCancelled(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			h, _ := newTestHandler()
 			withNickServAuth(h, "test_bot")
+			withUnconnectedClient(h)
 			h.handleErrNoSuchNick(noSuchNick("user_bot", "NickServ"))
 			gen := h.identifyRetryGen
+			require.True(t, h.identifyRetryDueLocked(gen), "precondition: retry due before it is superseded")
 
 			tt.supersede(h)
 
-			assert.False(t, h.identifyRetryDue(gen), "expected the scheduled retry to be cancelled")
+			assert.False(t, h.identifyRetryDueLocked(gen), "expected the scheduled retry to be cancelled")
 		})
 	}
 }
@@ -661,12 +673,30 @@ func TestIdentifyRetryBackoffPerConnection(t *testing.T) {
 func TestIdentifyRetryDefersToOutstandingIdentify(t *testing.T) {
 	h, _ := newTestHandler()
 	withNickServAuth(h, "test_bot")
+	withUnconnectedClient(h)
 	h.handleErrNoSuchNick(noSuchNick("user_bot", "NickServ"))
 	gen := h.identifyRetryGen
 
 	h.identifyOutstanding = true
 
-	assert.False(t, h.identifyRetryDue(gen), "expected the retry to leave the outstanding IDENTIFY alone")
+	assert.False(t, h.identifyRetryDueLocked(gen), "expected the retry to leave the outstanding IDENTIFY alone")
+}
+
+// TestRetryIdentifyReleasesClaimWhenSendFails verifies a due retry goes out on
+// the handler's client and, when that send fails, does not leave an IDENTIFY
+// outstanding that would block authenticate() for the rest of the connection.
+func TestRetryIdentifyReleasesClaimWhenSendFails(t *testing.T) {
+	h, _ := newTestHandler()
+	withNickServAuth(h, "test_bot")
+	withUnconnectedClient(h)
+	var logs strings.Builder
+	h.log = zerolog.New(&logs)
+	h.handleErrNoSuchNick(noSuchNick("user_bot", "NickServ"))
+
+	h.retryIdentify(h.identifyRetryGen)
+
+	assert.Contains(t, logs.String(), "error identifying with nickserv", "expected the retry to attempt the send")
+	assert.False(t, h.identifyOutstanding, "expected the failed send to release its claim")
 }
 
 // TestIdentifyRetryDelay checks the retry follows the connect backoff and stays

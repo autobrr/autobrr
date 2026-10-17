@@ -1985,23 +1985,38 @@ func (h *Handler) handleNickServAbsent() {
 }
 
 // retryIdentify sends the IDENTIFY scheduled by handleNickServAbsent if it is
-// still due.
+// still due. The check, the claim and the client it goes out on are taken under
+// one lock, so neither another IDENTIFY nor a new connection can slip in between.
 func (h *Handler) retryIdentify(gen uint64) {
-	if !h.identifyRetryDue(gen) {
+	h.m.Lock()
+	if !h.identifyRetryDueLocked(gen) {
+		h.m.Unlock()
 		return
 	}
+	client := h.client
+	command := h.identifyCommandLocked()
+	h.identifyOutstanding = true
+	h.m.Unlock()
 
-	h.NickServIdentify()
+	if err := client.Send("PRIVMSG", "NickServ", command); err != nil {
+		h.m.Lock()
+		// a reconnect since the claim has reset it, and the new connection's own
+		// IDENTIFY may be outstanding now
+		if h.identifyRetryGen == gen {
+			h.identifyOutstanding = false
+		}
+		h.m.Unlock()
+		h.log.Error().Err(err).Msg("error identifying with nickserv")
+	}
 }
 
-// identifyRetryDue reports whether the retry scheduled as gen should still be
-// sent: not superseded by a reconnect or a later miss, the network not stopped,
-// and no IDENTIFY already sent by another path.
-func (h *Handler) identifyRetryDue(gen uint64) bool {
-	h.m.RLock()
-	defer h.m.RUnlock()
-
-	return h.identifyRetryGen == gen && h.clientState == ircLive && !h.identifyOutstanding
+// identifyRetryDueLocked reports whether the retry scheduled as gen should still
+// be sent: not superseded by a reconnect or a later miss, the network live and
+// not yet authenticated, and no IDENTIFY already sent by another path.
+// The caller must hold h.m.
+func (h *Handler) identifyRetryDueLocked(gen uint64) bool {
+	return h.identifyRetryGen == gen && h.clientState == ircLive && h.client != nil &&
+		!h.identifyOutstanding && !h.authenticated && !h.saslauthed && h.network.Auth.NickServEnabled()
 }
 
 // identifyRetryDelay returns how long to wait before re-sending an IDENTIFY that
