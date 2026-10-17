@@ -55,6 +55,11 @@ type Server struct {
 	banReason         string
 	banAtRegistration bool
 
+	// nickServOffline answers messages to NickServ with a 401 (ERR_NOSUCHNICK),
+	// modelling services that have not linked to the server yet.
+	nickServOffline bool
+	nickServMisses  int
+
 	closed chan struct{}
 	wg     sync.WaitGroup
 }
@@ -86,6 +91,38 @@ func Banned(reason string) Option {
 // short-circuit of the reconnect backoff.
 func BannedAtRegistration(reason string) Option {
 	return func(s *Server) { s.banReason = reason; s.banAtRegistration = true }
+}
+
+// NickServOffline starts the server with its services not linked: messages to
+// NickServ get a 401 (ERR_NOSUCHNICK) until SetNickServOnline brings it back.
+func NickServOffline() Option {
+	return func(s *Server) { s.nickServOffline = true }
+}
+
+// SetNickServOnline links or delinks NickServ at runtime.
+func (s *Server) SetNickServOnline(online bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.nickServOffline = !online
+}
+
+// NickServMisses returns how many messages to NickServ were answered with a 401
+// while it was offline.
+func (s *Server) NickServMisses() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.nickServMisses
+}
+
+// missNickServ reports whether NickServ is offline, counting the miss if so.
+func (s *Server) missNickServ() bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if !s.nickServOffline {
+		return false
+	}
+	s.nickServMisses++
+	return true
 }
 
 // New starts a server on 127.0.0.1:0 and registers cleanup with tb.

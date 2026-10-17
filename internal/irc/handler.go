@@ -10,6 +10,7 @@ import (
 	stdErr "errors"
 	"fmt"
 	"maps"
+	"math/rand/v2"
 	"net/url"
 	"slices"
 	"strconv"
@@ -119,6 +120,8 @@ type Handler struct {
 	identifyEscalated   bool
 	identifyFormLearned identifyForm
 	identifyOutstanding bool
+	identifyRetries     int    // IDENTIFYs this connection sent while NickServ was absent
+	identifyRetryGen    uint64 // bumped to cancel a scheduled identify retry
 
 	channels *haxmap.Map[string, *Channel]
 
@@ -1797,6 +1800,10 @@ func (h *Handler) handleErrNoSuchNick(msg ircmsg.Message) {
 
 	h.log.Debug().Str("nick", nick).Msg("no such nick")
 
+	if nick == "nickserv" {
+		h.handleNickServAbsent()
+	}
+
 	for _, channel := range h.channels.Iterator() {
 		if !channel.IsEnabled() {
 			continue
@@ -1947,6 +1954,69 @@ func (h *Handler) NickServIdentify() error {
 	return nil
 }
 
+// handleNickServAbsent schedules another IDENTIFY after the outstanding one got
+// ERR_NOSUCHNICK. An ircd can accept clients before its services have linked
+// (after a netsplit, or an outage the server recovers from first), and nothing
+// else re-sends IDENTIFY, so without a retry the network stays unauthenticated
+// until it is restarted. See https://github.com/autobrr/autobrr/issues/2770.
+func (h *Handler) handleNickServAbsent() {
+	h.m.Lock()
+	if !h.identifyOutstanding || h.authenticated || h.saslauthed {
+		h.m.Unlock()
+		return
+	}
+	h.identifyOutstanding = false
+	h.identifyRetries++
+	h.identifyRetryGen++
+	attempt := h.identifyRetries
+	gen := h.identifyRetryGen
+	h.m.Unlock()
+
+	delay := identifyRetryDelay(attempt)
+
+	// services can stay delinked for hours; warn once per connection, not on every retry
+	event := h.log.Debug()
+	if attempt == 1 {
+		event = h.log.Warn()
+	}
+	event.Int("attempt", attempt).Dur("retry_in", delay).Msg("NickServ is not online, retrying identify")
+
+	time.AfterFunc(delay, func() { h.retryIdentify(gen) })
+}
+
+// retryIdentify sends the IDENTIFY scheduled by handleNickServAbsent if it is
+// still due.
+func (h *Handler) retryIdentify(gen uint64) {
+	if !h.identifyRetryDue(gen) {
+		return
+	}
+
+	h.NickServIdentify()
+}
+
+// identifyRetryDue reports whether the retry scheduled as gen should still be
+// sent: not superseded by a reconnect or a later miss, the network not stopped,
+// and no IDENTIFY already sent by another path.
+func (h *Handler) identifyRetryDue(gen uint64) bool {
+	h.m.RLock()
+	defer h.m.RUnlock()
+
+	return h.identifyRetryGen == gen && h.clientState == ircLive && !h.identifyOutstanding
+}
+
+// identifyRetryDelay returns how long to wait before re-sending an IDENTIFY that
+// found NickServ absent. It follows the connect retry schedule with no attempt
+// limit: the connection is up, so retrying costs one PRIVMSG, while giving up
+// would leave the network unauthenticated until it is restarted.
+func identifyRetryDelay(attempt int) time.Duration {
+	delay := connectRetryDelay
+	for i := 1; i < attempt && delay < connectRetryMaxDelay; i++ {
+		delay *= 2
+	}
+
+	return min(delay, connectRetryMaxDelay) + rand.N(connectRetryMaxJitter)
+}
+
 // canEscalateIdentify reports whether a failed bare IDENTIFY may be retried in
 // the account-qualified form. Escalation is forward-only and happens at most
 // once per connection: on services that do not support the account argument the
@@ -2018,12 +2088,15 @@ func (h *Handler) escalateIdentify() {
 // this network and re-arms escalation. Seeding from the learned form keeps a
 // reconnect from re-sending a bare IDENTIFY already known to fail here; the
 // escalation guards reject escalating out of the account form, so a connection
-// that starts there stays there.
+// that starts there stays there. A retry scheduled because NickServ was absent
+// belongs to the old connection, so it is cancelled and its backoff starts over.
 // The caller must hold h.m.
 func (h *Handler) resetIdentifyForm() {
 	h.identifyAttempt = h.identifyFormLearned
 	h.identifyEscalated = false
 	h.identifyOutstanding = false
+	h.identifyRetries = 0
+	h.identifyRetryGen++
 }
 
 // unlearnIdentifyForm drops a remembered account-qualified form once it has

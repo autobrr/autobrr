@@ -106,6 +106,37 @@ func TestNickServAuth(t *testing.T) {
 	inst.WaitForMonitoring("#ns", 10*time.Second)
 }
 
+// TestNickServOfflineRetriesIdentify covers https://github.com/autobrr/autobrr/issues/2770:
+// an ircd can accept clients before its services link, so the first IDENTIFY gets
+// a 401. The network must keep waiting to authenticate instead of failing, and
+// identify and join once NickServ is back, without a restart.
+func TestNickServOfflineRetriesIdentify(t *testing.T) {
+	srv := ircd.New(t, ircd.NickServOffline())
+	srv.AddChannel("#ns", ircd.RegisteredOnly(), ircd.Announcer("ann"))
+
+	def := harness.MinimalDefinition("ns", "#ns", "ann")
+	net := harness.Network(srv, "autobrr", harness.NickServ("autobrr", "nspass"), harness.Channel("#ns"))
+
+	inst := harness.Start(t, net, harness.Defs(def))
+
+	require.Eventually(t, func() bool { return srv.NickServMisses() > 0 }, 10*time.Second, 10*time.Millisecond, "IDENTIFY never reached the server")
+
+	// give the handler time to act on the 401, then check it did not treat it as fatal
+	time.Sleep(500 * time.Millisecond)
+
+	var status domain.IrcNetworkWithHealth
+	inst.Handler.ReportStatus(&status)
+	require.False(t, inst.Handler.Stopped(), "a missing NickServ must not stop the network")
+	require.True(t, status.Connected, "expected the network to stay connected while NickServ is offline")
+	require.Empty(t, status.ConnectionErrors, "a missing NickServ must not be reported as an auth failure")
+
+	srv.SetNickServOnline(true)
+
+	// the first retry waits out the connect backoff: 15s plus up to 10s of jitter
+	inst.WaitForMonitoring("#ns", 40*time.Second)
+	inst.WaitForHealthy(5 * time.Second)
+}
+
 // TestNoneAuthJoinsDirectly verifies the simplest path: no auth, direct join.
 func TestNoneAuthJoinsDirectly(t *testing.T) {
 	srv := ircd.New(t)

@@ -4,8 +4,10 @@
 package irc
 
 import (
+	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 
@@ -33,6 +35,16 @@ func nickServNotice(nick, text string) ircmsg.Message {
 		Source:  "NickServ!services@services.example.test",
 		Command: "NOTICE",
 		Params:  []string{nick, text},
+	}
+}
+
+// noSuchNick builds the ERR_NOSUCHNICK an ircd answers a message to an absent
+// nick with.
+func noSuchNick(nick, target string) ircmsg.Message {
+	return ircmsg.Message{
+		Source:  "irc.example.test",
+		Command: "401",
+		Params:  []string{nick, target, "No such nick/channel"},
 	}
 }
 
@@ -537,6 +549,148 @@ func TestHandleLoggedIn(t *testing.T) {
 			})
 
 			assert.Equal(t, tt.want, h.authenticated)
+		})
+	}
+}
+
+// TestNickServAbsentSchedulesIdentifyRetry is the regression test for #2770: a
+// 401 for NickServ left the IDENTIFY outstanding forever, so the connection never
+// authenticated, even after services came back.
+func TestNickServAbsentSchedulesIdentifyRetry(t *testing.T) {
+	h, _ := newTestHandler()
+	withNickServAuth(h, "test_bot")
+	h.stateMachine.currentState = StateAuthenticating
+	gen := h.identifyRetryGen
+
+	h.handleErrNoSuchNick(noSuchNick("user_bot", "NickServ"))
+
+	assert.False(t, h.identifyOutstanding, "expected the unanswerable IDENTIFY to stop blocking authentication")
+	assert.Equal(t, 1, h.identifyRetries)
+	assert.NotEqual(t, gen, h.identifyRetryGen, "expected a retry to be scheduled")
+	assert.True(t, h.identifyRetryDue(h.identifyRetryGen), "expected the retry to be sent when it comes due")
+
+	assert.False(t, h.Stopped(), "a missing NickServ must not stop the network")
+	assert.Empty(t, h.connectionErrors, "a missing NickServ must not be reported as an auth failure")
+	assert.Equal(t, StateAuthenticating, h.stateMachine.GetState(), "expected the connection to keep waiting to authenticate")
+}
+
+// TestNickServAbsentIgnored covers the 401s that must not schedule an IDENTIFY:
+// one we are not waiting on, and one for another nick such as an invite bot.
+func TestNickServAbsentIgnored(t *testing.T) {
+	tests := []struct {
+		name   string
+		target string
+		setup  func(*Handler)
+	}{
+		{name: "identify not outstanding", target: "NickServ", setup: func(h *Handler) { h.identifyOutstanding = false }},
+		{name: "already authenticated", target: "NickServ", setup: func(h *Handler) { h.authenticated = true }},
+		{name: "authenticated over sasl", target: "NickServ", setup: func(h *Handler) { h.saslauthed = true }},
+		{name: "another nick", target: "Gatekeeper"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h, _ := newTestHandler()
+			withNickServAuth(h, "test_bot")
+			if tt.setup != nil {
+				tt.setup(h)
+			}
+			gen := h.identifyRetryGen
+
+			h.handleErrNoSuchNick(noSuchNick("user_bot", tt.target))
+
+			assert.Equal(t, gen, h.identifyRetryGen, "expected no identify retry to be scheduled")
+			assert.Zero(t, h.identifyRetries)
+		})
+	}
+}
+
+// TestIdentifyRetryCancelled verifies a scheduled retry is dropped once it no
+// longer belongs to the connection waiting on it.
+func TestIdentifyRetryCancelled(t *testing.T) {
+	tests := []struct {
+		name      string
+		supersede func(*Handler)
+	}{
+		{name: "disconnect", supersede: func(h *Handler) { h.onDisconnect(ircmsg.Message{Command: "DISCONNECT"}) }},
+		{name: "stop", supersede: func(h *Handler) { h.Stop() }},
+		{
+			name: "later miss",
+			supersede: func(h *Handler) {
+				h.identifyOutstanding = true
+				h.handleErrNoSuchNick(noSuchNick("user_bot", "NickServ"))
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h, _ := newTestHandler()
+			withNickServAuth(h, "test_bot")
+			h.handleErrNoSuchNick(noSuchNick("user_bot", "NickServ"))
+			gen := h.identifyRetryGen
+
+			tt.supersede(h)
+
+			assert.False(t, h.identifyRetryDue(gen), "expected the scheduled retry to be cancelled")
+		})
+	}
+}
+
+// TestIdentifyRetryBackoffPerConnection verifies repeated misses walk the
+// backoff and a reconnect starts it over: the new connection's services may
+// well be back.
+func TestIdentifyRetryBackoffPerConnection(t *testing.T) {
+	h, _ := newTestHandler()
+	withNickServAuth(h, "test_bot")
+
+	h.handleErrNoSuchNick(noSuchNick("user_bot", "NickServ"))
+	h.identifyOutstanding = true
+	h.handleErrNoSuchNick(noSuchNick("user_bot", "NickServ"))
+
+	assert.Equal(t, 2, h.identifyRetries, "expected each miss to advance the backoff")
+
+	h.onDisconnect(ircmsg.Message{Command: "DISCONNECT"})
+
+	assert.Zero(t, h.identifyRetries, "expected a reconnect to restart the backoff")
+}
+
+// TestIdentifyRetryDefersToOutstandingIdentify covers a retry that comes due
+// after another path (a NICK change, bot mode) has already sent an IDENTIFY: a
+// second one would only draw a second reply.
+func TestIdentifyRetryDefersToOutstandingIdentify(t *testing.T) {
+	h, _ := newTestHandler()
+	withNickServAuth(h, "test_bot")
+	h.handleErrNoSuchNick(noSuchNick("user_bot", "NickServ"))
+	gen := h.identifyRetryGen
+
+	h.identifyOutstanding = true
+
+	assert.False(t, h.identifyRetryDue(gen), "expected the retry to leave the outstanding IDENTIFY alone")
+}
+
+// TestIdentifyRetryDelay checks the retry follows the connect backoff and stays
+// capped however long NickServ is gone.
+func TestIdentifyRetryDelay(t *testing.T) {
+	tests := []struct {
+		attempt int
+		base    time.Duration
+	}{
+		{attempt: 1, base: 15 * time.Second},
+		{attempt: 2, base: 30 * time.Second},
+		{attempt: 3, base: time.Minute},
+		{attempt: 4, base: 2 * time.Minute},
+		{attempt: 5, base: 4 * time.Minute},
+		{attempt: 6, base: 5 * time.Minute},
+		{attempt: 10000, base: 5 * time.Minute},
+	}
+
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("attempt %d", tt.attempt), func(t *testing.T) {
+			delay := identifyRetryDelay(tt.attempt)
+
+			assert.GreaterOrEqual(t, delay, tt.base)
+			assert.Less(t, delay, tt.base+connectRetryMaxJitter)
 		})
 	}
 }
