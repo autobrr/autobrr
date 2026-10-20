@@ -171,9 +171,16 @@ func (s *Service) Update(ctx context.Context, indexer *domain.Indexer) error {
 	}
 
 	// settings are persisted wholesale, so an update that omits a saved credential would
-	// silently delete it; require the client to echo it back, redacted or not
+	// silently delete it; require the client to echo it back, redacted or not. Keys the
+	// definition no longer declares (e.g. PTP's old api_key) are never sent by the form,
+	// so those are allowed to drop out
+	definition := s.mappedDefinitions[currentIndexer.Identifier]
 	for key, val := range currentIndexer.Settings {
 		if val == "" || !domain.IsSecretIndexerSetting(key) {
+			continue
+		}
+
+		if definition != nil && !slices.ContainsFunc(definition.Settings, func(setting domain.IndexerSetting) bool { return setting.Name == key }) {
 			continue
 		}
 
