@@ -131,7 +131,7 @@ func TestServiceUpdate_SecretSettings(t *testing.T) {
 			repo := &stubIndexerRepo{current: current}
 
 			svc := NewService(zerolog.Nop(), &stubEventBus{}, nil, repo, nil, nil)
-			svc.mappedDefinitions[current.Identifier] = &domain.IndexerDefinition{Identifier: current.Identifier, Implementation: "rss"}
+			svc.mappedDefinitions[current.Identifier] = &domain.IndexerDefinition{Identifier: current.Identifier, Implementation: "rss", Settings: []domain.IndexerSetting{{Name: "api_key"}, {Name: "host"}}}
 
 			update := &domain.Indexer{ID: 1, Name: "Test RSS", Identifier: current.Identifier, Implementation: "rss", Enabled: true, Settings: tt.settings}
 
@@ -168,6 +168,27 @@ func TestServiceUpdate_EmptySavedSecretMayBeOmitted(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, repo.updated)
+}
+
+func TestServiceUpdate_SecretDroppedFromDefinitionMayBeOmitted(t *testing.T) {
+	t.Parallel()
+
+	repo := &stubIndexerRepo{current: &domain.Indexer{
+		ID:             1,
+		Name:           "PassThePopcorn",
+		Identifier:     "ptp",
+		Implementation: "rss",
+		Settings:       map[string]string{"api_key": "stale", "authkey": "auth", "torrent_pass": "pass"},
+	}}
+
+	svc := NewService(zerolog.Nop(), &stubEventBus{}, nil, repo, nil, nil)
+	svc.mappedDefinitions["ptp"] = &domain.IndexerDefinition{Identifier: "ptp", Implementation: "rss", Settings: []domain.IndexerSetting{{Name: "authkey"}, {Name: "torrent_pass"}}}
+
+	err := svc.Update(t.Context(), &domain.Indexer{ID: 1, Name: "PassThePopcorn", Identifier: "ptp", Implementation: "rss", Settings: map[string]string{"authkey": domain.RedactedStr, "torrent_pass": domain.RedactedStr}})
+
+	require.NoError(t, err)
+	require.NotNil(t, repo.updated)
+	assert.Equal(t, map[string]string{"authkey": "auth", "torrent_pass": "pass"}, repo.updated.Settings)
 }
 
 func TestServiceRejectsArchivedMutations(t *testing.T) {
