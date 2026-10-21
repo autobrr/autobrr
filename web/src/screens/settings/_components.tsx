@@ -137,6 +137,14 @@ export const NtfyIcon = () => (
   </svg>
 );
 
+export const BarkIcon = () => (
+  <svg {...commonSVGProps} viewBox="0 0 50 50">
+    <path d="M3 15 17 19v12L3 35Z" />
+    <path d="M19 21.5h12v7H19Z" />
+    <path d="M47 15 33 19v12l14 4Z" />
+  </svg>
+);
+
 export const LunaSeaIcon = () => (
   <svg {...commonSVGProps} viewBox="0 0 750 750">
     <path d="m554.69 180.46c-333.63 0-452.75 389.23-556.05 389.23 185.37 0 237.85-247.18 419.12-247.18l47.24-102.05z" />

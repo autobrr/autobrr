@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { ActionRtorrentRenameOptions } from "@domain/constants";
+import { ActionRtorrentRenameOptions, getRTorrentPriorityOptions } from "@domain/constants";
 import { FilterHalfRow, FilterLayout, FilterSection } from "@screens/filters/sections/_components.tsx";
 import { DownloaderSelect, Select, SwitchGroup, TextAreaAutoResize, TextField } from "@components/inputs";
 import { useTranslation } from "react-i18next";
@@ -56,6 +56,30 @@ export const RTorrent = ({ idx, action, clients }: ClientActionProps) => {
             label={t("actionComponents.rtorrent.renameToPath")}
             optionDefaultText={t("actionComponents.rtorrent.renameDefault")}
             options={ActionRtorrentRenameOptions}
+          />
+        </FilterHalfRow>
+
+        <FilterHalfRow>
+          <Select
+            name={`actions[${idx}].priority`}
+            label={t("actionComponents.rtorrent.priority")}
+            optionDefaultText={t("actionComponents.rtorrent.priorityDefault")}
+            options={getRTorrentPriorityOptions(t)}
+            tooltip={
+              <div>
+                <p>{t("actionComponents.rtorrent.priorityTooltip")}</p>
+              </div>
+            }
+          />
+          <TextField
+            name={`actions[${idx}].ratio_group`}
+            label={t("actionComponents.rtorrent.ratioGroup")}
+            placeholder={t("actionComponents.rtorrent.ratioGroupPlaceholder")}
+            tooltip={
+              <div>
+                <p>{t("actionComponents.rtorrent.ratioGroupTooltip")}</p>
+              </div>
+            }
           />
         </FilterHalfRow>
       </FilterLayout>

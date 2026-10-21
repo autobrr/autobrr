@@ -1,7 +1,7 @@
 // Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-//go:build irc_integration_test
+//go:build irc_integration_test || e2e
 
 package ircd
 
@@ -322,6 +322,10 @@ func (c *conn) handleMessage(msg ircmsg.Message, notice bool) {
 
 	// direct message: NickServ, a virtual bot, another client, or nobody
 	if strings.EqualFold(target, "NickServ") {
+		if c.srv.missNickServ() {
+			c.numeric(401, target, "No such nick/channel")
+			return
+		}
 		c.handleNickServ(text)
 		return
 	}

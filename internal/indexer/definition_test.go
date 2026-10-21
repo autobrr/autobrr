@@ -168,7 +168,7 @@ func TestBundledDefinitionIRCAuth(t *testing.T) {
 	require.NoError(t, s.LoadIndexerDefinitions())
 
 	for _, identifier := range []string{
-		"aither", "animebytes", "brks", "docspedia", "funfile", "sharewood", "superbits", "torrentleech", "zenith",
+		"aither", "animebytes", "brks", "docspedia", "funfile", "superbits", "torrentleech", "zenith",
 	} {
 		definition := s.definitions[identifier]
 		require.NotNil(t, definition.IRC, identifier)

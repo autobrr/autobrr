@@ -12,6 +12,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/events"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -23,6 +24,9 @@ type stubIrcRepo struct {
 	m       sync.Mutex
 	network domain.IrcNetwork
 	toggled map[int64]bool
+
+	lastChannelID int64
+	inviteErr     error
 }
 
 func newStubIrcRepo(network domain.IrcNetwork) *stubIrcRepo {
@@ -55,9 +59,19 @@ func (r *stubIrcRepo) ToggleNetworkEnabled(_ context.Context, id int64, enabled 
 	r.network.Enabled = enabled
 	return nil
 }
-func (r *stubIrcRepo) StoreChannel(context.Context, int64, *domain.IrcChannel) error { return nil }
-func (r *stubIrcRepo) UpdateChannel(*domain.IrcChannel) error                        { return nil }
-func (r *stubIrcRepo) UpdateInviteCommand(int64, string) error                       { return nil }
+func (r *stubIrcRepo) StoreChannel(_ context.Context, _ int64, channel *domain.IrcChannel) error {
+	r.m.Lock()
+	defer r.m.Unlock()
+
+	if channel.ID == 0 {
+		r.lastChannelID++
+		channel.ID = r.lastChannelID
+	}
+
+	return nil
+}
+func (r *stubIrcRepo) UpdateChannel(*domain.IrcChannel) error  { return nil }
+func (r *stubIrcRepo) UpdateInviteCommand(int64, string) error { return r.inviteErr }
 func (r *stubIrcRepo) StoreNetworkChannels(context.Context, int64, []domain.IrcChannel) error {
 	return nil
 }
@@ -77,6 +91,14 @@ func (r *stubIrcRepo) DeleteNetwork(context.Context, int64) error { return nil }
 type stubIndexerService struct{}
 
 func (stubIndexerService) GetIndexersByIRCNetwork(string) []*domain.IndexerDefinition { return nil }
+
+type stubDefinitionsIndexerService struct {
+	definitions []*domain.IndexerDefinition
+}
+
+func (s stubDefinitionsIndexerService) GetIndexersByIRCNetwork(string) []*domain.IndexerDefinition {
+	return s.definitions
+}
 
 type stubProxyService struct {
 	proxy *domain.Proxy
@@ -195,4 +217,77 @@ func TestCheckIfNetworkRestartNeeded_EquivalentChannelNamesStayDistinct(t *testi
 	assert.Equal(t, int64(2), second.Snapshot().ID)
 	assert.Equal(t, "two", second.GetPassword())
 	assert.NotEqual(t, ChannelStateIdle, second.StateMachine().CurrentState(), "the added channel was never started")
+}
+
+// Adding a sister site merges its channel and invite command into the existing
+// network. Before the fix the handler kept its old channel set, so the new
+// channel was stored but never joined until autobrr restarted.
+func TestStoreNetwork_ExistingNetworkRegistersNewChannel(t *testing.T) {
+	t.Parallel()
+
+	existing := domain.IrcNetwork{ID: 7, Name: "DigitalCore", Server: "irc.example.test", Port: 7000, Nick: "bot", Enabled: true, InviteCommand: "ENDOR !invite user dckey"}
+	definitions := []*domain.IndexerDefinition{
+		defWithInvite("digitalcore", "irc.example.test", "#announce", "ENDOR", "ENDOR"),
+		defWithInvite("dirtybytes", "irc.example.test", "#dirtybytes-announce", "DirtyBytes", "DirtyBytes"),
+	}
+
+	s := NewService(zerolog.Nop(), noopEventBus{}, &mockSSEServer{}, newStubIrcRepo(existing), nil, stubDefinitionsIndexerService{definitions: definitions}, stubProxyService{})
+
+	// a handler parked by a restart in flight, which the update must not bypass
+	h := NewHandler(zerolog.Nop(), noopEventBus{}, &mockSSEServer{}, existing, definitions[:1], nil)
+	s.networkHandlers.Set(existing.ID, h)
+
+	err := s.StoreNetwork(t.Context(), &domain.IrcNetwork{
+		Server:        "irc.example.test",
+		Port:          7000,
+		Nick:          "bot",
+		InviteCommand: "DirtyBytes !invite user dbkey",
+		Channels:      []domain.IrcChannel{{Name: "#dirtybytes-announce", Enabled: true}},
+	})
+	require.NoError(t, err)
+
+	ch, found := h.channels.Get("#dirtybytes-announce")
+	require.True(t, found, "the merged channel must be registered on the running handler")
+	assert.NotNil(t, ch.announceProcessor)
+	assert.Equal(t, "DirtyBytes !invite user dbkey", ch.InviteCommand())
+	assert.Equal(t, int64(1), ch.Snapshot().ID, "the handler must carry the stored channel id")
+
+	_, cached := s.networkCache.Get(0)
+	assert.False(t, cached, "the merged network must be cached under the existing network id")
+
+	cachedNetwork, cached := s.networkCache.Get(existing.ID)
+	require.True(t, cached)
+	require.Len(t, cachedNetwork.Channels, 1)
+	assert.Equal(t, int64(1), cachedNetwork.Channels[0].ID, "the cache must carry the stored channel id")
+}
+
+// A failed write must not leave the merged network's unsaved invite command in
+// the cache, which serves the network list.
+func TestStoreNetwork_FailedInviteCommandUpdateKeepsCache(t *testing.T) {
+	t.Parallel()
+
+	existing := domain.IrcNetwork{ID: 7, Name: "DigitalCore", Server: "irc.example.test", Port: 7000, Nick: "bot", Enabled: true, InviteCommand: "ENDOR !invite user dckey"}
+
+	repo := newStubIrcRepo(existing)
+	repo.inviteErr = errors.New("database is locked")
+
+	s := NewService(zerolog.Nop(), noopEventBus{}, &mockSSEServer{}, repo, nil, stubIndexerService{}, stubProxyService{})
+
+	cachedBefore := existing
+	s.networkCache.Set(existing.ID, &cachedBefore)
+
+	err := s.StoreNetwork(t.Context(), &domain.IrcNetwork{
+		Server:        "irc.example.test",
+		Port:          7000,
+		Nick:          "bot",
+		InviteCommand: "DirtyBytes !invite user dbkey",
+		Channels:      []domain.IrcChannel{{Name: "#dirtybytes-announce", Enabled: true}},
+	})
+	require.Error(t, err)
+
+	cached, found := s.networkCache.Get(existing.ID)
+	require.True(t, found)
+	assert.Same(t, &cachedBefore, cached, "a failed store must keep the previous cache entry")
+	assert.Equal(t, "ENDOR !invite user dckey", cached.InviteCommand)
+	assert.Empty(t, cached.Channels)
 }

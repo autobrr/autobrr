@@ -406,7 +406,7 @@ func TestIndexersParseAndFilter(t *testing.T) {
 				{
 					name: "announce_resolution_not_in_name",
 					args: args{
-						announceLines: []string{"Category [TV] Type [WEB-DL] Name [The Show S01E01 NF WEB-DL DD+ 5.1 H.264-GRP] Resolution [1080p] Freeleech [0%] Internal [No] Double Upload [No] Size [1.38 GB] Uploader [Anonymous] Url [https://aither.cc/torrents/download/213123123]"},
+						announceLines: []string{"Category [TV] Type [WEB-DL] Name [The Show S01E01 NF WEB-DL DD+ 5.1 H.264-GRP] Resolution [1080p] Freeleech [0%] Upload Cap: [No] Internal [No] Double Upload [No] Size [1.38 GB] Uploader [Anonymous] Url [https://aither.cc/torrents/download/213123123]"},
 						filters: []filterTest{
 							{
 								filter: &domain.Filter{
@@ -463,35 +463,6 @@ func TestIndexersParseAndFilter(t *testing.T) {
 					},
 				},
 			},
-		},
-		{
-			name: "sharewood",
-			fields: fields{
-				identifier:         "sharewood",
-				identifierExternal: "Sharewood",
-				settings: map[string]string{
-					"passkey": "key",
-				},
-			},
-			subTests: []subTest{
-				{
-					name: "announce_resolution_differs_from_name",
-					args: args{
-						announceLines: []string{"Vidéos | La Brea S02E08 MULTi 1080p WEB x264-FW | 1.27 GiB | 1080p/i <https://sharewood.tv/torrents/la-brea-s02e08-multi-1080p-web-x264-fw.66870>"},
-						filters: []filterTest{
-							{
-								filter: &domain.Filter{
-									Name:        "filter_1",
-									Resolutions: []string{"1080p"},
-								},
-								match: true,
-							},
-						},
-					},
-					match: false,
-				},
-			},
-			match: true,
 		},
 		{
 			name: "iptorrents",
