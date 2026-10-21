@@ -57,10 +57,12 @@ jobs:
           GH_TOKEN: ${{ secrets.AUTOMATION_TOKEN || secrets.GITHUB_TOKEN }}
           BASE_BRANCH: ${{ github.ref_name }}
           GO_MOD_VERSION: ${{ steps.update.outputs.go_mod_version }}
+          GO_TOOLCHAIN: ${{ steps.update.outputs.go_toolchain }}
           GOLANG_TAG: ${{ steps.update.outputs.golang_tag }}
           NODE_TAG: ${{ steps.update.outputs.node_tag }}
           ALPINE_VERSION: ${{ steps.update.outputs.alpine_version }}
           OLD_GO: ${{ steps.update.outputs.old_go }}
+          OLD_TOOLCHAIN: ${{ steps.update.outputs.old_toolchain }}
           OLD_GOLANG: ${{ steps.update.outputs.old_golang }}
           OLD_NODE: ${{ steps.update.outputs.old_node }}
           OLD_ALPINE: ${{ steps.update.outputs.old_alpine }}
@@ -68,7 +70,7 @@ jobs:
           set -euo pipefail
 
           BRANCH="automation/update-toolchain"
-          TITLE="build(deps): update Go to ${GO_MOD_VERSION} and bump Docker base images"
+          TITLE="build(deps): update Go to ${GO_TOOLCHAIN#go} and bump Docker base images"
 
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -84,6 +86,7 @@ jobs:
             "| Target | From | To |" \
             "| --- | --- | --- |" \
             "| go.mod \`go\` directive | ${OLD_GO} | ${GO_MOD_VERSION} |" \
+            "| go.mod \`toolchain\` line | ${OLD_TOOLCHAIN:-none} | ${GO_TOOLCHAIN} |" \
             "| builder image | ${OLD_GOLANG} | golang:${GOLANG_TAG} |" \
             "| web-builder image | ${OLD_NODE} | node:${NODE_TAG} |" \
             "| runner image | ${OLD_ALPINE} | alpine:${ALPINE_VERSION} |" \

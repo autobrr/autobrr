@@ -5,6 +5,7 @@
 # Auto-detects the latest stable Go, the newest Node LTS, and the newest Alpine from
 # go.dev / nodejs.org / Docker Hub, then rewrites:
 #   - go.mod                  `go` directive   -> latest stable Go minor   (e.g. go 1.26.0)
+#   - go.mod                  `toolchain` line -> latest stable Go patch   (e.g. toolchain go1.26.4)
 #   - every Dockerfile/*.Dockerfile in the repo (root or nested, e.g. distrib/docker/):
 #       golang:<tag>  image   -> golang:<minor>-alpine<X>   (e.g. 1.26-alpine3.24)
 #       node:<tag>    image   -> node:<LTS>-alpine<X>       (e.g. 24.18.0-alpine3.24)
@@ -88,6 +89,9 @@ go_minor="$(echo "$go_version" | cut -d. -f1,2)"
 # Pin the go.mod directive to the minor (matches the minor-pinned builder image
 # and avoids churn on every patch release).
 go_mod_version="${go_minor}.0"
+# setup-go builds CI and release binaries with the toolchain line when present, so
+# it tracks the latest patch while the go directive stays the minimum.
+go_toolchain="go${go_version}"
 
 # Newest alpine variant of golang:<minor>-alpine<X.Y>.
 golang_alpine="$(curl -fsSL "https://hub.docker.com/v2/repositories/library/golang/tags/?page_size=100&name=${go_minor}-alpine" \
@@ -127,6 +131,7 @@ alpine_version="$(printf '%s\n%s\n' "$golang_alpine" "$node_alpine" | sort -V | 
 # Current values (representative, for reporting) — tolerant of absent images
 # ---------------------------------------------------------------------------
 old_go="$(grep -oE '^go [0-9][^[:space:]]*' go.mod | awk '{print $2}' || true)"
+old_toolchain="$(grep -oE '^toolchain [^[:space:]]+' go.mod | awk '{print $2}' || true)"
 old_golang="$(grep -hoE 'golang:[^[:space:]"]+' "${dockerfiles[@]}" 2>/dev/null | head -1 || true)"
 old_node="$(grep -hoE 'node:[^[:space:]"]+' "${dockerfiles[@]}" 2>/dev/null | head -1 || true)"
 old_alpine="$(grep -hoE 'alpine:[^[:space:]"]+' "${dockerfiles[@]}" 2>/dev/null | head -1 || true)"
@@ -148,8 +153,18 @@ apply() { # file  transformed-content
   fi
 }
 
-# go.mod `go` directive
-apply go.mod "$(sed -E "s|^go [0-9]+\.[0-9]+(\.[0-9]+)?$|go ${go_mod_version}|" go.mod)"
+# go.mod `go` directive and `toolchain` line, laid out the way `go mod tidy` writes
+# them (each in its own blank-line-separated block). A toolchain equal to the go
+# directive is redundant and tidy drops it, so remove it in that case.
+go_mod="$(sed -E "s|^go [0-9]+\.[0-9]+(\.[0-9]+)?$|go ${go_mod_version}|" go.mod)"
+if [ "$go_toolchain" = "go${go_mod_version}" ]; then
+  go_mod="$(printf '%s\n' "$go_mod" | sed -E '/^toolchain /{N;d}')"
+elif [ -n "$old_toolchain" ]; then
+  go_mod="$(printf '%s\n' "$go_mod" | sed -E "s|^toolchain .*|toolchain ${go_toolchain}|")"
+else
+  go_mod="$(printf '%s\n' "$go_mod" | sed -E "/^go [0-9]/{n;s|^$|\ntoolchain ${go_toolchain}\n|}")"
+fi
+apply go.mod "$go_mod"
 
 # Image tokens across every Dockerfile
 for f in "${dockerfiles[@]}"; do
@@ -171,6 +186,7 @@ row() { # label  old  new
 
 echo "Detected latest versions:"
 row "go (go.mod)" "$old_go" "$go_mod_version"
+row "toolchain" "${old_toolchain:-n/a}" "$( [ "$go_toolchain" != "go${go_mod_version}" ] && echo "$go_toolchain" || echo n/a )"
 row "golang image" "${old_golang:-n/a}" "golang:${golang_tag}"
 row "node image" "${old_node:-n/a}" "node:${node_tag}"
 row "alpine image" "${old_alpine:-n/a}" "alpine:${alpine_version}"
@@ -186,10 +202,12 @@ if [ -n "${GITHUB_OUTPUT:-}" ]; then
   {
     echo "changed=$any_changed"
     echo "go_mod_version=$go_mod_version"
+    echo "go_toolchain=$go_toolchain"
     echo "golang_tag=$golang_tag"
     echo "node_tag=$node_tag"
     echo "alpine_version=$alpine_version"
     echo "old_go=$old_go"
+    echo "old_toolchain=$old_toolchain"
     echo "old_golang=$old_golang"
     echo "old_node=$old_node"
     echo "old_alpine=$old_alpine"
