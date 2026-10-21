@@ -158,11 +158,11 @@ apply() { # file  transformed-content
 # directive is redundant and tidy drops it, so remove it in that case.
 go_mod="$(sed -E "s|^go [0-9]+\.[0-9]+(\.[0-9]+)?$|go ${go_mod_version}|" go.mod)"
 if [ "$go_toolchain" = "go${go_mod_version}" ]; then
-  go_mod="$(printf '%s\n' "$go_mod" | sed -E '/^toolchain /{N;d}')"
+  go_mod="$(printf '%s\n' "$go_mod" | sed -E '/^toolchain /{$d;N;/\n$/d;s/^[^\n]*\n//}')"
 elif [ -n "$old_toolchain" ]; then
   go_mod="$(printf '%s\n' "$go_mod" | sed -E "s|^toolchain .*|toolchain ${go_toolchain}|")"
 else
-  go_mod="$(printf '%s\n' "$go_mod" | sed -E "/^go [0-9]/{n;s|^$|\ntoolchain ${go_toolchain}\n|}")"
+  go_mod="$(printf '%s\n' "$go_mod" | sed -E "s|^go [0-9].*|&\n\ntoolchain ${go_toolchain}|")"
 fi
 apply go.mod "$go_mod"
 

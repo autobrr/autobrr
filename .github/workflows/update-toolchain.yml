@@ -72,6 +72,11 @@ jobs:
           BRANCH="automation/update-toolchain"
           TITLE="build(deps): update Go to ${GO_TOOLCHAIN#go} and bump Docker base images"
 
+          NEW_TOOLCHAIN="$GO_TOOLCHAIN"
+          if [ "$GO_TOOLCHAIN" = "go${GO_MOD_VERSION}" ]; then
+            NEW_TOOLCHAIN="none"
+          fi
+
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
@@ -86,7 +91,7 @@ jobs:
             "| Target | From | To |" \
             "| --- | --- | --- |" \
             "| go.mod \`go\` directive | ${OLD_GO} | ${GO_MOD_VERSION} |" \
-            "| go.mod \`toolchain\` line | ${OLD_TOOLCHAIN:-none} | ${GO_TOOLCHAIN} |" \
+            "| go.mod \`toolchain\` line | ${OLD_TOOLCHAIN:-none} | ${NEW_TOOLCHAIN} |" \
             "| builder image | ${OLD_GOLANG} | golang:${GOLANG_TAG} |" \
             "| web-builder image | ${OLD_NODE} | node:${NODE_TAG} |" \
             "| runner image | ${OLD_ALPINE} | alpine:${ALPINE_VERSION} |" \
