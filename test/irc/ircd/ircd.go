@@ -46,7 +46,8 @@ type Server struct {
 
 	// requireValidSASL rejects SASL logins that don't match a registered account.
 	// Off by default so tests that don't care about credentials just work.
-	requireValidSASL bool
+	requireValidSASL   bool
+	wildcardEndOfNames bool
 
 	// banReason, if set, makes the server reject every client with a 465
 	// (ERR_YOUREBANNEDCREEP) carrying this reason and then close the link -
@@ -77,6 +78,12 @@ func WithAccount(name, password string) Option {
 // account (see WithAccount). Use it to exercise the SASL-failure path.
 func RequireValidSASL() Option {
 	return func(s *Server) { s.requireValidSASL = true }
+}
+
+// WildcardEndOfNames makes RPL_ENDOFNAMES use "*" as its target, matching the
+// soju bouncer form consumed by Handler.handleJoined.
+func WildcardEndOfNames() Option {
+	return func(s *Server) { s.wildcardEndOfNames = true }
 }
 
 // Banned makes the server ban every client just after registration with a 465
@@ -112,7 +119,6 @@ func (s *Server) SetNickServOnline(online bool) {
 func (s *Server) LinkNickServ() {
 	s.mu.Lock()
 	s.nickServOffline = false
-	// the nick comes from the map key: c.nick is owned by the connection's goroutine
 	conns := maps.Clone(s.conns)
 	s.mu.Unlock()
 
@@ -372,6 +378,32 @@ func (s *Server) Kick(channel, nick, by, reason string) {
 	s.mu.Unlock()
 }
 
+// SendNickChange renames a client the way a server-forced nick change does and
+// sends it the NICK event, whose source may differ in case from the
+// connection's current nick. Later lookups and replies use newNick.
+func (s *Server) SendNickChange(nick, sourceNick, newNick string) {
+	oldKey, newKey := strings.ToLower(nick), strings.ToLower(newNick)
+
+	s.mu.Lock()
+	c := s.conns[oldKey]
+	if c == nil {
+		s.mu.Unlock()
+		return
+	}
+	delete(s.conns, oldKey)
+	s.conns[newKey] = c
+	for _, ch := range s.channels {
+		if ch.members[oldKey] == c {
+			delete(ch.members, oldKey)
+			ch.members[newKey] = c
+		}
+	}
+	c.setNick(newNick)
+	s.mu.Unlock()
+
+	c.sendf(":%s!%s NICK :%s", sourceNick, userHost, newNick)
+}
+
 // ForceJoin pushes a client into a channel as if the server joined it (a
 // SAJOIN-style force-join): it adds the nick to the channel, echoes the JOIN and
 // sends the NAMES reply, bypassing the +i/+k/+r gate checks. This models a
@@ -395,7 +427,14 @@ func (s *Server) ForceJoin(nick, channel string) {
 	// conn.joinOne so the handler's RPL_ENDOFNAMES join detection fires
 	s.broadcast(ch, fmt.Sprintf(":%s!%s JOIN %s", nick, userHost, ch.name), nil)
 	c.sendf(":%s 353 %s = %s :%s", serverName, nick, ch.name, strings.Join(names, " "))
-	c.sendf(":%s 366 %s %s :End of /NAMES list.", serverName, nick, ch.name)
+	c.sendf(":%s 366 %s %s :End of /NAMES list.", serverName, s.endOfNamesTarget(nick), ch.name)
+}
+
+func (s *Server) endOfNamesTarget(nick string) string {
+	if s.wildcardEndOfNames {
+		return "*"
+	}
+	return nick
 }
 
 // sendToNick delivers a raw line to a registered client by nick (no-op if the
@@ -434,17 +473,19 @@ func (s *Server) getBot(nick string) *Bot {
 
 func (s *Server) registerConn(c *conn) {
 	s.mu.Lock()
-	s.conns[strings.ToLower(c.nick)] = c
+	s.conns[strings.ToLower(c.getNick())] = c
 	s.mu.Unlock()
 }
 
 func (s *Server) unregisterConn(c *conn) {
+	key := strings.ToLower(c.getNick())
+
 	s.mu.Lock()
-	if c.nick != "" && s.conns[strings.ToLower(c.nick)] == c {
-		delete(s.conns, strings.ToLower(c.nick))
+	if key != "" && s.conns[key] == c {
+		delete(s.conns, key)
 	}
 	for _, ch := range s.channels {
-		delete(ch.members, strings.ToLower(c.nick))
+		delete(ch.members, key)
 	}
 	s.mu.Unlock()
 }
