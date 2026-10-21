@@ -1729,6 +1729,26 @@ func TestReleaseRepo_CheckIsDuplicateRelease(t *testing.T) {
 				},
 				isDuplicate: true,
 			},
+			{
+				name: "42 release name underscore is literal",
+				fields: fields{
+					releaseTitles:  []string{"The_Best Show 2020 S04E10 1080p AMZN WEB-DL DDP 5.1 H.264-GROUP"},
+					releaseTitle:   "TheXBest Show 2020 S04E10 1080p AMZN WEB-DL DDP 5.1 H.264-GROUP",
+					normalizedHash: "shared-normalized-hash",
+					profile:        &domain.DuplicateReleaseProfile{ReleaseName: true, Hash: true},
+				},
+				isDuplicate: false,
+			},
+			{
+				name: "43 release name percent is literal",
+				fields: fields{
+					releaseTitles:  []string{"The%Best Show 2020 S04E10 1080p AMZN WEB-DL DDP 5.1 H.264-GROUP"},
+					releaseTitle:   "TheBest Show 2020 S04E10 1080p AMZN WEB-DL DDP 5.1 H.264-GROUP",
+					normalizedHash: "shared-normalized-hash",
+					profile:        &domain.DuplicateReleaseProfile{ReleaseName: true, Hash: true},
+				},
+				isDuplicate: false,
+			},
 		}
 
 		for _, tt := range tests {
