@@ -63,6 +63,7 @@ export function Actions() {
     skip_hash_check: false,
     content_layout: "",
     priority: "",
+    ratio_group: "",
     limit_upload_speed: 0,
     limit_download_speed: 0,
     limit_ratio: 0,

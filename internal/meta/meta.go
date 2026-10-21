@@ -140,8 +140,9 @@ func GetMetaStr() string {
 // GetMetaInfo returns the version, build date and commit.
 func GetMetaInfo() Info {
 	return Info{
-		Version: GetVersion(),
-		Date:    GetDate(),
-		Commit:  GetCommit(),
+		Version:   GetVersion(),
+		Date:      GetDate(),
+		Commit:    GetCommit(),
+		UserAgent: GetUserAgent(),
 	}
 }

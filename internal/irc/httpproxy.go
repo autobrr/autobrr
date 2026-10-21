@@ -99,6 +99,11 @@ func (d *httpProxyDialer) DialContext(ctx context.Context, network, addr string)
 		return nil, errors.Wrap(err, "failed to reset deadline")
 	}
 
+	// the deadline bounds the CONNECT exchange, but only closing the connection
+	// ends it early when the caller gives up
+	stopClose := context.AfterFunc(ctx, func() { proxyConn.Close() })
+	defer stopClose()
+
 	// Send the CONNECT request
 	if _, err := proxyConn.Write([]byte(connectReq)); err != nil {
 		proxyConn.Close()
@@ -143,6 +148,10 @@ func (d *httpProxyDialer) DialContext(ctx context.Context, network, addr string)
 	// Close the response body for successful responses (should be empty for CONNECT)
 	if resp.Body != nil {
 		resp.Body.Close()
+	}
+
+	if !stopClose() {
+		return nil, errors.Wrap(ctx.Err(), "proxy CONNECT to %s cancelled", addr)
 	}
 
 	// Reset the deadline

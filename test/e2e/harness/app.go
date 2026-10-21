@@ -45,13 +45,22 @@ type App struct {
 func Start(t testing.TB) *App {
 	t.Helper()
 
+	return StartWithDefinitions(t, definitionsDir())
+}
+
+// StartWithDefinitions is Start with custom indexer definitions loaded from
+// dir instead of test/definitions, for tests that generate definitions
+// pointing at a server only known at runtime.
+func StartWithDefinitions(t testing.TB, dir string) *App {
+	t.Helper()
+
 	port, err := freePort()
 	if err != nil {
 		t.Fatalf("harness: could not find a free port: %v", err)
 	}
 
 	confDir := t.TempDir()
-	writeConfig(t, confDir, port)
+	writeConfig(t, confDir, port, dir)
 
 	jar, err := cookiejar.New(nil)
 	if err != nil {
@@ -167,7 +176,7 @@ func (a *App) login() *http.Cookie {
 // writeConfig writes a complete config.toml rather than letting autobrr
 // generate one, because the generated file hardcodes port 7474 and would
 // collide with a developer's own instance.
-func writeConfig(t testing.TB, dir string, port int) {
+func writeConfig(t testing.TB, dir string, port int, definitions string) {
 	t.Helper()
 
 	config := fmt.Sprintf(`host = "127.0.0.1"
@@ -176,7 +185,7 @@ logLevel = "DEBUG"
 checkForUpdates = false
 customDefinitions = %q
 sessionSecret = "e2e-session-secret"
-`, port, definitionsDir())
+`, port, definitions)
 
 	if err := os.WriteFile(filepath.Join(dir, "config.toml"), []byte(config), 0o644); err != nil {
 		t.Fatalf("harness: could not write config.toml: %v", err)

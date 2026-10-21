@@ -147,6 +147,8 @@ func (db *DB) Migrate() error {
 }
 
 func (db *DB) Close() error {
+	db.log.Debug().Msg("closing database..")
+
 	switch db.Driver {
 	case DriverSQLite:
 		if err := db.closingSQLite(); err != nil {
