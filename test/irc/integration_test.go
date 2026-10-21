@@ -29,6 +29,7 @@ func TestConnectJoinAnnounce(t *testing.T) {
 	network := domain.IrcNetwork{
 		ID:       1,
 		Name:     "Test",
+		Enabled:  true,
 		Server:   srv.Host(),
 		Port:     srv.Port(),
 		Nick:     "autobrr",
@@ -39,6 +40,11 @@ func TestConnectJoinAnnounce(t *testing.T) {
 	inst := harness.Start(t, network, []*domain.IndexerDefinition{def})
 
 	inst.WaitForMonitoring("#test", 10*time.Second)
+
+	var status domain.IrcNetworkWithHealth
+	inst.Handler.ReportStatus(&status)
+	require.True(t, status.Connected, "a registered network must report connected")
+	require.False(t, status.ConnectedSince.IsZero())
 
 	srv.Announce("#test", "announcer", "New torrent: Some.Release.2024.1080p.BluRay.x264-GRP in Movies")
 
@@ -53,28 +59,83 @@ func TestConnectJoinAnnounce(t *testing.T) {
 // a Stop that left the network state machine in FullyOperational rejected the new
 // connection's Connected transition and the channel stayed Idle.
 func TestStopThenRunRejoins(t *testing.T) {
-	srv := ircd.New(t)
-	srv.AddChannel("#none", ircd.Announcer("ann"))
+	tests := []struct {
+		name    string
+		auth    domain.IRCAuth
+		account bool
+		restart func(inst *harness.Instance, defs []*domain.IndexerDefinition) error
+	}{
+		{
+			name: "none stop and run",
+			auth: harness.None(),
+			restart: func(inst *harness.Instance, _ []*domain.IndexerDefinition) error {
+				inst.Handler.Stop()
+				return inst.Handler.Run()
+			},
+		},
+		{
+			name: "nickserv stop and run",
+			auth: harness.NickServ("autobrr", "nspass"),
+			restart: func(inst *harness.Instance, _ []*domain.IndexerDefinition) error {
+				inst.Handler.Stop()
+				return inst.Handler.Run()
+			},
+		},
+		{
+			name: "nickserv restart",
+			auth: harness.NickServ("autobrr", "nspass"),
+			restart: func(inst *harness.Instance, defs []*domain.IndexerDefinition) error {
+				return inst.Handler.Restart(defs)
+			},
+		},
+		{
+			name:    "sasl stop and run",
+			auth:    harness.SASL("autobrr", "s3cret"),
+			account: true,
+			restart: func(inst *harness.Instance, _ []*domain.IndexerDefinition) error {
+				inst.Handler.Stop()
+				return inst.Handler.Run()
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	def := harness.MinimalDefinition("none", "#none", "ann")
-	net := harness.Network(srv, "autobrr", harness.None(), harness.Channel("#none"))
+			var srvOpts []ircd.Option
+			if tt.account {
+				srvOpts = append(srvOpts, ircd.WithAccount("autobrr", "s3cret"))
+			}
+			srv := ircd.New(t, srvOpts...)
 
-	inst := harness.Start(t, net, harness.Defs(def))
-	inst.WaitForMonitoring("#none", 10*time.Second)
-	inst.WaitForHealthy(10 * time.Second)
+			chanOpts := []ircd.ChannelOption{ircd.Announcer("ann")}
+			if tt.auth.Mechanism != domain.IRCAuthMechanismNone {
+				// +r only lets an authenticated client in, so rejoining proves the
+				// second session logged in again
+				chanOpts = append(chanOpts, ircd.RegisteredOnly())
+			}
+			srv.AddChannel("#chan", chanOpts...)
 
-	since := inst.StateCount("#none")
+			defs := harness.Defs(harness.MinimalDefinition("chan", "#chan", "ann"))
+			net := harness.Network(srv, "autobrr", tt.auth, harness.Channel("#chan"))
 
-	inst.Handler.Stop()
-	require.NoError(t, inst.Handler.Run())
+			inst := harness.Start(t, net, defs)
+			inst.WaitForMonitoring("#chan", 10*time.Second)
+			inst.WaitForHealthy(10 * time.Second)
 
-	inst.WaitForStateSince("#none", "Monitoring", since, 10*time.Second)
+			since := inst.StateCount("#chan")
 
-	srv.Announce("#none", "ann", "New torrent: Some.Release.2024.1080p.BluRay.x264-GRP in Movies")
+			require.NoError(t, tt.restart(inst, defs))
 
-	rls, ok := inst.Releases.Wait(5 * time.Second)
-	require.True(t, ok, "no release produced from an announce after the restart")
-	require.Equal(t, "Some.Release.2024.1080p.BluRay.x264-GRP", rls.TorrentName)
+			inst.WaitForStateSince("#chan", "Monitoring", since, 10*time.Second)
+
+			srv.Announce("#chan", "ann", "New torrent: Some.Release.2024.1080p.BluRay.x264-GRP in Movies")
+
+			rls, ok := inst.Releases.Wait(5 * time.Second)
+			require.True(t, ok, "no release produced from an announce after the restart")
+			require.Equal(t, "Some.Release.2024.1080p.BluRay.x264-GRP", rls.TorrentName)
+		})
+	}
 }
 
 // ---- auth

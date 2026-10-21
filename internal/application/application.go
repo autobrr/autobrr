@@ -214,8 +214,8 @@ func (app *App) components(fail context.CancelCauseFunc) []component {
 
 				return nil
 			},
-			stop: func(context.Context) error {
-				app.ircService.StopHandlers()
+			stop: func(ctx context.Context) error {
+				app.ircService.StopHandlers(ctx)
 
 				return nil
 			},
