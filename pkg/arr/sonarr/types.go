@@ -25,6 +25,7 @@ type ReleasePushRequest struct {
 	DownloadClient   string `json:"downloadClient,omitempty"`
 	IndexerFlags     int    `json:"indexerFlags,omitempty"`
 	ImdbID           string `json:"imdbId,omitempty"`
+	TvdbID           int    `json:"tvdbId,omitempty"`
 }
 
 type ReleasePushResponse struct {

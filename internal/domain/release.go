@@ -122,6 +122,8 @@ type Release struct {
 	ActionStatus                       []ReleaseActionStatus `json:"action_status"`
 	MetaIMDB                           string                `json:"-"`
 	MetaTMDB                           int                   `json:"-"`
+	MetaTVDB                           int                   `json:"-"`
+	PublishDate                        time.Time             `json:"-"` // zero for IRC announces, which carry no publish date
 }
 
 // Hash return md5 hashed normalized release name

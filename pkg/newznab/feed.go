@@ -175,7 +175,7 @@ func (f *FeedItem) parseAttributes() {
 				}
 				break
 			}
-		case "tvdb":
+		case "tvdb", "tvdbid":
 			if f.TvdbId == "" {
 				f.TvdbId = attr.Value
 				break

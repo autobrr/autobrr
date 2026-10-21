@@ -32,6 +32,7 @@ type Action struct {
 	LimitRatio               float64             `json:"limit_ratio,omitempty"`
 	LimitSeedTime            int64               `json:"limit_seed_time,omitempty"`
 	PriorityLayout           PriorityLayout      `json:"priority,omitempty"`
+	RatioGroup               string              `json:"ratio_group,omitempty"`
 	ReAnnounceSkip           bool                `json:"reannounce_skip,omitempty"`
 	ReAnnounceDelete         bool                `json:"reannounce_delete,omitempty"`
 	ReAnnounceInterval       int64               `json:"reannounce_interval,omitempty"`
@@ -193,6 +194,11 @@ const (
 	PriorityLayoutMax     PriorityLayout = "MAX"
 	PriorityLayoutMin     PriorityLayout = "MIN"
 	PriorityLayoutDefault PriorityLayout = ""
+
+	// rTorrent bandwidth priorities, unlike the qBittorrent queue positions above
+	PriorityLayoutLow    PriorityLayout = "LOW"
+	PriorityLayoutNormal PriorityLayout = "NORMAL"
+	PriorityLayoutHigh   PriorityLayout = "HIGH"
 )
 
 type GetActionRequest struct {
