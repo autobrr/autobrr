@@ -10,6 +10,7 @@ import (
 	stdErr "errors"
 	"fmt"
 	"maps"
+	"math/rand/v2"
 	"net"
 	"net/url"
 	"slices"
@@ -80,6 +81,11 @@ const (
 	connectRetryMaxJitter = 10 * time.Second
 )
 
+// nickServOfflineError is the network status while IDENTIFY waits for services
+// to link. It is not fatal, but without it a network stuck in Authenticating
+// shows no reason in the UI or the unhealthy notification.
+const nickServOfflineError = "NickServ is not online: retrying identify"
+
 // identifyForm is the argument form of the outstanding NickServ IDENTIFY.
 //
 // The bare form is the default because its failures are always loud and are
@@ -124,6 +130,8 @@ type Handler struct {
 	identifyEscalated   bool
 	identifyFormLearned identifyForm
 	identifyOutstanding bool
+	identifyRetries     int    // IDENTIFYs this connection sent while NickServ was absent
+	identifyRetryGen    uint64 // bumped to cancel a scheduled identify retry
 
 	channels *haxmap.Map[string, *Channel]
 
@@ -975,6 +983,7 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 	expectingReply := h.identifyOutstanding && !h.authenticated && !h.saslauthed && h.network.Auth.NickServEnabled()
 	h.m.RUnlock()
 	if !expectingReply {
+		h.retryIdentifyEarly()
 		return
 	}
 
@@ -1855,6 +1864,10 @@ func (h *Handler) handleErrNoSuchNick(msg ircmsg.Message) {
 
 	h.log.Debug().Str("nick", nick).Msg("no such nick")
 
+	if nick == "nickserv" {
+		h.handleNickServAbsent()
+	}
+
 	for _, channel := range h.channels.Iterator() {
 		if !channel.IsEnabled() {
 			continue
@@ -2005,6 +2018,107 @@ func (h *Handler) NickServIdentify() error {
 	return nil
 }
 
+// handleNickServAbsent schedules another IDENTIFY after the outstanding one got
+// ERR_NOSUCHNICK. An ircd can accept clients before its services have linked
+// (after a netsplit, or an outage the server recovers from first), and nothing
+// else re-sends IDENTIFY, so without a retry the network stays unauthenticated
+// until it is restarted. See https://github.com/autobrr/autobrr/issues/2770.
+func (h *Handler) handleNickServAbsent() {
+	h.m.Lock()
+	if !h.identifyOutstanding || h.authenticated || h.saslauthed {
+		h.m.Unlock()
+		return
+	}
+	h.identifyOutstanding = false
+	h.identifyRetries++
+	h.identifyRetryGen++
+	attempt := h.identifyRetries
+	gen := h.identifyRetryGen
+	if !slices.Contains(h.connectionErrors, nickServOfflineError) {
+		h.connectionErrors = append(h.connectionErrors, nickServOfflineError)
+	}
+	h.m.Unlock()
+
+	delay := identifyRetryDelay(attempt)
+
+	// services can stay delinked for hours; warn once per connection, not on every retry
+	event := h.log.Debug()
+	if attempt == 1 {
+		event = h.log.Warn()
+		h.broadcastHealth()
+	}
+	event.Int("attempt", attempt).Dur("retry_in", delay).Msg("NickServ is not online, retrying identify")
+
+	time.AfterFunc(delay, func() { h.retryIdentify(gen) })
+}
+
+// retryIdentifyEarly sends a scheduled identify retry now instead of waiting out
+// its backoff. Any NOTICE from NickServ means services have linked again, and
+// they typically greet a registered nick that has not identified as soon as they
+// do, so the network authenticates within seconds of services coming back.
+func (h *Handler) retryIdentifyEarly() {
+	h.m.RLock()
+	pending := h.identifyRetries > 0
+	gen := h.identifyRetryGen
+	h.m.RUnlock()
+
+	if !pending {
+		return
+	}
+
+	h.log.Debug().Msg("NickServ is back online, retrying identify")
+
+	h.retryIdentify(gen)
+}
+
+// retryIdentify sends the IDENTIFY scheduled by handleNickServAbsent if it is
+// still due. The check, the claim and the client it goes out on are taken under
+// one lock, so neither another IDENTIFY nor a new connection can slip in between.
+func (h *Handler) retryIdentify(gen uint64) {
+	h.m.Lock()
+	if !h.identifyRetryDueLocked(gen) {
+		h.m.Unlock()
+		return
+	}
+	client := h.client
+	command := h.identifyCommandLocked()
+	h.identifyOutstanding = true
+	h.m.Unlock()
+
+	if err := client.Send("PRIVMSG", "NickServ", command); err != nil {
+		h.m.Lock()
+		// a reconnect since the claim has reset it, and the new connection's own
+		// IDENTIFY may be outstanding now
+		if h.identifyRetryGen == gen {
+			h.identifyOutstanding = false
+		}
+		h.m.Unlock()
+		h.log.Error().Err(err).Msg("error identifying with nickserv")
+	}
+}
+
+// identifyRetryDueLocked reports whether the retry scheduled as gen should still
+// be sent: not superseded by a reconnect or a later miss, the network live and
+// not yet authenticated, and no IDENTIFY already sent by another path.
+// The caller must hold h.m.
+func (h *Handler) identifyRetryDueLocked(gen uint64) bool {
+	return h.identifyRetryGen == gen && h.clientState == ircLive && h.client != nil &&
+		!h.identifyOutstanding && !h.authenticated && !h.saslauthed && h.network.Auth.NickServEnabled()
+}
+
+// identifyRetryDelay returns how long to wait before re-sending an IDENTIFY that
+// found NickServ absent. It follows the connect retry schedule with no attempt
+// limit: the connection is up, so retrying costs one PRIVMSG, while giving up
+// would leave the network unauthenticated until it is restarted.
+func identifyRetryDelay(attempt int) time.Duration {
+	delay := connectRetryDelay
+	for i := 1; i < attempt && delay < connectRetryMaxDelay; i++ {
+		delay *= 2
+	}
+
+	return min(delay, connectRetryMaxDelay) + rand.N(connectRetryMaxJitter)
+}
+
 // canEscalateIdentify reports whether a failed bare IDENTIFY may be retried in
 // the account-qualified form. Escalation is forward-only and happens at most
 // once per connection: on services that do not support the account argument the
@@ -2086,12 +2200,17 @@ func (h *Handler) resetSessionLocked() {
 // this network and re-arms escalation. Seeding from the learned form keeps a
 // reconnect from re-sending a bare IDENTIFY already known to fail here; the
 // escalation guards reject escalating out of the account form, so a connection
-// that starts there stays there.
+// that starts there stays there. A retry scheduled because NickServ was absent
+// belongs to the old connection, so it is cancelled, its backoff starts over and
+// its status is dropped until the new connection finds NickServ absent too.
 // The caller must hold h.m.
 func (h *Handler) resetIdentifyForm() {
 	h.identifyAttempt = h.identifyFormLearned
 	h.identifyEscalated = false
 	h.identifyOutstanding = false
+	h.identifyRetries = 0
+	h.identifyRetryGen++
+	h.connectionErrors = slices.DeleteFunc(h.connectionErrors, func(e string) bool { return e == nickServOfflineError })
 }
 
 // unlearnIdentifyForm drops a remembered account-qualified form once it has
