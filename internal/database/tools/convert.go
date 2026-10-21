@@ -7,22 +7,33 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
+	"os"
 	"slices"
 	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/database/migrations"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/migrator"
 
+	_ "github.com/lib/pq"
 	"github.com/rs/zerolog"
 	_ "modernc.org/sqlite"
 )
 
+const (
+	engineSQLite   = "sqlite"
+	enginePostgres = "postgres"
+)
+
+// defaultTables is ordered so referenced tables are copied before the tables that reference them.
+// sessions and schema_migrations are left out on purpose: sessions only log users out, and the
+// target gets its own migration history.
 var defaultTables = []string{
 	"users",
 	"proxy",
 	"indexer",
+	"indexer_deprecation",
 	"irc_network",
 	"irc_channel",
 	"release_profile_duplicate",
@@ -33,20 +44,28 @@ var defaultTables = []string{
 	"action",
 	"release",
 	"release_action_status",
+	"release_cleanup_job",
 	"notification",
 	"filter_notification",
+	"notification_inbox",
 	"feed",
 	"feed_cache",
 	"api_key",
 	"list",
 	"list_filter",
-	//"sessions",
-	//"schema_migrations",
 }
 
-// lists of changes to make to the SQLite and Postgres DBs just before and after migration, respectively
+// generatedRows are rows that migrations or the first start of autobrr put into an otherwise empty
+// database. They are replaced by the source copies, keyed by table with the condition matching them.
+var generatedRows = map[string]string{
+	"notification":              "type = 'BUILTIN'",
+	"release_profile_duplicate": "id IN (1, 2, 3)",
+	"indexer_deprecation":       "1 = 1",
+}
+
+// sqliteFixups null out references to deleted rows before copying out of SQLite, which does not
+// enforce foreign keys. Only needed for FKs with ON DELETE SET NULL.
 var sqliteFixups = []string{
-	// null out references to rows which have been deleted (only necessary for FKs with ON DELETE SET NULL)
 	"UPDATE release SET filter_id = NULL WHERE filter_id NOT IN (SELECT id FROM filter)",
 	"UPDATE release_action_status SET filter_id = NULL WHERE filter_id NOT IN (SELECT id FROM filter)",
 	"UPDATE release_action_status SET action_id = NULL WHERE action_id NOT IN (SELECT id FROM action)",
@@ -58,293 +77,503 @@ var sqliteFixups = []string{
 	"UPDATE list SET client_id = NULL WHERE client_id NOT IN (SELECT id FROM client)",
 }
 
-var postgresFixups = []string{
-	// Update PK sequences to start after their most recent values instead of 1
-	"SELECT setval('release_id_seq', (SELECT MAX(id) FROM release), true)",
-	"SELECT setval('filter_id_seq', (SELECT MAX(id) FROM filter), true)",
-	"SELECT setval('client_id_seq', (SELECT MAX(id) FROM client), true)",
-	"SELECT setval('feed_id_seq', (SELECT MAX(id) FROM feed), true)",
-	"SELECT setval('filter_external_id_seq', (SELECT MAX(id) FROM filter_external), true)",
-	"SELECT setval('indexer_id_seq', (SELECT MAX(id) FROM indexer), true)",
-	"SELECT setval('irc_channel_id_seq', (SELECT MAX(id) FROM irc_channel), true)",
-	"SELECT setval('irc_network_id_seq', (SELECT MAX(id) FROM irc_network), true)",
-	"SELECT setval('list_id_seq', (SELECT MAX(id) FROM list), true)",
-	"SELECT setval('notification_id_seq', (SELECT MAX(id) FROM notification), true)",
-	"SELECT setval('proxy_id_seq', (SELECT MAX(id) FROM proxy), true)",
-	"SELECT setval('release_action_status_id_seq', (SELECT MAX(id) FROM release_action_status), true)",
-	"SELECT setval('release_profile_duplicate_id_seq', (SELECT MAX(id) FROM release_profile_duplicate), true)",
-	"SELECT setval('users_id_seq', (SELECT MAX(id) FROM users), true)",
-}
-
-type DBConverter interface {
-	Convert(ctx context.Context, opts Opts) error
-}
-
+// Opts controls a conversion run.
 type Opts struct {
 	ExcludeTables []string
 	DryRun        bool
 }
 
-type SqliteToPostgresConverter struct {
-	logger                      zerolog.Logger
-	sqliteDBPath, postgresDBURL string
+// Converter copies all autobrr data between a SQLite and a PostgreSQL database.
+type Converter struct {
+	log           zerolog.Logger
+	sqliteDBPath  string
+	postgresDBURL string
 }
 
-func NewConverter(logger zerolog.Logger, sqliteDBPath, postgresDBURL string) DBConverter {
-	return &SqliteToPostgresConverter{
-		logger:        logger,
+// NewConverter returns a Converter for the given SQLite file and PostgreSQL DSN.
+func NewConverter(log zerolog.Logger, sqliteDBPath, postgresDBURL string) *Converter {
+	return &Converter{
+		log:           log,
 		sqliteDBPath:  sqliteDBPath,
 		postgresDBURL: postgresDBURL,
 	}
 }
 
-func (c *SqliteToPostgresConverter) Convert(ctx context.Context, opts Opts) error {
-	startTime := time.Now()
+type conn struct {
+	db     *sql.DB
+	engine string
+}
 
-	sqliteDB, err := sql.Open("sqlite", c.sqliteDBPath)
+func (c conn) placeholder(n int) string {
+	if c.engine == enginePostgres {
+		return fmt.Sprintf("$%d", n)
+	}
+
+	return "?"
+}
+
+// maxParams is the bound parameter limit of a single statement.
+func (c conn) maxParams() int {
+	if c.engine == enginePostgres {
+		return 65535
+	}
+
+	return 32766
+}
+
+func (c conn) migrator(log zerolog.Logger) *migrator.Migrator {
+	if c.engine == enginePostgres {
+		return migrations.PostgresMigrations(c.db, log)
+	}
+
+	return migrations.SQLiteMigrations(c.db, log)
+}
+
+// Convert copies a SQLite database into PostgreSQL.
+func (c *Converter) Convert(ctx context.Context, opts Opts) error {
+	sqliteDB, err := c.openSQLite(true)
 	if err != nil {
-		c.logger.Error().Err(err).Msg("Failed to connect to SQLite database")
 		return err
 	}
 	defer sqliteDB.Close()
 
-	postgresDB, err := sql.Open("postgres", c.postgresDBURL)
+	postgresDB, err := c.openPostgres(ctx)
 	if err != nil {
-		c.logger.Error().Err(err).Msg("Failed to connect to PostgreSQL database")
 		return err
 	}
 	defer postgresDB.Close()
 
-	if err := postgresDB.PingContext(ctx); err != nil {
-		c.logger.Error().Err(err).Msg("Failed to ping PostgreSQL database")
+	return c.convert(ctx, conn{db: sqliteDB, engine: engineSQLite}, conn{db: postgresDB, engine: enginePostgres}, opts)
+}
+
+// ConvertToSQLite copies a PostgreSQL database into SQLite.
+func (c *Converter) ConvertToSQLite(ctx context.Context, opts Opts) error {
+	postgresDB, err := c.openPostgres(ctx)
+	if err != nil {
+		return err
+	}
+	defer postgresDB.Close()
+
+	if opts.DryRun {
+		return c.convert(ctx, conn{db: postgresDB, engine: enginePostgres}, conn{engine: engineSQLite}, opts)
+	}
+
+	sqliteDB, err := c.openSQLite(false)
+	if err != nil {
+		return err
+	}
+	defer sqliteDB.Close()
+
+	return c.convert(ctx, conn{db: postgresDB, engine: enginePostgres}, conn{db: sqliteDB, engine: engineSQLite}, opts)
+}
+
+func (c *Converter) openSQLite(mustExist bool) (*sql.DB, error) {
+	if mustExist {
+		if _, err := os.Stat(c.sqliteDBPath); err != nil {
+			return nil, errors.Wrap(err, "could not find sqlite database: %s", c.sqliteDBPath)
+		}
+	}
+
+	db, err := sql.Open("sqlite", c.sqliteDBPath+"?_pragma=busy_timeout(10000)")
+	if err != nil {
+		return nil, errors.Wrap(err, "could not open sqlite database")
+	}
+
+	db.SetMaxOpenConns(1)
+
+	return db, nil
+}
+
+func (c *Converter) openPostgres(ctx context.Context) (*sql.DB, error) {
+	db, err := sql.Open("postgres", c.postgresDBURL)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not open postgres database")
+	}
+
+	if err := db.PingContext(ctx); err != nil {
+		_ = db.Close()
+		return nil, errors.Wrap(err, "could not ping postgres database")
+	}
+
+	return db, nil
+}
+
+func (c *Converter) convert(ctx context.Context, src, dst conn, opts Opts) error {
+	startTime := time.Now()
+
+	l := c.log.With().Str("from", src.engine).Str("to", dst.engine).Logger()
+
+	if err := c.checkSourceSchema(src); err != nil {
 		return err
 	}
 
-	pgMigrations := migrations.PostgresMigrations(postgresDB, c.logger.With().Logger())
-	if err = pgMigrations.Migrate(); err != nil {
-		c.logger.Error().Err(err).Msg("Failed to migrate PostgreSQL database")
+	tables := slices.DeleteFunc(GetTables(), func(table string) bool {
+		return slices.Contains(opts.ExcludeTables, table)
+	})
+
+	if opts.DryRun {
+		for _, table := range tables {
+			var count int64
+			if err := src.db.QueryRowContext(ctx, fmt.Sprintf("SELECT COUNT(*) FROM %q", table)).Scan(&count); err != nil {
+				return errors.Wrap(err, "could not count rows in table: %s", table)
+			}
+
+			l.Info().Str("table", table).Int64("rows", count).Msg("dry run, would convert table")
+		}
+
+		return nil
+	}
+
+	if src.engine == engineSQLite {
+		c.applyFixups(ctx, src.db, sqliteFixups)
+	}
+
+	if err := dst.migrator(c.log).Migrate(); err != nil {
+		return errors.Wrap(err, "could not migrate %s database", dst.engine)
+	}
+
+	if err := c.prepareTarget(ctx, dst, tables); err != nil {
 		return err
 	}
 
-	tables := GetTables()
-
-	c.applyFixups(ctx, sqliteDB, sqliteFixups)
-
-	// Store all foreign key violation messages.
 	var allFKViolations []string
 	for _, table := range tables {
-		if slices.Contains(opts.ExcludeTables, table) {
-			c.logger.Info().Str("table", table).Msg("Skip ignored table")
-			continue
-		}
-		fkViolations, err := c.migrateTable(ctx, sqliteDB, postgresDB, table, opts.DryRun)
+		fkViolations, err := c.convertTable(ctx, l, src, dst, table)
 		if err != nil {
-			c.logger.Error().Err(err).Str("table", table).Msg("Failed to migrate table")
-			continue
+			return errors.Wrap(err, "could not convert table: %s", table)
 		}
+
 		allFKViolations = append(allFKViolations, fkViolations...)
 	}
 
-	c.applyFixups(ctx, postgresDB, postgresFixups)
-
-	c.printConversionResult(startTime, allFKViolations)
-
-	return err
-}
-
-func (c *SqliteToPostgresConverter) printConversionResult(startTime time.Time, allFKViolations []string) {
-	var sb strings.Builder
-
-	sb.WriteString("Convert completed successfully!\n")
-	sb.WriteString(fmt.Sprintf("Elapsed time: %s\n", time.Since(startTime)))
-	if len(allFKViolations) > 0 {
-		sb.WriteString("\nSummary of Foreign Key Violations:\n\n")
-		for _, msg := range allFKViolations {
-			sb.WriteString(" - " + msg + "\n")
-		}
-		sb.WriteString("\nThese are due to missing references, likely because the related item in another table no longer exists.\n")
-	}
-	fmt.Print(sb.String())
-}
-
-func GetTables() []string {
-	return slices.Clone(defaultTables)
-}
-
-func (c *SqliteToPostgresConverter) migrateTable(ctx context.Context, sqliteDB, postgresDB *sql.DB, table string, dry bool) ([]string, error) {
-	var fkViolationMessages []string
-
-	var rowCount int64
-	if err := sqliteDB.QueryRowContext(ctx, fmt.Sprintf("SELECT COUNT(*) FROM %s", table)).Scan(&rowCount); err != nil {
-		if !errors.Is(err, sql.ErrNoRows) {
-			c.logger.Error().Err(err).Str("table", table).Msg("Failed to query row count")
-			return nil, errors.Wrap(err, "Failed to query row count for table '%s'", table)
+	if dst.engine == enginePostgres {
+		if err := c.resetSequences(ctx, dst, tables); err != nil {
+			return err
 		}
 	}
 
-	if rowCount == 0 {
-		c.logger.Info().Str("table", table).Msg("Table is empty, skipping")
-		return nil, nil
-	}
+	printConversionResult(startTime, allFKViolations)
 
-	c.logger.Debug().Str("table", table).Int64("rows", rowCount).Msg("Converting table..")
+	return nil
+}
 
-	if dry {
-		c.logger.Info().Str("table", table).Msg("Dry run, skipping table")
-		return nil, nil
-	}
+// checkSourceSchema refuses sources that are not on the latest migration, since their columns
+// would not line up with the freshly migrated target.
+func (c *Converter) checkSourceSchema(src conn) error {
+	m := src.migrator(c.log)
 
-	rows, err := sqliteDB.QueryContext(ctx, fmt.Sprintf("SELECT * FROM %s", table))
+	applied, err := m.CountApplied()
 	if err != nil {
-		if !errors.Is(err, sql.ErrNoRows) {
-			return nil, errors.Wrap(err, "Failed to query SQLite table '%s'", table)
+		return errors.Wrap(err, "could not read %s schema version, is this an autobrr database?", src.engine)
+	}
+
+	if applied != m.TotalMigrations() {
+		return errors.New("%s database is at migration %d but %d is expected: start this version of autobrr against it once to migrate it, then convert", src.engine, applied, m.TotalMigrations())
+	}
+
+	return nil
+}
+
+// prepareTarget makes sure the target holds no user data and drops the generated rows the
+// source copies replace.
+func (c *Converter) prepareTarget(ctx context.Context, dst conn, tables []string) error {
+	for _, table := range tables {
+		query := fmt.Sprintf("SELECT COUNT(*) FROM %q", table)
+		if cond, ok := generatedRows[table]; ok {
+			query += " WHERE NOT (" + cond + ")"
 		}
+
+		var count int64
+		if err := dst.db.QueryRowContext(ctx, query).Scan(&count); err != nil {
+			return errors.Wrap(err, "could not count rows in target table: %s", table)
+		}
+
+		if count > 0 {
+			return errors.New("target %s database is not empty: table %s has %d rows", dst.engine, table, count)
+		}
+	}
+
+	for _, table := range tables {
+		cond, ok := generatedRows[table]
+		if !ok {
+			continue
+		}
+
+		if _, err := dst.db.ExecContext(ctx, fmt.Sprintf("DELETE FROM %q WHERE %s", table, cond)); err != nil {
+			return errors.Wrap(err, "could not clear generated rows in target table: %s", table)
+		}
+	}
+
+	return nil
+}
+
+func (c *Converter) convertTable(ctx context.Context, log zerolog.Logger, src, dst conn, table string) ([]string, error) {
+	l := log.With().Str("table", table).Logger()
+
+	columns, err := commonColumns(ctx, l, src, dst, table)
+	if err != nil {
 		return nil, err
+	}
+
+	quoted := make([]string, len(columns))
+	for i, col := range columns {
+		quoted[i] = fmt.Sprintf("%q", col)
+	}
+	colNames := strings.Join(quoted, ", ")
+
+	rows, err := src.db.QueryContext(ctx, fmt.Sprintf("SELECT %s FROM %q", colNames, table))
+	if err != nil {
+		return nil, errors.Wrap(err, "could not query source table")
 	}
 	defer rows.Close()
 
-	columns, err := rows.ColumnTypes()
+	colTypes, err := rows.ColumnTypes()
 	if err != nil {
-		c.logger.Error().Err(err).Str("table", table).Msg("Failed to get column types")
-		return nil, errors.Wrap(err, "Failed to get column types for table '%s'", table)
+		return nil, errors.Wrap(err, "could not get column types")
 	}
 
-	colNames, _ := prepareColumns(columns)
+	batchSize := min(1000, dst.maxParams()/len(columns))
 
-	const batchSize = 1000
-	c.logger.Debug().Str("table", table).Int("batchSize", batchSize).Int64("rows", rowCount).Int("total_batches", int(rowCount/batchSize)).Msg("total batches")
-	var batch [][]any
-	var rowsAffected int64
+	var (
+		batch        [][]any
+		rowsAffected int64
+		fkViolations []string
+	)
+
+	flush := func() error {
+		inserted, violations, err := c.insertBatch(ctx, l, dst, table, colNames, len(columns), batch)
+		if err != nil {
+			return err
+		}
+
+		rowsAffected += inserted
+		fkViolations = append(fkViolations, violations...)
+		batch = batch[:0]
+
+		l.Trace().Int64("rows_affected", rowsAffected).Msg("inserted batch")
+
+		return nil
+	}
 
 	for rows.Next() {
-		values, valuePtrs := prepareValues(columns)
+		values := make([]any, len(columns))
+		valuePtrs := make([]any, len(columns))
+		for i := range values {
+			valuePtrs[i] = &values[i]
+		}
 
 		if err := rows.Scan(valuePtrs...); err != nil {
-			c.logger.Error().Err(err).Str("table", table).Msg("Failed to scan row")
-			return nil, errors.Wrap(err, "Failed to scan row from SQLite table '%s'", table)
+			return nil, errors.Wrap(err, "could not scan source row")
+		}
+
+		if dst.engine == engineSQLite {
+			for i, v := range values {
+				values[i] = toSQLiteValue(v, colTypes[i].DatabaseTypeName())
+			}
 		}
 
 		batch = append(batch, values)
 
-		// When batch is full, insert it
 		if len(batch) >= batchSize {
-			inserted, violations := c.insertBatch(ctx, postgresDB, table, colNames, columns, batch)
-			rowsAffected += inserted
-			c.logger.Debug().Str("table", table).Int64("rowsAffected", rowsAffected).Int64("total_rows", rowCount).Msg("rows affected")
-			fkViolationMessages = append(fkViolationMessages, violations...)
-			batch = batch[:0] // Reset batch
+			if err := flush(); err != nil {
+				return nil, err
+			}
 		}
 	}
 
-	// Insert any remaining rows in the final batch
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "could not read source rows")
+	}
+
 	if len(batch) > 0 {
-		inserted, violations := c.insertBatch(ctx, postgresDB, table, colNames, columns, batch)
-		rowsAffected += inserted
-		c.logger.Debug().Str("table", table).Int64("rowsAffected", rowsAffected).Int64("total_rows", rowCount).Msg("rows affected")
-		fkViolationMessages = append(fkViolationMessages, violations...)
+		if err := flush(); err != nil {
+			return nil, err
+		}
 	}
 
-	c.logger.Info().Int64("rows_affected", rowsAffected).Str("table", table).Msg("converted rows to table from SQLite to PostgreSQL")
+	l.Info().Int64("rows_affected", rowsAffected).Msg("converted table")
 
-	return fkViolationMessages, nil
+	return fkViolations, nil
 }
 
-func (c *SqliteToPostgresConverter) insertBatch(ctx context.Context, db *sql.DB, table, colNames string, columns []*sql.ColumnType, batch [][]any) (int64, []string) {
-	if len(batch) == 0 {
-		return 0, nil
-	}
-
-	var fkViolations []string
-
-	// Build multi-row INSERT statement
-	var placeholders []string
-	var allValues []any
-	paramIndex := 1
-
-	for _, rowValues := range batch {
-		var rowPlaceholders []string
-		for range columns {
-			rowPlaceholders = append(rowPlaceholders, fmt.Sprintf("$%d", paramIndex))
-			paramIndex++
-		}
-		placeholders = append(placeholders, fmt.Sprintf("(%s)", strings.Join(rowPlaceholders, ", ")))
-		allValues = append(allValues, rowValues...)
-	}
-
-	query := fmt.Sprintf("INSERT INTO %s (%s) VALUES %s", table, colNames, strings.Join(placeholders, ", "))
-
-	_, err := db.Exec(query, allValues...)
+// commonColumns returns the source columns that also exist in the target table, so leftovers of
+// historic migrations on one side do not break the copy.
+func commonColumns(ctx context.Context, l zerolog.Logger, src, dst conn, table string) ([]string, error) {
+	srcColumns, err := tableColumns(ctx, src, table)
 	if err != nil {
+		return nil, err
+	}
+
+	dstColumns, err := tableColumns(ctx, dst, table)
+	if err != nil {
+		return nil, err
+	}
+
+	var columns []string
+	for _, col := range srcColumns {
+		if !slices.Contains(dstColumns, col) {
+			l.Debug().Str("column", col).Msg("column missing in target, skipping")
+			continue
+		}
+
+		columns = append(columns, col)
+	}
+
+	if len(columns) == 0 {
+		return nil, errors.New("no common columns")
+	}
+
+	return columns, nil
+}
+
+func tableColumns(ctx context.Context, c conn, table string) ([]string, error) {
+	rows, err := c.db.QueryContext(ctx, fmt.Sprintf("SELECT * FROM %q WHERE 1 = 0", table))
+	if err != nil {
+		return nil, errors.Wrap(err, "could not query %s columns", c.engine)
+	}
+	defer rows.Close()
+
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, errors.Wrap(err, "could not get %s columns", c.engine)
+	}
+
+	return columns, nil
+}
+
+// toSQLiteValue converts a lib/pq value into the representation the SQLite repos write:
+// arrays and json come back as []byte and must be stored as text, not blobs, and timestamps
+// are stored as RFC3339 strings.
+func toSQLiteValue(v any, pgType string) any {
+	switch val := v.(type) {
+	case []byte:
+		if pgType == "BYTEA" {
+			return val
+		}
+
+		return string(val)
+	case time.Time:
+		return val.UTC().Format(time.RFC3339)
+	}
+
+	return v
+}
+
+func (c *Converter) insertBatch(ctx context.Context, l zerolog.Logger, dst conn, table, colNames string, numColumns int, batch [][]any) (int64, []string, error) {
+	placeholders := make([]string, 0, len(batch))
+	values := make([]any, 0, len(batch)*numColumns)
+
+	param := 1
+	for _, row := range batch {
+		rowPlaceholders := make([]string, numColumns)
+		for i := range rowPlaceholders {
+			rowPlaceholders[i] = dst.placeholder(param)
+			param++
+		}
+
+		placeholders = append(placeholders, "("+strings.Join(rowPlaceholders, ", ")+")")
+		values = append(values, row...)
+	}
+
+	query := fmt.Sprintf("INSERT INTO %q (%s) VALUES %s", table, colNames, strings.Join(placeholders, ", "))
+
+	if _, err := dst.db.ExecContext(ctx, query, values...); err != nil {
 		if isForeignKeyViolation(err) {
-			// If batch insert fails due to FK violation, fall back to individual inserts
-			// to identify which specific rows are problematic
-			return c.insertBatchOneByOne(ctx, db, table, colNames, columns, batch)
+			l.Debug().Msg("batch violates foreign key, inserting rows one by one")
+			return c.insertOneByOne(ctx, dst, table, colNames, numColumns, batch)
 		}
-		c.logger.Error().Err(err).Str("table", table).Msg("Failed to insert batch into table")
+
+		return 0, nil, errors.Wrap(err, "could not insert batch")
 	}
 
-	return int64(len(batch)), fkViolations
+	return int64(len(batch)), nil, nil
 }
 
-func (c *SqliteToPostgresConverter) insertBatchOneByOne(ctx context.Context, db *sql.DB, table, colNames string, columns []*sql.ColumnType, batch [][]any) (int64, []string) {
-	var fkViolations []string
-	var rowsAffected int64
-
-	_, colPlaceholders := prepareColumns(columns)
-	insertStmt, err := db.PrepareContext(ctx, fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s)", table, colNames, colPlaceholders))
-	if err != nil {
-		c.logger.Error().Err(err).Str("table", table).Msg("Failed to prepare INSERT statement")
-		return 0, nil
+// insertOneByOne isolates the rows of a batch that violate foreign keys so the rest still get copied.
+func (c *Converter) insertOneByOne(ctx context.Context, dst conn, table, colNames string, numColumns int, batch [][]any) (int64, []string, error) {
+	placeholders := make([]string, numColumns)
+	for i := range placeholders {
+		placeholders[i] = dst.placeholder(i + 1)
 	}
-	defer insertStmt.Close()
 
-	for _, values := range batch {
-		_, err := insertStmt.Exec(values...)
-		if err != nil {
+	stmt, err := dst.db.PrepareContext(ctx, fmt.Sprintf("INSERT INTO %q (%s) VALUES (%s)", table, colNames, strings.Join(placeholders, ", ")))
+	if err != nil {
+		return 0, nil, errors.Wrap(err, "could not prepare insert")
+	}
+	defer stmt.Close()
+
+	var (
+		rowsAffected int64
+		fkViolations []string
+	)
+
+	for _, row := range batch {
+		if _, err := stmt.ExecContext(ctx, row...); err != nil {
 			if isForeignKeyViolation(err) {
-				message := fmt.Sprintf("Table '%s': %v", table, err)
-				fkViolations = append(fkViolations, message)
+				fkViolations = append(fkViolations, fmt.Sprintf("Table '%s': %v", table, err))
 				continue
 			}
 
-			c.logger.Error().Err(err).Str("table", table).Msg("Failed to insert row into table")
+			return rowsAffected, fkViolations, errors.Wrap(err, "could not insert row")
 		}
+
 		rowsAffected++
 	}
 
-	return rowsAffected, fkViolations
+	return rowsAffected, fkViolations, nil
 }
 
-func prepareColumns(columns []*sql.ColumnType) (colNames, colPlaceholders string) {
-	for i, col := range columns {
-		colNames += col.Name()
-		colPlaceholders += fmt.Sprintf("$%d", i+1)
-		if i < len(columns)-1 {
-			colNames += ", "
-			colPlaceholders += ", "
+// resetSequences moves every serial sequence past the copied ids, otherwise the next insert
+// collides with an existing row.
+func (c *Converter) resetSequences(ctx context.Context, dst conn, tables []string) error {
+	for _, table := range tables {
+		columns, err := tableColumns(ctx, dst, table)
+		if err != nil {
+			return err
+		}
+
+		if !slices.Contains(columns, "id") {
+			continue
+		}
+
+		query := fmt.Sprintf(`SELECT setval(pg_get_serial_sequence('%s', 'id'), COALESCE(MAX(id), 0) + 1, false) FROM %q`, table, table)
+		if _, err := dst.db.ExecContext(ctx, query); err != nil {
+			return errors.Wrap(err, "could not reset sequence for table: %s", table)
 		}
 	}
-	return
+
+	return nil
 }
 
-func prepareValues(columns []*sql.ColumnType) ([]any, []any) {
-	values := make([]any, len(columns))
-	valuePtrs := make([]any, len(columns))
-	for i := range values {
-		valuePtrs[i] = &values[i]
+func (c *Converter) applyFixups(ctx context.Context, db *sql.DB, stmts []string) {
+	for _, stmt := range stmts {
+		if _, err := db.ExecContext(ctx, stmt); err != nil {
+			c.log.Error().Err(err).Str("statement", stmt).Msg("could not apply fixup")
+		}
 	}
-	return values, valuePtrs
+}
+
+func printConversionResult(startTime time.Time, allFKViolations []string) {
+	var sb strings.Builder
+
+	sb.WriteString("Convert completed successfully!\n")
+	fmt.Fprintf(&sb, "Elapsed time: %s\n", time.Since(startTime))
+	if len(allFKViolations) > 0 {
+		sb.WriteString("\nSummary of Foreign Key Violations:\n\n")
+		for _, msg := range allFKViolations {
+			fmt.Fprintf(&sb, " - %s\n", msg)
+		}
+		sb.WriteString("\nThese are due to missing references, likely because the related item in another table no longer exists.\n")
+	}
+
+	fmt.Print(sb.String())
+}
+
+// GetTables returns the tables copied by a conversion, in insert order.
+func GetTables() []string {
+	return slices.Clone(defaultTables)
 }
 
 func isForeignKeyViolation(err error) bool {
 	return strings.Contains(err.Error(), "violates foreign key constraint")
-}
-
-func (c *SqliteToPostgresConverter) applyFixups(ctx context.Context, sql *sql.DB, stmts []string) {
-	for _, stmt := range stmts {
-		_, err := sql.ExecContext(ctx, stmt)
-		if err != nil {
-			log.Printf("Failed to apply fixup %s: %v", stmt, err)
-		}
-	}
 }
