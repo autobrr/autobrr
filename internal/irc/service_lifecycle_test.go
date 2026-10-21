@@ -378,3 +378,22 @@ func TestService_StopHandlersKeepsDeadlineWhileLifecycleBusy(t *testing.T) {
 
 	p.staysLive(t, 0, time.Second)
 }
+
+func TestService_StopHandlersQuitsConnectedWhileLifecycleBusy(t *testing.T) {
+	srv := ircd.New(t)
+	p := newCountingProxy(t, srv.Addr())
+	network := lifecycleNetwork(p.port(), "lifecycle")
+
+	s := newLifecycleService(newStubIrcRepo(network))
+	require.NoError(t, s.UpdateNetwork(t.Context(), new(network)))
+	p.waitLive(t, 1)
+
+	s.lifecycleM <- struct{}{}
+	defer func() { <-s.lifecycleM }()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 200*time.Millisecond)
+	defer cancel()
+	s.StopHandlers(ctx)
+
+	p.waitLive(t, 0)
+}

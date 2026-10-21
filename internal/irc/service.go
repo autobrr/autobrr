@@ -247,7 +247,13 @@ func (s *Service) StopHandlers(ctx context.Context) {
 	select {
 	case s.lifecycleM <- struct{}{}:
 	case <-ctx.Done():
-		s.log.Warn().Err(ctx.Err()).Msg("irc lifecycle busy, shutting down without stopping handlers")
+		s.log.Warn().Err(ctx.Err()).Msg("irc lifecycle busy, stopping handlers without the lock")
+
+		// stopped keeps the lock holder from connecting anything new, so quit what is
+		// already connected rather than leave it to drop with the process
+		for _, handler := range s.networkHandlers.Iterator() {
+			handler.stop()
+		}
 		return
 	}
 
