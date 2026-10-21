@@ -579,7 +579,7 @@ func TestNickServAbsentSchedulesIdentifyRetry(t *testing.T) {
 	assert.True(t, h.identifyRetryDueLocked(h.identifyRetryGen), "expected the retry to be sent when it comes due")
 
 	assert.False(t, h.Stopped(), "a missing NickServ must not stop the network")
-	assert.Empty(t, h.connectionErrors, "a missing NickServ must not be reported as an auth failure")
+	assert.Equal(t, []string{nickServOfflineError}, h.connectionErrors, "expected the wait to be reported, and not as an auth failure")
 	assert.Equal(t, StateAuthenticating, h.stateMachine.GetState(), "expected the connection to keep waiting to authenticate")
 }
 
@@ -721,6 +721,60 @@ func TestIdentifyRetryDelay(t *testing.T) {
 
 			assert.GreaterOrEqual(t, delay, tt.base)
 			assert.Less(t, delay, tt.base+connectRetryMaxJitter)
+		})
+	}
+}
+
+// TestNickServOfflineStatus verifies the status shown while NickServ is absent
+// is recorded once per connection and goes away with the connection.
+func TestNickServOfflineStatus(t *testing.T) {
+	h, _ := newTestHandler()
+	withNickServAuth(h, "test_bot")
+
+	h.handleErrNoSuchNick(noSuchNick("user_bot", "NickServ"))
+	h.identifyOutstanding = true
+	h.handleErrNoSuchNick(noSuchNick("user_bot", "NickServ"))
+
+	assert.Equal(t, []string{nickServOfflineError}, h.connectionErrors, "expected one status however many retries")
+
+	h.onDisconnect(ircmsg.Message{Command: "DISCONNECT"})
+
+	assert.Empty(t, h.connectionErrors, "expected a reconnect to drop the old connection's status")
+}
+
+// TestNickServNoticeRetriesIdentifyEarly verifies a NOTICE from NickServ sends a
+// scheduled retry right away: services are back, so waiting out the backoff
+// would only keep the network unauthenticated for up to 5 minutes longer.
+func TestNickServNoticeRetriesIdentifyEarly(t *testing.T) {
+	tests := []struct {
+		name      string
+		setup     func(*Handler)
+		wantRetry bool
+	}{
+		{
+			name:      "retry pending",
+			setup:     func(h *Handler) { h.handleErrNoSuchNick(noSuchNick("user_bot", "NickServ")) },
+			wantRetry: true,
+		},
+		{
+			name:  "no retry pending",
+			setup: func(h *Handler) { h.identifyOutstanding = false },
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h, _ := newTestHandler()
+			withNickServAuth(h, "test_bot")
+			withUnconnectedClient(h)
+			var logs strings.Builder
+			h.log = zerolog.New(&logs)
+			tt.setup(h)
+
+			h.handleNickServ(nickServNotice("user_bot", "This nickname is registered and protected. If it is your nick, type /msg NickServ IDENTIFY password. Otherwise, please choose a different nick."))
+
+			assert.Equal(t, tt.wantRetry, strings.Contains(logs.String(), "error identifying with nickserv"), "unexpected identify attempt")
+			assert.Zero(t, h.failedNickServAttempts, "a NOTICE we were not waiting on must not count as a failed login")
 		})
 	}
 }

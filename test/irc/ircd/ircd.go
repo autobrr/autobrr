@@ -106,6 +106,22 @@ func (s *Server) SetNickServOnline(online bool) {
 	s.nickServOffline = !online
 }
 
+// LinkNickServ brings NickServ online the way Anope does when it links: every
+// client still on an unidentified nick gets a NOTICE asking it to identify.
+func (s *Server) LinkNickServ() {
+	s.mu.Lock()
+	s.nickServOffline = false
+	conns := make([]*conn, 0, len(s.conns))
+	for _, c := range s.conns {
+		conns = append(conns, c)
+	}
+	s.mu.Unlock()
+
+	for _, c := range conns {
+		c.sendf(":NickServ!services@%s NOTICE %s :This nickname is registered and protected. If it is your nick, type /msg NickServ IDENTIFY password. Otherwise, please choose a different nick.", serverName, c.nick)
+	}
+}
+
 // NickServMisses returns how many messages to NickServ were answered with a 401
 // while it was offline.
 func (s *Server) NickServMisses() int {
