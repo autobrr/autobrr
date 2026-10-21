@@ -1605,7 +1605,7 @@ func (repo *ReleaseRepo) CheckIsDuplicateRelease(ctx context.Context, profile *d
 		Where("ras.status = 'PUSH_APPROVED'")
 
 	if profile.ReleaseName && profile.Hash {
-		//queryBuilder = queryBuilder.Where(repo.db.ILike("r.torrent_name", release.TorrentName))
+		queryBuilder = queryBuilder.Where(repo.db.ILike("r.torrent_name", release.TorrentName))
 		queryBuilder = queryBuilder.Where(sq.Eq{"r.normalized_hash": release.NormalizedHash})
 	} else {
 		if profile.Title {

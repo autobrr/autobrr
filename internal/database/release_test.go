@@ -1201,9 +1201,10 @@ func TestReleaseRepo_CheckIsDuplicateRelease(t *testing.T) {
 		require.NoError(t, err)
 
 		type fields struct {
-			releaseTitles []string
-			releaseTitle  string
-			profile       *domain.DuplicateReleaseProfile
+			releaseTitles  []string
+			releaseTitle   string
+			normalizedHash string
+			profile        *domain.DuplicateReleaseProfile
 		}
 
 		tests := []struct {
@@ -1708,6 +1709,26 @@ func TestReleaseRepo_CheckIsDuplicateRelease(t *testing.T) {
 				},
 				isDuplicate: true,
 			},
+			{
+				name: "40 release name and hash mismatch",
+				fields: fields{
+					releaseTitles:  []string{"The Best Show 2020 S04E10 1080p AMZN WEB-DL DDP 5.1 H.264-GROUP"},
+					releaseTitle:   "The Best Show 2020 S04E11 1080p AMZN WEB-DL DDP 5.1 H.264-GROUP",
+					normalizedHash: "shared-normalized-hash",
+					profile:        &domain.DuplicateReleaseProfile{ReleaseName: true, Hash: true},
+				},
+				isDuplicate: false,
+			},
+			{
+				name: "41 release name and hash match",
+				fields: fields{
+					releaseTitles:  []string{"The Best Show 2020 S04E10 1080p AMZN WEB-DL DDP 5.1 H.264-GROUP"},
+					releaseTitle:   "The Best Show 2020 S04E10 1080p AMZN WEB-DL DDP 5.1 H.264-GROUP",
+					normalizedHash: "shared-normalized-hash",
+					profile:        &domain.DuplicateReleaseProfile{ReleaseName: true, Hash: true},
+				},
+				isDuplicate: true,
+			},
 		}
 
 		for _, tt := range tests {
@@ -1717,6 +1738,9 @@ func TestReleaseRepo_CheckIsDuplicateRelease(t *testing.T) {
 				for _, rel := range tt.fields.releaseTitles {
 					mockRel := domain.NewRelease(mockIndexer)
 					mockRel.ParseString(rel)
+					if tt.fields.normalizedHash != "" {
+						mockRel.NormalizedHash = tt.fields.normalizedHash
+					}
 
 					mockRel.FilterID = filterMock.ID
 
@@ -1747,6 +1771,9 @@ func TestReleaseRepo_CheckIsDuplicateRelease(t *testing.T) {
 
 				compareRel := domain.NewRelease(mockIndexer)
 				compareRel.ParseString(tt.fields.releaseTitle)
+				if tt.fields.normalizedHash != "" {
+					compareRel.NormalizedHash = tt.fields.normalizedHash
+				}
 
 				// Execute
 				isDuplicate, err := releaseRepo.CheckIsDuplicateRelease(ctx, tt.fields.profile, compareRel)
