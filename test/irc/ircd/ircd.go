@@ -119,7 +119,6 @@ func (s *Server) SetNickServOnline(online bool) {
 func (s *Server) LinkNickServ() {
 	s.mu.Lock()
 	s.nickServOffline = false
-	// the nick comes from the map key: c.nick is owned by the connection's goroutine
 	conns := maps.Clone(s.conns)
 	s.mu.Unlock()
 
@@ -379,16 +378,30 @@ func (s *Server) Kick(channel, nick, by, reason string) {
 	s.mu.Unlock()
 }
 
-// SendNickChange sends a NICK event whose source may differ in case from the
-// connection's current nick.
+// SendNickChange renames a client the way a server-forced nick change does and
+// sends it the NICK event, whose source may differ in case from the
+// connection's current nick. Later lookups and replies use newNick.
 func (s *Server) SendNickChange(nick, sourceNick, newNick string) {
+	oldKey, newKey := strings.ToLower(nick), strings.ToLower(newNick)
+
 	s.mu.Lock()
-	c := s.conns[strings.ToLower(nick)]
+	c := s.conns[oldKey]
+	if c == nil {
+		s.mu.Unlock()
+		return
+	}
+	delete(s.conns, oldKey)
+	s.conns[newKey] = c
+	for _, ch := range s.channels {
+		if ch.members[oldKey] == c {
+			delete(ch.members, oldKey)
+			ch.members[newKey] = c
+		}
+	}
+	c.setNick(newNick)
 	s.mu.Unlock()
 
-	if c != nil {
-		c.sendf(":%s!%s NICK :%s", sourceNick, userHost, newNick)
-	}
+	c.sendf(":%s!%s NICK :%s", sourceNick, userHost, newNick)
 }
 
 // ForceJoin pushes a client into a channel as if the server joined it (a
@@ -460,17 +473,19 @@ func (s *Server) getBot(nick string) *Bot {
 
 func (s *Server) registerConn(c *conn) {
 	s.mu.Lock()
-	s.conns[strings.ToLower(c.nick)] = c
+	s.conns[strings.ToLower(c.getNick())] = c
 	s.mu.Unlock()
 }
 
 func (s *Server) unregisterConn(c *conn) {
+	key := strings.ToLower(c.getNick())
+
 	s.mu.Lock()
-	if c.nick != "" && s.conns[strings.ToLower(c.nick)] == c {
-		delete(s.conns, strings.ToLower(c.nick))
+	if key != "" && s.conns[key] == c {
+		delete(s.conns, key)
 	}
 	for _, ch := range s.channels {
-		delete(ch.members, strings.ToLower(c.nick))
+		delete(ch.members, key)
 	}
 	s.mu.Unlock()
 }

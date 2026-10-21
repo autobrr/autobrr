@@ -159,7 +159,7 @@ func TestBouncerWildcardEndOfNames(t *testing.T) {
 
 // TestMixedCaseSelfNickChange covers irc-go's exact source-nick comparison: the
 // server may use an equivalent case variant in the NICK prefix, and autobrr must
-// still track the server-selected new nick.
+// still track the server-selected new nick and treat it as its own afterwards.
 func TestMixedCaseSelfNickChange(t *testing.T) {
 	srv := ircd.New(t)
 	srv.AddChannel("#nick", ircd.Announcer("announcer"))
@@ -174,6 +174,20 @@ func TestMixedCaseSelfNickChange(t *testing.T) {
 	require.Eventually(t, func() bool {
 		return inst.Handler.CurrentNick() == "AutoBrr_"
 	}, 5*time.Second, 10*time.Millisecond, "current nick did not follow the mixed-case NICK event")
+
+	// the INVITE is routed to the new nick only and the rejoin is echoed with it,
+	// so reaching Monitoring again proves both sides moved to the new nick
+	chanop := srv.AddBot("chanop", nil)
+	srv.Kick("#nick", "AutoBrr_", "chanop", "testing the new nick")
+	inst.WaitForState("#nick", "Kicked", 5*time.Second)
+
+	since := inst.StateCount("#nick")
+	chanop.Invite("AutoBrr_", "#nick")
+	inst.WaitForStateSince("#nick", "Monitoring", since, 5*time.Second)
+
+	srv.Announce("#nick", "announcer", "New torrent: Nick.Release.2026.1080p.WEB-DL.x264-GRP in TV")
+	_, ok := inst.Releases.Wait(5 * time.Second)
+	require.True(t, ok, "no release produced after rejoining under the new nick")
 }
 
 // ---- auth
