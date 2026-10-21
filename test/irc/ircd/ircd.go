@@ -18,6 +18,7 @@ package ircd
 
 import (
 	"fmt"
+	"maps"
 	"net"
 	"strconv"
 	"strings"
@@ -111,14 +112,12 @@ func (s *Server) SetNickServOnline(online bool) {
 func (s *Server) LinkNickServ() {
 	s.mu.Lock()
 	s.nickServOffline = false
-	conns := make([]*conn, 0, len(s.conns))
-	for _, c := range s.conns {
-		conns = append(conns, c)
-	}
+	// the nick comes from the map key: c.nick is owned by the connection's goroutine
+	conns := maps.Clone(s.conns)
 	s.mu.Unlock()
 
-	for _, c := range conns {
-		c.sendf(":NickServ!services@%s NOTICE %s :This nickname is registered and protected. If it is your nick, type /msg NickServ IDENTIFY password. Otherwise, please choose a different nick.", serverName, c.nick)
+	for nick, c := range conns {
+		c.sendf(":NickServ!services@%s NOTICE %s :This nickname is registered and protected. If it is your nick, type /msg NickServ IDENTIFY password. Otherwise, please choose a different nick.", serverName, nick)
 	}
 }
 
