@@ -12,6 +12,7 @@ package harness
 import (
 	"context"
 	"encoding/json"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -90,6 +91,21 @@ func (i *Instance) WaitForState(channel, state string, timeout time.Duration) {
 	i.t.Helper()
 	if !waitFor(func() bool { return i.sse.hasState(channel, state) }, timeout) {
 		i.t.Fatalf("channel %s never reached state %q; states seen: %v", channel, state, i.sse.statesFor(channel))
+	}
+}
+
+// StateCount returns how many STATE events have been observed for channel. Pass it to
+// WaitForStateSince to wait for a state reached after this point, such as after a restart.
+func (i *Instance) StateCount(channel string) int {
+	return len(i.sse.statesFor(channel))
+}
+
+// WaitForStateSince blocks until channel reports state in a STATE event observed after
+// the first since events, or fails the test with the states seen after that point.
+func (i *Instance) WaitForStateSince(channel, state string, since int, timeout time.Duration) {
+	i.t.Helper()
+	if !waitFor(func() bool { return slices.Contains(i.sse.statesFor(channel)[since:], state) }, timeout) {
+		i.t.Fatalf("channel %s never reached state %q; states seen since: %v", channel, state, i.sse.statesFor(channel)[since:])
 	}
 }
 

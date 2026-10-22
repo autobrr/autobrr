@@ -36,7 +36,7 @@ type MessageBuilderPlainText struct{}
 func (b *MessageBuilderPlainText) BuildBody(payload domain.NotificationPayload) string {
 	messageParts := []ConditionMessagePart{
 		{payload.Sender != "", "%v\n", []any{payload.Sender}},
-		{payload.Subject != "" && payload.Message != "", "%v\n%v", []any{payload.Subject, payload.Message}},
+		{payload.Subject != "" && payload.Message != "", "%v\n%v\n", []any{payload.Subject, payload.Message}},
 		{payload.ReleaseName != "", "New release: %v\n", []any{payload.ReleaseName}},
 		{payload.Size > 0, "Size: %v\n", []any{humanize.Bytes(payload.Size)}},
 		{payload.Status != "", "Status: %v\n", []any{payload.Status.String()}},
@@ -89,6 +89,12 @@ func BuildTitle(event domain.NotificationEvent) string {
 		domain.NotificationEventPushError:          "Push Error",
 		domain.NotificationEventIRCDisconnected:    "IRC Disconnected",
 		domain.NotificationEventIRCReconnected:     "IRC Reconnected",
+		domain.NotificationEventIRCUnhealthy:       "IRC Unhealthy",
+		domain.NotificationEventIRCHealthy:         "IRC Healthy",
+		domain.NotificationEventListRefreshSuccess: "List Refresh Success",
+		domain.NotificationEventListRefreshError:   "List Refresh Error",
+		domain.NotificationEventFeedRefreshSuccess: "Feed Refresh Success",
+		domain.NotificationEventFeedRefreshError:   "Feed Refresh Error",
 		domain.NotificationEventReleaseNew:         "New Release",
 		domain.NotificationEventTest:               "Test",
 	}

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/autobrr/autobrr/internal/meta"
 	"github.com/autobrr/autobrr/pkg/jsonrpc"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
@@ -26,7 +27,8 @@ type Client struct {
 	http      *http.Client
 	timeout   time.Duration
 
-	log zerolog.Logger
+	log       zerolog.Logger
+	userAgent string
 }
 
 type Config struct {
@@ -48,9 +50,10 @@ type Config struct {
 
 func NewClient(cfg Config) *Client {
 	c := &Client{
-		cfg:     cfg,
-		log:     cfg.Log,
-		timeout: DefaultTimeout,
+		cfg:       cfg,
+		log:       cfg.Log,
+		timeout:   DefaultTimeout,
+		userAgent: meta.GetUserAgent(),
 	}
 
 	if cfg.Timeout > 0 {
@@ -77,6 +80,7 @@ func NewClient(cfg Config) *Client {
 	c.rpcClient = jsonrpc.NewClientWithOpts(cfg.Hostname+"/api/v1/jsonrpc", &jsonrpc.ClientOpts{
 		Headers: map[string]string{
 			"X-Porla-Token": token,
+			"User-Agent":    c.userAgent,
 		},
 		HTTPClient: httpClient,
 		BasicUser:  cfg.BasicUser,

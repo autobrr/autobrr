@@ -1926,7 +1926,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				},
 			},
 			args:             args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
-			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Period: 10", want: "reached 10 per MONTH", format: "[max downloads] reached 10 per MONTH"}}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Period: 10", want: "reached 10 per MONTH", format: "[%[1]s] %[3]s"}}},
 			wantMatch:        false,
 		},
 		{
@@ -1939,7 +1939,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				},
 			},
 			args:             args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
-			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Period: 50", want: "reached 10 per MONTH", format: "[max downloads] reached 10 per MONTH"}}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Period: 50", want: "reached 10 per MONTH", format: "[%[1]s] %[3]s"}}},
 			wantMatch:        false,
 		},
 		{
@@ -1952,7 +1952,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				},
 			},
 			args:             args{&Release{TorrentName: "Show.Name.S01.DV.2160p.ATVP.WEB-DL.DDPA5.1.x265-GROUP2"}},
-			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Period: 20", want: "reached 15 per HOUR", format: "[max downloads] reached 15 per HOUR"}}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Period: 20", want: "reached 15 per HOUR", format: "[%[1]s] %[3]s"}}},
 			wantMatch:        false,
 		},
 		{
@@ -2076,7 +2076,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				},
 			},
 			args:             args{&Release{TorrentName: "Show.Name.S01.2160p.WEB-DL.x265-GROUP"}},
-			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Period: 10", want: "reached 10 per 2 HOUR", format: "[max downloads] reached 10 per 2 HOUR"}}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Period: 10", want: "reached 10 per 2 HOUR", format: "[%[1]s] %[3]s"}}},
 			wantMatch:        false,
 		},
 		{
@@ -2091,7 +2091,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				},
 			},
 			args:             args{&Release{TorrentName: "Show.Name.S01.2160p.WEB-DL.x265-GROUP"}},
-			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Period: 15", want: "reached 5 per 3 DAY", format: "[max downloads] reached 5 per 3 DAY"}}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Period: 15", want: "reached 5 per 3 DAY", format: "[%[1]s] %[3]s"}}},
 			wantMatch:        false,
 		},
 		{
@@ -2105,7 +2105,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				},
 			},
 			args:             args{&Release{TorrentName: "Show.Name.S01.2160p.WEB-DL.x265-GROUP"}},
-			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Period: 10", want: "reached 10 per MONTH", format: "[max downloads] reached 10 per MONTH"}}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Period: 10", want: "reached 10 per MONTH", format: "[%[1]s] %[3]s"}}},
 			wantMatch:        false,
 		},
 		{
@@ -2150,7 +2150,7 @@ func TestFilter_CheckFilter1(t *testing.T) {
 				},
 			},
 			args:             args{&Release{TorrentName: "Show.Name.S01.2160p.WEB-DL.x265-GROUP"}},
-			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Period: 5", want: "reached 5 per 2 MINUTE", format: "[max downloads] reached 5 per 2 MINUTE"}}},
+			rejectionReasons: &RejectionReasons{data: []Rejection{{key: "max downloads", got: "Period: 5", want: "reached 5 per 2 MINUTE", format: "[%[1]s] %[3]s"}}},
 			wantMatch:        false,
 		},
 		{

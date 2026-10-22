@@ -6,6 +6,7 @@
 import { keepPreviousData, queryOptions } from "@tanstack/react-query";
 import { APIClient } from "@api/APIClient";
 import {
+  AlertKeys,
   ApiKeys,
   AuthKeys,
   DownloaderKeys,
@@ -83,6 +84,17 @@ export const UpdatesQueryOptions = (enabled: boolean) =>
     enabled: enabled,
   });
 
+// ALERTS_CHANGED on the notifications stream drives updates; the poll catches what has no event,
+// like a disabled IRC network or a deleted list.
+export const AlertsQueryOptions = () =>
+  queryOptions({
+    queryKey: AlertKeys.lists(),
+    queryFn: () => APIClient.alerts.list(),
+    refetchOnWindowFocus: false,
+    refetchInterval: 60000,
+    throwOnError: false
+  });
+
 export const IndexersQueryOptions = () =>
   queryOptions({
     queryKey: IndexerKeys.lists(),
@@ -148,6 +160,14 @@ export const NotificationsQueryOptions = () =>
   queryOptions({
     queryKey: NotificationKeys.lists(),
     queryFn: () => APIClient.notifications.getAll()
+  });
+
+export const NotificationInboxQueryOptions = (params: InboxQueryParams) =>
+  queryOptions({
+    queryKey: NotificationKeys.inbox.list(params),
+    queryFn: () => APIClient.notifications.inbox.list(params),
+    placeholderData: keepPreviousData,
+    throwOnError: false
   });
 
 export const LogFilesQueryOptions = () =>

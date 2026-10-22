@@ -26,7 +26,7 @@ type feedService interface {
 }
 
 type listService interface {
-	List(ctx context.Context) ([]*domain.List, error)
+	List(ctx context.Context, params domain.ListQueryParams) ([]*domain.List, error)
 }
 
 type releaseService interface {

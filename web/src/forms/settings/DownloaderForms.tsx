@@ -445,6 +445,8 @@ function FormFieldsSabnzbd() {
 
 function FormFieldsNzbget() {
   const { t } = useTranslation("settings");
+  const { tls } = useFormValue((v: InitialValues) => ({ tls: v.tls }));
+
   return (
     <div className="flex flex-col space-y-4 px-1 py-6 sm:py-0 sm:space-y-0">
       <TextFieldWide
@@ -452,6 +454,15 @@ function FormFieldsNzbget() {
         label={t("forms.downloadClient.host")}
         help={t("forms.downloadClient.hostHelpNzbget")}
       />
+
+      <SwitchGroupWide name="tls" label={t("forms.downloadClient.tls")} />
+
+      {tls && (
+        <SwitchGroupWide
+          name="tls_skip_verify"
+          label={t("forms.downloadClient.skipTls")}
+        />
+      )}
 
       <TextFieldWide name="username" label={t("forms.downloadClient.username")} />
       <PasswordFieldWide name="password" label={t("forms.downloadClient.password")} />
@@ -700,8 +711,8 @@ function DownloaderFormButtons({
                 ? "text-green-500 border-green-500 bg-green-50"
                 : isErrorTest
                   ? "text-red-500 border-red-500 bg-red-50"
-                  : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-400 bg-white dark:bg-gray-700 hover:bg-gray-50 focus:border-rose-700 active:bg-rose-700",
-              isTesting ? "cursor-not-allowed" : "",
+                  : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-400 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:border-rose-700 active:bg-rose-700",
+              isTesting ? "cursor-not-allowed" : "cursor-pointer",
               "mr-2 inline-flex items-center px-4 py-2 border font-medium rounded-md shadow-xs text-sm transition ease-in-out duration-150 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
             )}
             disabled={isTesting}

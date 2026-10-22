@@ -36,7 +36,7 @@ func tempLogPath(t *testing.T) string {
 func TestNew_TimestampOnRootAndDerivedLoggers(t *testing.T) {
 	logPath := tempLogPath(t)
 
-	log := New(&domain.Config{LogLevel: "TRACE", Version: "1.0.0", LogPath: logPath}, nil)
+	log := New(&domain.Config{LogLevel: "TRACE", LogPath: logPath}, nil)
 
 	log.Info().Msg("root line")
 
@@ -67,7 +67,7 @@ func TestNew_TimestampOnRootAndDerivedLoggers(t *testing.T) {
 func TestSetLevel(t *testing.T) {
 	logPath := tempLogPath(t)
 
-	log := New(&domain.Config{LogLevel: "INFO", Version: "1.0.0", LogPath: logPath}, nil)
+	log := New(&domain.Config{LogLevel: "INFO", LogPath: logPath}, nil)
 	t.Cleanup(func() { SetLevel("TRACE") })
 
 	log.Debug().Msg("filtered out")

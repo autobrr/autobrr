@@ -65,6 +65,17 @@ func TestNotificationBuilderPlainText_BuildBody(t *testing.T) {
 			}},
 			want: "New release: Movie 2024 UHD BluRay 2160p DTS-HD MA 5.1 DV HEVC HYBRID REMUX-GROUP\nStatus: Rejected\nIndexer: mock\nFilter: test\nAction: RADARR: mock\nClient: mock\nRejections: Item already exists\n",
 		},
+		{
+			name: "build body with subject and release",
+			args: args{payload: domain.NotificationPayload{
+				Subject:     "New release!",
+				Message:     "Movie 2024 UHD BluRay 2160p DTS-HD MA 5.1 DV HEVC HYBRID REMUX-GROUP",
+				Event:       domain.NotificationEventPushError,
+				ReleaseName: "Movie 2024 UHD BluRay 2160p DTS-HD MA 5.1 DV HEVC HYBRID REMUX-GROUP",
+				Status:      domain.ReleasePushStatusErr,
+			}},
+			want: "New release!\nMovie 2024 UHD BluRay 2160p DTS-HD MA 5.1 DV HEVC HYBRID REMUX-GROUP\nNew release: Movie 2024 UHD BluRay 2160p DTS-HD MA 5.1 DV HEVC HYBRID REMUX-GROUP\nStatus: Error\n",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

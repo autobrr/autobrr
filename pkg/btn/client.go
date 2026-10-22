@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/meta"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/jsonrpc"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
@@ -94,7 +95,7 @@ func NewClient(apiKey string, opts ...OptFunc) *Client {
 
 	c.rpcClient = jsonrpc.NewClientWithOpts(c.url, &jsonrpc.ClientOpts{
 		Headers: map[string]string{
-			"User-Agent": "autobrr",
+			"User-Agent": meta.GetUserAgent(),
 		},
 		HTTPClient: c.httpClient,
 	})

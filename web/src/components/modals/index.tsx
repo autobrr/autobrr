@@ -6,15 +6,19 @@
 
 import { FC, Fragment, RefObject, ReactNode, useState } from "react";
 import { Dialog, DialogPanel, DialogTitle, Transition, TransitionChild } from "@headlessui/react";
-import { ExclamationTriangleIcon } from "@heroicons/react/24/solid";
+import { ExclamationTriangleIcon, InformationCircleIcon } from "@heroicons/react/24/solid";
 import { useTranslation } from "react-i18next";
 
 import { RingResizeSpinner } from "@components/Icons";
+import { classNames } from "@utils";
+
+type ModalTone = "danger" | "primary";
 
 interface ModalUpperProps {
   title: string;
   text: string;
   children?: ReactNode;
+  tone?: ModalTone;
 }
 
 interface ModalLowerProps {
@@ -24,6 +28,7 @@ interface ModalLowerProps {
   deleteAction?: () => void;
   forceRunAction?: () => void;
   confirmLabel?: string;
+  tone?: ModalTone;
 }
 
 interface DeleteModalProps extends ModalUpperProps, ModalLowerProps {
@@ -40,10 +45,14 @@ interface ForceRunModalProps {
   text: string;
 }
 
-const ModalUpper = ({ title, text, children }: ModalUpperProps) => (
+const ModalUpper = ({ title, text, children, tone = "danger" }: ModalUpperProps) => (
   <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
     <div className="sm:flex sm:items-start">
-      <ExclamationTriangleIcon className="h-16 w-16 text-red-500 dark:text-red-500" aria-hidden="true" />
+      {tone === "primary" ? (
+        <InformationCircleIcon className="h-16 w-16 shrink-0 text-blue-500 dark:text-blue-500" aria-hidden="true" />
+      ) : (
+        <ExclamationTriangleIcon className="h-16 w-16 text-red-500 dark:text-red-500" aria-hidden="true" />
+      )}
       <div className="mt-3 text-left sm:mt-0 sm:ml-4 max-w-full">
         <DialogTitle as="h3" className="text-lg leading-6 font-medium text-gray-900 dark:text-white break-words">
           {title}
@@ -59,7 +68,7 @@ const ModalUpper = ({ title, text, children }: ModalUpperProps) => (
   </div>
 );
 
-const ModalLower = ({ isOpen, isLoading, toggle, deleteAction, confirmLabel }: ModalLowerProps) => {
+const ModalLower = ({ isOpen, isLoading, toggle, deleteAction, confirmLabel, tone = "danger" }: ModalLowerProps) => {
   const { t } = useTranslation("common");
 
   return (
@@ -70,7 +79,12 @@ const ModalLower = ({ isOpen, isLoading, toggle, deleteAction, confirmLabel }: M
         <>
           <button
             type="button"
-            className="w-full inline-flex justify-center cursor-pointer rounded-md border border-transparent shadow-xs px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
+            className={classNames(
+              tone === "primary"
+                ? "bg-blue-600 hover:bg-blue-700 focus:ring-blue-500"
+                : "bg-red-600 hover:bg-red-700 focus:ring-red-500",
+              "w-full inline-flex justify-center cursor-pointer rounded-md border border-transparent shadow-xs px-4 py-2 text-base font-medium text-white focus:outline-hidden focus:ring-2 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm"
+            )}
             onClick={(e) => {
               e.preventDefault();
               if (isOpen) {
@@ -128,6 +142,20 @@ export const DeleteModal: FC<DeleteModalProps> = (props: DeleteModalProps) => (
       </div>
     </Dialog>
   </Transition>
+);
+
+interface ConfirmModalProps extends ModalUpperProps {
+  isOpen: boolean;
+  isLoading: boolean;
+  toggle: () => void;
+  buttonRef: RefObject<HTMLElement | null> | undefined;
+  confirmLabel: string;
+  onConfirm: () => void;
+}
+
+// ConfirmModal is the DeleteModal dialog for any action that needs a confirm; tone="primary" for non-destructive ones.
+export const ConfirmModal = ({ onConfirm, ...props }: ConfirmModalProps) => (
+  <DeleteModal {...props} deleteAction={onConfirm} />
 );
 
 export const ForceRunModal: FC<ForceRunModalProps> = (props: ForceRunModalProps) => {

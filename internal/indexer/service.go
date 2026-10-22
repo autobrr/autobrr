@@ -8,10 +8,12 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/events"
@@ -54,6 +56,7 @@ type Service struct {
 	releaseRepo releaseRepo
 	ApiService  apiService
 
+	m sync.RWMutex
 	// contains all raw indexer definitions
 	definitions map[string]domain.IndexerDefinition
 	// definition with indexer data
@@ -171,9 +174,16 @@ func (s *Service) Update(ctx context.Context, indexer *domain.Indexer) error {
 	}
 
 	// settings are persisted wholesale, so an update that omits a saved credential would
-	// silently delete it; require the client to echo it back, redacted or not
+	// silently delete it; require the client to echo it back, redacted or not. Keys the
+	// definition no longer declares (e.g. PTP's old api_key) are never sent by the form,
+	// so those are allowed to drop out
+	definition := s.mappedDefinitions[currentIndexer.Identifier]
 	for key, val := range currentIndexer.Settings {
 		if val == "" || !domain.IsSecretIndexerSetting(key) {
+			continue
+		}
+
+		if definition != nil && !slices.ContainsFunc(definition.Settings, func(setting domain.IndexerSetting) bool { return setting.Name == key }) {
 			continue
 		}
 
@@ -311,6 +321,7 @@ func (s *Service) GetBy(ctx context.Context, req domain.GetIndexerRequest) (*dom
 func (s *Service) GetAll() ([]*domain.IndexerDefinition, error) {
 	var res = make([]*domain.IndexerDefinition, 0)
 
+	s.m.RLock()
 	for _, indexer := range s.mappedDefinitions {
 		if indexer == nil {
 			continue
@@ -318,6 +329,7 @@ func (s *Service) GetAll() ([]*domain.IndexerDefinition, error) {
 
 		res = append(res, indexer)
 	}
+	s.m.RUnlock()
 
 	// sort by name
 	slices.SortStableFunc(res, func(a, b *domain.IndexerDefinition) int {
@@ -334,6 +346,7 @@ func (s *Service) mapIndexers() (map[string]*domain.IndexerDefinition, error) {
 		return nil, err
 	}
 
+	mapped := make(map[string]*domain.IndexerDefinition, len(indexers))
 	for _, indexer := range indexers {
 		indexerDefinition, err := s.mapIndexer(indexer)
 		if err != nil {
@@ -344,10 +357,14 @@ func (s *Service) mapIndexers() (map[string]*domain.IndexerDefinition, error) {
 			continue
 		}
 
-		s.mappedDefinitions[indexer.Identifier] = indexerDefinition
+		mapped[indexer.Identifier] = indexerDefinition
 	}
 
-	return s.mappedDefinitions, nil
+	s.m.Lock()
+	maps.Copy(s.mappedDefinitions, mapped)
+	s.m.Unlock()
+
+	return mapped, nil
 }
 
 func (s *Service) mapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition, error) {
@@ -374,6 +391,11 @@ func (s *Service) mapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition,
 	d.UseProxy = indexer.UseProxy
 	d.ProxyID = indexer.ProxyID
 
+	// d is a shallow copy of the raw template, so writing through its slice and map would
+	// leak this indexer's settings into the template and every sibling mapped from it
+	d.Settings = slices.Clone(d.Settings)
+	d.SettingsMap = maps.Clone(d.SettingsMap)
+
 	if d.SettingsMap == nil {
 		d.SettingsMap = make(map[string]string)
 	}
@@ -398,6 +420,9 @@ func (s *Service) mapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition,
 }
 
 func (s *Service) updateMapIndexer(indexer *domain.Indexer) (*domain.IndexerDefinition, error) {
+	s.m.Lock()
+	defer s.m.Unlock()
+
 	d, ok := s.mappedDefinitions[indexer.Identifier]
 	if !ok {
 		return nil, domain.ErrIndexerNotFound
@@ -438,12 +463,9 @@ func (s *Service) updateMapIndexer(indexer *domain.Indexer) (*domain.IndexerDefi
 }
 
 func (s *Service) GetTemplates() ([]domain.IndexerDefinition, error) {
-	definitions := s.definitions
-
-	ret := make([]domain.IndexerDefinition, 0)
-	for _, definition := range definitions {
-		ret = append(ret, definition)
-	}
+	s.m.RLock()
+	ret := slices.Collect(maps.Values(s.definitions))
+	s.m.RUnlock()
 
 	// sort by name
 	slices.SortStableFunc(ret, func(a, b domain.IndexerDefinition) int {
@@ -474,6 +496,8 @@ func (s *Service) reconcileDeprecations(ctx context.Context, deprecations []doma
 
 	activeIdentifiers := make(map[string]struct{}, len(indexers))
 	var untracked []string
+
+	s.m.RLock()
 	for _, indexer := range indexers {
 		definitionName := indexer.Identifier
 		if indexer.ImplementationIsFeed() {
@@ -489,6 +513,7 @@ func (s *Service) reconcileDeprecations(ctx context.Context, deprecations []doma
 		}
 		untracked = append(untracked, indexer.Identifier)
 	}
+	s.m.RUnlock()
 
 	if err := s.repo.ReconcileDeprecations(ctx, deprecations, activeIdentifiers); err != nil {
 		return err
@@ -552,8 +577,9 @@ func (s *Service) Start() error {
 }
 
 func (s *Service) removeIndexer(indexer domain.Indexer) {
-	// remove mapped definition
+	s.m.Lock()
 	delete(s.mappedDefinitions, indexer.Identifier)
+	s.m.Unlock()
 }
 
 func (s *Service) addIndexer(indexer domain.Indexer) error {
@@ -579,7 +605,9 @@ func (s *Service) addIndexer(indexer domain.Indexer) error {
 		}
 	}
 
+	s.m.Lock()
 	s.mappedDefinitions[indexer.Identifier] = indexerDefinition
+	s.m.Unlock()
 
 	return nil
 }
@@ -607,7 +635,9 @@ func (s *Service) updateIndexer(indexer *domain.Indexer) error {
 		}
 	}
 
+	s.m.Lock()
 	s.mappedDefinitions[indexer.Identifier] = indexerDefinition
+	s.m.Unlock()
 
 	return nil
 }
@@ -617,7 +647,9 @@ func (s *Service) updateIndexer(indexer *domain.Indexer) error {
 // map[irc.network.test][indexer2] = indexer2
 func (s *Service) mapIRCServerDefinitionLookup(ircServer string, indexerDefinition *domain.IndexerDefinition) {
 	if indexerDefinition.IRC != nil {
-		// check if already exists, if ok add it to existing, otherwise create new
+		s.m.Lock()
+		defer s.m.Unlock()
+
 		_, exists := s.lookupIRCServerDefinition[ircServer]
 		if !exists {
 			s.lookupIRCServerDefinition[ircServer] = map[string]*domain.IndexerDefinition{}
@@ -660,16 +692,22 @@ func (s *Service) LoadIndexerDefinitions() error {
 		if err = dec.Decode(&d); err != nil {
 			return errors.Wrap(err, "could not unmarshal indexer definition file: %s", file)
 		}
-		if err = d.ValidateIRCAuth(); err != nil {
+		if err = d.ValidateIRC(); err != nil {
 			return errors.Wrap(err, "invalid indexer definition file: %s", file)
 		}
 
 		d.Prepare()
 
+		s.m.Lock()
 		s.definitions[d.Identifier] = d
+		s.m.Unlock()
 	}
 
-	s.log.Debug().Int("count", len(s.definitions)).Msg("loaded indexer definitions")
+	s.m.RLock()
+	count := len(s.definitions)
+	s.m.RUnlock()
+
+	s.log.Debug().Int("count", count).Msg("loaded indexer definitions")
 
 	return nil
 }
@@ -704,7 +742,7 @@ func OpenAndProcessDefinition(file string) (*domain.IndexerDefinition, error) {
 		if err := dec.Decode(&d); err != nil {
 			return nil, errors.Wrap(err, "could not decode definition file: %s", file)
 		}
-		if err := d.ValidateIRCAuth(); err != nil {
+		if err := d.ValidateIRC(); err != nil {
 			return nil, errors.Wrap(err, "invalid definition file: %s", file)
 		}
 
@@ -732,7 +770,7 @@ func OpenAndProcessDefinition(file string) (*domain.IndexerDefinition, error) {
 	}
 
 	definition := d.ToIndexerDefinition()
-	if err := definition.ValidateIRCAuth(); err != nil {
+	if err := definition.ValidateIRC(); err != nil {
 		return nil, errors.Wrap(err, "invalid definition file: %s", file)
 	}
 
@@ -798,7 +836,9 @@ func (s *Service) LoadCustomIndexerDefinitions() error {
 			continue
 		}
 
+		s.m.Lock()
 		s.definitions[definition.Identifier] = *definition
+		s.m.Unlock()
 
 		customCount++
 	}
@@ -811,14 +851,9 @@ func (s *Service) LoadCustomIndexerDefinitions() error {
 func (s *Service) GetIndexersByIRCNetwork(server string) []*domain.IndexerDefinition {
 	server = strings.ToLower(server)
 
-	var indexerDefinitions []*domain.IndexerDefinition
-
-	// get indexer definitions matching irc network from lookup table
-	if srv, idOk := s.lookupIRCServerDefinition[server]; idOk {
-		for _, definition := range srv {
-			indexerDefinitions = append(indexerDefinitions, definition)
-		}
-	}
+	s.m.RLock()
+	indexerDefinitions := slices.Collect(maps.Values(s.lookupIRCServerDefinition[server]))
+	s.m.RUnlock()
 
 	return indexerDefinitions
 }
@@ -848,6 +883,9 @@ func (s *Service) GetIndexersByIRCNetwork(server string) []*domain.IndexerDefini
 //}
 
 func (s *Service) getDefinitionByName(name string) (*domain.IndexerDefinition, bool) {
+	s.m.RLock()
+	defer s.m.RUnlock()
+
 	if v, ok := s.definitions[name]; ok {
 		return &v, true
 	}
@@ -856,6 +894,9 @@ func (s *Service) getDefinitionByName(name string) (*domain.IndexerDefinition, b
 }
 
 func (s *Service) GetMappedDefinitionByName(name string) (*domain.IndexerDefinition, bool) {
+	s.m.RLock()
+	defer s.m.RUnlock()
+
 	v, ok := s.mappedDefinitions[name]
 	if !ok {
 		return nil, false

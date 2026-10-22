@@ -127,6 +127,10 @@ func (j *RSSJob) processItem(item *gofeed.Item) *domain.Release {
 	rls := domain.NewRelease(j.Feed.Indexer)
 	rls.Implementation = domain.ReleaseImplementationRSS
 
+	if item.PublishedParsed != nil && !item.PublishedParsed.IsZero() {
+		rls.PublishDate = *item.PublishedParsed
+	}
+
 	rls.ParseString(item.Title)
 
 	if j.Feed.Settings != nil && j.Feed.Settings.DownloadType == domain.FeedDownloadTypeMagnet {
@@ -488,6 +492,16 @@ func isNewerThanMaxAge(maxAge int, item, now time.Time) bool {
 	}
 
 	return false
+}
+
+// parseMetaID returns a numeric metadata id from a feed attribute, or 0 when it is empty or not a number.
+func parseMetaID(value string) int {
+	id, err := strconv.Atoi(value)
+	if err != nil {
+		return 0
+	}
+
+	return id
 }
 
 // isFreeleech basic freeleech parsing

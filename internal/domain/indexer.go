@@ -202,13 +202,29 @@ func (i IndexerDefinition) HasApi() bool {
 	return slices.Contains(i.Supports, "api")
 }
 
-// ValidateIRCAuth rejects invalid authentication metadata in an indexer definition.
-func (i IndexerDefinition) ValidateIRCAuth() error {
-	if i.IRC == nil || i.IRC.Auth == nil {
+// ValidateIRC rejects invalid IRC authentication and parse metadata in an indexer definition.
+func (i IndexerDefinition) ValidateIRC() error {
+	if i.IRC == nil {
 		return nil
 	}
 
-	return i.IRC.Auth.Validate()
+	if i.IRC.Auth != nil {
+		if err := i.IRC.Auth.Validate(); err != nil {
+			return err
+		}
+	}
+
+	for _, channel := range i.IRC.Channels {
+		if channel.Parse == nil {
+			continue
+		}
+
+		if err := channel.Parse.SizeUnits.Validate(); err != nil {
+			return errors.Wrap(err, "invalid parse for channel: %s", channel.Name)
+		}
+	}
+
+	return nil
 }
 
 type IndexerDefinitionCustom struct {
@@ -277,6 +293,7 @@ func (i *IndexerDefinitionCustom) ToIndexerDefinition() *IndexerDefinition {
 				Parse: &IndexerIRCV2Parse{
 					Type:             i.IRC.Parse.Type,
 					ForceSizeUnit:    i.IRC.Parse.ForceSizeUnit,
+					SizeUnits:        i.IRC.Parse.SizeUnits,
 					SkipCleanMessage: false,
 					Lines:            i.IRC.Parse.Lines,
 					Match: IndexerIRCV2ParseMatch{
@@ -358,6 +375,7 @@ Indexer definition v1 / custom / legacy
 type IndexerIRCParse struct {
 	Type          string                `json:"type"`
 	ForceSizeUnit string                `json:"forcesizeunit"`
+	SizeUnits     SizeUnits             `json:"sizeunits"`
 	Lines         []IndexerIRCParseLine `json:"lines"`
 	Match         IndexerIRCParseMatch  `json:"match"`
 	Mappings      IRCMappings           `json:"mappings"`
@@ -429,12 +447,35 @@ type IndexerIRCV2Channel struct {
 type IndexerIRCV2Parse struct {
 	Type             string                 `json:"type"`
 	ForceSizeUnit    string                 `json:"forcesizeunit"`
+	SizeUnits        SizeUnits              `json:"sizeunits"`
 	SkipCleanMessage bool                   `json:"skipcleanmessage"`
 	Lines            []IndexerIRCParseLine  `json:"lines"`
 	Match            IndexerIRCV2ParseMatch `json:"match"`
 	Mappings         IRCMappings            `json:"mappings"`
 
 	parser IRCParser
+}
+
+// SizeUnits declares which multiplier an indexer means by its size unit labels.
+type SizeUnits string
+
+const (
+	// SizeUnitsBinary is for indexers that format sizes with base 1024 but label them KB, MB, GB.
+	SizeUnitsBinary SizeUnits = "binary"
+)
+
+func (s SizeUnits) String() string {
+	return string(s)
+}
+
+// Validate rejects size units other than the decimal default and binary.
+func (s SizeUnits) Validate() error {
+	switch s {
+	case "", SizeUnitsBinary:
+		return nil
+	}
+
+	return errors.New("invalid size units: %q", s)
 }
 
 type IndexerIRCV2ParseMatch struct {
@@ -721,7 +762,7 @@ func (p *IndexerIRCV2Parse) Parse(def *IndexerDefinition, channelName string, va
 		return errors.Wrap(err, "could not map custom variables for release")
 	}
 
-	if err := rls.MapVars(vars, channel.Parse.ForceSizeUnit); err != nil {
+	if err := rls.MapVars(vars, channel.Parse.ForceSizeUnit, channel.Parse.SizeUnits); err != nil {
 		return errors.Wrap(err, "could not map variables for release")
 	}
 

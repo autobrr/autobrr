@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/autobrr/autobrr/internal/meta"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
@@ -24,7 +25,8 @@ import (
 const DefaultTimeout = 60
 
 type Client struct {
-	http *http.Client
+	http      *http.Client
+	userAgent string
 
 	Host   string
 	ApiKey string
@@ -83,10 +85,11 @@ func NewClient(config Config) *Client {
 	}
 
 	return &Client{
-		http:   httpClient,
-		Host:   config.Host,
-		ApiKey: config.ApiKey,
-		log:    config.Log,
+		http:      httpClient,
+		Host:      config.Host,
+		ApiKey:    config.ApiKey,
+		log:       config.Log,
+		userAgent: meta.GetUserAgent(),
 	}
 }
 
@@ -112,6 +115,8 @@ func (c *Client) get(ctx context.Context, params url.Values) (*Feed, error) {
 	if c.UseBasicAuth {
 		req.SetBasicAuth(c.BasicAuth.Username, c.BasicAuth.Password)
 	}
+
+	req.Header.Set("User-Agent", c.userAgent)
 
 	resp, err := c.http.Do(req)
 	if err != nil {
@@ -188,6 +193,8 @@ func (c *Client) getData(ctx context.Context, params url.Values) (*http.Response
 	if c.UseBasicAuth {
 		req.SetBasicAuth(c.BasicAuth.Username, c.BasicAuth.Password)
 	}
+
+	req.Header.Set("User-Agent", c.userAgent)
 
 	resp, err := c.http.Do(req)
 	if err != nil {
@@ -287,6 +294,8 @@ func (c *Client) getCaps(ctx context.Context) (*Caps, error) {
 	//if c.ApiKey != "" {
 	//	req.Header.Add("X-API-Key", c.ApiKey)
 	//}
+
+	req.Header.Set("User-Agent", c.userAgent)
 
 	resp, err := c.http.Do(req)
 	if err != nil {

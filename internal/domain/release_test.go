@@ -467,6 +467,7 @@ func TestRelease_MapVars(t *testing.T) {
 		varMap map[string]string
 		//definition IndexerDefinition
 		forceSizeUnit string
+		sizeUnits     SizeUnits
 	}
 	tests := []struct {
 		name   string
@@ -789,14 +790,69 @@ func TestRelease_MapVars(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:   "decimal size label read as binary",
+			fields: &Release{},
+			want: &Release{
+				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				Size:        uint64(8192650117),
+			},
+			args: args{
+				varMap: map[string]string{
+					"torrentName": "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+					"torrentSize": "7.63 GB",
+				},
+				sizeUnits: SizeUnitsBinary,
+			},
+		},
+		{
+			name:   "forced size unit read as binary",
+			fields: &Release{},
+			want: &Release{
+				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				Size:        uint64(10485760000),
+			},
+			args: args{
+				varMap: map[string]string{
+					"torrentName": "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+					"torrentSize": "10000",
+				},
+				forceSizeUnit: "MB",
+				sizeUnits:     SizeUnitsBinary,
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := tt.fields
-			_ = r.MapVars(tt.args.varMap, tt.args.forceSizeUnit)
+			_ = r.MapVars(tt.args.varMap, tt.args.forceSizeUnit, tt.args.sizeUnits)
 
 			r.RawVars = nil // Vars pass-through is tested separately
 			assert.Equal(t, tt.want, r)
+		})
+	}
+}
+
+func Test_toBinarySizeUnit(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		size string
+		want string
+	}{
+		{size: "7.63 GB", want: "7.63 GiB"},
+		{size: "716.22MB", want: "716.22MiB"},
+		{size: "1.2 tb", want: "1.2 tiB"},
+		{size: "7.63 GB ", want: "7.63 GiB"},
+		{size: "512 KB", want: "512 KiB"},
+		{size: "1.27 GiB", want: "1.27 GiB"},
+		{size: "700 B", want: "700 B"},
+		{size: "700 bytes", want: "700 bytes"},
+		{size: "", want: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.size, func(t *testing.T) {
+			assert.Equal(t, tt.want, toBinarySizeUnit(tt.size))
 		})
 	}
 }

@@ -4,6 +4,7 @@
 package http
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/web"
 
 	"github.com/alexedwards/scs/v2"
@@ -26,9 +28,11 @@ import (
 )
 
 type Server struct {
-	log zerolog.Logger
-	sse *sse.Server
-	db  DatabaseHealth
+	log      zerolog.Logger
+	sse      *sse.Server
+	db       DatabaseHealth
+	server   *http.Server
+	listener net.Listener
 
 	buildInfo      buildInfo
 	config         *config.AppConfig
@@ -55,6 +59,7 @@ type Server struct {
 	healthCheckPaths []string
 
 	actionService       actionService
+	alertService        alertService
 	apiService          apikeyService
 	authService         authService
 	downloaderService   downloaderService
@@ -83,6 +88,7 @@ type Deps struct {
 	Date    string
 
 	ActionService       actionService
+	AlertService        alertService
 	ApiService          apikeyService
 	AuthService         authService
 	DownloaderService   downloaderService
@@ -129,6 +135,7 @@ func NewServer(deps Deps) *Server {
 		sessionManager: sessionManager,
 
 		actionService:       deps.ActionService,
+		alertService:        deps.AlertService,
 		apiService:          deps.ApiService,
 		authService:         deps.AuthService,
 		downloaderService:   deps.DownloaderService,
@@ -236,35 +243,64 @@ func (s *Server) routeBaseURL() string {
 	return s.config.Config.BaseURL
 }
 
-func (s *Server) Open() error {
-	addr := fmt.Sprintf("%v:%v", s.config.Config.Host, s.config.Config.Port)
-
-	var err error
-	for _, proto := range []string{"tcp", "tcp4", "tcp6"} {
-		if err = s.tryToServe(addr, proto); err == nil {
-			break
-		}
-
-		s.log.Error().Err(err).Str("protocol", proto).Str("addr", addr).Msg("failed to start server")
-	}
-
-	return err
-}
-
-func (s *Server) tryToServe(addr, protocol string) error {
-	listener, err := net.Listen(protocol, addr)
+// Listen binds the configured address. It returns before serving so a port
+// conflict fails startup instead of surfacing later.
+func (s *Server) Listen() error {
+	listener, err := listen(s.log, fmt.Sprintf("%v:%v", s.config.Config.Host, s.config.Config.Port))
 	if err != nil {
 		return err
 	}
 
-	s.log.Info().Str("protocol", protocol).Str("addr", listener.Addr().String()).Msg("starting api server")
-
-	server := http.Server{
+	s.listener = listener
+	s.server = &http.Server{
 		Handler:           s.Handler(),
 		ReadHeaderTimeout: time.Second * 15,
 	}
 
-	return server.Serve(listener)
+	s.log.Info().Str("addr", listener.Addr().String()).Msg("starting api server")
+
+	return nil
+}
+
+// Serve blocks until the server is shut down. It requires a prior Listen.
+func (s *Server) Serve() error {
+	if err := s.server.Serve(s.listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+
+	return nil
+}
+
+// Shutdown ends the event streams first, since SSE handlers only return when
+// their stream closes and would otherwise hold Shutdown until ctx expires.
+func (s *Server) Shutdown(ctx context.Context) error {
+	if s.server == nil {
+		return nil
+	}
+
+	s.sse.Close()
+
+	if err := s.server.Shutdown(ctx); err != nil {
+		_ = s.server.Close()
+
+		return errors.Wrap(err, "could not shut down gracefully")
+	}
+
+	return nil
+}
+
+// CloseListener releases the port when Serve never ran. Once Serve has run,
+// Shutdown already closed the listener and this is a no-op.
+func (s *Server) CloseListener(context.Context) error {
+	if s.listener == nil {
+		return nil
+	}
+
+	if err := s.listener.Close(); err != nil && !errors.Is(err, net.ErrClosed) {
+		return err
+	}
+
+	return nil
 }
 
 func (s *Server) Handler() http.Handler {
@@ -322,6 +358,7 @@ func (s *Server) Handler() http.Handler {
 			r.Use(s.IsAuthenticated)
 
 			r.Route("/actions", newActionHandler(encoder, s.actionService).Routes)
+			r.Route("/alerts", newAlertHandler(encoder, s.alertService).Routes)
 			r.Route("/config", newConfigHandler(encoder, s.buildInfo, s.config).Routes)
 			r.Route("/downloaders", newDownloaderHandler(encoder, s.downloaderService).Routes)
 			r.Route("/filters", newFilterHandler(encoder, s.filterService).Routes)

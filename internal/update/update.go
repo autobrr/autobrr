@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/meta"
 	"github.com/autobrr/autobrr/pkg/version"
 
 	"github.com/rs/zerolog"
@@ -26,7 +27,7 @@ func NewUpdate(log zerolog.Logger, config *domain.Config) *Service {
 	return &Service{
 		log:            log.With().Str("module", "update").Logger(),
 		config:         config,
-		releaseChecker: version.NewChecker("autobrr", "autobrr", config.Version),
+		releaseChecker: version.NewChecker("autobrr", "autobrr", meta.GetVersion()),
 	}
 }
 
@@ -48,7 +49,7 @@ func (s *Service) CheckUpdates(ctx context.Context) {
 func (s *Service) CheckUpdateAvailable(ctx context.Context) (*version.Release, error) {
 	s.log.Trace().Msg("checking for updates...")
 
-	newAvailable, newVersion, err := s.releaseChecker.CheckNewVersion(ctx, s.config.Version)
+	newAvailable, newVersion, err := s.releaseChecker.CheckNewVersion(ctx, meta.GetVersion())
 	if err != nil {
 		s.log.Error().Err(err).Msg("could not check for new release")
 		return nil, nil

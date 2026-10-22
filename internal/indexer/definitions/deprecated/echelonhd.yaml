@@ -1,0 +1,5 @@
+identifier: echelonhd
+name: EchelonHD
+reason: Tracker shut down
+issue_url: https://github.com/autobrr/autobrr/pull/2764
+deprecated_at: 2026-10-19T00:00:00Z

@@ -23,6 +23,11 @@ export const SettingsKeys = {
   lists: () => [...SettingsKeys.all, "list"] as const,
 };
 
+export const AlertKeys = {
+  all: ["alerts"] as const,
+  lists: () => [...AlertKeys.all, "list"] as const
+};
+
 export const FilterKeys = {
   all: ["filters"] as const,
   lists: () => [...FilterKeys.all, "list"] as const,
@@ -112,7 +117,12 @@ export const NotificationKeys = {
   lists: () => [...NotificationKeys.all, "list"] as const,
   details: () => [...NotificationKeys.all, "detail"] as const,
   detail: (id: number) => [...NotificationKeys.details(), id] as const,
-  pushoverSounds: (apiToken: string) => [...NotificationKeys.all, "pushover-sounds", apiToken] as const
+  pushoverSounds: (apiToken: string) => [...NotificationKeys.all, "pushover-sounds", apiToken] as const,
+  inbox: {
+    all: () => [...NotificationKeys.all, "inbox"] as const,
+    lists: () => [...NotificationKeys.inbox.all(), "list"] as const,
+    list: (params: InboxQueryParams) => [...NotificationKeys.inbox.lists(), params] as const
+  }
 };
 
 export const ProxyKeys = {

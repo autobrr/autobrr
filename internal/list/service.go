@@ -9,6 +9,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/downloader"
+	"github.com/autobrr/autobrr/internal/events"
 
 	"github.com/pkg/errors"
 	"github.com/robfig/cron/v3"
@@ -16,7 +17,7 @@ import (
 )
 
 type listRepo interface {
-	List(ctx context.Context) ([]*domain.List, error)
+	List(ctx context.Context, params domain.ListQueryParams) ([]*domain.List, error)
 	FindByID(ctx context.Context, listID int64) (*domain.List, error)
 	Store(ctx context.Context, listID *domain.List) error
 	Update(ctx context.Context, listID *domain.List) error
@@ -39,18 +40,24 @@ type schedulerService interface {
 	AddJob(job cron.Job, spec string, identifier string) (int, error)
 }
 
+type eventBus interface {
+	EmitListRefresh(ctx context.Context, event events.ListRefreshEvent)
+}
+
 type Service struct {
-	log  zerolog.Logger
-	repo listRepo
+	log      zerolog.Logger
+	eventBus eventBus
+	repo     listRepo
 
 	scheduler     schedulerService
 	downloaderSvc downloaderService
 	filterSvc     filterService
 }
 
-func NewService(log zerolog.Logger, repo listRepo, downloaderSvc downloaderService, filterSvc filterService, schedulerSvc schedulerService) *Service {
+func NewService(log zerolog.Logger, eventBus eventBus, repo listRepo, downloaderSvc downloaderService, filterSvc filterService, schedulerSvc schedulerService) *Service {
 	return &Service{
 		log:           log.With().Str("module", "list").Logger(),
+		eventBus:      eventBus,
 		repo:          repo,
 		downloaderSvc: downloaderSvc,
 		filterSvc:     filterSvc,
@@ -58,8 +65,8 @@ func NewService(log zerolog.Logger, repo listRepo, downloaderSvc downloaderServi
 	}
 }
 
-func (s *Service) List(ctx context.Context) ([]*domain.List, error) {
-	data, err := s.repo.List(ctx)
+func (s *Service) List(ctx context.Context, params domain.ListQueryParams) ([]*domain.List, error) {
+	data, err := s.repo.List(ctx, params)
 	if err != nil {
 		return nil, err
 	}
@@ -173,7 +180,7 @@ func (s *Service) Delete(ctx context.Context, listID int64) error {
 }
 
 func (s *Service) RefreshAll(ctx context.Context) error {
-	lists, err := s.List(ctx)
+	lists, err := s.List(ctx, domain.ListQueryParams{Enabled: new(true)})
 	if err != nil {
 		return err
 	}
@@ -246,14 +253,14 @@ func (s *Service) RefreshList(ctx context.Context, listID int64) error {
 }
 
 func (s *Service) RefreshArrLists(ctx context.Context) error {
-	lists, err := s.List(ctx)
+	lists, err := s.List(ctx, domain.ListQueryParams{Enabled: new(true)})
 	if err != nil {
 		return err
 	}
 
 	var selectedLists []*domain.List
 	for _, list := range lists {
-		if list.Type.ArrClient() && list.Enabled {
+		if list.Type.ArrClient() {
 			selectedLists = append(selectedLists, list)
 		}
 	}
@@ -266,14 +273,14 @@ func (s *Service) RefreshArrLists(ctx context.Context) error {
 }
 
 func (s *Service) RefreshOtherLists(ctx context.Context) error {
-	lists, err := s.List(ctx)
+	lists, err := s.List(ctx, domain.ListQueryParams{Enabled: new(true)})
 	if err != nil {
 		return err
 	}
 
 	var selectedLists []*domain.List
 	for _, list := range lists {
-		if list.Type.RegularList() && list.Enabled {
+		if list.Type.RegularList() {
 			selectedLists = append(selectedLists, list)
 		}
 	}

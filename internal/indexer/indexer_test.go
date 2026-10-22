@@ -406,7 +406,7 @@ func TestIndexersParseAndFilter(t *testing.T) {
 				{
 					name: "announce_resolution_not_in_name",
 					args: args{
-						announceLines: []string{"Category [TV] Type [WEB-DL] Name [The Show S01E01 NF WEB-DL DD+ 5.1 H.264-GRP] Resolution [1080p] Freeleech [0%] Internal [No] Double Upload [No] Size [1.38 GB] Uploader [Anonymous] Url [https://aither.cc/torrents/download/213123123]"},
+						announceLines: []string{"Category [TV] Type [WEB-DL] Name [The Show S01E01 NF WEB-DL DD+ 5.1 H.264-GRP] Resolution [1080p] Freeleech [0%] Upload Cap: [No] Internal [No] Double Upload [No] Size [1.38 GB] Uploader [Anonymous] Url [https://aither.cc/torrents/download/213123123]"},
 						filters: []filterTest{
 							{
 								filter: &domain.Filter{
@@ -465,24 +465,48 @@ func TestIndexersParseAndFilter(t *testing.T) {
 			},
 		},
 		{
-			name: "sharewood",
+			name: "iptorrents",
 			fields: fields{
-				identifier:         "sharewood",
-				identifierExternal: "Sharewood",
+				identifier:         "iptorrents",
+				identifierExternal: "IPTorrents",
 				settings: map[string]string{
 					"passkey": "key",
 				},
 			},
 			subTests: []subTest{
 				{
-					name: "announce_resolution_differs_from_name",
+					name: "announce_binary_size",
 					args: args{
-						announceLines: []string{"Vidéos | La Brea S02E08 MULTi 1080p WEB x264-FW | 1.27 GiB | 1080p/i <https://sharewood.tv/torrents/la-brea-s02e08-multi-1080p-web-x264-fw.66870>"},
+						announceLines: []string{"[TV/BD] Synthetic.Show.S01E01.2160p.WEB-GROUP - https://iptorrents.com/details.php?id=123 - 7.63 GB"},
 						filters: []filterTest{
 							{
 								filter: &domain.Filter{
-									Name:        "filter_1",
-									Resolutions: []string{"1080p"},
+									Name:    "filter_1",
+									MinSize: "8GB",
+								},
+								match: true,
+							},
+							{
+								filter: &domain.Filter{
+									Name:    "filter_2",
+									MaxSize: "8GB",
+								},
+								match:      false,
+								rejections: []string{"release size 8192650117 bytes is larger than filter max size 8000000000 bytes", "[max size] not matching: got 8192650117 want: 8GB"},
+							},
+						},
+					},
+					match: false,
+				},
+				{
+					name: "announce_binary_size_mb",
+					args: args{
+						announceLines: []string{"[TV/x264] Synthetic.Show.S01E01.720p.WEB-GROUP FREELEECH - https://iptorrents.com/details.php?id=124 - 716.22 MB"},
+						filters: []filterTest{
+							{
+								filter: &domain.Filter{
+									Name:    "filter_1",
+									MinSize: "750MB",
 								},
 								match: true,
 							},

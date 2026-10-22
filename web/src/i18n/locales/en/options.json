@@ -10,6 +10,12 @@
     "FIXED": "Fixed (calendar reset)",
     "ROLLING": "Rolling (sliding window)"
   },
+  "rtorrentPriority": {
+    "DEFAULT": "Default",
+    "LOW": "Low",
+    "NORMAL": "Normal",
+    "HIGH": "High"
+  },
   "downloadClient": {
     "QBITTORRENT": {
       "label": "qBittorrent",
@@ -165,6 +171,7 @@
     "PUSH_ERROR": "Error"
   },
   "notificationType": {
+    "BARK": "Bark",
     "DISCORD": "Discord",
     "GOTIFY": "Gotify",
     "LUNASEA": "LunaSea",
@@ -173,7 +180,8 @@
     "PUSHOVER": "Pushover",
     "SHOUTRRR": "Shoutrrr",
     "TELEGRAM": "Telegram",
-    "WEBHOOK": "Webhook"
+    "WEBHOOK": "Webhook",
+    "BUILTIN": "Built-in"
   },
   "event": {
     "PUSH_REJECTED": {
@@ -195,6 +203,30 @@
     "IRC_RECONNECTED": {
       "label": "IRC Reconnected",
       "description": "Reconnected to irc network after error"
+    },
+    "IRC_UNHEALTHY": {
+      "label": "IRC Unhealthy",
+      "description": "IRC network unhealthy for 15 minutes, or stopped on a fatal error"
+    },
+    "IRC_HEALTHY": {
+      "label": "IRC Healthy",
+      "description": "IRC network healthy again after being reported unhealthy"
+    },
+    "LIST_REFRESH_SUCCESS": {
+      "label": "List Refresh Success",
+      "description": "List refreshed and filters updated"
+    },
+    "LIST_REFRESH_ERROR": {
+      "label": "List Refresh Error",
+      "description": "List refresh failed"
+    },
+    "FEED_REFRESH_SUCCESS": {
+      "label": "Feed Refresh Success",
+      "description": "Feed refreshed"
+    },
+    "FEED_REFRESH_ERROR": {
+      "label": "Feed Refresh Error",
+      "description": "Feed refresh failed"
     },
     "APP_UPDATE_AVAILABLE": {
       "label": "New update",

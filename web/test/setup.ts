@@ -16,3 +16,12 @@ if (typeof window !== "undefined" && typeof window.matchMedia !== "function") {
     dispatchEvent: () => false
   });
 }
+
+// jsdom has no ResizeObserver; HeadlessUI anchored menus (floating-ui) observe their trigger
+if (typeof window !== "undefined" && typeof window.ResizeObserver !== "function") {
+  window.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/meta"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
@@ -38,7 +39,8 @@ type Client struct {
 	rateLimiter *rate.Limiter
 	APIKey      string
 
-	log zerolog.Logger
+	log       zerolog.Logger
+	userAgent string
 }
 
 type OptFunc func(*Client)
@@ -81,6 +83,7 @@ func NewClient(apiKey string, opts ...OptFunc) *Client {
 		},
 		rateLimiter: rate.NewLimiter(rate.Every(5*time.Second), 1), // 5 request every 10 seconds
 		APIKey:      apiKey,
+		userAgent:   meta.GetUserAgent(),
 	}
 
 	for _, opt := range opts {
@@ -225,7 +228,7 @@ func (c *Client) get(ctx context.Context, url string) (*http.Response, error) {
 	}
 
 	req.Header.Add("X-API-Key", c.APIKey)
-	req.Header.Set("User-Agent", "autobrr")
+	req.Header.Set("User-Agent", c.userAgent)
 
 	res, err := c.Do(req)
 	if err != nil {
@@ -252,7 +255,7 @@ func (c *Client) getJSON(ctx context.Context, params url.Values, data any) error
 	}
 
 	req.Header.Add("X-API-Key", c.APIKey)
-	req.Header.Set("User-Agent", "autobrr")
+	req.Header.Set("User-Agent", c.userAgent)
 
 	res, err := c.Do(req)
 	if err != nil {

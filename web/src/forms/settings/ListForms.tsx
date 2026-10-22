@@ -18,7 +18,7 @@ import {
 import { CheckIcon, ChevronUpDownIcon, XMarkIcon } from "@heroicons/react/24/solid";
 
 import { APIClient } from "@api/APIClient";
-import { ListKeys } from "@api/query_keys";
+import { AlertKeys, ListKeys } from "@api/query_keys";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { selectComponents, selectStyles, selectTheme } from "@components/inputs/select_props";
@@ -298,6 +298,7 @@ function ListUpdateFormPanel({ toggle, data }: ListUpdateFormPanelProps) {
     mutationFn: (list: List) => APIClient.lists.update(list),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ListKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: AlertKeys.all });
 
       toast.custom((toastInstance) => <Toast type="success" body={t("forms.list.updated", { name: data.name })} t={toastInstance}/>);
 
@@ -312,6 +313,7 @@ function ListUpdateFormPanel({ toggle, data }: ListUpdateFormPanelProps) {
     mutationFn: (listID: number) => APIClient.lists.delete(listID),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ListKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: AlertKeys.all });
 
       toast.custom((toastInstance) => <Toast type="success" body={t("forms.list.deleted", { name: data.name })} t={toastInstance}/>);
     }

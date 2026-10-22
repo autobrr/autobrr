@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/autobrr/autobrr/internal/meta"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
@@ -26,7 +27,8 @@ type Client struct {
 
 	log zerolog.Logger
 
-	http *http.Client
+	http      *http.Client
+	userAgent string
 }
 
 type Options struct {
@@ -36,10 +38,17 @@ type Options struct {
 	BasicUser string
 	BasicPass string
 
+	TLSSkipVerify bool
+
 	Log zerolog.Logger
 }
 
 func New(opts Options) *Client {
+	transport := sharedhttp.Transport
+	if opts.TLSSkipVerify {
+		transport = sharedhttp.TransportTLSInsecure
+	}
+
 	return &Client{
 		addr:      opts.Addr,
 		apiKey:    opts.ApiKey,
@@ -48,8 +57,9 @@ func New(opts Options) *Client {
 		log:       opts.Log,
 		http: &http.Client{
 			Timeout:   time.Second * 60,
-			Transport: sharedhttp.Transport,
+			Transport: transport,
 		},
+		userAgent: meta.GetUserAgent(),
 	}
 }
 
@@ -85,6 +95,8 @@ func (c *Client) AddFromUrl(ctx context.Context, r AddNzbRequest) (*AddFileRespo
 	if c.basicUser != "" && c.basicPass != "" {
 		req.SetBasicAuth(c.basicUser, c.basicPass)
 	}
+
+	req.Header.Set("User-Agent", c.userAgent)
 
 	res, err := c.http.Do(req)
 	if err != nil {
@@ -132,6 +144,8 @@ func (c *Client) Version(ctx context.Context) (*VersionResponse, error) {
 	if c.basicUser != "" && c.basicPass != "" {
 		req.SetBasicAuth(c.basicUser, c.basicPass)
 	}
+
+	req.Header.Set("User-Agent", c.userAgent)
 
 	res, err := c.http.Do(req)
 	if err != nil {

@@ -422,8 +422,12 @@ export const APIClient = {
     files: () => appClient.Get<LogFileResponse>("api/logs/files"),
     download: (filename: string) => appClient.Get<Response>(`api/logs/files/${encodeURIComponent(filename)}`)
   },
+  alerts: {
+    list: () => appClient.Get<Alert[]>("api/alerts")
+  },
   events: {
-    logs: () => new EventSource(`${sseBaseUrl()}api/events?stream=logs`, { withCredentials: true })
+    logs: () => new EventSource(`${sseBaseUrl()}api/events?stream=logs`, { withCredentials: true }),
+    notifications: () => new EventSource(`${sseBaseUrl()}api/events?stream=notifications`, { withCredentials: true })
   },
   notifications: {
     getAll: () => appClient.Get<ServiceNotification[]>("api/notification"),
@@ -444,6 +448,18 @@ export const APIClient = {
         return Promise.reject(new Error("API token is required"));
       }
       return appClient.Get<Record<string, string>>(`api/notification/pushover/sounds?token=${encodeURIComponent(apiToken)}`);
+    },
+    inbox: {
+      list: (params: InboxQueryParams) => appClient.Get<InboxResponse>("api/notification/inbox", {
+        queryString: { limit: params.limit, offset: params.offset, unread: params.unread, event: params.event }
+      }),
+      markRead: (ids: number[] = []) => appClient.Post("api/notification/inbox/read", {
+        body: { ids }
+      }),
+      delete: (ids: number[]) => appClient.Post("api/notification/inbox/delete", {
+        body: { ids }
+      }),
+      deleteAll: () => appClient.Delete("api/notification/inbox")
     }
   },
   lists: {

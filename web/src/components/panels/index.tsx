@@ -207,8 +207,8 @@ function SlideOverForm<DataType>({
           </div>
 
           <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-5 sm:px-6">
-            <div className={classNames(type === "CREATE" ? "justify-end" : "justify-between", "space-x-3 flex")}>
-              {type === "UPDATE" && (
+            <div className={classNames(type === "UPDATE" && deleteAction ? "justify-between" : "justify-end", "space-x-3 flex")}>
+              {type === "UPDATE" && deleteAction && (
                 <button
                   type="button"
                   className="inline-flex items-center justify-center px-4 py-2 border border-transparent cursor-pointer font-medium rounded-md text-red-700 dark:text-white bg-red-100 dark:bg-red-700 hover:bg-red-200 dark:hover:bg-red-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:text-sm"
@@ -231,7 +231,7 @@ function SlideOverForm<DataType>({
                         : isTestError
                           ? "text-red-500 border-red-500 bg-red-50"
                           : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:border-rose-700 active:bg-rose-700",
-                      isTesting ? "cursor-not-allowed" : "",
+                      isTesting ? "cursor-not-allowed" : "cursor-pointer",
                       "mr-2 inline-flex items-center px-4 py-2 border font-medium rounded-md shadow-xs text-sm transition ease-in-out duration-150 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
                     )}
                     disabled={isTesting}

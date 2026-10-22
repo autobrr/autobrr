@@ -62,26 +62,27 @@ irc:
         - FunTimes
       parse:
         type: single
+        sizeunits: binary
         lines:
           - pattern: '\[(?P<category>.+?)] (?P<releaseName>.*?)\s*(?:(?P<freeleech>FREELEECH))? - (?P<baseUrl>https?\:\/\/.+\/).+id=(?P<torrentId>\d+) - (?P<torrentSize>.*)'
             tests:
-              - line: '[Movies/XviD] The Movie 2010 DVDRip XviD-GROUP FREELEECH - http://www.iptorrents.com/details.php?id=000000 - 716.219 MB'
+              - line: '[Movies/XviD] The Movie 2010 DVDRip XviD-GROUP FREELEECH - http://www.iptorrents.com/details.php?id=000000 - 7.63 GB'
                 expect:
                   category: Movies/XviD
                   releaseName: The Movie 2010 DVDRip XviD-GROUP
                   freeleech: FREELEECH
                   baseUrl: http://www.iptorrents.com/
                   torrentId: "000000"
-                  torrentSize: 716.219 MB
+                  torrentSize: 7.63 GB
 
-              - line: '[Movies/XviD] The Movie 2010 DVDRip XviD-GROUP - http://www.iptorrents.com/details.php?id=000000 - 716.219 MB'
+              - line: '[Movies/XviD] The Movie 2010 DVDRip XviD-GROUP - http://www.iptorrents.com/details.php?id=000000 - 7.63 GB'
                 expect:
                   category: Movies/XviD
                   releaseName: The Movie 2010 DVDRip XviD-GROUP
                   freeleech: ""
                   baseUrl: http://www.iptorrents.com/
                   torrentId: "000000"
-                  torrentSize: 716.219 MB
+                  torrentSize: 7.63 GB
 
         match:
           infourl: "/details.php?id={{ .torrentId }}"

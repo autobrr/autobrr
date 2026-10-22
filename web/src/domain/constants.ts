@@ -590,6 +590,13 @@ export const ActionPriorityOptions: SelectGenericOption<ActionPriorityLayout>[] 
   { label: "Disabled", description: "Disabled", value: "" }
 ];
 
+export const getRTorrentPriorityOptions = (t: TFunction): SelectGenericOption<ActionPriorityLayout>[] => [
+  { label: t("options:rtorrentPriority.HIGH"), description: t("options:rtorrentPriority.HIGH"), value: "HIGH" },
+  { label: t("options:rtorrentPriority.NORMAL"), description: t("options:rtorrentPriority.NORMAL"), value: "NORMAL" },
+  { label: t("options:rtorrentPriority.LOW"), description: t("options:rtorrentPriority.LOW"), value: "LOW" },
+  { label: t("options:rtorrentPriority.DEFAULT"), description: t("options:rtorrentPriority.DEFAULT"), value: "" }
+];
+
 export const ActionRtorrentRenameOptions: SelectGenericOption<ActionContentLayout>[] = [
   { label: "No", description: "No", value: "ORIGINAL" },
   { label: "Yes", description: "Yes", value: "SUBFOLDER_NONE" }
@@ -704,6 +711,10 @@ export const ListTypeNameMap: Record<ListType, string> = {
 
 export const NotificationTypeOptions: OptionBasicTyped<NotificationType>[] = [
   {
+    label: "Bark",
+    value: "BARK"
+  },
+  {
     label: "Discord",
     value: "DISCORD"
   },
@@ -742,6 +753,7 @@ export const NotificationTypeOptions: OptionBasicTyped<NotificationType>[] = [
 ];
 
 export const getNotificationTypeOptions = (t: TFunction): OptionBasicTyped<NotificationType>[] => [
+  { label: t("options:notificationType.BARK"), value: "BARK" },
   { label: t("options:notificationType.DISCORD"), value: "DISCORD" },
   { label: t("options:notificationType.GOTIFY"), value: "GOTIFY" },
   { label: t("options:notificationType.LUNASEA"), value: "LUNASEA" },
@@ -909,6 +921,36 @@ export const getEventOptions = (t: TFunction): SelectOption[] => [
     label: t("options:event.IRC_RECONNECTED.label"),
     value: "IRC_RECONNECTED",
     description: t("options:event.IRC_RECONNECTED.description")
+  },
+  {
+    label: t("options:event.IRC_UNHEALTHY.label"),
+    value: "IRC_UNHEALTHY",
+    description: t("options:event.IRC_UNHEALTHY.description")
+  },
+  {
+    label: t("options:event.IRC_HEALTHY.label"),
+    value: "IRC_HEALTHY",
+    description: t("options:event.IRC_HEALTHY.description")
+  },
+  {
+    label: t("options:event.LIST_REFRESH_SUCCESS.label"),
+    value: "LIST_REFRESH_SUCCESS",
+    description: t("options:event.LIST_REFRESH_SUCCESS.description")
+  },
+  {
+    label: t("options:event.LIST_REFRESH_ERROR.label"),
+    value: "LIST_REFRESH_ERROR",
+    description: t("options:event.LIST_REFRESH_ERROR.description")
+  },
+  {
+    label: t("options:event.FEED_REFRESH_SUCCESS.label"),
+    value: "FEED_REFRESH_SUCCESS",
+    description: t("options:event.FEED_REFRESH_SUCCESS.description")
+  },
+  {
+    label: t("options:event.FEED_REFRESH_ERROR.label"),
+    value: "FEED_REFRESH_ERROR",
+    description: t("options:event.FEED_REFRESH_ERROR.description")
   },
   {
     label: t("options:event.APP_UPDATE_AVAILABLE.label"),
