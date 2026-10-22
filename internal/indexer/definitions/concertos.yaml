@@ -1,0 +1,98 @@
+---
+version: 2
+#id: concertos
+name: Concertos
+identifier: concertos
+description: Concertos is a private torrent tracker for LIVE CONCERTS / MUSIC VIDEOS / MUSIC DOCUMENTARIES / OPERA
+language: en-us
+urls:
+  - https://concertos.live/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key
+    help: "Go to My Settings > RSS Key, and copy your RSS Key"
+
+irc:
+  network: Concertos
+  server: concertos.live
+  port: 6697
+  tls: true
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_autobrr
+
+  channels:
+    - name: "#general"
+      announcers:
+        - COCANNOUNCE
+      parse:
+        type: multi
+        lines:
+          - pattern: '\[Concertos\] (?P<uploader>.+) has uploaded (?P<releaseName>.+?) grab it now!'
+            tests:
+              - line: '[Concertos] uploader1 has uploaded Dua Lipa - Illusion 2024 ProRes 1080p AAC 2.0 grab it now!'
+                expect:
+                  uploader: uploader1
+                  releaseName: 'Dua Lipa - Illusion 2024 ProRes 1080p AAC 2.0'
+
+              - line: '[Concertos] uploader2 has uploaded Linkin Park: Road to Revolution - Live at Milton Keynes 2008 1080p BluRay REMUX AVC DTS-HD MA 5.1-CHRM3 grab it now!'
+                expect:
+                  uploader: uploader2
+                  releaseName: 'Linkin Park: Road to Revolution - Live at Milton Keynes 2008 1080p BluRay REMUX AVC DTS-HD MA 5.1-CHRM3'
+
+              - line: '[Concertos] uploader3 has uploaded Live From Daryl''s House S01E08 Nick Lowe 2009 1080p WEB-DL AVC Opus grab it now!'
+                expect:
+                  uploader: uploader3
+                  releaseName: 'Live From Daryl''s House S01E08 Nick Lowe 2009 1080p WEB-DL AVC Opus'
+
+          - pattern: '\[Category: (?P<category>.+?)\] \[Type: (?P<releaseTags>.+?)\] \[Size: (?P<torrentSize>.+?)\]'
+            tests:
+              - line: '[Category: Music Video] [Type: ProRes] [Size: 3.02 GiB] [TMDB vote average: 0] [TMDB vote count: 0]'
+                expect:
+                  category: Music Video
+                  releaseTags: ProRes
+                  torrentSize: 3.02 GiB
+
+              - line: '[Category: Live Concert] [Type: HD-Remux] [Size: 16.61 GiB] [TMDB vote average: 0] [TMDB vote count: 0]'
+                expect:
+                  category: Live Concert
+                  releaseTags: HD-Remux
+                  torrentSize: 16.61 GiB
+
+              - line: '[Category: Music TV Series] [Type: WEB-DL / WEBrip] [Size: 823.22 MiB] [TMDB vote average: 0] [TMDB vote count: 0]'
+                expect:
+                  category: Music TV Series
+                  releaseTags: WEB-DL / WEBrip
+                  torrentSize: 823.22 MiB
+
+          - pattern: '\[Link: (?P<baseUrl>https?\:\/\/[^\/]+\/)torrents\/(?P<torrentId>\d+)\]'
+            tests:
+              - line: '[Link: https://concertos.live/torrents/8424]'
+                expect:
+                  baseUrl: https://concertos.live/
+                  torrentId: "8424"
+
+              - line: '[Link: https://concertos.live/torrents/8422]'
+                expect:
+                  baseUrl: https://concertos.live/
+                  torrentId: "8422"
+
+              - line: '[Link: https://concertos.live/torrents/8404]'
+                expect:
+                  baseUrl: https://concertos.live/
+                  torrentId: "8404"
+
+        match:
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
