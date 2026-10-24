@@ -512,6 +512,16 @@ function MatrixChannelStatePill({ state, errors }: { state: IrcChannelState; err
   const title = errors && errors.length > 0 ? errors.join(", ") : state;
 
   switch (state) {
+    case "AwaitingInvite":
+      return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-teal-500" title={title} />;
+    case "AwaitingInviteBot":
+      return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-purple-300" title={title} />;
+    case "InviteFailed":
+      return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-red-500" title={title} />;
+    case "InviteFailedNoSuchNick":
+      return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-purple-500" title={title} />;
+    case "Joining":
+      return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-blue-500" title={title} />;
     case "Monitoring":
       return (
         <span className="mr-3 flex h-3 w-3 relative" title={title}>
@@ -519,8 +529,11 @@ function MatrixChannelStatePill({ state, errors }: { state: IrcChannelState; err
           <span className="inline-flex absolute rounded-full h-3 w-3 bg-green-500" />
         </span>
       );
-    case "Joining":
-      return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-blue-500" title={title} />;
+    case "Kicked":
+      return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-orange-500" title={title} />;
+    case "Parted":
+    case "Disabled":
+      return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-gray-500" title={title} />;
     case "Error":
       return <span className="mr-3 flex h-3 w-3 rounded-full opacity-75 bg-red-500" title={title} />;
     default:
