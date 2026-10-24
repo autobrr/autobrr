@@ -69,6 +69,8 @@ const (
 	flappingSessionMinLifetime = 30 * time.Second
 	flappingStopThreshold      = 5
 	flappingWindow             = 15 * time.Minute
+	flappingInitialCooldown    = 15 * time.Minute
+	flappingMaxCooldown        = 60 * time.Minute
 )
 
 // restartQuitTimeout bounds how long a restart waits for the server to close the
@@ -126,6 +128,17 @@ type Handler struct {
 	authenticated    bool
 	saslauthed       bool
 
+	clock                 clock
+	runFn                 func() error
+	halfOpenDone          func()
+	flappingCooldown      time.Duration
+	flappingRetryAt       time.Time
+	flappingRetryTimer    timer
+	flappingSurvivalTimer timer
+	flappingRetryGen      uint64
+	flappingSurvivalGen   uint64
+	halfOpenAttempt       bool
+
 	identifyAttempt     identifyForm
 	identifyEscalated   bool
 	identifyFormLearned identifyForm
@@ -166,6 +179,7 @@ func NewHandler(log zerolog.Logger, eventBus eventBus, sse sseServer, network do
 		connectionErrors: []string{},
 		channels:         haxmap.New[string, *Channel](),
 		caseMapping:      ircCaseMappingRFC1459,
+		flappingCooldown: flappingInitialCooldown,
 	}
 
 	// init state machine
@@ -299,6 +313,10 @@ func (h *Handler) removeIndexer() {
 // Run connects the network and blocks until the connection is live, the network
 // is stopped, or the attempt fails for good.
 func (h *Handler) Run() error {
+	if h.runFn != nil {
+		return h.runFn()
+	}
+
 	connectGen, err := h.claimConnect()
 	if err != nil {
 		return err
@@ -310,11 +328,27 @@ func (h *Handler) Run() error {
 // claimConnect moves a stopped handler to connecting. The service claims
 // synchronously and connects in the background, so a Stop that lands after the
 // claim cancels the attempt instead of being overtaken by it.
-func (h *Handler) claimConnect() (uint64, error) {
+// Passing a retry generation validates that the breaker timer is still current
+// and marks the connection as a half-open attempt.
+func (h *Handler) claimConnect(retryGen ...uint64) (uint64, error) {
 	h.m.Lock()
-	if h.clientState != ircStopped {
-		h.m.Unlock()
-		return 0, connectionInProgress
+	if len(retryGen) > 0 {
+		if retryGen[0] != h.flappingRetryGen || h.clientState != ircStopped {
+			h.m.Unlock()
+			return 0, connectionInProgress
+		}
+		h.halfOpenAttempt = true
+		h.flappingRetryTimer = nil
+	} else {
+		if h.clientState != ircStopped {
+			h.m.Unlock()
+			return 0, connectionInProgress
+		}
+		if !h.halfOpenAttempt {
+			h.cancelFlappingTimersLocked()
+			h.flappingCooldown = flappingInitialCooldown
+			h.flappingRetryAt = time.Time{}
+		}
 	}
 	h.clientState = ircConnecting
 	h.currentNick = ""
@@ -341,7 +375,6 @@ func (h *Handler) connect(connectGen uint64) (err error) {
 	// this used to be TraceLevel but was changed to DebugLevel during connect to see the info without needing to change loglevel
 	// we change back to TraceLevel in the handleJoined method.
 	subLogger := zstdlog.NewStdLoggerWithLevel(h.log.With().Logger(), zerolog.TraceLevel)
-
 	// either we will successfully transition to `StateRunning`, or else
 	// we need to reset the state to `ircStopped`. A Stop followed by a new Run can
 	// land before this deferred reset, so only touch the state if it is still ours.
@@ -840,8 +873,12 @@ func (h *Handler) stop() *ircevent.Connection {
 	h.m.Lock()
 	h.connectedSince = time.Time{}
 	h.haveDisconnected = false
-	h.failedNickServAttempts = 0
 	h.resetFlappingBreakerLocked()
+	h.cancelFlappingTimersLocked()
+	h.flappingCooldown = flappingInitialCooldown
+	h.flappingRetryAt = time.Time{}
+	h.halfOpenAttempt = false
+	h.failedNickServAttempts = 0
 	h.resetSessionLocked()
 	h.currentNick = ""
 	client := h.client
@@ -901,9 +938,21 @@ func (h *Handler) onConnect(client *ircevent.Connection, _ ircmsg.Message) {
 
 	// not gated on client.Connected(): irc-go only reports the connection as
 	// active once Connect returns, after the connect callbacks have run
-	h.connectedSince = time.Now()
+	h.connectedSince = h.getClock().Now()
 
 	networkName := h.network.Name
+
+	if h.halfOpenAttempt {
+		h.log.Info().Str("network", networkName).Msg("half-open probe connected; arming 30s survival timer")
+		if h.flappingSurvivalTimer != nil {
+			h.flappingSurvivalTimer.Stop()
+		}
+		h.flappingSurvivalGen++
+		gen := h.flappingSurvivalGen
+		h.flappingSurvivalTimer = h.getClock().AfterFunc(flappingSessionMinLifetime, func() {
+			h.onHalfOpenSurvived(gen)
+		})
+	}
 	reconnected := h.haveDisconnected && h.clientState == ircLive
 	if reconnected {
 		h.haveDisconnected = false
@@ -951,7 +1000,7 @@ func (h *Handler) onClientDisconnect(client *ircevent.Connection, _ ircmsg.Messa
 		return
 	}
 
-	endedAt := time.Now()
+	endedAt := h.getClock().Now()
 	sessionLifetime := time.Duration(0)
 	if !h.connectedSince.IsZero() {
 		sessionLifetime = endedAt.Sub(h.connectedSince)
@@ -959,6 +1008,15 @@ func (h *Handler) onClientDisconnect(client *ircevent.Connection, _ ircmsg.Messa
 
 	h.connectedSince = time.Time{}
 	h.currentNick = ""
+
+	if h.flappingSurvivalTimer != nil {
+		h.flappingSurvivalGen++
+		h.flappingSurvivalTimer.Stop()
+		h.flappingSurvivalTimer = nil
+	}
+
+	isHalfOpen := h.halfOpenAttempt
+	h.halfOpenAttempt = false
 
 	// a reconnect starts the identify ladder over: the nick we get back may
 	// differ, and the previous connection's escalation says nothing about this one
@@ -968,8 +1026,10 @@ func (h *Handler) onClientDisconnect(client *ircevent.Connection, _ ircmsg.Messa
 
 	manuallyDisconnected := h.clientState == ircStopped
 	networkName := h.network.Name
-	stopForFlapping := !manuallyDisconnected && h.recordSessionEndLocked(sessionLifetime, endedAt)
+	stopForFlapping := !manuallyDisconnected && (h.recordSessionEndLocked(sessionLifetime, endedAt) || (isHalfOpen && sessionLifetime < flappingSessionMinLifetime))
 	var flappingError string
+	var cooldown time.Duration
+	var retryAt time.Time
 	if stopForFlapping {
 		flappingError = fmt.Sprintf("connection flapping: %d sessions lasted under %s within %s; network stopped to avoid repeated reconnects", flappingStopThreshold, flappingSessionMinLifetime, flappingWindow)
 		if !slices.Contains(h.connectionErrors, flappingError) {
@@ -985,6 +1045,16 @@ func (h *Handler) onClientDisconnect(client *ircevent.Connection, _ ircmsg.Messa
 		h.resetFlappingBreakerLocked()
 		h.resetChannelState()
 		h.stateMachine.OnError(flappingError)
+
+		nextCooldown := h.flappingCooldown
+		if nextCooldown <= 0 {
+			nextCooldown = flappingInitialCooldown
+		} else if isHalfOpen {
+			nextCooldown = min(nextCooldown*2, flappingMaxCooldown)
+		}
+		h.scheduleFlappingCooldownLocked(nextCooldown, endedAt)
+		cooldown = h.flappingCooldown
+		retryAt = h.flappingRetryAt
 	}
 
 	h.m.Unlock()
@@ -1000,13 +1070,15 @@ func (h *Handler) onClientDisconnect(client *ircevent.Connection, _ ircmsg.Messa
 			Int("sessions", flappingStopThreshold).
 			Dur("min_lifetime", flappingSessionMinLifetime).
 			Dur("window", flappingWindow).
-			Msg("connection flapping; stopping network")
+			Dur("cooldown", cooldown).
+			Time("retry_at", retryAt).
+			Msg("connection flapping; stopping network and scheduling half-open retry")
 
 		h.eventBus.EmitIRC(context.Background(), events.IRCEvent{
 			Type:    events.IRCFlapping,
 			Network: networkName,
 			State:   string(events.IRCFlapping),
-			Message: fmt.Sprintf("Network: %s stopped after repeated short-lived connections; restart it after resolving the connection issue", networkName),
+			Message: fmt.Sprintf("Network: %s stopped after repeated short-lived connections; retrying automatically in %s", networkName, cooldown),
 		})
 
 		if client != nil {
@@ -1057,6 +1129,110 @@ func (h *Handler) recordSessionEndLocked(lifetime time.Duration, endedAt time.Ti
 // caller must hold h.m.
 func (h *Handler) resetFlappingBreakerLocked() {
 	h.shortSessionEnds = nil
+}
+
+func (h *Handler) getClock() clock {
+	if h.clock != nil {
+		return h.clock
+	}
+	return realClock{}
+}
+
+func (h *Handler) cancelFlappingTimersLocked() {
+	h.flappingRetryGen++
+	h.flappingSurvivalGen++
+	if h.flappingRetryTimer != nil {
+		h.flappingRetryTimer.Stop()
+		h.flappingRetryTimer = nil
+	}
+	if h.flappingSurvivalTimer != nil {
+		h.flappingSurvivalTimer.Stop()
+		h.flappingSurvivalTimer = nil
+	}
+}
+
+func (h *Handler) scheduleFlappingCooldownLocked(cooldown time.Duration, endedAt time.Time) {
+	h.cancelFlappingTimersLocked()
+	h.flappingRetryGen++
+	gen := h.flappingRetryGen
+	h.flappingCooldown = cooldown
+	h.flappingRetryAt = endedAt.Add(cooldown)
+
+	h.log.Info().
+		Dur("cooldown", cooldown).
+		Time("retry_at", h.flappingRetryAt).
+		Msg("circuit breaker open; scheduled half-open retry")
+
+	h.flappingRetryTimer = h.getClock().AfterFunc(cooldown, func() {
+		h.tryHalfOpenReconnect(gen)
+	})
+}
+
+func (h *Handler) tryHalfOpenReconnect(gen uint64) {
+	connectGen, err := h.claimConnect(gen)
+	if err != nil {
+		return
+	}
+
+	h.log.Info().Str("network", h.GetNetwork().Name).Msg("circuit breaker entering half-open state; attempting reconnect")
+	go func() {
+		if h.halfOpenDone != nil {
+			defer h.halfOpenDone()
+		}
+		var err error
+		if h.runFn != nil {
+			err = h.runFn()
+		} else {
+			err = h.connect(connectGen)
+		}
+		if err != nil {
+			if errors.Is(err, connectionInProgress) || errors.Is(err, clientManuallyDisconnected) {
+				return
+			}
+			h.log.Error().Err(err).Str("network", h.GetNetwork().Name).Msg("half-open reconnect failed to run")
+			h.m.Lock()
+			if h.halfOpenAttempt && (h.clientState == ircStopped || h.clientState == ircConnecting) {
+				h.clientState = ircStopped
+				h.halfOpenAttempt = false
+				nextCooldown := min(h.flappingCooldown*2, flappingMaxCooldown)
+				if nextCooldown <= 0 {
+					nextCooldown = flappingInitialCooldown
+				}
+				h.scheduleFlappingCooldownLocked(nextCooldown, h.getClock().Now())
+			}
+			h.m.Unlock()
+		}
+	}()
+}
+
+func (h *Handler) onHalfOpenSurvived(gen uint64) {
+	h.m.Lock()
+	defer h.m.Unlock()
+
+	if gen != h.flappingSurvivalGen || !h.halfOpenAttempt || h.clientState != ircLive {
+		return
+	}
+
+	h.log.Info().Str("network", h.network.Name).Msg("half-open probe survived >30s; circuit breaker reset to closed")
+	h.halfOpenAttempt = false
+	h.flappingCooldown = flappingInitialCooldown
+	h.flappingRetryAt = time.Time{}
+	h.cancelFlappingTimersLocked()
+	h.resetFlappingBreakerLocked()
+	h.clearConnectErrorLocked("connection flapping")
+}
+
+func (h *Handler) clearConnectErrorLocked(substr string) {
+	if len(h.connectionErrors) == 0 {
+		return
+	}
+	filtered := make([]string, 0, len(h.connectionErrors))
+	for _, err := range h.connectionErrors {
+		if !strings.Contains(err, substr) {
+			filtered = append(filtered, err)
+		}
+	}
+	h.connectionErrors = filtered
 }
 
 // onNotice handles NOTICE events
