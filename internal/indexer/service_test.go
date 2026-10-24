@@ -6,6 +6,8 @@ package indexer
 import (
 	"context"
 	"maps"
+	"strconv"
+	"sync"
 	"testing"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -131,7 +133,7 @@ func TestServiceUpdate_SecretSettings(t *testing.T) {
 			repo := &stubIndexerRepo{current: current}
 
 			svc := NewService(zerolog.Nop(), &stubEventBus{}, nil, repo, nil, nil)
-			svc.mappedDefinitions[current.Identifier] = &domain.IndexerDefinition{Identifier: current.Identifier, Implementation: "rss"}
+			svc.mappedDefinitions[current.Identifier] = &domain.IndexerDefinition{Identifier: current.Identifier, Implementation: "rss", Settings: []domain.IndexerSetting{{Name: "api_key"}, {Name: "host"}}}
 
 			update := &domain.Indexer{ID: 1, Name: "Test RSS", Identifier: current.Identifier, Implementation: "rss", Enabled: true, Settings: tt.settings}
 
@@ -168,6 +170,27 @@ func TestServiceUpdate_EmptySavedSecretMayBeOmitted(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, repo.updated)
+}
+
+func TestServiceUpdate_SecretDroppedFromDefinitionMayBeOmitted(t *testing.T) {
+	t.Parallel()
+
+	repo := &stubIndexerRepo{current: &domain.Indexer{
+		ID:             1,
+		Name:           "PassThePopcorn",
+		Identifier:     "ptp",
+		Implementation: "rss",
+		Settings:       map[string]string{"api_key": "stale", "authkey": "auth", "torrent_pass": "pass"},
+	}}
+
+	svc := NewService(zerolog.Nop(), &stubEventBus{}, nil, repo, nil, nil)
+	svc.mappedDefinitions["ptp"] = &domain.IndexerDefinition{Identifier: "ptp", Implementation: "rss", Settings: []domain.IndexerSetting{{Name: "authkey"}, {Name: "torrent_pass"}}}
+
+	err := svc.Update(t.Context(), &domain.Indexer{ID: 1, Name: "PassThePopcorn", Identifier: "ptp", Implementation: "rss", Settings: map[string]string{"authkey": domain.RedactedStr, "torrent_pass": domain.RedactedStr}})
+
+	require.NoError(t, err)
+	require.NotNil(t, repo.updated)
+	assert.Equal(t, map[string]string{"authkey": "auth", "torrent_pass": "pass"}, repo.updated.Settings)
 }
 
 func TestServiceRejectsArchivedMutations(t *testing.T) {
@@ -212,4 +235,37 @@ func TestServiceRejectsArchivedMutations(t *testing.T) {
 			assert.False(t, repo.toggled)
 		})
 	}
+}
+
+func TestService_ConcurrentIRCLookup(t *testing.T) {
+	service := NewService(zerolog.Nop(), &stubEventBus{}, nil, &stubIndexerRepo{}, nil, nil)
+	service.definitions["mock"] = domain.IndexerDefinition{
+		Identifier:     "mock",
+		Implementation: domain.IndexerImplementationIRC,
+		IRC:            &domain.IndexerIRCV2{Server: "irc.example.test"},
+	}
+
+	var wg sync.WaitGroup
+	wg.Go(func() {
+		for i := range 500 {
+			_, err := service.Store(t.Context(), domain.Indexer{
+				ID:             int64(i),
+				Name:           "mock " + strconv.Itoa(i),
+				Identifier:     "mock",
+				Implementation: domain.IndexerImplementationIRC,
+				Settings:       map[string]string{},
+			})
+			assert.NoError(t, err)
+		}
+	})
+	wg.Go(func() {
+		for range 500 {
+			_ = service.GetIndexersByIRCNetwork("irc.example.test")
+			_, _ = service.GetMappedDefinitionByName("mock")
+			_, _ = service.GetAll()
+		}
+	})
+	wg.Wait()
+
+	require.Len(t, service.GetIndexersByIRCNetwork("irc.example.test"), 1)
 }

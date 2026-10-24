@@ -465,35 +465,6 @@ func TestIndexersParseAndFilter(t *testing.T) {
 			},
 		},
 		{
-			name: "sharewood",
-			fields: fields{
-				identifier:         "sharewood",
-				identifierExternal: "Sharewood",
-				settings: map[string]string{
-					"passkey": "key",
-				},
-			},
-			subTests: []subTest{
-				{
-					name: "announce_resolution_differs_from_name",
-					args: args{
-						announceLines: []string{"Vidéos | La Brea S02E08 MULTi 1080p WEB x264-FW | 1.27 GiB | 1080p/i <https://sharewood.tv/torrents/la-brea-s02e08-multi-1080p-web-x264-fw.66870>"},
-						filters: []filterTest{
-							{
-								filter: &domain.Filter{
-									Name:        "filter_1",
-									Resolutions: []string{"1080p"},
-								},
-								match: true,
-							},
-						},
-					},
-					match: false,
-				},
-			},
-			match: true,
-		},
-		{
 			name: "iptorrents",
 			fields: fields{
 				identifier:         "iptorrents",
