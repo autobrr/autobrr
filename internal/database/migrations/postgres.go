@@ -111,6 +111,7 @@ func PostgresMigrations(db *sql.DB, logger zerolog.Logger) *migrator.Migrator {
 	migrate.AddFileMigration("88_irc_update_nordicbytes_network.sql")
 	migrate.AddFileMigration("89_add_notification_inbox.sql")
 	migrate.AddFileMigration("90_add_action_ratio_group.sql")
+	migrate.AddFileMigration("91_add_filter_custom_fields.sql")
 
 	return migrate
 }
