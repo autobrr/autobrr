@@ -47,7 +47,7 @@ irc:
   channels:
     - name: "#announce"
       announcers:
-        - DreadVaultBot
+        - DreadAnnounce
       parse:
         type: single
         lines:
