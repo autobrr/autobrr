@@ -1329,6 +1329,12 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string, sizeUn
 		}
 	}
 
+	if metaId, ok := getStringMapValueAlt(varMap, "tvdb", "tvdbid"); ok {
+		if tvdbId, err := strconv.Atoi(metaId); err == nil {
+			r.MetaTVDB = tvdbId
+		}
+	}
+
 	r.RawVars = varMap
 
 	return nil
