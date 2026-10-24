@@ -61,6 +61,7 @@ func TestMatrixCredsPersistence(t *testing.T) {
 		RefreshToken: "ref_token456",
 		ExpiresAt:    time.Now().Add(10 * time.Minute),
 		SourcePass:   "secretPass",
+		UserID:       "@user:test.matrix",
 	}
 
 	err = saveMatrixCreds(server, nick, toSave)
@@ -71,8 +72,8 @@ func TestMatrixCredsPersistence(t *testing.T) {
 	assert.Equal(t, toSave.AccessToken, loaded.AccessToken)
 	assert.Equal(t, toSave.RefreshToken, loaded.RefreshToken)
 	assert.Equal(t, toSave.SourcePass, loaded.SourcePass)
+	assert.Equal(t, toSave.UserID, loaded.UserID)
 
-	// Test pending device auth file lifecycle
 	err = saveMatrixPendingAuth(server, nick, &matrixDevicePending{
 		DeviceCode: "dev_123",
 		UserCode:   "ABCD-EFGH",
@@ -157,4 +158,15 @@ func TestRefreshMatrixOAuthToken(t *testing.T) {
 	assert.Equal(t, "new_access_token", newTok)
 	assert.Equal(t, "new_refresh_token", creds.RefreshToken)
 	assert.False(t, creds.ExpiresAt.IsZero())
+}
+
+func TestIsAllowedSenderDomain(t *testing.T) {
+	assert.True(t, isAllowedSenderDomain("", "watchtower.pm", "matrix.watchtower.pm"))
+	assert.True(t, isAllowedSenderDomain("watchtower.pm", "watchtower.pm", "matrix.watchtower.pm"))
+	assert.True(t, isAllowedSenderDomain("WATCHTOWER.PM", "watchtower.pm", "matrix.watchtower.pm"))
+	assert.False(t, isAllowedSenderDomain("matrix.org", "watchtower.pm", "matrix.watchtower.pm"))
+
+	assert.True(t, isAllowedSenderDomain("example.org", "", "example.org"))
+	assert.True(t, isAllowedSenderDomain("example.org", "", "matrix.example.org"))
+	assert.False(t, isAllowedSenderDomain("other.org", "", "matrix.example.org"))
 }

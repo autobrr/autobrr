@@ -2544,6 +2544,24 @@ func (h *Handler) clearConnectErrors() {
 	h.connectionErrors = []string{}
 }
 
+func (h *Handler) removeConnectError(message string) {
+	h.m.Lock()
+	defer h.m.Unlock()
+
+	h.connectionErrors = slices.DeleteFunc(h.connectionErrors, func(e string) bool {
+		return e == message
+	})
+}
+
+func (h *Handler) removeConnectErrorPrefix(prefix string) {
+	h.m.Lock()
+	defer h.m.Unlock()
+
+	h.connectionErrors = slices.DeleteFunc(h.connectionErrors, func(e string) bool {
+		return strings.HasPrefix(e, prefix)
+	})
+}
+
 func (h *Handler) ReportStatus(netw *domain.IrcNetworkWithHealth) {
 	h.m.RLock()
 	defer h.m.RUnlock()

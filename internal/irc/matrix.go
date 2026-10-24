@@ -81,6 +81,7 @@ type matrixStoredCreds struct {
 	SourcePass   string    `json:"source_pass,omitempty"`
 	TokenURI     string    `json:"token_uri"`
 	DeviceURI    string    `json:"device_uri"`
+	UserID       string    `json:"user_id,omitempty"`
 	ExpiresAt    time.Time `json:"expires_at"`
 }
 
@@ -467,8 +468,11 @@ func (h *Handler) ensureMatrixAccessToken(ctx context.Context, client *http.Clie
 
 	// Check if active access token is provided directly
 	if strings.HasPrefix(rawPass, "mat_") || strings.HasPrefix(rawPass, "syt_") || strings.HasPrefix(rawPass, "mct_") {
-		if checkMatrixTokenActive(ctx, client, baseURL, rawPass) {
+		if uid, ok := getMatrixWhoami(ctx, client, baseURL, rawPass); ok {
 			creds.AccessToken = rawPass
+			if uid != "" {
+				creds.UserID = uid
+			}
 			if err := saveMatrixCreds(serverHost, clientNick, creds); err != nil {
 				h.log.Warn().Err(err).Msg("matrix: failed to persist credentials")
 			}
@@ -478,7 +482,11 @@ func (h *Handler) ensureMatrixAccessToken(ctx context.Context, client *http.Clie
 
 	// If stored access token is still valid, verify it
 	if creds.AccessToken != "" && time.Now().Before(creds.ExpiresAt) {
-		if checkMatrixTokenActive(ctx, client, baseURL, creds.AccessToken) {
+		if uid, ok := getMatrixWhoami(ctx, client, baseURL, creds.AccessToken); ok {
+			if uid != "" && creds.UserID != uid {
+				creds.UserID = uid
+				_ = saveMatrixCreds(serverHost, clientNick, creds)
+			}
 			return creds.AccessToken, nil
 		}
 	}
@@ -489,6 +497,9 @@ func (h *Handler) ensureMatrixAccessToken(ctx context.Context, client *http.Clie
 		if err == nil {
 			creds.AccessToken = newToken
 			creds.ExpiresAt = time.Now().Add(4 * time.Minute)
+			if uid, ok := getMatrixWhoami(ctx, client, baseURL, creds.AccessToken); ok && uid != "" {
+				creds.UserID = uid
+			}
 			if sErr := saveMatrixCreds(serverHost, clientNick, creds); sErr != nil {
 				h.log.Warn().Err(sErr).Msg("matrix: failed to persist refreshed credentials")
 			}
@@ -526,11 +537,16 @@ func (h *Handler) ensureMatrixAccessToken(ctx context.Context, client *http.Clie
 	}
 
 	_ = clearMatrixPendingAuth(serverHost, clientNick)
+	h.removeConnectError(msg)
+	h.broadcastHealth()
 	creds.AccessToken = tokenResp.AccessToken
 	if tokenResp.RefreshToken != "" {
 		creds.RefreshToken = tokenResp.RefreshToken
 	}
 	creds.ExpiresAt = time.Now().Add(4 * time.Minute)
+	if uid, ok := getMatrixWhoami(ctx, client, baseURL, creds.AccessToken); ok && uid != "" {
+		creds.UserID = uid
+	}
 	if sErr := saveMatrixCreds(serverHost, clientNick, creds); sErr != nil {
 		h.log.Warn().Err(sErr).Msg("matrix: failed to persist authorized credentials")
 	}
@@ -538,18 +554,32 @@ func (h *Handler) ensureMatrixAccessToken(ctx context.Context, client *http.Clie
 	return creds.AccessToken, nil
 }
 
-func checkMatrixTokenActive(ctx context.Context, client *http.Client, baseURL, token string) bool {
+func getMatrixWhoami(ctx context.Context, client *http.Client, baseURL, token string) (string, bool) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/_matrix/client/v3/account/whoami", nil)
 	if err != nil {
-		return false
+		return "", false
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
 	resp, err := client.Do(req)
 	if err != nil {
-		return false
+		return "", false
 	}
 	defer resp.Body.Close()
-	return resp.StatusCode == http.StatusOK
+	if resp.StatusCode != http.StatusOK {
+		return "", false
+	}
+	var out struct {
+		UserID string `json:"user_id"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return "", true
+	}
+	return out.UserID, true
+}
+
+func checkMatrixTokenActive(ctx context.Context, client *http.Client, baseURL, token string) bool {
+	_, ok := getMatrixWhoami(ctx, client, baseURL, token)
+	return ok
 }
 
 type matrixDeviceAuthResponse struct {
@@ -767,6 +797,23 @@ func joinMatrixRoom(ctx context.Context, client *http.Client, baseURL, serverHos
 	return out.RoomID, nil
 }
 
+func isAllowedSenderDomain(senderDomain, authenticatedServerName, serverHost string) bool {
+	if senderDomain == "" {
+		return true
+	}
+	if authenticatedServerName != "" && strings.EqualFold(senderDomain, authenticatedServerName) {
+		return true
+	}
+	if strings.EqualFold(senderDomain, serverHost) {
+		return true
+	}
+	trimmed := strings.TrimPrefix(serverHost, "matrix.")
+	if trimmed != serverHost && strings.EqualFold(senderDomain, trimmed) {
+		return true
+	}
+	return false
+}
+
 func (h *Handler) matrixSyncLoop(
 	ctx context.Context,
 	client *http.Client,
@@ -776,11 +823,22 @@ func (h *Handler) matrixSyncLoop(
 	sendIRC func(string) error,
 ) {
 	var (
-		nextBatch         string
-		activeToken       string
-		tokenExpiry       time.Time
-		consecutiveErrors int
+		nextBatch               string
+		activeToken             string
+		tokenExpiry             time.Time
+		consecutiveErrors       int
+		authenticatedServerName string
 	)
+
+	if creds, _ := loadMatrixCreds(serverHost, clientNick); creds != nil && creds.UserID != "" {
+		if idx := strings.IndexByte(creds.UserID, ':'); idx > 0 {
+			authenticatedServerName = creds.UserID[idx+1:]
+		}
+	}
+	if authenticatedServerName == "" && strings.Contains(clientNick, ":") {
+		idx := strings.IndexByte(clientNick, ':')
+		authenticatedServerName = strings.TrimPrefix(clientNick[idx+1:], "@")
+	}
 
 	// Bounded FIFO ring buffer for seen event IDs to prevent unbounded memory growth
 	const maxSeenEvents = 200
@@ -810,6 +868,14 @@ func (h *Handler) matrixSyncLoop(
 			}
 			activeToken = tok
 			tokenExpiry = time.Now().Add(4 * time.Minute)
+			h.removeConnectError("matrix: token refresh failed")
+			h.broadcastHealth()
+
+			if creds, _ := loadMatrixCreds(serverHost, clientNick); creds != nil && creds.UserID != "" {
+				if idx := strings.IndexByte(creds.UserID, ':'); idx > 0 {
+					authenticatedServerName = creds.UserID[idx+1:]
+				}
+			}
 		}
 
 		syncURL := fmt.Sprintf("%s/_matrix/client/v3/sync?timeout=25000", baseURL)
@@ -872,7 +938,7 @@ func (h *Handler) matrixSyncLoop(
 
 		if consecutiveErrors > 0 {
 			consecutiveErrors = 0
-			h.clearConnectErrors()
+			h.removeConnectErrorPrefix("matrix sync")
 			h.broadcastHealth()
 		}
 
@@ -920,8 +986,12 @@ func (h *Handler) matrixSyncLoop(
 				if nick == "" {
 					continue
 				}
-				if senderDomain != "" && !strings.EqualFold(senderDomain, serverHost) {
-					h.log.Debug().Str("sender", sender).Str("expected_host", serverHost).Msg("matrix: ignoring announce from foreign homeserver")
+				if senderDomain != "" && !isAllowedSenderDomain(senderDomain, authenticatedServerName, serverHost) {
+					expected := authenticatedServerName
+					if expected == "" {
+						expected = serverHost
+					}
+					h.log.Debug().Str("sender", sender).Str("expected_domain", expected).Msg("matrix: ignoring announce from foreign homeserver")
 					continue
 				}
 
