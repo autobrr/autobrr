@@ -768,6 +768,173 @@ func TestReleaseRepo_StatsDashboard(t *testing.T) {
 	}
 }
 
+func TestReleaseRepo_StatsBucketUTC(t *testing.T) {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		db := testDb.db
+		log := setupLoggerForTest()
+
+		downloadClientRepo := NewDownloaderRepo(log, db)
+		filterRepo := NewFilterRepo(log, db)
+		actionRepo := NewActionRepo(log, db)
+		repo := NewReleaseRepo(log, db)
+
+		mockData := getMockRelease()
+
+		t.Run(fmt.Sprintf("StatsBucketUTC_BucketsInUTC [%s]", dbType), func(t *testing.T) {
+			// Setup
+			mock := getMockDownloader()
+			err := downloadClientRepo.Store(ctx, &mock)
+			assert.NoError(t, err)
+
+			err = filterRepo.Store(ctx, getMockFilter())
+			assert.NoError(t, err)
+
+			createdFilters, err := filterRepo.ListFilters(ctx)
+			assert.NoError(t, err)
+			assert.NotNil(t, createdFilters)
+
+			mockData.FilterID = createdFilters[0].ID
+
+			// A recent release whose wall clock is in a non-UTC zone, so its local
+			// hour/day differ from UTC. 01:30 UTC is 21:30 the previous day in UTC-4,
+			// so both the day and the hour differ. The dashboard stats must bucket in
+			// UTC on both dialects; the pre-fix substr (sqlite) and no-AT-TIME-ZONE
+			// (postgres) code bucketed in local/server time, which is what this test
+			// guards against.
+			loc := time.FixedZone("UTC-4", -4*3600)
+			now := time.Now().UTC()
+			tsUTC := time.Date(now.Year(), now.Month(), now.Day(), 1, 30, 0, 0, time.UTC)
+			if tsUTC.After(now) {
+				tsUTC = tsUTC.AddDate(0, 0, -1)
+			}
+			ts := tsUTC.In(loc)
+			mockData.Timestamp = ts
+
+			err = repo.Store(ctx, mockData)
+			assert.NoError(t, err)
+
+			actionMock := getMockAction()
+			actionMock.FilterID = createdFilters[0].ID
+			actionMock.ClientID = mock.ID
+			err = actionRepo.Store(ctx, actionMock)
+			require.NoError(t, err)
+
+			ras := getMockReleaseActionStatus()
+			ras.Status = domain.ReleasePushStatusApproved
+			ras.Timestamp = ts
+			ras.ReleaseID = mockData.ID
+			ras.ActionID = int64(actionMock.ID)
+			ras.FilterID = int64(createdFilters[0].ID)
+			err = repo.StoreReleaseActionStatus(ctx, ras)
+			require.NoError(t, err)
+
+			// Execute
+			heatmap, err := repo.StatsHeatmap(ctx, 30)
+			assert.NoError(t, err)
+			assert.NotNil(t, heatmap)
+			assert.Len(t, heatmap.Heatmap, 168)
+
+			// Verify: the release lands in its UTC weekday+hour cell, not the local one.
+			utcIdx := int(ts.UTC().Weekday())*24 + ts.UTC().Hour()
+			localIdx := int(ts.Weekday())*24 + ts.Hour()
+			assert.NotEqual(t, utcIdx, localIdx, "the offset must make the UTC and local buckets differ [%s]", dbType)
+			assert.Equal(t, int64(1), heatmap.Heatmap[utcIdx], "release should be counted in the UTC bucket [%s]", dbType)
+			assert.Equal(t, int64(0), heatmap.Heatmap[localIdx], "release must not be counted in the local-time bucket [%s]", dbType)
+
+			utcDay := ts.UTC().Format("2006-01-02")
+			localDay := ts.Format("2006-01-02")
+			assert.NotEqual(t, utcDay, localDay, "the offset must make the UTC and local days differ [%s]", dbType)
+
+			activity, err := repo.StatsActivity(ctx, 30)
+			require.NoError(t, err)
+			require.NotNil(t, activity)
+
+			utcFound := false
+			for _, d := range activity.Daily {
+				switch d.Date {
+				case utcDay:
+					utcFound = true
+					assert.Equal(t, int64(1), int64(d.MatchedCount), "release should be matched on the UTC day [%s]", dbType)
+					assert.Equal(t, int64(1), int64(d.PushApprovedCount), "push should be approved on the UTC day [%s]", dbType)
+				case localDay:
+					assert.Equal(t, int64(0), int64(d.MatchedCount), "release must not be matched on the local day [%s]", dbType)
+					assert.Equal(t, int64(0), int64(d.PushApprovedCount), "push must not be approved on the local day [%s]", dbType)
+				}
+			}
+			assert.True(t, utcFound, "activity should have a UTC-day entry [%s]", dbType)
+
+			volume, err := repo.StatsVolume(ctx, 30)
+			require.NoError(t, err)
+			require.NotNil(t, volume)
+
+			utcFound = false
+			for _, d := range volume.Daily {
+				switch d.Date {
+				case utcDay:
+					utcFound = true
+					assert.Equal(t, int64(mockData.Size), int64(d.DownloadedBytes), "bytes should be counted on the UTC day [%s]", dbType)
+				case localDay:
+					assert.Equal(t, int64(0), int64(d.DownloadedBytes), "bytes must not be counted on the local day [%s]", dbType)
+				}
+			}
+			assert.True(t, utcFound, "volume should have a UTC-day entry [%s]", dbType)
+
+			// Cleanup
+			_ = repo.Delete(ctx, &domain.DeleteReleaseRequest{OlderThan: 0})
+			_ = actionRepo.Delete(ctx, &domain.DeleteActionRequest{ActionId: actionMock.ID})
+			_ = filterRepo.Delete(ctx, createdFilters[0].ID)
+			_ = downloadClientRepo.Delete(ctx, mock.ID)
+		})
+
+		t.Run(fmt.Sprintf("StatsBucketUTC_WindowCutoffInUTC [%s]", dbType), func(t *testing.T) {
+			// Setup
+			err := filterRepo.Store(ctx, getMockFilter())
+			assert.NoError(t, err)
+
+			createdFilters, err := filterRepo.ListFilters(ctx)
+			assert.NoError(t, err)
+			assert.NotNil(t, createdFilters)
+
+			// The 30 day window starts at cutoff (UTC midnight). Store one release
+			// just after it and one just before it, each in a zone whose local wall
+			// clock is on the other side of the cutoff. Only the first is in the window.
+			cutoff := time.Now().UTC().AddDate(0, 0, -29).Truncate(24 * time.Hour)
+			inside := getMockRelease()
+			inside.FilterID = createdFilters[0].ID
+			inside.Timestamp = cutoff.Add(30 * time.Minute).In(time.FixedZone("UTC-4", -4*3600))
+			err = repo.Store(ctx, inside)
+			require.NoError(t, err)
+
+			outside := getMockRelease()
+			outside.FilterID = createdFilters[0].ID
+			outside.Timestamp = cutoff.Add(-30 * time.Minute).In(time.FixedZone("UTC+2", 2*3600))
+			err = repo.Store(ctx, outside)
+			require.NoError(t, err)
+
+			// Execute
+			activity, err := repo.StatsActivity(ctx, 30)
+			require.NoError(t, err)
+			require.NotNil(t, activity)
+
+			// Verify
+			var total int64
+			for _, d := range activity.Daily {
+				total += d.MatchedCount
+				if d.Date == cutoff.Format("2006-01-02") {
+					assert.Equal(t, int64(1), d.MatchedCount, "release just after the UTC cutoff should be in the first day [%s]", dbType)
+				}
+			}
+			assert.Equal(t, int64(1), total, "only the release after the UTC cutoff should be counted [%s]", dbType)
+
+			// Cleanup
+			_ = repo.Delete(ctx, &domain.DeleteReleaseRequest{OlderThan: 0})
+			_ = filterRepo.Delete(ctx, createdFilters[0].ID)
+		})
+	}
+}
+
 func TestReleaseRepo_Delete(t *testing.T) {
 	ctx := t.Context()
 
