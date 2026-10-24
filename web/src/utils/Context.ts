@@ -50,7 +50,7 @@ export interface DashboardConfigType {
 export interface AuthInfo {
   username: string;
   isLoggedIn: boolean;
-  authMethod?: 'password' | 'oidc';
+  authMethod?: 'password' | 'oidc' | 'disabled';
   profilePicture?: string;
   issuerUrl?: string;
 }

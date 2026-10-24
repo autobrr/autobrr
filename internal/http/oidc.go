@@ -18,7 +18,6 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog"
 	"golang.org/x/oauth2"
 )
@@ -82,8 +81,16 @@ func NewOIDCHandler(encoder encoder, log zerolog.Logger, cfg *domain.Config, ses
 	}
 }
 
+const (
+	oidcRequestBurst    = 20
+	oidcRequestInterval = 3 * time.Second
+)
+
 func (h *OIDCHandler) Routes(r chi.Router) {
-	r.Use(middleware.ThrottleBacklog(1, 1, time.Second))
+	// Every /config call stores fresh state in a new session and every callback
+	// hits the provider, so bound both per client instead of with a global
+	// throttle that one client could hold to block every OIDC login.
+	r.Use(newClientRateLimiter(oidcRequestInterval, oidcRequestBurst).Middleware)
 
 	r.Get("/config", h.getConfig)
 	r.Get("/callback", h.handleCallback)

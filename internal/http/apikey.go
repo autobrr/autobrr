@@ -25,19 +25,35 @@ type apikeyService interface {
 type apikeyHandler struct {
 	encoder encoder
 	service apikeyService
+	config  *domain.Config
 }
 
-func newAPIKeyHandler(encoder encoder, service apikeyService) *apikeyHandler {
+func newAPIKeyHandler(encoder encoder, service apikeyService, config *domain.Config) *apikeyHandler {
 	return &apikeyHandler{
 		encoder: encoder,
 		service: service,
+		config:  config,
 	}
 }
 
 func (h apikeyHandler) Routes(r chi.Router) {
+	r.Use(h.rejectIfAuthDisabled)
 	r.Get("/", h.list)
 	r.Post("/", h.store)
 	r.Delete("/{apikey}", h.delete)
+}
+
+// rejectIfAuthDisabled blocks API key management while built-in authentication is
+// disabled. Otherwise an authless caller could mint a persistent credential that
+// stays valid after authentication is re-enabled.
+func (h apikeyHandler) rejectIfAuthDisabled(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if h.config.IsAuthDisabled() {
+			h.encoder.StatusError(w, http.StatusForbidden, errors.New("API key management is unavailable while authentication is disabled"))
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (h apikeyHandler) list(w http.ResponseWriter, r *http.Request) {
