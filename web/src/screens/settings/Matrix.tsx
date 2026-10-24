@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { Fragment, MouseEvent, useCallback, useMemo, useRef, useState } from "react";
+import { Fragment, MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { ArrowPathIcon, LockClosedIcon, LockOpenIcon, PlusIcon } from "@heroicons/react/24/solid";
 import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/react";
@@ -96,7 +96,7 @@ function useSort(items: ListItemProps["network"][], config?: SortConfig) {
 
 const MatrixSettings = () => {
   const { t } = useTranslation("settings");
-  const [expandNetworks, toggleExpand] = useToggle(true);
+  const [expandNetworks, toggleExpand] = useToggle(false);
   const [addNetworkIsOpen, toggleAddNetwork] = useToggle(false);
 
   const queryClient = useQueryClient();
@@ -283,7 +283,11 @@ interface ListItemProps {
 const ListItem = ({ network, expanded }: ListItemProps) => {
   const { t } = useTranslation("settings");
   const [updateIsOpen, toggleUpdate] = useToggle(false);
-  const [edit, toggleEdit] = useToggle(false);
+  const [isOpen, setIsOpen] = useState(expanded);
+
+  useEffect(() => {
+    setIsOpen(expanded);
+  }, [expanded]);
 
   const queryClient = useQueryClient();
 
@@ -324,7 +328,7 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
         onClick={(e) => {
           if (e.defaultPrevented) return;
           e.preventDefault();
-          toggleEdit();
+          setIsOpen((prev) => !prev);
         }}
       >
         <MatrixNetworkUpdateForm
@@ -404,7 +408,7 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
           <ListItemDropdown network={network} toggleUpdate={toggleUpdate} />
         </div>
       </div>
-      {(edit || expanded) && (
+      {isOpen && (
         <div className="px-4 py-4 flex bg-gray-100 dark:bg-gray-775 rounded-b-md">
           <div className="min-w-full">
             {network.connection_errors && network.connection_errors.length > 0 && (
