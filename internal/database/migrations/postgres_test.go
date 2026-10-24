@@ -551,6 +551,16 @@ func TestRunMigrationTest_Postgres(t *testing.T) {
 			SetupData:           setupBuiltinNotificationPresent,
 			ValidateResult:      validateBuiltinNotificationNotDuplicated,
 		},
+		{
+			// Migration 4 dropped release.freeleech and release.freeleech_percent, so
+			// upgraded installs lack them while the current schema has them.
+			Name:                "release freeleech columns are added back",
+			MigrationIndex:      90,
+			MigrationsUntilName: "90_add_action_ratio_group",
+			MigrationToRun:      "91_add_release_freeleech",
+			SetupData:           setupReleaseWithoutFreeleech,
+			ValidateResult:      validateReleaseFreeleechColumns,
+		},
 	}
 
 	for _, tc := range tests {

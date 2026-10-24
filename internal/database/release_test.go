@@ -476,6 +476,8 @@ func TestReleaseRepo_Get(t *testing.T) {
 		mockData.Repack = true
 		mockData.MediaProcessing = "Remux"
 		mockData.Other = []string{"Remastered"}
+		mockData.Freeleech = true
+		mockData.FreeleechPercent = 100
 		releaseActionMockData := getMockReleaseActionStatus()
 		actionMockData := getMockAction()
 
@@ -545,6 +547,9 @@ func TestReleaseRepo_Get(t *testing.T) {
 			assert.Equal(t, mockData.Tags, release.Tags)
 			assert.Equal(t, mockData.PreTime, release.PreTime)
 			assert.Equal(t, mockData.Other, release.Other)
+			// A retried push rebuilds the *arr indexer flags from these.
+			assert.True(t, release.Freeleech)
+			assert.Equal(t, 100, release.FreeleechPercent)
 
 			episode := &domain.Release{
 				Rejections: []string{},

@@ -685,6 +685,19 @@ func TestRunMigrationTest_SQLite(t *testing.T) {
 			},
 			want: "",
 		},
+		{
+			name:   "release freeleech columns are added",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "release freeleech columns are added",
+				MigrationIndex:      100,
+				MigrationsUntilName: "100_add_action_ratio_group",
+				MigrationToRun:      "101_add_release_freeleech",
+				SetupData:           setupReleaseWithoutFreeleech,
+				ValidateResult:      validateReleaseFreeleechColumns,
+			},
+			want: "",
+		},
 	}
 
 	for _, tt := range tests {

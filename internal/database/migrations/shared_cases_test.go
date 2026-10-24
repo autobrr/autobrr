@@ -223,3 +223,18 @@ func validateBuiltinNotificationNotDuplicated(db *sql.DB, t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "Existing", name, "the seed must not replace a built-in row that already exists")
 }
+
+func setupReleaseWithoutFreeleech(db *sql.DB) error {
+	_, err := db.Exec(`INSERT INTO "release" (torrent_name) VALUES ('Existing.Release')`)
+
+	return err
+}
+
+func validateReleaseFreeleechColumns(db *sql.DB, t *testing.T) {
+	var freeleech bool
+	var freeleechPercent int
+	err := db.QueryRow(`SELECT freeleech, freeleech_percent FROM "release" WHERE torrent_name = 'Existing.Release'`).Scan(&freeleech, &freeleechPercent)
+	require.NoError(t, err, "release must have the freeleech columns, with defaults for existing rows")
+	assert.False(t, freeleech)
+	assert.Equal(t, 0, freeleechPercent)
+}
