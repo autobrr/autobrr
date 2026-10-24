@@ -188,6 +188,13 @@ export const SettingsIrcRoute = createRoute({
   component: lazyRouteComponent(() => import("@screens/settings/Irc"))
 });
 
+export const SettingsMatrixRoute = createRoute({
+  getParentRoute: () => SettingsRoute,
+  path: 'matrix',
+  loader: (opts) => opts.context.queryClient.query({ ...IrcQueryOptions(), staleTime: "static" }),
+  component: lazyRouteComponent(() => import("@screens/settings/Matrix"))
+});
+
 export const SettingsListsRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'lists',
@@ -357,7 +364,7 @@ export const RootRoute = createRootRouteWithContext<{
 });
 
 const filterRouteTree = FiltersRoute.addChildren([FilterIndexRoute, FilterGetByIdRoute.addChildren([FilterGeneralRoute, FilterMoviesTvRoute, FilterMusicRoute, FilterBooksRoute, FilterAdvancedRoute, FilterExternalRoute, FilterActionsRoute, FilterNotificationsRoute])])
-const settingsRouteTree = SettingsRoute.addChildren([SettingsIndexRoute, SettingsLogRoute, SettingsIndexersRoute, SettingsIrcRoute, SettingsListsRoute, SettingsFeedsRoute, SettingsClientsRoute, SettingsNotificationsRoute, SettingsApiRoute, SettingsProxiesRoute, SettingsReleasesRoute, SettingsAccountRoute])
+const settingsRouteTree = SettingsRoute.addChildren([SettingsIndexRoute, SettingsLogRoute, SettingsIndexersRoute, SettingsIrcRoute, SettingsMatrixRoute, SettingsListsRoute, SettingsFeedsRoute, SettingsClientsRoute, SettingsNotificationsRoute, SettingsApiRoute, SettingsProxiesRoute, SettingsReleasesRoute, SettingsAccountRoute])
 const authenticatedTree = AuthRoute.addChildren([AuthIndexRoute.addChildren([DashboardRoute, filterRouteTree, ReleasesRoute, settingsRouteTree, LogsRoute, NotificationInboxRoute])])
 const routeTree = RootRoute.addChildren([
   authenticatedTree,

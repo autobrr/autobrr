@@ -35,7 +35,7 @@ interface IndexerMinimal {
   identifier_external: string;
 }
 
-type IndexerImplementation = "irc" | "torznab" | "newznab" | "rss";
+type IndexerImplementation = "irc" | "matrix" | "torznab" | "newznab" | "rss";
 
 interface IndexerDefinition {
   id: number;

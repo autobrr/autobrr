@@ -455,7 +455,13 @@ func (h *Handler) connect(connectGen uint64) (err error) {
 		}
 	}
 
-	if network.TLS {
+	if isMatrixNetwork(network.Server) {
+		if network.UseProxy && network.Proxy == nil {
+			return errors.New("use_proxy enabled for matrix network '%s', but no proxy attached", network.Server)
+		}
+		client.UseTLS = false
+		client.DialContext = h.dialMatrixContext
+	} else if network.TLS {
 		// In Go 1.22 old insecure ciphers was removed. A lot of old IRC networks still uses those, so we need to allow those.
 		unsafeCipherSuites := make([]uint16, 0, len(tls.InsecureCipherSuites())+len(tls.CipherSuites()))
 		for _, suite := range tls.InsecureCipherSuites() {
@@ -2536,6 +2542,24 @@ func (h *Handler) clearConnectErrors() {
 	defer h.m.Unlock()
 
 	h.connectionErrors = []string{}
+}
+
+func (h *Handler) removeConnectError(message string) {
+	h.m.Lock()
+	defer h.m.Unlock()
+
+	h.connectionErrors = slices.DeleteFunc(h.connectionErrors, func(e string) bool {
+		return e == message
+	})
+}
+
+func (h *Handler) removeConnectErrorPrefix(prefix string) {
+	h.m.Lock()
+	defer h.m.Unlock()
+
+	h.connectionErrors = slices.DeleteFunc(h.connectionErrors, func(e string) bool {
+		return strings.HasPrefix(e, prefix)
+	})
 }
 
 func (h *Handler) ReportStatus(netw *domain.IrcNetworkWithHealth) {
