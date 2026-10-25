@@ -114,6 +114,10 @@ checkForUpdates = true
 #
 # Disable Built In Login Form (only works when using external auth)
 #oidcDisableBuiltInLogin = false
+#
+# Redirect unauthenticated visitors to the OIDC provider (requires oidcEnabled)
+# Environment variable: AUTOBRR__OIDC_AUTO_REDIRECT
+#oidcAutoRedirect = false
 
 # Metrics
 #

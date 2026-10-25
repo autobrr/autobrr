@@ -343,6 +343,7 @@ The following environment variables can be used:
 | `AUTOBRR__OIDC_CLIENT_SECRET`          | OIDC client secret                                       | -           |
 | `AUTOBRR__OIDC_REDIRECT_URL`           | OIDC callback URL                                        | -           |
 | `AUTOBRR__OIDC_DISABLE_BUILT_IN_LOGIN` | Disable login form (only works when using external auth) | `false`     |
+| `AUTOBRR__OIDC_AUTO_REDIRECT`          | Redirect unauthenticated visitors to the OIDC provider    | `false`     |
 | `AUTOBRR__METRICS_ENABLED`             | Enable Metrics server                                    | `false`     |
 | `AUTOBRR__METRICS_HOST`                | Metrics listen address                                   | `127.0.0.1` |
 | `AUTOBRR__METRICS_PORT`                | Metrics listen port                                      | `9074`      |
@@ -350,6 +351,14 @@ The following environment variables can be used:
 | `AUTOBRR__PROFILING_ENABLED`           | Enable profiling                                         | `false`     |
 | `AUTOBRR__PROFILING_HOST`              | Profiling listen address                                 | `127.0.0.1` |
 | `AUTOBRR__PROFILING_PORT`              | Profiling listen port                                    | `6060`      |
+
+#### Automatic OIDC login
+
+With OIDC configured, set `AUTOBRR__OIDC_AUTO_REDIRECT=true` to send unauthenticated visitors directly to your provider's login page. This requires `AUTOBRR__OIDC_ENABLED=true`. You can also set `oidcAutoRedirect = true` in `config.toml`. Restart autobrr after changing the setting.
+
+The default is `false`, which keeps the login page and its OpenID Connect button. `AUTOBRR__OIDC_DISABLE_BUILT_IN_LOGIN` separately controls whether the password form appears. To use that form again, turn off automatic redirection and keep built-in login enabled.
+
+After signing out of autobrr, automatic redirection starts another OIDC login. If your provider session is still active, it may sign you back in without asking for credentials.
 
 #### Docker secrets
 

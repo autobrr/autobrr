@@ -282,18 +282,22 @@ export const LoginRoute = createRoute({
   validateSearch: z.object({
     redirect: z.optional(z.string()),
   }),
-  beforeLoad: async ({ context, navigate }) => {
-    // First check if OIDC is enabled
+  beforeLoad: async ({ context, navigate, preload }) => {
+    let oidcConfig;
     try {
-      const oidcConfig = await context.queryClient.query({ ...OIDCConfigQueryOptions(), staleTime: "static" });
-      if (oidcConfig.enabled) {
-        return;
-      }
+      // Each login needs an authorization URL whose state belongs to the current session.
+      oidcConfig = await context.queryClient.query({ ...OIDCConfigQueryOptions(), staleTime: 0 });
     } catch (error) {
       console.debug("Failed to get OIDC config, proceeding with onboarding check:", error);
     }
 
-    // Only check onboarding if OIDC is not enabled
+    if (oidcConfig?.enabled) {
+      if (oidcConfig.autoRedirect && oidcConfig.authorizationUrl && !preload) {
+        throw redirect({ href: oidcConfig.authorizationUrl, reloadDocument: true });
+      }
+      return;
+    }
+
     const canOnboard = await context.queryClient.query({ ...CanOnboardQueryOptions(), staleTime: "static" });
     if (canOnboard) {
       console.info("onboarding available, redirecting");
