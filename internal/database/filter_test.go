@@ -267,6 +267,28 @@ func TestFilterRepo_UpdatePartial(t *testing.T) {
 			_ = repo.Delete(ctx, createdFilters[0].ID)
 		})
 
+		t.Run(fmt.Sprintf("UpdatePartial_External_Only [%s]", dbType), func(t *testing.T) {
+			filter := getMockFilter()
+			require.NoError(t, repo.Store(ctx, filter))
+			t.Cleanup(func() { require.NoError(t, repo.Delete(ctx, filter.ID)) })
+			_, err := db.Handler.ExecContext(ctx, "UPDATE filter SET updated_at = '2000-01-01 00:00:00' WHERE id = $1", filter.ID)
+			require.NoError(t, err)
+			before, err := repo.FindByID(ctx, filter.ID)
+			require.NoError(t, err)
+
+			err = repo.UpdatePartial(ctx, domain.FilterUpdate{
+				ID:       filter.ID,
+				External: []domain.FilterExternal{getMockFilterExternal()},
+			})
+			require.NoError(t, err)
+
+			after, err := repo.FindByID(ctx, filter.ID)
+			require.NoError(t, err)
+			assert.True(t, after.UpdatedAt.After(before.UpdatedAt))
+			before.UpdatedAt = after.UpdatedAt
+			assert.Equal(t, before, after)
+		})
+
 		t.Run(fmt.Sprintf("UpdatePartial_Fails_Invalid_ID [%s]", dbType), func(t *testing.T) {
 			// Setup
 			updatedName := "Should Fail"

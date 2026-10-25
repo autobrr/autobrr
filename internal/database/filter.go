@@ -1178,7 +1178,7 @@ func (r *FilterRepo) Update(ctx context.Context, filter *domain.Filter) error {
 func (r *FilterRepo) UpdatePartial(ctx context.Context, filter domain.FilterUpdate) error {
 	var err error
 
-	q := r.db.squirrel.Update("filter")
+	q := r.db.squirrel.Update("filter").Set("updated_at", sq.Expr("CURRENT_TIMESTAMP"))
 
 	if filter.Name != nil {
 		q = q.Set("name", filter.Name)
