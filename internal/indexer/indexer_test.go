@@ -517,6 +517,43 @@ func TestIndexersParseAndFilter(t *testing.T) {
 			},
 			match: true,
 		},
+		{
+			name: "czteam",
+			fields: fields{
+				identifier:         "czteam",
+				identifierExternal: "CZTeam",
+				settings: map[string]string{
+					"passkey": "key",
+				},
+			},
+			subTests: []subTest{
+				{
+					name: "announce_binary_size",
+					args: args{
+						announceLines: []string{"New Torrent: Synthetic.Movie.1988.2160p.UHD.BluRay.Remux.DV.HDR.HEVC-GROUP -- [FreeLeech!] -- [Movies/HD] [58,82 GB] -- https://czteam.me/details.php?id=123"},
+						filters: []filterTest{
+							{
+								filter: &domain.Filter{
+									Name:    "filter_1",
+									MinSize: "60GB",
+								},
+								match: true,
+							},
+							{
+								filter: &domain.Filter{
+									Name:    "filter_2",
+									MaxSize: "60GB",
+								},
+								match:      false,
+								rejections: []string{"release size 63157494087 bytes is larger than filter max size 60000000000 bytes", "[max size] not matching: got 63157494087 want: 60GB"},
+							},
+						},
+					},
+					match: false,
+				},
+			},
+			match: true,
+		},
 	}
 
 	for _, tt := range tests {
