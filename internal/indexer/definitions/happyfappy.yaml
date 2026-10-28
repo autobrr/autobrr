@@ -57,16 +57,47 @@ irc:
       parse:
         type: single
         lines:
-          - pattern: '^(?P<releaseName>.+) - Size: (?P<torrentSize>.+) - Uploader: (?P<uploader>.+) - Tags: (?P<tags>.+) - (?P<baseUrl>https:\/\/.*\/).*id=(?P<torrentId>\d+)$'
+          - pattern: '^(?:Name: )?(?P<releaseName>.+?)(?: Freeleech \[(?P<freeleech>[^\]]*)\] Size \[| - Size: )(?P<torrentSize>.+?)(?:\] Uploader \[| - Uploader: )(?P<uploader>.*?)(?:\] Tags \[| - Tags: )(?P<tags>.*?)(?:\] Url \[| - )(?P<baseUrl>https:\/\/[^\/]+\/)torrents\.php\?torrentid=(?P<torrentId>\d+)\]?$'
             tests:
               - line: '[OnlyFans] Some Actress, Other Actress - Having fun together - Size: 1.03 GiB - Uploader: UPLOADER - Tags: 1080p, lesbian, onlyfans.com, fansite - https://www.happyfappy.net/torrents.php?torrentid=00000'
                 expect:
                   releaseName: '[OnlyFans] Some Actress, Other Actress - Having fun together'
+                  freeleech: ""
                   torrentSize: 1.03 GiB
                   uploader: UPLOADER
                   tags: 1080p, lesbian, onlyfans.com, fansite
                   baseUrl: https://www.happyfappy.net/
-                  torrentId: 00000
+                  torrentId: "00000"
+
+              - line: 'Name: [Studio] Example Scene Title - Performer One, Performer Two [FHD] Freeleech [No] Size [4.75 GiB] Uploader [example_uploader] Tags [pron, performer.one, performer.two, studio.name] Url [https://www.happyfappy.net/torrents.php?torrentid=12345]'
+                expect:
+                  releaseName: '[Studio] Example Scene Title - Performer One, Performer Two [FHD]'
+                  freeleech: "No"
+                  torrentSize: 4.75 GiB
+                  uploader: example_uploader
+                  tags: pron, performer.one, performer.two, studio.name
+                  baseUrl: https://www.happyfappy.net/
+                  torrentId: "12345"
+
+              - line: 'Name: [Studio] Example Scene Title - Performer One [2160p] Freeleech [Yes] Size [8.25 GiB] Uploader [Anonymous] Tags [pron, performer.one] Url [https://www.happyfappy.net/torrents.php?torrentid=12346]'
+                expect:
+                  releaseName: '[Studio] Example Scene Title - Performer One [2160p]'
+                  freeleech: "Yes"
+                  torrentSize: 8.25 GiB
+                  uploader: Anonymous
+                  tags: pron, performer.one
+                  baseUrl: https://www.happyfappy.net/
+                  torrentId: "12346"
+
+              - line: 'Name: [Studio] Example Scene [Part 2] [FHD] Freeleech [No] Size [512 MiB] Uploader [Anonymous] Tags [] Url [https://www.happyfappy.net/torrents.php?torrentid=12347]'
+                expect:
+                  releaseName: '[Studio] Example Scene [Part 2] [FHD]'
+                  freeleech: "No"
+                  torrentSize: 512 MiB
+                  uploader: Anonymous
+                  tags: ""
+                  baseUrl: https://www.happyfappy.net/
+                  torrentId: "12347"
 
         match:
           infourl: "/torrents.php?torrentid={{ .torrentId }}"
