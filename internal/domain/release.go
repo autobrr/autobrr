@@ -1322,19 +1322,19 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string, sizeUn
 	}
 
 	if metaId, ok := getStringMapValueAlt(varMap, "tmdb", "tmdbid"); ok {
-		if tmdbId, err := strconv.Atoi(strings.TrimSpace(metaId)); err == nil {
+		if tmdbId, err := strconv.Atoi(strings.TrimSpace(metaId)); err == nil && tmdbId > 0 {
 			r.MetaTMDB = tmdbId
 		}
 	}
 
 	if metaId, ok := getStringMapValueAlt(varMap, "tvdb", "tvdbid"); ok {
-		if tvdbId, err := strconv.Atoi(strings.TrimSpace(metaId)); err == nil {
+		if tvdbId, err := strconv.Atoi(strings.TrimSpace(metaId)); err == nil && tvdbId > 0 {
 			r.MetaTVDB = tvdbId
 		}
 	}
 
 	if metaId, ok := getStringMapValueAlt(varMap, "igdb", "igdbid"); ok {
-		if igdbId, err := strconv.Atoi(strings.TrimSpace(metaId)); err == nil {
+		if igdbId, err := strconv.Atoi(strings.TrimSpace(metaId)); err == nil && igdbId > 0 {
 			r.MetaIGDB = igdbId
 		}
 	}

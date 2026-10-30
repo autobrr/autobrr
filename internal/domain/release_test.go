@@ -828,6 +828,21 @@ func TestRelease_MapVars(t *testing.T) {
 			},
 		},
 		{
+			name:   "negative meta ids are ignored",
+			fields: &Release{},
+			want: &Release{
+				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+			},
+			args: args{
+				varMap: map[string]string{
+					"torrentName": "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+					"tmdb":        "-1",
+					"tvdb":        "-1",
+					"igdb":        "-1",
+				},
+			},
+		},
+		{
 			name:   "meta ids with surrounding spaces",
 			fields: &Release{},
 			want: &Release{
