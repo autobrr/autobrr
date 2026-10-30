@@ -124,7 +124,7 @@ func (j *NewznabJob) processItems(items []newznab.FeedItem) ([]*domain.Release, 
 
 		rls.ParseString(item.Title)
 
-		rls.MetaIMDB = item.ImdbId
+		rls.MetaIMDB = domain.NormalizeIMDBID(item.ImdbId)
 		rls.MetaTMDB = parseMetaID(item.TmdbId)
 		rls.MetaTVDB = parseMetaID(item.TvdbId)
 		rls.PublishDate = item.PubDate.Time

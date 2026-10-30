@@ -122,6 +122,7 @@ type Release struct {
 	MetaIMDB                           string                `json:"-"`
 	MetaTMDB                           int                   `json:"-"`
 	MetaTVDB                           int                   `json:"-"`
+	MetaIGDB                           int                   `json:"-"`
 	PublishDate                        time.Time             `json:"-"` // zero for IRC announces, which carry no publish date
 }
 
@@ -1316,22 +1317,43 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string, sizeUn
 		r.Container = v
 	}
 
-	if metaId, ok := getStringMapValue(varMap, "imdb"); ok && metaId != "" {
-		if !strings.HasPrefix(metaId, "tt") {
-			metaId = "tt" + metaId
-		}
-		r.MetaIMDB = metaId
+	if metaId, ok := getStringMapValue(varMap, "imdb"); ok {
+		r.MetaIMDB = NormalizeIMDBID(metaId)
 	}
 
 	if metaId, ok := getStringMapValueAlt(varMap, "tmdb", "tmdbid"); ok {
-		if tmdbId, err := strconv.Atoi(metaId); err == nil {
+		if tmdbId, err := strconv.Atoi(strings.TrimSpace(metaId)); err == nil && tmdbId > 0 {
 			r.MetaTMDB = tmdbId
+		}
+	}
+
+	if metaId, ok := getStringMapValueAlt(varMap, "tvdb", "tvdbid"); ok {
+		if tvdbId, err := strconv.Atoi(strings.TrimSpace(metaId)); err == nil && tvdbId > 0 {
+			r.MetaTVDB = tvdbId
+		}
+	}
+
+	if metaId, ok := getStringMapValueAlt(varMap, "igdb", "igdbid"); ok {
+		if igdbId, err := strconv.Atoi(strings.TrimSpace(metaId)); err == nil && igdbId > 0 {
+			r.MetaIGDB = igdbId
 		}
 	}
 
 	r.RawVars = varMap
 
 	return nil
+}
+
+// NormalizeIMDBID returns id as a tt-prefixed IMDb id zero-padded to seven digits,
+// or an empty string when id is empty, zero or not numeric. Some trackers announce
+// the numeric part without its leading zeros, which is not a valid IMDb id.
+func NormalizeIMDBID(id string) string {
+	n, err := strconv.ParseUint(strings.TrimPrefix(strings.ToLower(strings.TrimSpace(id)), "tt"), 10, 64)
+	if err != nil || n == 0 {
+		return ""
+	}
+
+	return fmt.Sprintf("tt%07d", n)
 }
 
 // getStringMapValue looks up key, preferring an exact match and falling back to
