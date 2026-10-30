@@ -93,7 +93,7 @@ func (s *Service) porlaCheckRulesCanDownload(ctx context.Context, action *domain
 
 	// check for active downloads and other rules
 	if cfg.Settings.Rules.Enabled && !action.IgnoreRules {
-		torrents, err := client.TorrentsList(ctx, &porla.TorrentsListFilters{Query: "is:downloading and not is:paused"})
+		torrents, err := client.TorrentsList(ctx, &porla.TorrentsListFilters{Query: "state:downloading flags:~paused"})
 		if err != nil {
 			return nil, errors.Wrap(err, "could not fetch active downloads")
 		}
