@@ -69,6 +69,34 @@ func TestFeed_CacheTTLDays(t *testing.T) {
 	}
 }
 
+func TestFeed_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		feed    Feed
+		wantErr bool
+	}{
+		{name: "no settings", feed: Feed{}},
+		{name: "unset process order", feed: Feed{Settings: &FeedSettingsJSON{}}},
+		{name: "oldest first", feed: Feed{Settings: &FeedSettingsJSON{ProcessOrder: FeedProcessOrderOldestFirst}}},
+		{name: "newest first", feed: Feed{Settings: &FeedSettingsJSON{ProcessOrder: FeedProcessOrderNewestFirst}}},
+		{name: "unknown process order", feed: Feed{Settings: &FeedSettingsJSON{ProcessOrder: "RANDOM"}}, wantErr: true},
+		{name: "lowercase process order", feed: Feed{Settings: &FeedSettingsJSON{ProcessOrder: "newest_first"}}, wantErr: true},
+		{name: "control characters in user agent", feed: Feed{UserAgent: "autobrr\r\nX-Injected: 1"}, wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.feed.Validate()
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+
+			assert.NoError(t, err)
+		})
+	}
+}
+
 func TestFeed_ProcessNewestFirst(t *testing.T) {
 	tests := []struct {
 		name     string

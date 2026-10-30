@@ -52,6 +52,14 @@ func (f Feed) Validate() error {
 		return errors.New("user agent must not contain control characters")
 	}
 
+	if f.Settings != nil {
+		switch f.Settings.ProcessOrder {
+		case "", FeedProcessOrderOldestFirst, FeedProcessOrderNewestFirst:
+		default:
+			return errors.New("invalid process order: %s", f.Settings.ProcessOrder)
+		}
+	}
+
 	return nil
 }
 
