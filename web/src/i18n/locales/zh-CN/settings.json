@@ -392,6 +392,8 @@
       "maxAgeHelp": "订阅内容的最大年龄，单位秒。填 0 可禁用年龄过滤并处理所有内容。",
       "cacheTTL": "缓存 TTL",
       "cacheTTLHelp": "已处理的订阅项目在缓存中保留的天数。过期后仍存在于订阅中的项目将被再次处理和下载。默认为 31 天。",
+      "maxPages": "最大页数",
+      "maxPagesHelp": "每次刷新时为补齐遗漏项目而获取的最大页数。遇到第一个已处理的项目时停止分页。默认为 1（仅第一页），最大为 10。",
       "cookie": "Cookie",
       "cookieHelp": "不常用",
       "userAgent": "User-Agent",

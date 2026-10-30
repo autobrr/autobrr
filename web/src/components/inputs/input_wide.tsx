@@ -272,6 +272,8 @@ interface NumberFieldWideProps {
   help?: string;
   placeholder?: string;
   defaultValue?: number;
+  min?: number;
+  max?: number;
   required?: boolean;
   tooltip?: JSX.Element;
 }
@@ -282,6 +284,8 @@ export const NumberFieldWide = ({
   placeholder,
   help,
   defaultValue,
+  min,
+  max,
   tooltip,
   required
 }: NumberFieldWideProps) => {
@@ -326,6 +330,8 @@ export const NumberFieldWide = ({
                   }
                 }}
                 placeholder={placeholder}
+                min={min}
+                max={max}
               />
               {help && (
                 <p className="mt-2 text-sm text-gray-500 dark:text-gray-500" id={`${name}-description`}>{help}</p>
