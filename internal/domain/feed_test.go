@@ -69,6 +69,25 @@ func TestFeed_CacheTTLDays(t *testing.T) {
 	}
 }
 
+func TestFeed_ProcessNewestFirst(t *testing.T) {
+	tests := []struct {
+		name     string
+		settings *FeedSettingsJSON
+		want     bool
+	}{
+		{name: "no settings processes oldest first", want: false},
+		{name: "unset order processes oldest first", settings: &FeedSettingsJSON{}, want: false},
+		{name: "oldest first", settings: &FeedSettingsJSON{ProcessOrder: FeedProcessOrderOldestFirst}, want: false},
+		{name: "newest first", settings: &FeedSettingsJSON{ProcessOrder: FeedProcessOrderNewestFirst}, want: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, Feed{Settings: tt.settings}.ProcessNewestFirst())
+		})
+	}
+}
+
 func TestFeed_CacheCoversLastRun(t *testing.T) {
 	now := time.Now()
 

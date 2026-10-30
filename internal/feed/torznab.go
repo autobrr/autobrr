@@ -11,6 +11,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -117,6 +118,10 @@ func (j *TorznabJob) process(ctx context.Context) error {
 	if err != nil {
 		j.Log.Error().Err(err).Msg("error processing items")
 		return errors.Wrap(err, "error processing items")
+	}
+
+	if j.Feed.ProcessNewestFirst() {
+		slices.Reverse(releases)
 	}
 
 	// process all new releases
