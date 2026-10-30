@@ -743,7 +743,7 @@ func (s *Service) AdditionalSizeCheck(ctx context.Context, f *domain.Filter, rel
 	l.Debug().Msg("additional api size check required")
 
 	switch release.Indexer.Identifier {
-	case "btn", "ggn", "redacted", "ops", "mock":
+	case "ggn", "redacted", "ops", "mock":
 		if (release.Size == 0 && release.AdditionalSizeCheckRequired) || (release.Uploader == "" && release.AdditionalUploaderCheckRequired) || (release.RecordLabel == "" && release.AdditionalRecordLabelCheckRequired) {
 			l.Trace().Str("filter", f.Name).Msg("preparing to check size via api")
 
