@@ -16,8 +16,9 @@ import { NumberFieldWide, PasswordFieldWide, SecretFieldWide, SwitchGroupWide, T
 import { SelectFieldBasic } from "@components/inputs/select_wide";
 import { sleep } from "@utils";
 import { ImplementationBadge } from "@screens/settings/Indexer";
-import { FeedDownloadTypeOptions, OptionBasicTyped } from "@domain/constants";
+import { FeedDownloadTypeOptions } from "@domain/constants";
 import { UpdateFormProps } from "@forms/_shared";
+import { FeedProcessOrderField } from "@forms/settings/FeedProcessOrderField";
 import { useFormContext, useFormValue } from "@hooks/form";
 import { extractCategoryTreeFromCaps, flattenCategoryIds, parseCapabilitiesPayload } from "@utils/caps";
 
@@ -226,7 +227,7 @@ function FormFieldsTorznab({ feedID }: { feedID: number }) {
       <NumberFieldWide name="max_age" label={t("forms.feed.maxAge")} help={t("forms.feed.maxAgeHelp")}/>
       <NumberFieldWide name="settings.cache_ttl_days" label={t("forms.feed.cacheTTL")} help={t("forms.feed.cacheTTLHelp")}/>
       <NumberFieldWide name="settings.max_pages" label={t("forms.feed.maxPages")} help={t("forms.feed.maxPagesHelp")} defaultValue={1} min={1} max={10}/>
-      <ProcessOrderField />
+      <FeedProcessOrderField name="settings.process_order" />
 
       <FeedCategoriesSection feedID={feedID} />
     </div>
@@ -266,7 +267,7 @@ function FormFieldsNewznab({ feedID }: { feedID: number }) {
       <NumberFieldWide name="max_age" label={t("forms.feed.maxAge")} help={t("forms.feed.maxAgeHelp")}/>
       <NumberFieldWide name="settings.cache_ttl_days" label={t("forms.feed.cacheTTL")} help={t("forms.feed.cacheTTLHelp")}/>
       <NumberFieldWide name="settings.max_pages" label={t("forms.feed.maxPages")} help={t("forms.feed.maxPagesHelp")} defaultValue={1} min={1} max={10}/>
-      <ProcessOrderField />
+      <FeedProcessOrderField name="settings.process_order" />
 
       <FeedCategoriesSection feedID={feedID} />
     </div>
@@ -294,24 +295,12 @@ function FormFieldsRSS() {
       <NumberFieldWide name="timeout" label={t("forms.feed.refreshTimeout")} help={t("forms.feed.refreshTimeoutHelp")}/>
       <NumberFieldWide name="max_age" label={t("forms.feed.maxAge")} help={t("forms.feed.maxAgeHelp")}/>
       <NumberFieldWide name="settings.cache_ttl_days" label={t("forms.feed.cacheTTL")} help={t("forms.feed.cacheTTLHelp")}/>
-      <ProcessOrderField />
+      <FeedProcessOrderField name="settings.process_order" />
 
       <SecretFieldWide name="cookie" label={t("forms.feed.cookie")} help={t("forms.feed.cookieHelp")} />
 
       <TextFieldWide name="user_agent" label={t("forms.feed.userAgent")} help={t("forms.feed.userAgentHelp")} />
     </div>
-  );
-}
-
-function ProcessOrderField() {
-  const { t } = useTranslation("settings");
-  const options = useMemo<OptionBasicTyped<FeedProcessOrder>[]>(() => [
-    { label: t("forms.feed.processOrderOldestFirst"), value: "OLDEST_FIRST" },
-    { label: t("forms.feed.processOrderNewestFirst"), value: "NEWEST_FIRST" }
-  ], [t]);
-
-  return (
-    <SelectFieldBasic name="settings.process_order" label={t("forms.feed.processOrder")} help={t("forms.feed.processOrderHelp")} options={options} />
   );
 }
 
