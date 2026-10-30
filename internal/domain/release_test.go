@@ -778,6 +778,56 @@ func TestRelease_MapVars(t *testing.T) {
 			},
 		},
 		{
+			name:   "imdb id without leading zeros is padded",
+			fields: &Release{},
+			want: &Release{
+				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				MetaIMDB:    "tt0084827",
+			},
+			args: args{
+				varMap: map[string]string{
+					"torrentName": "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+					"imdb":        "84827",
+				},
+			},
+		},
+		{
+			name:   "zero meta ids are ignored",
+			fields: &Release{},
+			want: &Release{
+				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+			},
+			args: args{
+				varMap: map[string]string{
+					"torrentName": "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+					"imdb":        "0",
+					"tmdb":        "0",
+					"tvdb":        "0",
+					"igdb":        "0",
+				},
+			},
+		},
+		{
+			name:   "meta ids",
+			fields: &Release{},
+			want: &Release{
+				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				MetaIMDB:    "tt38545732",
+				MetaTMDB:    299054,
+				MetaTVDB:    468034,
+				MetaIGDB:    403731,
+			},
+			args: args{
+				varMap: map[string]string{
+					"torrentName": "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+					"imdb":        "38545732",
+					"tmdb":        "299054",
+					"tvdb":        "468034",
+					"igdb":        "403731",
+				},
+			},
+		},
+		{
 			name:   "empty imdb id from unmatched optional group is ignored",
 			fields: &Release{},
 			want: &Release{
@@ -829,6 +879,29 @@ func TestRelease_MapVars(t *testing.T) {
 
 			r.RawVars = nil // Vars pass-through is tested separately
 			assert.Equal(t, tt.want, r)
+		})
+	}
+}
+
+func TestNormalizeIMDBID(t *testing.T) {
+	tests := []struct {
+		id   string
+		want string
+	}{
+		{id: "0133093", want: "tt0133093"},
+		{id: "tt0133093", want: "tt0133093"},
+		{id: "84827", want: "tt0084827"},
+		{id: "tt84827", want: "tt0084827"},
+		{id: "38545732", want: "tt38545732"},
+		{id: "tt38545732", want: "tt38545732"},
+		{id: "0", want: ""},
+		{id: "", want: ""},
+		{id: "tt", want: ""},
+		{id: "abc", want: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.id, func(t *testing.T) {
+			assert.Equal(t, tt.want, NormalizeIMDBID(tt.id))
 		})
 	}
 }

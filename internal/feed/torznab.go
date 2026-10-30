@@ -188,7 +188,7 @@ func (j *TorznabJob) processItems(items []torznab.FeedItem) ([]*domain.Release, 
 		rls.Leechers = item.Leechers
 		rls.Uploader = item.Author
 
-		rls.MetaIMDB = item.ImdbId
+		rls.MetaIMDB = domain.NormalizeIMDBID(item.ImdbId)
 		rls.MetaTMDB = parseMetaID(item.TmdbId)
 		rls.MetaTVDB = parseMetaID(item.TvdbId)
 		rls.PublishDate = item.PubDate.Time
