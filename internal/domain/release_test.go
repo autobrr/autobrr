@@ -828,6 +828,24 @@ func TestRelease_MapVars(t *testing.T) {
 			},
 		},
 		{
+			name:   "meta ids with surrounding spaces",
+			fields: &Release{},
+			want: &Release{
+				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				MetaTMDB:    299054,
+				MetaTVDB:    468034,
+				MetaIGDB:    403731,
+			},
+			args: args{
+				varMap: map[string]string{
+					"torrentName": "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+					"tmdb":        " 299054 ",
+					"tvdb":        " 468034 ",
+					"igdb":        " 403731 ",
+				},
+			},
+		},
+		{
 			name:   "empty imdb id from unmatched optional group is ignored",
 			fields: &Release{},
 			want: &Release{
@@ -893,11 +911,15 @@ func TestNormalizeIMDBID(t *testing.T) {
 		{id: "84827", want: "tt0084827"},
 		{id: "tt84827", want: "tt0084827"},
 		{id: "38545732", want: "tt38545732"},
+		{id: "TT0133093", want: "tt0133093"},
+		{id: " 84827 ", want: "tt0084827"},
 		{id: "tt38545732", want: "tt38545732"},
 		{id: "0", want: ""},
 		{id: "", want: ""},
 		{id: "tt", want: ""},
 		{id: "abc", want: ""},
+		{id: "+123", want: ""},
+		{id: "-123", want: ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.id, func(t *testing.T) {

@@ -1322,19 +1322,19 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string, sizeUn
 	}
 
 	if metaId, ok := getStringMapValueAlt(varMap, "tmdb", "tmdbid"); ok {
-		if tmdbId, err := strconv.Atoi(metaId); err == nil {
+		if tmdbId, err := strconv.Atoi(strings.TrimSpace(metaId)); err == nil {
 			r.MetaTMDB = tmdbId
 		}
 	}
 
 	if metaId, ok := getStringMapValueAlt(varMap, "tvdb", "tvdbid"); ok {
-		if tvdbId, err := strconv.Atoi(metaId); err == nil {
+		if tvdbId, err := strconv.Atoi(strings.TrimSpace(metaId)); err == nil {
 			r.MetaTVDB = tvdbId
 		}
 	}
 
 	if metaId, ok := getStringMapValueAlt(varMap, "igdb", "igdbid"); ok {
-		if igdbId, err := strconv.Atoi(metaId); err == nil {
+		if igdbId, err := strconv.Atoi(strings.TrimSpace(metaId)); err == nil {
 			r.MetaIGDB = igdbId
 		}
 	}
@@ -1348,8 +1348,8 @@ func (r *Release) MapVars(varMap map[string]string, forceSizeUnit string, sizeUn
 // or an empty string when id is empty, zero or not numeric. Some trackers announce
 // the numeric part without its leading zeros, which is not a valid IMDb id.
 func NormalizeIMDBID(id string) string {
-	n, err := strconv.Atoi(strings.TrimPrefix(strings.TrimSpace(id), "tt"))
-	if err != nil || n <= 0 {
+	n, err := strconv.ParseUint(strings.TrimPrefix(strings.ToLower(strings.TrimSpace(id)), "tt"), 10, 64)
+	if err != nil || n == 0 {
 		return ""
 	}
 
