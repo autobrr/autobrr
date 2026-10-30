@@ -1,0 +1,70 @@
+---
+version: 2
+#id: sagmire
+name: sagmire
+identifier: sagmire
+description: sagmire is a private torrent tracker for XXX content.
+language: en-us
+urls:
+  - https://sagmire.org/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS Key
+    help: "Find your RSS Key at https://sagmire.org/account/rsskey"
+
+irc:
+  network: sagmire
+  server: irc.sagmire.org
+  port: 6697
+  tls: true
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Username of the bot account, must be set to username|bot.
+
+    - name: auth.account
+      type: text
+      required: false
+      label: SASL Account
+      help: Bot username (username|bot) from https://sagmire.org/account/irc-bot
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: SASL Password
+      help: Bot password from https://sagmire.org/account/irc-bot
+
+  channels:
+    - name: "#announce"
+      announcers:
+        - "sagmire"
+      parse:
+        type: single
+        lines:
+          - pattern: ':\[N\]-\[(?P<category>.*)\]-\[(?P<releaseTags>.*)\]-\[(?P<resolution>.*)\]-\[(?P<torrentSize>.*)\]-\[(?P<releaseName>.*)\]-\[(?P<uploader>.*)\]-\[(?P<baseUrl>.*\/)(?:.*\/)(?P<torrentId>.*)\]-\[FL: (?P<freeleech>.*)\]-\[DU: .*\];'
+            tests:
+              - line: ':[N]-[Movies]-[WEB-DL]-[1080p]-[797 MiB]-[SexArt.26.09.23.Nikol.Raklova.Gentle.Game.1080p.WEB-DL.MP4.AAC-GROUP]-[Anonymous]-[https://sagmire.org/torrents/0000]-[FL: 0]-[DU: 0];'
+                expect:
+                  category: Movies
+                  releaseTags: WEB-DL
+                  resolution: 1080p
+                  torrentSize: 797 MiB
+                  releaseName: SexArt.26.09.23.Nikol.Raklova.Gentle.Game.1080p.WEB-DL.MP4.AAC-GROUP
+                  uploader: Anonymous
+                  baseUrl: https://sagmire.org/
+                  torrentId: "0000"
+                  freeleech: "0"
+
+        match:
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"
