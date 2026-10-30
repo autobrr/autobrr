@@ -57,18 +57,8 @@ irc:
       parse:
         type: single
         lines:
-          - pattern: '^(?:Name: )?(?P<releaseName>.+?)(?: Freeleech \[(?P<freeleech>[^\]]*)\] Size \[| - Size: )(?P<torrentSize>.+?)(?:\] Uploader \[| - Uploader: )(?P<uploader>.*?)(?:\] Tags \[| - Tags: )(?P<tags>.*?)(?:\] Url \[| - )(?P<baseUrl>https:\/\/[^\/]+\/)torrents\.php\?torrentid=(?P<torrentId>\d+)\]?$'
+          - pattern: '^Name: (?P<releaseName>.+) Freeleech \[(?P<freeleech>[^\]]*)\] Size \[(?P<torrentSize>[^\]]+)\] Uploader \[(?P<uploader>[^\]]*)\] Tags \[(?P<tags>[^\]]*)\] Url \[(?P<baseUrl>https:\/\/[^\/]+\/)torrents\.php\?torrentid=(?P<torrentId>\d+)\]$'
             tests:
-              - line: '[OnlyFans] Some Actress, Other Actress - Having fun together - Size: 1.03 GiB - Uploader: UPLOADER - Tags: 1080p, lesbian, onlyfans.com, fansite - https://www.happyfappy.net/torrents.php?torrentid=00000'
-                expect:
-                  releaseName: '[OnlyFans] Some Actress, Other Actress - Having fun together'
-                  freeleech: ""
-                  torrentSize: 1.03 GiB
-                  uploader: UPLOADER
-                  tags: 1080p, lesbian, onlyfans.com, fansite
-                  baseUrl: https://www.happyfappy.net/
-                  torrentId: "00000"
-
               - line: 'Name: [Studio] Example Scene Title - Performer One, Performer Two [FHD] Freeleech [No] Size [4.75 GiB] Uploader [example_uploader] Tags [pron, performer.one, performer.two, studio.name] Url [https://www.happyfappy.net/torrents.php?torrentid=12345]'
                 expect:
                   releaseName: '[Studio] Example Scene Title - Performer One, Performer Two [FHD]'
