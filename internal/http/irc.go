@@ -57,7 +57,7 @@ func (h ircHandler) Routes(r chi.Router) {
 
 		r.Post("/cmd", h.sendCmd)
 		r.Post("/channel", h.storeChannel)
-		r.Get("/restart", h.restartNetwork)
+		r.Post("/restart", h.restartNetwork)
 
 		r.Get("/channel/{channel}/history", h.getMessageHistory)
 
