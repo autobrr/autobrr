@@ -96,6 +96,7 @@ func (h *OIDCHandler) getConfig(w http.ResponseWriter, r *http.Request) {
 	// Check for existing session
 	authenticated := h.sessionManager.GetBool(r.Context(), "authenticated")
 	if authenticated {
+		config.AutoRedirect = false
 		h.log.Debug().Msg("user already has valid session, skipping OIDC state cookie")
 		// Still return enabled=true, just don't set the cookie
 		h.encoder.StatusResponse(w, http.StatusOK, config)
@@ -272,6 +273,7 @@ func (h *OIDCHandler) GetAuthorizationURL() string {
 
 type GetConfigResponse struct {
 	Enabled             bool   `json:"enabled"`
+	AutoRedirect        bool   `json:"autoRedirect"`
 	AuthorizationURL    string `json:"authorizationUrl"`
 	State               string `json:"state"`
 	PKCEVerifier        string `json:"pkceVerifier"`
@@ -294,6 +296,7 @@ func (h *OIDCHandler) GetConfigResponse() GetConfigResponse {
 
 	return GetConfigResponse{
 		Enabled:             h.oidcConfig.Enabled,
+		AutoRedirect:        h.oidcConfig.Enabled && h.config.OIDCAutoRedirect,
 		AuthorizationURL:    authURL,
 		State:               state,
 		PKCEVerifier:        verifier,
