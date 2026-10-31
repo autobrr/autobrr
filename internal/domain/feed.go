@@ -52,6 +52,14 @@ func (f Feed) Validate() error {
 		return errors.New("user agent must not contain control characters")
 	}
 
+	if f.Settings != nil {
+		switch f.Settings.ProcessOrder {
+		case "", FeedProcessOrderOldestFirst, FeedProcessOrderNewestFirst:
+		default:
+			return errors.New("invalid process order: %s", f.Settings.ProcessOrder)
+		}
+	}
+
 	return nil
 }
 
@@ -72,6 +80,7 @@ type FeedSettingsJSON struct {
 	DownloadType FeedDownloadType `json:"download_type"`
 	CacheTTLDays int              `json:"cache_ttl_days"`
 	MaxPages     int              `json:"max_pages"`
+	ProcessOrder FeedProcessOrder `json:"process_order"`
 }
 
 // DefaultFeedCacheTTLDays is the feed cache item TTL used when a feed has no explicit cache TTL configured.
@@ -111,6 +120,11 @@ func (f Feed) PaginationMaxPages() int {
 	return DefaultFeedPages
 }
 
+// ProcessNewestFirst reports whether new items are sent to filters newest first instead of oldest first.
+func (f Feed) ProcessNewestFirst() bool {
+	return f.Settings != nil && f.Settings.ProcessOrder == FeedProcessOrderNewestFirst
+}
+
 type FeedIndexer struct {
 	ID         int    `json:"id"`
 	Name       string `json:"name"`
@@ -131,6 +145,14 @@ const (
 	FeedDownloadTypeMagnet  FeedDownloadType = "MAGNET"
 	FeedDownloadTypeTorrent FeedDownloadType = "TORRENT"
 	FeedDownloadTypeNzb     FeedDownloadType = "NZB"
+)
+
+// FeedProcessOrder is the order new feed items are sent to filters in; empty means oldest first.
+type FeedProcessOrder string
+
+const (
+	FeedProcessOrderOldestFirst FeedProcessOrder = "OLDEST_FIRST"
+	FeedProcessOrderNewestFirst FeedProcessOrder = "NEWEST_FIRST"
 )
 
 type FeedCacheItem struct {

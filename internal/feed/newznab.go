@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/tls"
 	"net/http"
+	"slices"
 	"strconv"
 	"time"
 
@@ -92,6 +93,10 @@ func (j *NewznabJob) process(ctx context.Context) error {
 	releases, err := j.processItems(items)
 	if err != nil {
 		return errors.Wrap(err, "error processing items")
+	}
+
+	if j.Feed.ProcessNewestFirst() {
+		slices.Reverse(releases)
 	}
 
 	// process all new releases
