@@ -171,20 +171,30 @@ func (i *IndexerDefinition) Prepare() {
 	}
 }
 
+// IndexerImplementation represents the transport or protocol used by an indexer.
 type IndexerImplementation string
 
 const (
-	IndexerImplementationIRC     IndexerImplementation = "irc"
+	// IndexerImplementationIRC represents an IRC announce channel indexer.
+	IndexerImplementationIRC IndexerImplementation = "irc"
+	// IndexerImplementationMatrix represents a Matrix announce room indexer.
+	IndexerImplementationMatrix IndexerImplementation = "matrix"
+	// IndexerImplementationTorznab represents a Torznab API indexer.
 	IndexerImplementationTorznab IndexerImplementation = "torznab"
+	// IndexerImplementationNewznab represents a Newznab API indexer.
 	IndexerImplementationNewznab IndexerImplementation = "newznab"
-	IndexerImplementationRSS     IndexerImplementation = "rss"
-	IndexerImplementationLegacy  IndexerImplementation = ""
+	// IndexerImplementationRSS represents an RSS feed indexer.
+	IndexerImplementationRSS IndexerImplementation = "rss"
+	// IndexerImplementationLegacy represents an unclassified legacy indexer.
+	IndexerImplementationLegacy IndexerImplementation = ""
 )
 
 func (i IndexerImplementation) String() string {
 	switch i {
 	case IndexerImplementationIRC:
 		return "irc"
+	case IndexerImplementationMatrix:
+		return "matrix"
 	case IndexerImplementationTorznab:
 		return "torznab"
 	case IndexerImplementationNewznab:
