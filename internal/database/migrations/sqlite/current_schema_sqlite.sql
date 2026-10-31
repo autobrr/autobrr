@@ -407,6 +407,8 @@ CREATE TABLE "release"
     type             TEXT,
     origin           TEXT,
     tags             TEXT []   DEFAULT '{}' NOT NULL,
+    freeleech        BOOLEAN   DEFAULT FALSE,
+    freeleech_percent INTEGER  DEFAULT 0,
     uploader         TEXT,
     pre_time         TEXT,
     other            TEXT []   DEFAULT '{}' NOT NULL,
