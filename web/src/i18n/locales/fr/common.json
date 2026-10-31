@@ -62,8 +62,6 @@
     "confirmDeleteOne": "Supprimer cette notification ? Cette action est irréversible.",
     "confirmDeleteMany": "Supprimer {{selected}} notifications sélectionnées ? Cette action est irréversible.",
     "cleared": "Notifications effacées",
-    "previous": "Précédent",
-    "next": "Suivant",
     "unread": "Non lue",
     "filterLabel": "Filtrer les notifications",
     "filterAll": "Toutes",
@@ -83,6 +81,12 @@
     "eventFilter": "Type d'événement",
     "allEvents": "Tous les événements",
     "moreActions": "Plus d'actions",
+    "columns": {
+      "age": "Âge",
+      "message": "Message",
+      "event": "Type d'événement",
+      "actions": "Actions"
+    },
     "fields": {
       "indexer": "Indexeur",
       "filter": "Filtre",

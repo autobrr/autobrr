@@ -720,6 +720,12 @@ func (sm *ChannelStateMachine) SetInviteCommand(inviteCommand string) {
 	}
 }
 
+func (sm *ChannelStateMachine) syncInviteCommand(inviteCommand string) {
+	sm.m.Lock()
+	sm.inviteCommand = strings.TrimSpace(inviteCommand)
+	sm.m.Unlock()
+}
+
 // broadcastStateChange sends a STATE event via SSE
 func (sm *ChannelStateMachine) broadcastStateChange(newState ChannelState) {
 	msg := map[string]any{

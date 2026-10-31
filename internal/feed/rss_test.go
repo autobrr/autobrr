@@ -714,7 +714,7 @@ func TestRSSSource_fetch(t *testing.T) {
 	src, err := (&Service{}).newSource(t.Context(), f, zerolog.Nop())
 	require.NoError(t, err)
 
-	res, err := src.fetch(t.Context())
+	res, err := src.fetch(t.Context(), 0)
 	require.NoError(t, err)
 
 	assert.Equal(t, "uid=1; pass=secret", gotCookie)

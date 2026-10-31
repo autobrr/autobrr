@@ -410,7 +410,7 @@ func (s *Service) test(ctx context.Context, feed *domain.Feed) error {
 		return err
 	}
 
-	res, err := src.fetch(ctx)
+	res, err := src.fetch(ctx, 0)
 	if err != nil {
 		l.Error().Err(err).Msg("could not test feed")
 		return err

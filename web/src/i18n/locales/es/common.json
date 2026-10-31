@@ -62,8 +62,6 @@
     "confirmDeleteOne": "¿Eliminar esta notificación? Esta acción no se puede deshacer.",
     "confirmDeleteMany": "¿Eliminar {{selected}} notificaciones seleccionadas? Esta acción no se puede deshacer.",
     "cleared": "Notificaciones borradas",
-    "previous": "Anterior",
-    "next": "Siguiente",
     "unread": "No leída",
     "filterLabel": "Filtrar notificaciones",
     "filterAll": "Todas",
@@ -83,6 +81,12 @@
     "eventFilter": "Tipo de evento",
     "allEvents": "Todos los eventos",
     "moreActions": "Más acciones",
+    "columns": {
+      "age": "Antigüedad",
+      "message": "Mensaje",
+      "event": "Tipo de evento",
+      "actions": "Acciones"
+    },
     "fields": {
       "indexer": "Indexador",
       "filter": "Filtro",

@@ -130,7 +130,7 @@ func TestNewznabSource_fetch(t *testing.T) {
 	src, err := (&Service{}).newSource(t.Context(), f, zerolog.Nop())
 	require.NoError(t, err)
 
-	res, err := src.fetch(t.Context())
+	res, err := src.fetch(t.Context(), 0)
 	require.NoError(t, err)
 
 	assert.Contains(t, res.raw, "Mock Indexer")
@@ -142,4 +142,45 @@ func TestNewznabSource_fetch(t *testing.T) {
 
 	rls := e.release()
 	assert.Equal(t, "https://indexer.local/getnzb/abc.nzb", rls.DownloadURL)
+}
+
+func TestNewznabSource_toRelease_metadata(t *testing.T) {
+	pubDate := time.Date(2026, time.September, 24, 5, 58, 24, 0, time.UTC)
+
+	s := &newznabSource{
+		log:  zerolog.Nop(),
+		feed: &domain.Feed{Indexer: domain.IndexerMinimal{Name: "Mock Feed", Identifier: "mock-feed"}},
+	}
+
+	tests := []struct {
+		name        string
+		item        newznab.FeedItem
+		wantTVDB    int
+		wantPubDate time.Time
+	}{
+		{
+			name: "ids and publish date are mapped",
+			item: newznab.FeedItem{
+				TvdbId:  "12345",
+				PubDate: newznab.Time{Time: pubDate},
+			},
+			wantTVDB:    12345,
+			wantPubDate: pubDate,
+		},
+		{
+			name: "non numeric id and missing publish date are left zero",
+			item: newznab.FeedItem{TvdbId: "abc"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.item.Title = "That.Show.S01E01.1080p.WEB-DL.H.264-GROUP"
+
+			rls := s.toRelease(&tt.item)
+
+			assert.Equal(t, tt.wantTVDB, rls.MetaTVDB, "tvdb id")
+			assert.Equal(t, tt.wantPubDate, rls.PublishDate, "publish date")
+		})
+	}
 }

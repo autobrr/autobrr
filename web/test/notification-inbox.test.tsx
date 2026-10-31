@@ -176,7 +176,7 @@ test("row actions do nothing when the confirmation is cancelled", async () => {
   renderInbox();
 
   await screen.findByText("P2P-Network");
-  const rows = screen.getAllByRole("listitem");
+  const rows = screen.getAllByRole("row").slice(1);
 
   fireEvent.click(within(rows[0]).getByRole("button", { name: "Mark as read" }));
   expect(within(await screen.findByRole("dialog")).getByText("Mark this notification as read?")).toBeTruthy();
@@ -263,25 +263,42 @@ test("rows link the release and filter", async () => {
   expect(screen.getByText("IRC Disconnected")).toBeTruthy();
 });
 
-test("pagination only shows when there is more than one page", async () => {
+test("pagination footer shows the page and pages through messages", async () => {
   const list = vi.spyOn(APIClient.notifications.inbox, "list").mockResolvedValue(response());
 
   renderInbox();
 
   await screen.findByText("P2P-Network");
-  expect(screen.queryByRole("navigation", { name: "Pagination" })).toBeNull();
+  expect(screen.getByText("Page 1 of 1")).toBeTruthy();
 
   cleanup();
   list.mockResolvedValue(response({ count: 60, all_count: 60 }));
   renderInbox();
 
   const nav = await screen.findByRole("navigation", { name: "Pagination" });
-  expect(nav.textContent).toContain("123");
+  expect(screen.getByText("Page 1 of 3")).toBeTruthy();
 
   await act(async () => {
-    fireEvent.click(screen.getByRole("button", { name: "2" }));
+    fireEvent.click(within(nav).getByRole("button", { name: "Next" }));
   });
   expect(list).toHaveBeenLastCalledWith({ limit: 25, offset: 25, unread: false, event: undefined });
+  expect(await screen.findByText("Page 2 of 3")).toBeTruthy();
+});
+
+test("an empty page keeps the footer while a custom page size is set so it can be reset", async () => {
+  const list = vi.spyOn(APIClient.notifications.inbox, "list").mockResolvedValue(response({ data: [], count: 0, unread_count: 0 }));
+
+  renderInbox("/notifications?unread=true&pageSize=100");
+
+  await screen.findByText("You're all caught up");
+  const select = screen.getByRole("combobox", { name: "Items Per Page" }) as HTMLSelectElement;
+  expect(select.value).toBe("100");
+
+  await act(async () => {
+    fireEvent.change(select, { target: { value: "25" } });
+  });
+  expect(list).toHaveBeenLastCalledWith({ limit: 25, offset: 0, unread: true, event: undefined });
+  expect(screen.queryByRole("navigation", { name: "Pagination" })).toBeNull();
 });
 
 test("a page past the end redirects to the last page without flashing the empty state", async () => {
@@ -306,7 +323,7 @@ test("a page past the end redirects to the last page without flashing the empty 
     resolveLastPage(response({ count: 30, all_count: 30 }));
   });
   expect(await screen.findByText("P2P-Network")).toBeTruthy();
-  expect(screen.getByRole("button", { name: "2" }).getAttribute("aria-current")).toBe("page");
+  expect(screen.getByText("Page 2 of 2")).toBeTruthy();
 
   observer.disconnect();
   expect(emptyStateRendered).toBe(false);
@@ -323,9 +340,9 @@ test.each([
 
   renderInbox(`/notifications?${search}`);
 
-  const nav = await screen.findByRole("navigation", { name: "Pagination" });
+  await screen.findByRole("navigation", { name: "Pagination" });
   expect(list).toHaveBeenLastCalledWith({ ...params, unread: false, event: undefined });
-  expect(nav.textContent).not.toContain("Infinity");
+  expect(screen.getByText(`Page ${params.offset / params.limit + 1} of ${Math.ceil(120 / params.limit)}`)).toBeTruthy();
   expect((screen.getByRole("combobox", { name: "Items Per Page" }) as HTMLSelectElement).value).toBe(String(params.limit));
 });
 

@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/torznab"
@@ -123,7 +124,7 @@ func TestTorznabSource_fetch(t *testing.T) {
 	src, err := (&Service{}).newSource(t.Context(), f, zerolog.Nop())
 	require.NoError(t, err)
 
-	res, err := src.fetch(t.Context())
+	res, err := src.fetch(t.Context(), 0)
 	require.NoError(t, err)
 
 	assert.NotEmpty(t, res.raw)
@@ -136,4 +137,26 @@ func TestTorznabSource_fetch(t *testing.T) {
 		assert.Equal(t, e.title, rls.TorrentName)
 		assert.Equal(t, domain.ReleaseImplementationTorznab, rls.Implementation)
 	}
+}
+
+func TestTorznabSource_toRelease_metadata(t *testing.T) {
+	pubDate := time.Date(2026, time.September, 24, 5, 58, 24, 0, time.UTC)
+
+	s := &torznabSource{
+		log:  zerolog.Nop(),
+		feed: &domain.Feed{Indexer: domain.IndexerMinimal{Name: "Mock Feed", Identifier: "mock-feed"}},
+	}
+
+	rls := s.toRelease(&torznab.FeedItem{
+		Title:   "That Show S01 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-NOGROUP",
+		TvdbId:  "12345",
+		ImdbId:  "tt1234567",
+		TmdbId:  "54321",
+		PubDate: torznab.Time{Time: pubDate},
+	})
+
+	assert.Equal(t, 12345, rls.MetaTVDB, "tvdb id")
+	assert.Equal(t, "tt1234567", rls.MetaIMDB, "imdb id")
+	assert.Equal(t, 54321, rls.MetaTMDB, "tmdb id")
+	assert.Equal(t, pubDate, rls.PublishDate, "publish date")
 }

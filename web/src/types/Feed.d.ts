@@ -30,9 +30,13 @@ interface Feed {
 interface FeedSettings {
   download_type: FeedDownloadType;
   cache_ttl_days: number;
+  max_pages?: number;
+  process_order?: FeedProcessOrder;
 }
 
 type FeedDownloadType = "MAGNET" | "TORRENT" | "NZB";
+
+type FeedProcessOrder = "OLDEST_FIRST" | "NEWEST_FIRST";
 
 type FeedType = "TORZNAB" | "NEWZNAB" | "RSS";
 

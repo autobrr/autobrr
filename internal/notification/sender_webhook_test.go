@@ -13,6 +13,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/internal/meta"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -22,7 +23,7 @@ func TestGenericWebhookSender_Send(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
-		assert.Equal(t, "autobrr", r.Header.Get("User-Agent"))
+		assert.Equal(t, meta.GetUserAgent(), r.Header.Get("User-Agent"))
 		assert.Equal(t, string(domain.WebhookEventReleaseNew), r.Header.Get("X-Autobrr-Event"))
 
 		body, err := io.ReadAll(r.Body)
@@ -147,7 +148,7 @@ func TestGenericWebhookSender_Send_CustomHeaders(t *testing.T) {
 		assert.Equal(t, "custom-value", r.Header.Get("X-Custom-Header"))
 		// Default headers should still be set
 		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
-		assert.Equal(t, "autobrr", r.Header.Get("User-Agent"))
+		assert.Equal(t, meta.GetUserAgent(), r.Header.Get("User-Agent"))
 		// Event header should also be set (using namespaced value)
 		assert.Equal(t, string(domain.WebhookEventTest), r.Header.Get("X-Autobrr-Event"))
 		w.WriteHeader(http.StatusOK)

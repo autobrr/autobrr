@@ -1,0 +1,260 @@
+---
+version: 2
+#id: 0dayfiles
+name: 0DayFiles
+identifier: 0dayfiles
+description: 0DayFiles (0DF) is a private torrent tracker for 0DAY / GENERAL
+language: en-us
+urls:
+  - https://0dayfiles.net/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key
+    help: "Go to My Settings > Settings -> RSS Key, and copy your RSS Key"
+
+irc:
+  network: P2P-Network
+  server: irc.p2p-network.net
+  port: 6697
+  tls: true
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_autobrr
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+    - name: channels.password
+      type: secret
+      required: true
+      label: Channel Password
+      help: "Channel password for #0dayfiles-announce. Find it on the site IRC page"
+
+  channels:
+    - name: "#0dayfiles-announce"
+      announcers:
+        - ODF-Announce
+      parse:
+        type: single
+        lines:
+          # <announceType>:<category>:<leechType>:<origin>:<tid>:<sizebytes>:<uploadDate>:<tmdbid>|<Type>/<resolution>|<year>|<releasename>|<uploader>
+          - pattern: '(?P<announceTypeEnum>\d):(?P<categoryEnum>\d+):(?P<leechTypeEnum>\d):(?P<originEnum>\d):(?P<torrentId>\d+):(?P<torrentSizeBytes>\d+):(?P<uploadedDate>\d+):(?P<tmdb>\d+)\|[^|]*\|(?P<year>\d+)?\|(?P<releaseName>.+)\|(?P<uploader>.+)'
+            tests:
+              - line: 0:18:0:0:24057:9651776483:1791208490:752|/|2006|V For Vendetta 2006 1080p AMZN WEB-DL DD+ 5.1 H.264-BLOOM|susumo
+                expect:
+                  announceTypeEnum: 0
+                  categoryEnum: 18
+                  leechTypeEnum: 0
+                  originEnum: 0
+                  torrentId: "24057"
+                  torrentSizeBytes: "9651776483"
+                  uploadedDate: "1791208490"
+                  tmdb: "752"
+                  year: "2006"
+                  releaseName: V For Vendetta 2006 1080p AMZN WEB-DL DD+ 5.1 H.264-BLOOM
+                  uploader: susumo
+
+              - line: 0:59:1:0:24063:1208760320:1791210252:1265|/|2000|Some.Show.S75E14.720p.WEB-DL.AAC2.0.H.264-GROUP|Uploader
+                expect:
+                  announceTypeEnum: 0
+                  categoryEnum: 59
+                  leechTypeEnum: 1
+                  originEnum: 0
+                  torrentId: "24063"
+                  torrentSizeBytes: "1208760320"
+                  uploadedDate: "1791210252"
+                  tmdb: "1265"
+                  year: "2000"
+                  releaseName: Some.Show.S75E14.720p.WEB-DL.AAC2.0.H.264-GROUP
+                  uploader: Uploader
+
+              - line: 0:58:8:1:24070:4521984000:1791214000:550|/|1999|Some.Movie.1999.1080p.WEB-DL.DDP5.1.H.264-GROUP|someuser
+                expect:
+                  announceTypeEnum: 0
+                  categoryEnum: 58
+                  leechTypeEnum: 8
+                  originEnum: 1
+                  torrentId: "24070"
+                  torrentSizeBytes: "4521984000"
+                  uploadedDate: "1791214000"
+                  tmdb: "550"
+                  year: "1999"
+                  releaseName: Some.Movie.1999.1080p.WEB-DL.DDP5.1.H.264-GROUP
+                  uploader: someuser
+
+              - line: 0:1:0:0:24071:734003200:1791215000:0|/||Some.Software.v2.1.Multilingual-GROUP|Anonymous
+                expect:
+                  announceTypeEnum: 0
+                  categoryEnum: 1
+                  leechTypeEnum: 0
+                  originEnum: 0
+                  torrentId: "24071"
+                  torrentSizeBytes: "734003200"
+                  uploadedDate: "1791215000"
+                  tmdb: "0"
+                  year: ""
+                  releaseName: Some.Software.v2.1.Multilingual-GROUP
+                  uploader: Anonymous
+
+              - line: 0:46:0:2:24072:15728640:1791216000:0|/||Some.Author.Some.Book.2026.EPUB-GROUP|someuser
+                expect:
+                  announceTypeEnum: 0
+                  categoryEnum: 46
+                  leechTypeEnum: 0
+                  originEnum: 2
+                  torrentId: "24072"
+                  torrentSizeBytes: "15728640"
+                  uploadedDate: "1791216000"
+                  tmdb: "0"
+                  year: ""
+                  releaseName: Some.Author.Some.Book.2026.EPUB-GROUP
+                  uploader: someuser
+
+        mappings:
+          announceTypeEnum:
+            "0":
+              announceType: NEW
+            "1":
+              announceType: PROMO
+            "2":
+              announceType: RESURRECTED
+
+          categoryEnum:
+            "1":
+              category: "Software"
+            "9":
+              category: "Movies/480p"
+            "10":
+              category: "Movies/4K"
+            "11":
+              category: "Movies/Bluray"
+            "12":
+              category: "Movies/Bluray-Full"
+            "13":
+              category: "Movies/Cam"
+            "14":
+              category: "Movies/DVD-R"
+            "17":
+              category: "Movies/Packs"
+            "18":
+              category: "Movies/x264"
+            "19":
+              category: "Movies/x265"
+            "20":
+              category: "Movies/XviD"
+            "21":
+              category: "TV/480p"
+            "22":
+              category: "TV/4K"
+            "23":
+              category: "TV/Bluray"
+            "25":
+              category: "TV/DVD-Rip"
+            "26":
+              category: "TV/Mobile"
+            "28":
+              category: "TV/Packs"
+            "30":
+              category: "TV/x264"
+            "31":
+              category: "TV/x265"
+            "32":
+              category: "TV/XviD"
+            "33":
+              category: "Nintendo"
+            "34":
+              category: "PC/Games"
+            "38":
+              category: "Music/Audio"
+            "39":
+              category: "Music/Flac"
+            "41":
+              category: "Music/Packs"
+            "42":
+              category: "Music/Video"
+            "43":
+              category: "Anime"
+            "44":
+              category: "Audio Books"
+            "46":
+              category: "Books"
+            "48":
+              category: "Documentary"
+            "49":
+              category: "Educational"
+            "51":
+              category: "Mac"
+            "54":
+              category: "XXX/0Day"
+            "55":
+              category: "XXX/Movies"
+            "56":
+              category: "XXX/Packs"
+            "58":
+              category: "Movies/WEB"
+            "59":
+              category: "TV/WEB"
+
+          leechTypeEnum:
+            "0": # Normal
+              downloadVolumeFactor: 1
+              uploadVolumeFactor: 1
+            "1": # 100% FL
+              downloadVolumeFactor: 0
+              uploadVolumeFactor: 1
+            "2": # 75% FL
+              downloadVolumeFactor: 0.25
+              uploadVolumeFactor: 1
+            "3": # 50% FL
+              downloadVolumeFactor: 0.5
+              uploadVolumeFactor: 1
+            "4": # 25% FL
+              downloadVolumeFactor: 0.75
+              uploadVolumeFactor: 1
+            "5": # Normal leech with Double up
+              downloadVolumeFactor: 1
+              uploadVolumeFactor: 2
+            "6": # 100% FL with Double up
+              downloadVolumeFactor: 0
+              uploadVolumeFactor: 2
+            "7": # 75% FL with Double up
+              downloadVolumeFactor: 0.25
+              uploadVolumeFactor: 2
+            "8": # 50% FL with Double up
+              downloadVolumeFactor: 0.5
+              uploadVolumeFactor: 2
+            "9": # 25% FL with Double up
+              downloadVolumeFactor: 0.75
+              uploadVolumeFactor: 2
+
+          originEnum:
+            "0":
+              origin: ""
+            "1":
+              origin: "INTERNAL"
+            "2":
+              origin: "INTERNAL" # PERSONAL RIP
+
+        match:
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

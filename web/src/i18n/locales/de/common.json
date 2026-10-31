@@ -62,8 +62,6 @@
     "confirmDeleteOne": "Diese Benachrichtigung löschen? Dies kann nicht rückgängig gemacht werden.",
     "confirmDeleteMany": "{{selected}} ausgewählte Benachrichtigungen löschen? Dies kann nicht rückgängig gemacht werden.",
     "cleared": "Benachrichtigungen gelöscht",
-    "previous": "Zurück",
-    "next": "Weiter",
     "unread": "Ungelesen",
     "filterLabel": "Benachrichtigungen filtern",
     "filterAll": "Alle",
@@ -83,6 +81,12 @@
     "eventFilter": "Ereignistyp",
     "allEvents": "Alle Ereignisse",
     "moreActions": "Weitere Aktionen",
+    "columns": {
+      "age": "Alter",
+      "message": "Nachricht",
+      "event": "Ereignistyp",
+      "actions": "Aktionen"
+    },
     "fields": {
       "indexer": "Indexer",
       "filter": "Filter",

@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/tls"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -24,7 +25,7 @@ const defaultTimeout = 60 * time.Second
 // source fetches one feed format and maps its items to releases; everything format
 // independent lives in refreshJob.
 type source interface {
-	fetch(ctx context.Context) (*fetchResult, error)
+	fetch(ctx context.Context, offset int) (*fetchResult, error)
 }
 
 // capsSource is implemented by the formats that publish capabilities.
@@ -36,6 +37,13 @@ type fetchResult struct {
 	// raw is stored as the feed's last run data
 	raw     string
 	entries []entry
+	// items counts every item in the response, including ones dropped for lacking a key, so
+	// the next page starts at the right offset
+	items int
+	// limit is the page size requested, zero for formats without pagination
+	limit int
+	// total is the item count the indexer reports for the query, zero when unreported
+	total int
 }
 
 type entry struct {
@@ -129,4 +137,14 @@ func newHTTPClient(f *domain.Feed) (*http.Client, error) {
 	}
 
 	return &http.Client{Timeout: timeout, Transport: transport}, nil
+}
+
+// parseMetaID returns a numeric metadata id from a feed attribute, or 0 when it is empty or not a number.
+func parseMetaID(value string) int {
+	id, err := strconv.Atoi(value)
+	if err != nil {
+		return 0
+	}
+
+	return id
 }

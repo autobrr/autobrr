@@ -62,8 +62,6 @@
       "confirmDeleteOne": "Smazat toto oznámení? Tuto akci nelze vrátit zpět.",
       "confirmDeleteMany": "Smazat vybraná oznámení ({{selected}})? Tuto akci nelze vrátit zpět.",
       "cleared": "Oznámení vymazána",
-      "previous": "Předchozí",
-      "next": "Další",
       "unread": "Nepřečtené",
       "filterLabel": "Filtrovat oznámení",
       "filterAll": "Vše",
@@ -83,6 +81,12 @@
       "eventFilter": "Typ události",
       "allEvents": "Všechny události",
       "moreActions": "Další akce",
+      "columns": {
+        "age": "Stáří",
+        "message": "Zpráva",
+        "event": "Typ události",
+        "actions": "Akce"
+      },
       "fields": {
         "indexer": "Indexer",
         "filter": "Filtr",

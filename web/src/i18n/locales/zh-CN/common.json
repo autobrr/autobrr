@@ -62,8 +62,6 @@
     "confirmDeleteOne": "删除此通知？此操作无法撤销。",
     "confirmDeleteMany": "删除已选择的 {{selected}} 条通知？此操作无法撤销。",
     "cleared": "通知已清除",
-    "previous": "上一页",
-    "next": "下一页",
     "unread": "未读",
     "filterLabel": "筛选通知",
     "filterAll": "全部",
@@ -83,6 +81,12 @@
     "eventFilter": "事件类型",
     "allEvents": "全部事件",
     "moreActions": "更多操作",
+    "columns": {
+      "age": "时间",
+      "message": "消息",
+      "event": "事件类型",
+      "actions": "动作"
+    },
     "fields": {
       "indexer": "索引器",
       "filter": "过滤器",

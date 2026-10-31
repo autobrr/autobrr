@@ -33,7 +33,7 @@ type rssSource struct {
 	client *http.Client
 }
 
-func (s *rssSource) fetch(ctx context.Context) (*fetchResult, error) {
+func (s *rssSource) fetch(ctx context.Context, _ int) (*fetchResult, error) {
 	feedParser := NewFeedParser(s.client, s.feed.Cookie, s.feed.UserAgent)
 
 	feed, err := feedParser.ParseURLWithContext(ctx, s.feed.URL)
@@ -41,7 +41,7 @@ func (s *rssSource) fetch(ctx context.Context) (*fetchResult, error) {
 		return nil, err
 	}
 
-	res := &fetchResult{raw: feed.String(), entries: make([]entry, 0, len(feed.Items))}
+	res := &fetchResult{raw: feed.String(), entries: make([]entry, 0, len(feed.Items)), items: len(feed.Items)}
 
 	for _, item := range feed.Items {
 		e := entry{
@@ -63,6 +63,10 @@ func (s *rssSource) fetch(ctx context.Context) (*fetchResult, error) {
 func (s *rssSource) toRelease(item *gofeed.Item) *domain.Release {
 	rls := domain.NewRelease(s.feed.Indexer)
 	rls.Implementation = domain.ReleaseImplementationRSS
+
+	if item.PublishedParsed != nil && !item.PublishedParsed.IsZero() {
+		rls.PublishDate = *item.PublishedParsed
+	}
 
 	rls.ParseString(item.Title)
 

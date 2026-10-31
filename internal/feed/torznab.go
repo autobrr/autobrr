@@ -24,13 +24,19 @@ type torznabSource struct {
 	client *torznab.Client
 }
 
-func (s *torznabSource) fetch(ctx context.Context) (*fetchResult, error) {
-	feed, err := s.client.Search(ctx, "", s.feed.Categories)
+func (s *torznabSource) fetch(ctx context.Context, offset int) (*fetchResult, error) {
+	feed, err := s.client.Search(ctx, "", s.feed.Categories, offset)
 	if err != nil {
 		return nil, err
 	}
 
-	res := &fetchResult{raw: feed.Raw, entries: make([]entry, 0, len(feed.Items))}
+	res := &fetchResult{
+		raw:     feed.Raw,
+		entries: make([]entry, 0, len(feed.Items)),
+		items:   len(feed.Items),
+		limit:   feed.Limit,
+		total:   feed.Total,
+	}
 
 	for _, item := range feed.Items {
 		if item.GUID == "" {
@@ -107,12 +113,10 @@ func (s *torznabSource) toRelease(item *torznab.FeedItem) *domain.Release {
 	rls.Leechers = item.Leechers
 	rls.Uploader = item.Author
 
-	rls.MetaIMDB = item.ImdbId
-	if item.TmdbId != "" {
-		if tmdbId, err := strconv.Atoi(item.TmdbId); err == nil {
-			rls.MetaTMDB = tmdbId
-		}
-	}
+	rls.MetaIMDB = domain.NormalizeIMDBID(item.ImdbId)
+	rls.MetaTMDB = parseMetaID(item.TmdbId)
+	rls.MetaTVDB = parseMetaID(item.TvdbId)
+	rls.PublishDate = item.PubDate.Time
 
 	// Get freeleech percentage between 0 - 100
 	if freeleechPercentage := parseFreeleechTorznab(item.DownloadVolumeFactor); freeleechPercentage >= 0 {
