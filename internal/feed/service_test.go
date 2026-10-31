@@ -7,6 +7,9 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -80,4 +83,79 @@ func TestServiceTestTimeout(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestServiceTestSendsRefreshRequest(t *testing.T) {
+	t.Parallel()
+
+	for _, feedType := range []domain.FeedType{domain.FeedTypeTorznab, domain.FeedTypeNewznab} {
+		t.Run(string(feedType), func(t *testing.T) {
+			t.Parallel()
+
+			var (
+				m      sync.Mutex
+				search url.Values
+			)
+
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Query().Get("t") == "caps" {
+					_, _ = w.Write([]byte(`<caps/>`))
+					return
+				}
+
+				m.Lock()
+				search = r.URL.Query()
+				m.Unlock()
+
+				_, _ = w.Write([]byte(`<rss><channel></channel></rss>`))
+			}))
+			defer srv.Close()
+
+			f := domain.Feed{ID: 1, Type: string(feedType), URL: srv.URL, Categories: []int{2000, 5040}}
+			log := zerolog.Nop()
+			service := feed.NewService(log, events.NewEventBus(log), &testFeedRepo{item: f}, nil, nil, nil, nil)
+
+			require.NoError(t, service.Test(t.Context(), &f))
+
+			m.Lock()
+			defer m.Unlock()
+
+			require.NotNil(t, search, "test must send the search a refresh sends")
+			assert.Equal(t, "search", search.Get("t"))
+			assert.Equal(t, "2000,5040", search.Get("cat"))
+		})
+	}
+}
+
+func TestServiceFetchCaps(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		payload, err := os.ReadFile("testdata/torznab/caps_response.xml")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		_, _ = w.Write(payload)
+	}))
+	defer srv.Close()
+
+	log := zerolog.Nop()
+	service := feed.NewService(log, events.NewEventBus(log), nil, nil, nil, nil, nil)
+
+	for _, feedType := range []domain.FeedType{domain.FeedTypeTorznab, domain.FeedTypeNewznab} {
+		t.Run(string(feedType), func(t *testing.T) {
+			caps, err := service.FetchCaps(t.Context(), &domain.Feed{Type: string(feedType), URL: srv.URL})
+			require.NoError(t, err)
+
+			assert.Equal(t, 100, caps.Limits.Max)
+			assert.Len(t, caps.Categories, 2)
+		})
+	}
+
+	t.Run("rss has no caps", func(t *testing.T) {
+		_, err := service.FetchCaps(t.Context(), &domain.Feed{Type: string(domain.FeedTypeRSS), URL: srv.URL})
+		require.Error(t, err)
+	})
 }
