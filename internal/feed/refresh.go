@@ -41,8 +41,8 @@ type refreshJob struct {
 	cacheRepo  jobFeedCacheRepo
 	releaseSvc jobReleaseSvc
 
-	// hasFetched is set after the first successful run, whose cached items bound the next
-	// run's pagination even though feed.LastRun is still the snapshot from scheduling
+	// hasFetched is set once a run has cached its first page, whose items bound the next run's
+	// pagination even though feed.LastRun is still the snapshot from scheduling
 	hasFetched bool
 }
 
@@ -190,6 +190,10 @@ func (j *refreshJob) fetchNew(ctx context.Context) ([]entry, error) {
 			}
 		}
 
+		if page == 1 {
+			j.hasFetched = true
+		}
+
 		fresh = append(fresh, pageFresh...)
 
 		if boundary {
@@ -215,8 +219,6 @@ func (j *refreshJob) fetchNew(ctx context.Context) ([]entry, error) {
 
 		offset += res.items
 	}
-
-	j.hasFetched = true
 
 	// feeds list newest first
 	slices.Reverse(fresh)

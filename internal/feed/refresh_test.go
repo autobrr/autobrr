@@ -605,6 +605,30 @@ func TestRefreshJob_fetchNew_pagination(t *testing.T) {
 		assert.False(t, j.hasFetched, "a failed first fetch must retry the single page next run")
 	})
 
+	t.Run("cache write failure on the first run keeps the one-page limit", func(t *testing.T) {
+		src := &pagedSource{limit: 3, pages: twoFullPages()}
+		cache := newStatefulCacheRepo()
+		cache.putErr = errors.New("disk full")
+
+		j := newJob(src, cache, domain.MaxFeedPages)
+		j.feed.LastRun = time.Time{}
+
+		got, err := j.fetchNew(t.Context())
+		require.NoError(t, err)
+		assert.Empty(t, got)
+		assert.False(t, j.hasFetched, "nothing was cached, so there is no boundary for the next run")
+
+		// with no cached boundary, a full page count would backfill old releases
+		cache.putErr = nil
+
+		got, err = j.fetchNew(t.Context())
+		require.NoError(t, err)
+
+		assert.Equal(t, []string{"new-3", "new-2", "new-1"}, keys(got))
+		assert.Equal(t, []int{0, 0}, src.offsets)
+		assert.True(t, j.hasFetched)
+	})
+
 	t.Run("first run fetches only the first page", func(t *testing.T) {
 		src := &pagedSource{limit: 3, pages: twoFullPages()}
 		j := newJob(src, newStatefulCacheRepo(), domain.MaxFeedPages)

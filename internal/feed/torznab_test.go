@@ -98,7 +98,16 @@ func TestTorznabSource_toRelease(t *testing.T) {
 }
 
 func TestTorznabSource_fetch(t *testing.T) {
+	offsets := make(chan string, 1)
+
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("t") != "caps" {
+			select {
+			case offsets <- r.URL.Query().Get("offset"):
+			default:
+			}
+		}
+
 		fixture := "testdata/torznab/torznab_response.xml"
 		if r.URL.Query().Get("t") == "caps" {
 			fixture = "testdata/torznab/caps_response.xml"
@@ -124,9 +133,10 @@ func TestTorznabSource_fetch(t *testing.T) {
 	src, err := (&Service{}).newSource(t.Context(), f, zerolog.Nop())
 	require.NoError(t, err)
 
-	res, err := src.fetch(t.Context(), 0)
+	res, err := src.fetch(t.Context(), 50)
 	require.NoError(t, err)
 
+	assert.Equal(t, "50", <-offsets, "offset sent to the indexer")
 	assert.NotEmpty(t, res.raw)
 	require.NotEmpty(t, res.entries)
 

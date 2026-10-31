@@ -109,8 +109,17 @@ func TestNewznabSource_fetch(t *testing.T) {
 </channel>
 </rss>`
 
+	offsets := make(chan string, 1)
+
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/xml")
+
+		if r.URL.Query().Get("t") != "caps" {
+			select {
+			case offsets <- r.URL.Query().Get("offset"):
+			default:
+			}
+		}
 
 		if r.URL.Query().Get("t") == "caps" {
 			_, _ = w.Write([]byte(`<caps/>`))
@@ -130,9 +139,10 @@ func TestNewznabSource_fetch(t *testing.T) {
 	src, err := (&Service{}).newSource(t.Context(), f, zerolog.Nop())
 	require.NoError(t, err)
 
-	res, err := src.fetch(t.Context(), 0)
+	res, err := src.fetch(t.Context(), 50)
 	require.NoError(t, err)
 
+	assert.Equal(t, "50", <-offsets, "offset sent to the indexer")
 	assert.Contains(t, res.raw, "Mock Indexer")
 	require.Len(t, res.entries, 1, "the item without a guid is skipped")
 
