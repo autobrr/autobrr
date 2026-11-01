@@ -9,9 +9,9 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 
+	"github.com/autobrr/rls"
 	"github.com/dustin/go-humanize"
 	"github.com/mmcdole/gofeed"
-	"github.com/moistari/rls"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

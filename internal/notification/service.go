@@ -16,7 +16,7 @@ import (
 	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/pkg/errors"
 
-	"github.com/moistari/rls"
+	"github.com/autobrr/rls"
 	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"

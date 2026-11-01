@@ -97,7 +97,7 @@ func (p IRCParserOrpheus) replaceSeparator(s string) string {
 var lastDecimalTag = regexp.MustCompile(`^\d{1,2}$|^100$`)
 
 func (p IRCParserOrpheus) Parse(rls *Release, vars map[string]string) error {
-	// OPS uses en-dashes as separators, which causes moistari/rls to not parse the torrentName properly,
+	// OPS uses en-dashes as separators, which causes autobrr/rls to not parse the torrentName properly,
 	// we replace the en-dashes with hyphens here
 	//torrentName := p.replaceSeparator(vars["releaseName"])
 	title := p.replaceSeparator(vars["title"])

@@ -6,8 +6,6 @@ toolchain go1.27.3
 
 replace github.com/r3labs/sse/v2 => github.com/autobrr/sse/v2 v2.0.0-20230520125637-530e06346d7d
 
-replace github.com/moistari/rls => github.com/autobrr/rls v0.8.1
-
 require (
 	github.com/Hellseher/go-shellquote v0.1.0
 	github.com/KimMachineGun/automemlimit v1.0.1
@@ -21,6 +19,7 @@ require (
 	github.com/autobrr/go-qbittorrent v1.19.0
 	github.com/autobrr/go-rtorrent v1.13.0
 	github.com/autobrr/go-torrent v1.1.1
+	github.com/autobrr/rls v0.10.0
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/avast/retry-go/v4 v4.7.0
 	github.com/coreos/go-oidc/v3 v3.21.0
@@ -40,7 +39,6 @@ require (
 	github.com/magiconair/properties v1.18.12
 	github.com/maniartech/signals v1.3.1
 	github.com/mmcdole/gofeed v1.5.0
-	github.com/moistari/rls v0.6.0
 	github.com/mxschmitt/playwright-go v0.6201.1
 	github.com/nicholas-fedor/shoutrrr v0.22.1
 	github.com/pkg/errors v0.9.1
