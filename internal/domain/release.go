@@ -25,12 +25,12 @@ import (
 
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
+
 	"github.com/autobrr/go-torrent/bencode"
 	"github.com/autobrr/go-torrent/metainfo"
-
+	"github.com/autobrr/rls"
 	"github.com/avast/retry-go"
 	"github.com/dustin/go-humanize"
-	"github.com/moistari/rls"
 	"github.com/robfig/cron/v3"
 	"github.com/rs/xid"
 	"github.com/rs/zerolog/hlog"
