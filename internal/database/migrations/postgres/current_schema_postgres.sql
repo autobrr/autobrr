@@ -200,6 +200,8 @@ CREATE TABLE filter
     match_description            TEXT,
     except_description           TEXT,
     use_regex_description        BOOLEAN   DEFAULT FALSE,
+    custom_fields                TEXT      DEFAULT '[]' NOT NULL,
+    custom_fields_match_logic    TEXT      DEFAULT 'ALL' NOT NULL,
     scene                        BOOLEAN,
     freeleech                    BOOLEAN,
     freeleech_percent            TEXT,
