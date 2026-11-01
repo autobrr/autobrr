@@ -27,6 +27,7 @@ import { DocsLink } from "@components/ExternalLink";
 import * as common from "@components/inputs/common";
 import { selectComponents, selectStyles, selectTheme } from "@components/inputs/select_props";
 import { SelectField } from "@forms/settings/IrcForms";
+import { FeedProcessOrderField } from "@forms/settings/FeedProcessOrderField";
 import { AddFormProps, UpdateFormProps } from "@forms/_shared";
 
 // const isRequired = (message: string) => (value?: string | undefined) => (!!value ? undefined : message);
@@ -141,6 +142,8 @@ const TorznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
               help={t("forms.indexer.downloadTypeHelp")}
             />
 
+            <FeedProcessOrderField name="feed.settings.process_order" />
+
             <FeedCategoriesDraftSection feedType="TORZNAB" />
           </div>
         )}
@@ -183,6 +186,8 @@ const NewznabFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
             />
 
             <PasswordFieldWide name="feed.api_key" label={t("forms.indexer.apiKey")} help={t("forms.indexer.apiKey")} required={true} />
+
+            <FeedProcessOrderField name="feed.settings.process_order" />
 
             <FeedCategoriesDraftSection feedType="NEWZNAB" />
           </div>
@@ -227,6 +232,8 @@ const RSSFeedSettingFields = (ind: IndexerDefinition, indexer: string) => {
               tooltip={<span>{t("forms.indexer.downloadTypeTooltip2")}</span>}
               help={t("forms.indexer.downloadTypeHelp")}
             />
+
+            <FeedProcessOrderField name="feed.settings.process_order" />
           </div>
         )}
       </Fragment>
@@ -668,7 +675,7 @@ function IndexerAddFormPanel({ toggle }: IndexerAddFormPanelProps) {
     feed: {
       categories: [],
       capabilities: null,
-      settings: {} as FeedSettings
+      settings: { process_order: "OLDEST_FIRST" } as FeedSettings
     }
   };
 
@@ -941,8 +948,8 @@ function TestApiButton({ values, show }: TestApiButtonProps) {
           ? "text-green-500 border-green-500 bg-green-50"
           : isErrorTest
             ? "text-red-500 border-red-500 bg-red-50"
-            : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 focus:border-rose-700 active:bg-rose-700",
-        isTesting ? "cursor-not-allowed" : "",
+            : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:border-rose-700 active:bg-rose-700",
+        isTesting ? "cursor-not-allowed" : "cursor-pointer",
         "mr-2 float-left items-center px-4 py-2 border font-medium rounded-md shadow-xs text-sm transition ease-in-out duration-150 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
       )}
       disabled={isTesting}

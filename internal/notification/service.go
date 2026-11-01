@@ -657,6 +657,8 @@ func (s *Service) DeleteFilterNotifications(ctx context.Context, filterID int) e
 
 func (s *Service) newSender(notification *domain.Notification) Sender {
 	switch notification.Type {
+	case domain.NotificationTypeBark:
+		return NewBarkSender(s.log, notification)
 	case domain.NotificationTypeDiscord:
 		return NewDiscordSender(s.log, notification)
 	case domain.NotificationTypeGotify:

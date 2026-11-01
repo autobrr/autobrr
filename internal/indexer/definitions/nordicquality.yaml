@@ -51,22 +51,71 @@ irc:
       parse:
         type: single
         lines:
-          - pattern: '\[ (?P<announceTypeEnum>.*) \]\[ (?P<category>.*) \]\[ (?P<releaseTags>.*) \]\[ (?P<releaseName>.*) \]\[ (?P<torrentSize>.*) \]\[ (?P<baseUrl>https.*\/).*\/(?P<torrentId>\d+) \]'
+          - pattern: '\[ (?P<announceTypeEnum>.+?) \]\[ (?P<category>.+?) \]\[ (?P<releaseTags>.+?) \]\[ (?P<releaseName>.+?) \]\[ (?P<torrentSize>.+?) \]\[ (?P<baseUrl>https?:\/\/.+?\/)torrents\/(?P<torrentId>\d+) \]\[ FL: (?P<freeleechPercent>\d+) % \]\[ DU: \d+ \]\[ iMDB: (?P<imdb>\d+) \]\[ TMDB: (?P<tmdb>\d+) \]\[ TVDB: (?P<tvdb>\d+) \]\[ iGDB: (?P<igdb>\d+) \]'
             tests:
-              - line: '[ NEW ][ TV ][ WEB-DL ][ Some.Show.S01.NORDiC.720p.WEB-DL.H.265.DD5.1-GROUP ][ 6.74 GiB ][ https://nordicq.org/torrents/0000 ]'
+              - line: '[ NEW ][ Movies ][ REMUX ][ That.Movie.1982.BluRay.1080p.DTS-HD.MA.5.1.AVC.REMUX-GROUP ][ 23.35 GiB ][ https://nordicq.org/torrents/0000 ][ FL: 100 % ][ DU: 0 ][ iMDB: 84827 ][ TMDB: 97 ][ TVDB: 0 ][ iGDB: 0 ]'
+                expect:
+                  announceTypeEnum: NEW
+                  category: Movies
+                  releaseTags: REMUX
+                  releaseName: That.Movie.1982.BluRay.1080p.DTS-HD.MA.5.1.AVC.REMUX-GROUP
+                  torrentSize: 23.35 GiB
+                  baseUrl: https://nordicq.org/
+                  torrentId: "0000"
+                  freeleechPercent: "100"
+                  imdb: "84827"
+                  tmdb: "97"
+                  tvdb: "0"
+                  igdb: "0"
+              - line: '[ NEW ][ TV ][ WEB-DL ][ Some.Show.S02E08.SWEDiSH.1080p.WEB-DL.DD5.1.H.264-GROUP ][ 1.45 GiB ][ https://nordicq.org/torrents/0000 ][ FL: 100 % ][ DU: 0 ][ iMDB: 38545732 ][ TMDB: 299054 ][ TVDB: 468034 ][ iGDB: 0 ]'
                 expect:
                   announceTypeEnum: NEW
                   category: TV
                   releaseTags: WEB-DL
-                  releaseName: Some.Show.S01.NORDiC.720p.WEB-DL.H.265.DD5.1-GROUP
-                  torrentSize: 6.74 GiB
+                  releaseName: Some.Show.S02E08.SWEDiSH.1080p.WEB-DL.DD5.1.H.264-GROUP
+                  torrentSize: 1.45 GiB
                   baseUrl: https://nordicq.org/
                   torrentId: "0000"
+                  freeleechPercent: "100"
+                  imdb: "38545732"
+                  tmdb: "299054"
+                  tvdb: "468034"
+                  igdb: "0"
+              - line: '[ NEW ][ Games ][ Console ][ Some.Game.Special.Edition.DLC.NSW-GROUP ][ 129.44 KiB ][ https://nordicq.org/torrents/0000 ][ FL: 0 % ][ DU: 0 ][ iMDB: 0 ][ TMDB: 0 ][ TVDB: 0 ][ iGDB: 403731 ]'
+                expect:
+                  announceTypeEnum: NEW
+                  category: Games
+                  releaseTags: Console
+                  releaseName: Some.Game.Special.Edition.DLC.NSW-GROUP
+                  torrentSize: 129.44 KiB
+                  baseUrl: https://nordicq.org/
+                  torrentId: "0000"
+                  freeleechPercent: "0"
+                  imdb: "0"
+                  tmdb: "0"
+                  tvdb: "0"
+                  igdb: "403731"
+              - line: '[ DYiNG ][ TV ][ WEB-DL ][ Some.Show.S03E03.NORDiC.1080p.WEB-DL.DDP5.1.H.264-GROUP ][ 1.15 GiB ][ https://nordicq.org/torrents/0000 ][ FL: 100 % ][ DU: 1 ][ iMDB: 31589662 ][ TMDB: 243875 ][ TVDB: 448023 ][ iGDB: 0 ]'
+                expect:
+                  announceTypeEnum: DYiNG
+                  category: TV
+                  releaseTags: WEB-DL
+                  releaseName: Some.Show.S03E03.NORDiC.1080p.WEB-DL.DDP5.1.H.264-GROUP
+                  torrentSize: 1.15 GiB
+                  baseUrl: https://nordicq.org/
+                  torrentId: "0000"
+                  freeleechPercent: "100"
+                  imdb: "31589662"
+                  tmdb: "243875"
+                  tvdb: "448023"
+                  igdb: "0"
 
         mappings:
           announceTypeEnum:
             "NEW":
               announceType: NEW
+            "DYiNG": # re-announced with freeleech and double upload to get more seeds
+              announceType: PROMO
 
         match:
           infourl: "/torrents/{{ .torrentId }}"

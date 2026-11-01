@@ -4,52 +4,13 @@
 package main
 
 import (
-	"context"
-	stdlog "log"
 	"os"
-	"os/signal"
-	"runtime/pprof"
-	"syscall"
-	"time"
 	_ "time/tzdata"
 
-	"github.com/autobrr/autobrr/internal/action"
-	"github.com/autobrr/autobrr/internal/alert"
-	"github.com/autobrr/autobrr/internal/api"
-	"github.com/autobrr/autobrr/internal/auth"
-	"github.com/autobrr/autobrr/internal/config"
-	"github.com/autobrr/autobrr/internal/database"
-	"github.com/autobrr/autobrr/internal/diagnostics"
-	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/internal/downloader"
-	"github.com/autobrr/autobrr/internal/events"
-	"github.com/autobrr/autobrr/internal/feed"
-	"github.com/autobrr/autobrr/internal/filter"
-	"github.com/autobrr/autobrr/internal/http"
-	"github.com/autobrr/autobrr/internal/indexer"
-	"github.com/autobrr/autobrr/internal/irc"
-	"github.com/autobrr/autobrr/internal/list"
-	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/internal/cli"
 	"github.com/autobrr/autobrr/internal/meta"
-	"github.com/autobrr/autobrr/internal/metrics"
-	"github.com/autobrr/autobrr/internal/notification"
-	"github.com/autobrr/autobrr/internal/proxy"
-	"github.com/autobrr/autobrr/internal/release"
-	"github.com/autobrr/autobrr/internal/scheduler"
-	"github.com/autobrr/autobrr/internal/server"
-	"github.com/autobrr/autobrr/internal/update"
-	"github.com/autobrr/autobrr/internal/user"
-	"github.com/autobrr/autobrr/pkg/featureflags"
-	"github.com/autobrr/autobrr/pkg/sqlite3store"
 
-	"github.com/KimMachineGun/automemlimit/memlimit"
-	"github.com/alexedwards/scs/postgresstore"
-	"github.com/alexedwards/scs/v2"
-	"github.com/dcarbone/zadapters/zstdlog"
-	"github.com/r3labs/sse/v2"
-	"github.com/rs/zerolog"
-	"github.com/spf13/pflag"
-	"go.uber.org/automaxprocs/maxprocs"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -58,230 +19,38 @@ var (
 	date    = ""
 )
 
-func init() {
-	featureflags.Register(domain.IRCFuzzyAnnouncer, false)
-}
-
 func main() {
 	meta.Set(version, commit, date)
 
-	var (
-		version = meta.GetVersion()
-		commit  = meta.GetCommit()
-		date    = meta.GetDate()
-	)
-
 	var configPath, profilePath string
-	pflag.StringVar(&configPath, "config", "", "path to configuration directory")
-	pflag.StringVar(&profilePath, "pgo", "", "internal build flag")
-	pflag.Parse()
 
-	shutdownFunc, isPGO := pgoRun(profilePath)
+	serve := cli.CommandServe()
 
-	ctx := context.Background()
-
-	// read config
-	cfg := config.New(configPath)
-
-	// setup server-sent-events
-	serverEvents := sse.New()
-	serverEvents.CreateStreamWithOpts(logger.StreamLogs, sse.StreamOpts{MaxEntries: 1000, AutoReplay: true})
-	serverEvents.CreateStreamWithOpts("irc", sse.StreamOpts{MaxEntries: 0, AutoReplay: false, AutoStream: true})
-	serverEvents.CreateStreamWithOpts(notification.InboxStreamKey, sse.StreamOpts{MaxEntries: 0, AutoReplay: false})
-
-	// init new logger
-	log := logger.New(cfg.Config, serverEvents)
-
-	// Set GOMAXPROCS to match the Linux container CPU quota (if any)
-	undo, err := maxprocs.Set(maxprocs.Logger(zstdlog.NewStdLoggerWithLevel(log.With().Logger(), zerolog.InfoLevel).Printf))
-	defer undo()
-	if err != nil {
-		log.Error().Err(err).Msg("failed to set GOMAXPROCS")
+	root := &cobra.Command{
+		Use:   "autobrr",
+		Short: "autobrr",
+		Long:  "autobrr",
+		// running without a command starts the service, kept for legacy reasons
+		RunE: serve.RunE,
+		// a failing server should not print the usage block
+		SilenceUsage: true,
 	}
 
-	// Set GOMEMLIMIT to match the Linux container Memory quota (if any)
-	memLimit, err := memlimit.Set(memlimit.WithProvider(memlimit.ApplyFallback(memlimit.FromCgroup, memlimit.FromSystem)))
-	if err != nil {
-		log.Error().Err(err).Msg("failed to set GOMEMLIMIT")
+	// persistent flags reach both `autobrr --config` and `autobrr serve --config`
+	root.PersistentFlags().StringVar(&configPath, "config", "", "path to configuration directory")
+	root.PersistentFlags().StringVar(&profilePath, "pgo", "", "internal build flag")
+
+	// serve's own flags are shared by pointer, so the bare form parses into the
+	// same variables serve does
+	root.Flags().AddFlagSet(serve.Flags())
+
+	root.AddCommand(serve)
+	root.AddCommand(cli.CommandDb())
+	root.AddCommand(cli.CommandFilter())
+	root.AddCommand(cli.CommandUser())
+	root.AddCommand(cli.CommandVersion())
+
+	if err := root.Execute(); err != nil {
+		os.Exit(1)
 	}
-
-	// init dynamic config
-	cfg.DynamicReload(log)
-
-	diagnostics.SetupProfiling(cfg.Config.ProfilingEnabled, cfg.Config.ProfilingHost, cfg.Config.ProfilingPort)
-
-	// setup internal eventbus
-	eventBus := events.NewEventBus(log)
-
-	// open database connection
-	db, err := database.NewDB(cfg.Config, log)
-	if err != nil {
-		log.Fatal().Err(err).Msg("could not initialize database")
-	}
-	defer db.Close()
-
-	if err := db.Open(); err != nil {
-		log.Fatal().Err(err).Msg("could not open db connection")
-	}
-
-	log.Info().
-		Str("version", version).
-		Str("commit", commit).
-		Str("build_date", date).
-		Str("log_level", cfg.Config.LogLevel).
-		Str("database", db.Driver).
-		Msg("starting autobrr")
-
-	log.Debug().Int64("gomemlimit_bytes", memLimit).Msg("memory limit configured")
-
-	// session manager
-	sessionManager := scs.New()
-	switch db.Driver {
-	case database.DriverSQLite:
-		sessionManager.Store = sqlite3store.New(db, sqlite3store.WithLogger(log.With().Str("module", "session-store").Logger()))
-	case database.DriverPostgres:
-		sessionManager.Store = postgresstore.New(db.Handler)
-	}
-
-	// setup OIDC
-	oidcService := auth.NewOIDCService(log, cfg.Config)
-	if err := oidcService.Discover(ctx); err != nil {
-		log.Fatal().Err(err).Msg("could not init OIDC service")
-	}
-
-	// setup repos
-	var (
-		apikeyRepo       = database.NewAPIRepo(log, db)
-		downloaderRepo   = database.NewDownloaderRepo(log, db)
-		actionRepo       = database.NewActionRepo(log, db)
-		filterRepo       = database.NewFilterRepo(log, db)
-		feedRepo         = database.NewFeedRepo(log, db)
-		feedCacheRepo    = database.NewFeedCacheRepo(log, db)
-		indexerRepo      = database.NewIndexerRepo(log, db)
-		ircRepo          = database.NewIrcRepo(log, db)
-		listRepo         = database.NewListRepo(log, db)
-		notificationRepo = database.NewNotificationRepo(log, db)
-		inboxRepo        = database.NewNotificationInboxRepo(log, db)
-		releaseRepo      = database.NewReleaseRepo(log, db)
-		userRepo         = database.NewUserRepo(log, db)
-		proxyRepo        = database.NewProxyRepo(log, db)
-	)
-
-	// setup services
-	var (
-		apiService          = api.NewService(log, apikeyRepo)
-		updateService       = update.NewUpdate(log, cfg.Config)
-		schedulingService   = scheduler.NewService(log, eventBus, cfg.Config, updateService)
-		notificationService = notification.NewService(log, eventBus, serverEvents, notificationRepo, inboxRepo, schedulingService)
-		userService         = user.NewService(userRepo)
-		authService         = auth.NewService(log, userService)
-		proxyService        = proxy.NewService(log, eventBus, proxyRepo)
-		indexerAPIService   = indexer.NewAPIService(log, proxyService)
-		rlsDownloadService  = release.NewDownloadService(log, indexerRepo, proxyService)
-		downloaderService   = downloader.NewService(log, downloaderRepo)
-		actionService       = action.NewService(log, eventBus, actionRepo, downloaderService, rlsDownloadService)
-		indexerService      = indexer.NewService(log, eventBus, cfg.Config, indexerRepo, releaseRepo, indexerAPIService)
-		filterService       = filter.NewService(log, filterRepo, actionService, releaseRepo, indexerAPIService, indexerService, rlsDownloadService, notificationService)
-		releaseService      = release.NewService(log, eventBus, releaseRepo, actionService, filterService, indexerService, schedulingService)
-		ircService          = irc.NewService(log, eventBus, serverEvents, ircRepo, releaseService, indexerService, proxyService)
-		feedService         = feed.NewService(log, eventBus, feedRepo, feedCacheRepo, releaseService, proxyService, schedulingService)
-		listService         = list.NewService(log, eventBus, listRepo, downloaderService, filterService, schedulingService)
-		alertService        = alert.NewService(log, eventBus, cfg.Config, serverEvents, updateService, ircService, listService)
-	)
-
-	errorChannel := make(chan error)
-
-	go func() {
-		httpServer := http.NewServer(http.Deps{
-			Log:                 log,
-			SSE:                 serverEvents,
-			DB:                  db,
-			Config:              cfg,
-			SessionManager:      sessionManager,
-			Version:             version,
-			Commit:              commit,
-			Date:                date,
-			ActionService:       actionService,
-			AlertService:        alertService,
-			ApiService:          apiService,
-			AuthService:         authService,
-			DownloaderService:   downloaderService,
-			FilterService:       filterService,
-			FeedService:         feedService,
-			IndexerService:      indexerService,
-			IrcService:          ircService,
-			ListService:         listService,
-			NotificationService: notificationService,
-			OIDCService:         oidcService,
-			ProxyService:        proxyService,
-			ReleaseService:      releaseService,
-			UpdateService:       updateService,
-		},
-		)
-		errorChannel <- httpServer.Open()
-	}()
-
-	if cfg.Config.MetricsEnabled {
-		metricsManager := metrics.NewMetricsManager(version, commit, date, releaseService, ircService, feedService, listService, filterService)
-
-		go func() {
-			httpMetricsServer := http.NewMetricsServer(
-				log,
-				cfg,
-				version,
-				commit,
-				date,
-				metricsManager,
-			)
-			errorChannel <- httpMetricsServer.Open()
-		}()
-	}
-
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
-
-	srv := server.NewServer(log, cfg.Config, ircService, indexerService, feedService, releaseService, listService, notificationService, schedulingService, updateService)
-	if err := srv.Start(); err != nil {
-		log.Fatal().Stack().Err(err).Msg("could not start server")
-		return
-	}
-
-	if isPGO {
-		time.Sleep(5 * time.Second)
-		sigCh <- syscall.SIGQUIT
-	}
-
-	for sig := range sigCh {
-		log.Info().Str("signal", sig.String()).Msg("received signal, shutting down server")
-
-		srv.Shutdown()
-
-		if err := db.Close(); err != nil {
-			log.Error().Err(err).Msg("failed to close the database connection properly")
-			shutdownFunc()
-			os.Exit(1)
-		}
-		shutdownFunc()
-		os.Exit(0)
-	}
-}
-
-func pgoRun(file string) (func(), bool) {
-	if len(file) == 0 {
-		return func() {}, false
-	}
-
-	f, err := os.Create(file)
-	if err != nil {
-		stdlog.Fatalf("could not create CPU profile: %v", err)
-	}
-
-	if err := pprof.StartCPUProfile(f); err != nil {
-		stdlog.Fatalf("could not create CPU profile: %v", err)
-	}
-
-	return func() {
-		defer f.Close()
-		defer pprof.StopCPUProfile()
-	}, true
 }

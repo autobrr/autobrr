@@ -1,0 +1,106 @@
+---
+version: 2
+#id: dreadvault
+name: DreadVault
+identifier: dreadvault
+description: DreadVault is a private torrent tracker for HORROR, SLEAZE, EXPLOITATION, THRILLER and OFF BEAT CINEMA.
+language: en-us
+urls:
+  - https://dreadvault.org/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: UNIT3D
+settings:
+  - name: rsskey
+    type: secret
+    required: true
+    label: RSS key
+    help: "Go to Settings > RSS Key, and copy your RSS Key"
+
+irc:
+  network: DreadVault
+  server: irc.dreadvault.org
+  port: 6697
+  tls: true
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  channels:
+    - name: "#announce"
+      announcers:
+        - DreadAnnounce
+      parse:
+        type: single
+        lines:
+          - pattern: '\[(?P<category>.+?)\] (?P<releaseName>.+) \[(?P<torrentSize>[^\]]+)\] \[(?P<releaseTags>[^\]\/]+?)(?: \/ (?P<resolution>[^\]]+))?\] \[FL: (?P<freeleechPercent>\d+%)\] (?P<baseUrl>https?\:\/\/.+\/)torrents\/(?P<torrentId>\d+) by (?P<uploader>.+)'
+            tests:
+              - line: '[Movies] The Burnt House 2009 720p USA Blu-ray AVC DD 2.0 [11.17 GiB] [Full Disc / 720p] [FL: 0%] https://dreadvault.org/torrents/10026 by MrE2Me'
+                expect:
+                  category: Movies
+                  releaseName: The Burnt House 2009 720p USA Blu-ray AVC DD 2.0
+                  torrentSize: 11.17 GiB
+                  releaseTags: Full Disc
+                  resolution: 720p
+                  freeleechPercent: 0%
+                  baseUrl: https://dreadvault.org/
+                  torrentId: "10026"
+                  uploader: MrE2Me
+
+              - line: '[Movies] In My Skin AKA Dans ma peau 2002 REPACK 2160p UHD BluRay REMUX DV HDR HEVC Dual-Audio DTS-HD MA 5.1-CiNEPHiLES [59.76 GiB] [Remux / 2160p] [FL: 100%] https://dreadvault.org/torrents/10027 by Anonymous'
+                expect:
+                  category: Movies
+                  releaseName: In My Skin AKA Dans ma peau 2002 REPACK 2160p UHD BluRay REMUX DV HDR HEVC Dual-Audio DTS-HD MA 5.1-CiNEPHiLES
+                  torrentSize: 59.76 GiB
+                  releaseTags: Remux
+                  resolution: 2160p
+                  freeleechPercent: 100%
+                  baseUrl: https://dreadvault.org/
+                  torrentId: "10027"
+                  uploader: Anonymous
+
+              - line: '[Movies] A Japanese Demon AKA Nippon yôkaiden - Satori 1973 NTSC DVD5 DD 2.0-DIY [4.22 GiB] [Full Disc / 480p] [FL: 0%] https://dreadvault.org/torrents/10028 by Caesar'
+                expect:
+                  category: Movies
+                  releaseName: A Japanese Demon AKA Nippon yôkaiden - Satori 1973 NTSC DVD5 DD 2.0-DIY
+                  torrentSize: 4.22 GiB
+                  releaseTags: Full Disc
+                  resolution: 480p
+                  freeleechPercent: 0%
+                  baseUrl: https://dreadvault.org/
+                  torrentId: "10028"
+                  uploader: Caesar
+
+              - line: '[Movies] The Psychic: Files 2026 1080p AMZN WEB-DL DD+ 2.0 H.264-SPWEB [5.09 GiB] [WEB-DL / 1080p] [FL: 0%] https://dreadvault.org/torrents/10029 by Caesar'
+                expect:
+                  category: Movies
+                  releaseName: "The Psychic: Files 2026 1080p AMZN WEB-DL DD+ 2.0 H.264-SPWEB"
+                  torrentSize: 5.09 GiB
+                  releaseTags: WEB-DL
+                  resolution: 1080p
+                  freeleechPercent: 0%
+                  baseUrl: https://dreadvault.org/
+                  torrentId: "10029"
+                  uploader: Caesar
+
+        match:
+          infourl: "/torrents/{{ .torrentId }}"
+          downloadurl: "/torrent/download/{{ .torrentId }}.{{ .rsskey }}"

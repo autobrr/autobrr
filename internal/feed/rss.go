@@ -106,6 +106,10 @@ func (j *RSSJob) process(ctx context.Context) error {
 		}
 	}
 
+	if j.Feed.ProcessNewestFirst() {
+		slices.Reverse(releases)
+	}
+
 	// process all new releases
 	go j.ReleaseSvc.ProcessMultipleFromIndexer(context.WithoutCancel(ctx), releases, j.Feed.Indexer)
 

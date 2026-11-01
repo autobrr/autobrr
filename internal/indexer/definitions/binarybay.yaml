@@ -1,0 +1,100 @@
+---
+version: 2
+#id: binarybay
+name: BinaryBay
+identifier: binarybay
+description: BinaryBay is a NORDIC private torrent tracker for MOVIES / TV / GENERAL.
+language: en-us
+urls:
+  - https://binarybay.cc/
+privacy: private
+protocol: torrent
+supports:
+  - irc
+  - rss
+# source: gazelle
+settings:
+  - name: authkey
+    type: secret
+    required: true
+    label: Auth key
+    help: Right click DL on a torrent and get the authkey.
+
+  - name: torrent_pass
+    type: secret
+    required: true
+    label: Torrent pass
+    help: Right click DL on a torrent and get the torrent_pass.
+
+irc:
+  network: BinaryBay
+  server: irc.binarybay.cc
+  port: 6697
+  tls: true
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: Bot nick. Eg. user_bot
+
+    - name: auth.account
+      type: text
+      required: false
+      label: NickServ Account
+      help: NickServ account. Make sure to group your user and bot.
+
+    - name: auth.password
+      type: secret
+      required: false
+      label: NickServ Password
+      help: NickServ password
+
+  channels:
+    - name: "#announce"
+      announcers:
+        - BinaryBay
+      parse:
+        type: single
+        lines:
+          - pattern: 'NEW RELEASE ~ (?P<category>.+?) ~ (?:(?P<freeleech>Freeleech) ~ )?(?P<releaseName>.+) ~ (?P<torrentSize>[^~]+) ~ (?P<baseUrl>https?:\/\/[^\/]+)\/torrents\.php\?id=(?P<torrentId>\d+)'
+            tests:
+              - line: NEW RELEASE ~ TV ~ Youth.2026.S01E05.NORDiC.1080p.WEB-DL.H.264.DDP5.1.Atmos-TWA ~ 999.29 MB ~ https://binarybay.cc/torrents.php?id=900727
+                expect:
+                  category: TV
+                  freeleech: ""
+                  releaseName: Youth.2026.S01E05.NORDiC.1080p.WEB-DL.H.264.DDP5.1.Atmos-TWA
+                  torrentSize: 999.29 MB
+                  baseUrl: https://binarybay.cc
+                  torrentId: "900727"
+
+              - line: NEW RELEASE ~ Movie ~ Clown.Panic.2026.NORDiC.1080p.WEB-DL.H.264.DDP5.1-TWA ~ 3.95 GB ~ https://binarybay.cc/torrents.php?id=900729
+                expect:
+                  category: Movie
+                  freeleech: ""
+                  releaseName: Clown.Panic.2026.NORDiC.1080p.WEB-DL.H.264.DDP5.1-TWA
+                  torrentSize: 3.95 GB
+                  baseUrl: https://binarybay.cc
+                  torrentId: "900729"
+
+              - line: NEW RELEASE ~ TV ~ Freeleech ~ Unforgettable.S01.NORDiC.1080p.WEB-DL.H.264.DDP5.1-TWA ~ 39.02 GB ~ https://binarybay.cc/torrents.php?id=900730
+                expect:
+                  category: TV
+                  freeleech: Freeleech
+                  releaseName: Unforgettable.S01.NORDiC.1080p.WEB-DL.H.264.DDP5.1-TWA
+                  torrentSize: 39.02 GB
+                  baseUrl: https://binarybay.cc
+                  torrentId: "900730"
+
+              - line: NEW RELEASE ~ Danish TV ~ Benzinbroedre.gammelt.venskab.ruster.aldrig.S01E01.DANiSH.1080p.WEB-DL.H.264.AAC2.0-TWA ~ 2.21 GB ~ https://binarybay.cc/torrents.php?id=900732
+                expect:
+                  category: Danish TV
+                  freeleech: ""
+                  releaseName: Benzinbroedre.gammelt.venskab.ruster.aldrig.S01E01.DANiSH.1080p.WEB-DL.H.264.AAC2.0-TWA
+                  torrentSize: 2.21 GB
+                  baseUrl: https://binarybay.cc
+                  torrentId: "900732"
+
+        match:
+          infourl: "/torrents.php?id={{ .torrentId }}"
+          downloadurl: "/torrents.php?action=download&id={{ .torrentId }}&authkey={{ .authkey }}&torrent_pass={{ .torrent_pass }}"

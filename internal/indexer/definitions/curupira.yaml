@@ -1,0 +1,180 @@
+---
+version: 2
+name: Curupira
+identifier: curupira
+description: "Curupira is a private Brazilian Usenet indexer for movies, tv, audio and more."
+language: pt-br
+urls:
+  - https://curupira.cc/
+privacy: private
+protocol: usenet
+supports:
+  - irc
+settings:
+  - name: apikey
+    type: secret
+    required: true
+    label: API Key
+    help: "Curupira API Key"
+
+irc:
+  network: Curupira
+  server: irc.synirc.net
+  port: 6697
+  tls: true
+  auth:
+    mechanism: NICKSERV
+  settings:
+    - name: nick
+      type: text
+      required: true
+      label: Nick
+      help: "Bot nick. Eg. username-bot"
+
+    - name: auth.account
+      type: text
+      label: NickServ Account
+      help: "NickServ account. Make sure to group your user and bot."
+
+    - name: auth.password
+      type: secret
+      label: NickServ Password
+      help: "NickServ password"
+
+    - name: invite_command
+      type: secret
+      default: "curupirabot !invite USERNAME IRCKEY #curupira-anuncios"
+      required: true
+      label: Invite command
+      help: "Substitua USERNAME pelo seu usuário no site e IRCKEY pela chave gerada em Perfil > Integrações > IRC."
+
+  channels:
+    - name: "#curupira-anuncios"
+      announcers:
+        - curupirabot
+      parse:
+        type: single
+        lines:
+          - pattern: '(?:\x03\d{1,2})?\[(?P<categoryEnum>[^\]]+)\](?:\x03)?\s+\[(?P<releaseName>[^\]]+)\]\s+\[(?P<torrentSize>[0-9.]+\s+[A-Za-z]+)\]\s+\[(?P<releaseId>[a-zA-Z0-9]+)\]'
+            tests:
+              - line: '[TV/HD] [Some.Show.S01E01.1080p.WEB-DL.DDP5.1.H.264-GROUP] [350.00 MB] [01ABCDEFGH0123456789ABCDEF]'
+                expect:
+                  categoryEnum: "TV/HD"
+                  releaseName: "Some.Show.S01E01.1080p.WEB-DL.DDP5.1.H.264-GROUP"
+                  torrentSize: "350.00 MB"
+                  releaseId: "01ABCDEFGH0123456789ABCDEF"
+              - line: '[Movies/HD] [Some.Movie.2024.1080p.WEB-DL.DDP5.1.H.264-GROUP] [2.50 GB] [01ABCDEFGH0123456789ABCDEF]'
+                expect:
+                  categoryEnum: "Movies/HD"
+                  releaseName: "Some.Movie.2024.1080p.WEB-DL.DDP5.1.H.264-GROUP"
+                  torrentSize: "2.50 GB"
+                  releaseId: "01ABCDEFGH0123456789ABCDEF"
+              - line: '[2040] [Some.Movie.2024.1080p.WEB-DL.DDP5.1.H.264-GROUP] [2.50 GB] [01ABCDEFGH0123456789ABCDEF]'
+                expect:
+                  categoryEnum: "2040"
+                  releaseName: "Some.Movie.2024.1080p.WEB-DL.DDP5.1.H.264-GROUP"
+                  torrentSize: "2.50 GB"
+                  releaseId: "01ABCDEFGH0123456789ABCDEF"
+        match:
+          downloadurl: "/api?t=get&id={{ .releaseId }}&apikey={{ .apikey }}"
+          infourl: "https://curupira.cc/releases/{{ .releaseId }}"
+        mappings:
+          categoryEnum:
+            # Newznab IDs
+            "2000":
+              category: "Movies"
+            "2010":
+              category: "Movies/Foreign"
+            "2030":
+              category: "Movies/SD"
+            "2040":
+              category: "Movies/HD"
+            "2045":
+              category: "Movies/UHD"
+            "2050":
+              category: "Movies/BluRay"
+            "3000":
+              category: "Audio"
+            "3010":
+              category: "Audio/MP3"
+            "3030":
+              category: "Audio/Audiobook"
+            "3040":
+              category: "Audio/Lossless"
+            "5000":
+              category: "TV"
+            "5020":
+              category: "TV/Foreign"
+            "5030":
+              category: "TV/SD"
+            "5040":
+              category: "TV/HD"
+            "5045":
+              category: "TV/UHD"
+            "5060":
+              category: "TV/Sport"
+            "5070":
+              category: "TV/Anime"
+            "5080":
+              category: "TV/Documentary"
+            "7000":
+              category: "Books"
+            "7010":
+              category: "Books/Mags"
+            "7020":
+              category: "Books/Ebook"
+            "7030":
+              category: "Books/Comics"
+            "8000":
+              category: "Other"
+            "8010":
+              category: "Other/Misc"
+            # Nomes de categorias padrão Newznab
+            "Movies":
+              category: "Movies"
+            "Movies/Foreign":
+              category: "Movies/Foreign"
+            "Movies/SD":
+              category: "Movies/SD"
+            "Movies/HD":
+              category: "Movies/HD"
+            "Movies/UHD":
+              category: "Movies/UHD"
+            "Movies/BluRay":
+              category: "Movies/BluRay"
+            "Audio":
+              category: "Audio"
+            "Audio/MP3":
+              category: "Audio/MP3"
+            "Audio/Audiobook":
+              category: "Audio/Audiobook"
+            "Audio/Lossless":
+              category: "Audio/Lossless"
+            "TV":
+              category: "TV"
+            "TV/Foreign":
+              category: "TV/Foreign"
+            "TV/SD":
+              category: "TV/SD"
+            "TV/HD":
+              category: "TV/HD"
+            "TV/UHD":
+              category: "TV/UHD"
+            "TV/Sport":
+              category: "TV/Sport"
+            "TV/Anime":
+              category: "TV/Anime"
+            "TV/Documentary":
+              category: "TV/Documentary"
+            "Books":
+              category: "Books"
+            "Books/Mags":
+              category: "Books/Mags"
+            "Books/Ebook":
+              category: "Books/Ebook"
+            "Books/Comics":
+              category: "Books/Comics"
+            "Other":
+              category: "Other"
+            "Other/Misc":
+              category: "Other/Misc"
