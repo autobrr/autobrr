@@ -1,17 +1,15 @@
-// Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
+// Copyright (c) 2021 - 2026, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 package feed
 
 import (
-	"context"
-	"io"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
-	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/newznab"
 
 	"github.com/rs/zerolog"
@@ -19,14 +17,149 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewznabJob_processItems_metadata(t *testing.T) {
+func TestNewznabSource_toRelease(t *testing.T) {
+	const (
+		title  = "Some.Release.Title.2022.09.22.720p.WEB.h264-GROUP"
+		guid   = "https://indexer.local/details/abc"
+		nzbURL = "https://indexer.local/getnzb/abc.nzb"
+	)
+
+	tests := []struct {
+		name            string
+		item            newznab.FeedItem
+		wantDownloadURL string
+		wantSize        uint64
+		wantCategory    string
+		wantCategories  []string
+		wantMetaTMDB    int
+	}{
+		{
+			name:            "nzb enclosure is the download url",
+			item:            newznab.FeedItem{Size: 100, Enclosure: &newznab.Enclosure{Url: nzbURL, Length: 200, Type: "application/x-nzb"}},
+			wantDownloadURL: nzbURL,
+			wantSize:        100,
+		},
+		{
+			name:            "enclosure length fills a missing size",
+			item:            newznab.FeedItem{Enclosure: &newznab.Enclosure{Url: nzbURL, Length: 200, Type: "application/x-nzb"}},
+			wantDownloadURL: nzbURL,
+			wantSize:        200,
+		},
+		{
+			name: "non nzb enclosure is ignored",
+			item: newznab.FeedItem{Enclosure: &newznab.Enclosure{Url: "https://indexer.local/x.torrent", Type: "application/x-bittorrent"}},
+		},
+		{
+			name:           "single category is set as the category",
+			item:           newznab.FeedItem{Categories: newznab.Categories{{ID: 5040, Name: "TV/HD"}}},
+			wantCategory:   "TV/HD",
+			wantCategories: []string{"TV/HD", "5040"},
+		},
+		{
+			name:           "several categories only fill the list",
+			item:           newznab.FeedItem{Categories: newznab.Categories{{ID: 5000, Name: "TV"}, {ID: 5040, Name: "TV/HD"}}},
+			wantCategories: []string{"TV", "5000", "TV/HD", "5040"},
+		},
+		{
+			name:         "tmdb id is parsed",
+			item:         newznab.FeedItem{TmdbId: "1234"},
+			wantMetaTMDB: 1234,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			src := &newznabSource{
+				log:  zerolog.Nop(),
+				feed: &domain.Feed{Indexer: domain.IndexerMinimal{Name: "Mock Feed", Identifier: "mock-feed"}},
+			}
+
+			tt.item.Title = title
+			tt.item.GUID = guid
+
+			rls := src.toRelease(&tt.item)
+
+			assert.Equal(t, domain.ReleaseImplementationNewznab, rls.Implementation)
+			assert.Equal(t, domain.ReleaseProtocolNzb, rls.Protocol)
+			assert.Equal(t, title, rls.TorrentName)
+			assert.Equal(t, guid, rls.InfoURL)
+			assert.Equal(t, tt.wantDownloadURL, rls.DownloadURL, "download url")
+			assert.Equal(t, tt.wantSize, rls.Size, "size")
+			assert.Equal(t, tt.wantCategory, rls.Category, "category")
+			assert.ElementsMatch(t, tt.wantCategories, rls.Categories, "categories")
+			assert.Equal(t, tt.wantMetaTMDB, rls.MetaTMDB, "tmdb")
+		})
+	}
+}
+
+func TestNewznabSource_fetch(t *testing.T) {
+	const response = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+<title>Mock Indexer</title>
+<item>
+<title>Some.Release.Title.2022.09.22.720p.WEB.h264-GROUP</title>
+<guid>https://indexer.local/details/abc</guid>
+<pubDate>Mon, 05 Oct 2026 10:00:00 +0000</pubDate>
+<enclosure url="https://indexer.local/getnzb/abc.nzb" length="1073741824" type="application/x-nzb"/>
+</item>
+<item>
+<title>Item.Without.Guid</title>
+</item>
+</channel>
+</rss>`
+
+	offsets := make(chan string, 1)
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/xml")
+
+		if r.URL.Query().Get("t") != "caps" {
+			select {
+			case offsets <- r.URL.Query().Get("offset"):
+			default:
+			}
+		}
+
+		if r.URL.Query().Get("t") == "caps" {
+			_, _ = w.Write([]byte(`<caps/>`))
+			return
+		}
+
+		_, _ = w.Write([]byte(response))
+	}))
+	defer srv.Close()
+
+	f := &domain.Feed{
+		Type:    string(domain.FeedTypeNewznab),
+		URL:     srv.URL,
+		Indexer: domain.IndexerMinimal{Name: "Mock Feed", Identifier: "mock-feed"},
+	}
+
+	src, err := (&Service{}).newSource(t.Context(), f, zerolog.Nop())
+	require.NoError(t, err)
+
+	res, err := src.fetch(t.Context(), 50)
+	require.NoError(t, err)
+
+	assert.Equal(t, "50", <-offsets, "offset sent to the indexer")
+	assert.Contains(t, res.raw, "Mock Indexer")
+	require.Len(t, res.entries, 1, "the item without a guid is skipped")
+
+	e := res.entries[0]
+	assert.Equal(t, "https://indexer.local/details/abc", e.key)
+	assert.Equal(t, time.Date(2026, time.October, 5, 10, 0, 0, 0, time.UTC), e.pubDate.UTC())
+
+	rls := e.release()
+	assert.Equal(t, "https://indexer.local/getnzb/abc.nzb", rls.DownloadURL)
+}
+
+func TestNewznabSource_toRelease_metadata(t *testing.T) {
 	pubDate := time.Date(2026, time.September, 24, 5, 58, 24, 0, time.UTC)
 
-	j := &NewznabJob{
-		Log: zerolog.New(io.Discard),
-		Feed: &domain.Feed{
-			Indexer: domain.IndexerMinimal{Name: "Mock Feed", Identifier: "mock-feed"},
-		},
+	s := &newznabSource{
+		log:  zerolog.Nop(),
+		feed: &domain.Feed{Indexer: domain.IndexerMinimal{Name: "Mock Feed", Identifier: "mock-feed"}},
 	}
 
 	tests := []struct {
@@ -54,138 +187,10 @@ func TestNewznabJob_processItems_metadata(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.item.Title = "That.Show.S01E01.1080p.WEB-DL.H.264-GROUP"
 
-			releases, err := j.processItems([]newznab.FeedItem{tt.item})
-			require.NoError(t, err)
-			require.Len(t, releases, 1)
+			rls := s.toRelease(&tt.item)
 
-			assert.Equal(t, tt.wantTVDB, releases[0].MetaTVDB, "tvdb id")
-			assert.Equal(t, tt.wantPubDate, releases[0].PublishDate, "publish date")
+			assert.Equal(t, tt.wantTVDB, rls.MetaTVDB, "tvdb id")
+			assert.Equal(t, tt.wantPubDate, rls.PublishDate, "publish date")
 		})
 	}
-}
-
-type mockNewznabFeedClient struct {
-	limit      int
-	pages      map[int][]newznab.FeedItem
-	errOffsets map[int]error
-	offsets    []int
-}
-
-func (m *mockNewznabFeedClient) WithHTTPClient(_ *http.Client) {}
-
-func (m *mockNewznabFeedClient) Search(_ context.Context, _ string, _ []int, offset int) (*newznab.SearchResponse, error) {
-	m.offsets = append(m.offsets, offset)
-
-	if err := m.errOffsets[offset]; err != nil {
-		return nil, err
-	}
-
-	items := m.pages[offset]
-
-	respItems := make([]*newznab.FeedItem, 0, len(items))
-	for i := range items {
-		respItems = append(respItems, &items[i])
-	}
-
-	return &newznab.SearchResponse{Items: respItems, Limit: m.limit}, nil
-}
-
-func TestNewznabJob_getFeed_pagination(t *testing.T) {
-	newItem := func(guid string) newznab.FeedItem {
-		return newznab.FeedItem{GUID: guid, Title: "Title." + guid}
-	}
-
-	guids := func(items []newznab.FeedItem) []string {
-		out := make([]string, 0, len(items))
-		for _, item := range items {
-			out = append(out, item.GUID)
-		}
-		return out
-	}
-
-	newJob := func(client newznabClient, cache *stubFeedCacheRepo, lastRun time.Time) *NewznabJob {
-		return &NewznabJob{
-			Log: zerolog.New(io.Discard),
-			Feed: &domain.Feed{
-				Indexer:  domain.IndexerMinimal{Name: "Mock Feed", Identifier: "mock-feed"},
-				LastRun:  lastRun,
-				Settings: &domain.FeedSettingsJSON{MaxPages: domain.MaxFeedPages},
-			},
-			Client:    client,
-			Repo:      &mockFeedRepo{},
-			CacheRepo: cache,
-		}
-	}
-
-	recentRun := time.Now().Add(-time.Hour)
-
-	twoFullPages := func() map[int][]newznab.FeedItem {
-		return map[int][]newznab.FeedItem{
-			0: {newItem("new-1"), newItem("new-2"), newItem("new-3")},
-			3: {newItem("new-4"), newItem("new-5"), newItem("new-6")},
-			6: {newItem("new-7")},
-		}
-	}
-
-	t.Run("stops at the cached boundary on page 2", func(t *testing.T) {
-		client := &mockNewznabFeedClient{
-			limit: 3,
-			pages: map[int][]newznab.FeedItem{
-				0: {newItem("new-1"), newItem("new-2"), newItem("new-3")},
-				3: {newItem("new-4"), newItem("old-1"), newItem("old-2")},
-			},
-		}
-		cache := &stubFeedCacheRepo{existing: map[string]bool{"old-1": true, "old-2": true}}
-
-		items, err := newJob(client, cache, recentRun).getFeed(t.Context())
-		require.NoError(t, err)
-
-		// oldest first: the second page's items precede the first page's
-		assert.Equal(t, []string{"new-4", "new-3", "new-2", "new-1"}, guids(items))
-		assert.Equal(t, []int{0, 3}, client.offsets)
-	})
-
-	t.Run("cache write failure drops the page and stops paginating", func(t *testing.T) {
-		client := &mockNewznabFeedClient{limit: 3, pages: twoFullPages()}
-		cache := &stubFeedCacheRepo{existing: map[string]bool{}, putErr: errors.New("disk full")}
-
-		items, err := newJob(client, cache, recentRun).getFeed(t.Context())
-		require.NoError(t, err)
-
-		assert.Empty(t, items)
-		assert.Equal(t, []int{0}, client.offsets)
-	})
-
-	t.Run("fetch error on page 2 keeps the cached first page", func(t *testing.T) {
-		client := &mockNewznabFeedClient{
-			limit:      3,
-			pages:      twoFullPages(),
-			errOffsets: map[int]error{3: errors.New("429 too many requests")},
-		}
-
-		items, err := newJob(client, &stubFeedCacheRepo{existing: map[string]bool{}}, recentRun).getFeed(t.Context())
-		require.NoError(t, err)
-
-		assert.Equal(t, []string{"new-3", "new-2", "new-1"}, guids(items))
-		assert.Equal(t, []int{0, 3}, client.offsets)
-	})
-
-	t.Run("first run fetches only the first page", func(t *testing.T) {
-		client := &mockNewznabFeedClient{limit: 3, pages: twoFullPages()}
-
-		items, err := newJob(client, &stubFeedCacheRepo{existing: map[string]bool{}}, time.Time{}).getFeed(t.Context())
-		require.NoError(t, err)
-
-		assert.Len(t, items, 3)
-		assert.Equal(t, []int{0}, client.offsets)
-	})
-
-	t.Run("last run older than the cache ttl fetches only the first page", func(t *testing.T) {
-		client := &mockNewznabFeedClient{limit: 3, pages: twoFullPages()}
-
-		_, err := newJob(client, &stubFeedCacheRepo{existing: map[string]bool{}}, time.Now().AddDate(0, 0, -40)).getFeed(t.Context())
-		require.NoError(t, err)
-
-		assert.Equal(t, []int{0}, client.offsets)
-	})
 }
