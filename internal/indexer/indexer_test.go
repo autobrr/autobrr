@@ -591,6 +591,43 @@ func TestIndexersParseAndFilter(t *testing.T) {
 			},
 			match: true,
 		},
+		{
+			name: "norbits",
+			fields: fields{
+				identifier:         "norbits",
+				identifierExternal: "Norbits",
+				settings: map[string]string{
+					"passkey": "key",
+				},
+			},
+			subTests: []subTest{
+				{
+					name: "announce_binary_size",
+					args: args{
+						announceLines: []string{"Ny torrent: Synthetic.Show.S01E01.NORWEGIAN.1080p.WEB-DL.H.264-GROUP :: Kategori: TV/H.264/HD-1080p/i/WEB-DL :: Scene: Nei :: Størrelse: 1.81 GB :: https://norbits.net/details.php?id=123"},
+						filters: []filterTest{
+							{
+								filter: &domain.Filter{
+									Name:    "filter_1",
+									MinSize: "1.9GB",
+								},
+								match: true,
+							},
+							{
+								filter: &domain.Filter{
+									Name:    "filter_2",
+									MaxSize: "1.9GB",
+								},
+								match:      false,
+								rejections: []string{"release size 1943472701 bytes is larger than filter max size 1900000000 bytes", "[max size] not matching: got 1943472701 want: 1.9GB"},
+							},
+						},
+					},
+					match: false,
+				},
+			},
+			match: true,
+		},
 	}
 
 	for _, tt := range tests {
