@@ -465,6 +465,43 @@ func TestIndexersParseAndFilter(t *testing.T) {
 			},
 		},
 		{
+			name: "superbits",
+			fields: fields{
+				identifier:         "superbits",
+				identifierExternal: "SuperBits",
+				settings: map[string]string{
+					"passkey": "key",
+				},
+			},
+			subTests: []subTest{
+				{
+					name: "announce_binary_size",
+					args: args{
+						announceLines: []string{"-[new TV NO]2[Synthetic.Show.S01E01.NORWEGIAN.1080p.WEB.H264-GROUP]3[123]4[Size: 2.71 GB]5[FL: yes]6[Scene: yes]7[Pred 3m 39s ago]"},
+						filters: []filterTest{
+							{
+								filter: &domain.Filter{
+									Name:    "filter_1",
+									MinSize: "2.8GB",
+								},
+								match: true,
+							},
+							{
+								filter: &domain.Filter{
+									Name:    "filter_2",
+									MaxSize: "2.8GB",
+								},
+								match:      false,
+								rejections: []string{"release size 2909840343 bytes is larger than filter max size 2800000000 bytes", "[max size] not matching: got 2909840343 want: 2.8GB"},
+							},
+						},
+					},
+					match: false,
+				},
+			},
+			match: true,
+		},
+		{
 			name: "iptorrents",
 			fields: fields{
 				identifier:         "iptorrents",
