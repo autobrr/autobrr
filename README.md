@@ -418,7 +418,8 @@ authDisabledAcknowledgement = "I_ACKNOWLEDGE_THIS_IS_A_BAD_IDEA"
 # /32 or /128 entries. NOT the end user's address, and never a forwarded header.
 authAllowedPeerCIDRs = ["127.0.0.1/32", "::1/128"]
 # Every URL you access autobrr at (UI or API). Browser requests with any other
-# Origin are rejected to block CSRF, and only these origins may frame autobrr.
+# Origin are rejected to block CSRF, unless it matches the Host header autobrr
+# receives, and only these origins may frame autobrr.
 corsAllowedOrigins = "https://autobrr.example.com"
 # Optional: extra hostnames allowed in the Host header, see below.
 #authAllowedHosts = ["autobrr"]

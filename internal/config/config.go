@@ -147,7 +147,9 @@ checkForUpdates = true
 # corsAllowedOrigins is REQUIRED in this mode and must list every URL you access
 # autobrr at (UI or API, comma separated, scheme://host[:port] - no wildcard).
 # Browser requests with any other Origin are rejected to block cross-site request
-# forgery, and only these origins may embed autobrr in a frame.
+# forgery, unless the Origin matches the Host header autobrr receives (e.g. the UI
+# opened directly at http://192.168.1.10:7474). Only these origins may embed
+# autobrr in a frame.
 #corsAllowedOrigins = "https://autobrr.example.com"
 #
 # Every request, browser or not, must name an allowed hostname in its Host header

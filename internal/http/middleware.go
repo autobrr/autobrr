@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
+	"net/url"
 	"runtime/debug"
 	"slices"
 	"strings"
@@ -196,12 +197,12 @@ func (s *Server) RejectUntrustedBrowserRequests(next http.Handler) http.Handler 
 
 		originAllowed := false
 		if origin := r.Header.Get("Origin"); origin != "" {
-			if _, ok := s.authAllowedOrigins[strings.ToLower(origin)]; !ok {
+			_, originAllowed = s.authAllowedOrigins[strings.ToLower(origin)]
+			if !originAllowed && !isSameOrigin(origin, r.Host) {
 				s.log.Warn().Str("origin", origin).Str("url", r.URL.Path).Msg("auth disabled: rejected request, origin not in corsAllowedOrigins")
 				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 				return
 			}
-			originAllowed = true
 		}
 
 		// Sec-Fetch-Site covers what Origin cannot: cross-site GET navigations
@@ -231,6 +232,22 @@ func (s *Server) RejectUntrustedBrowserRequests(next http.Handler) http.Handler 
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+// isSameOrigin reports whether origin names the host the request was sent to.
+// Browsers send Origin on same-origin writes too, so without this the UI reached
+// on an IP or localhost, which needs no allowlist entry to load, could not save.
+// The scheme is ignored because a TLS-terminating proxy forwards plain HTTP, and
+// the Host itself has already passed RequireAuthDisabledAllowedHost. A matching
+// Origin does not override a cross-site Sec-Fetch-Site the way an allowlisted
+// one does.
+func isSameOrigin(origin, host string) bool {
+	u, err := url.Parse(origin)
+	if err != nil || u.Host == "" {
+		return false
+	}
+
+	return strings.EqualFold(u.Host, host)
 }
 
 // RequireAuthDisabledAllowedHost rejects requests whose Host is not allowed
