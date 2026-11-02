@@ -392,15 +392,18 @@ func TestRejectUntrustedBrowserRequests_AllowsSameOriginWrites(t *testing.T) {
 	// The Host check lets the UI load on an IP or localhost without an allowlist
 	// entry; browsers send Origin on same-origin writes, so saving must work too.
 	tests := []struct {
-		name   string
-		host   string
-		origin string
+		name           string
+		host           string
+		origin         string
+		forwardedProto string
 	}{
 		{name: "localhost", host: "localhost:7474", origin: "http://localhost:7474"},
 		{name: "ipv4", host: "192.168.1.10:7474", origin: "http://192.168.1.10:7474"},
 		{name: "ipv6", host: "[::1]:7474", origin: "http://[::1]:7474"},
 		{name: "case insensitive", host: "LOCALHOST:7474", origin: "http://localhost:7474"},
 		{name: "tls terminated at proxy", host: "autobrr.home.lan", origin: "https://autobrr.home.lan"},
+		{name: "scheme matches forwarded proto", host: "autobrr.home.lan", origin: "https://autobrr.home.lan", forwardedProto: "https"},
+		{name: "first forwarded proto wins", host: "autobrr.home.lan", origin: "https://autobrr.home.lan", forwardedProto: "HTTPS, http"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -409,6 +412,9 @@ func TestRejectUntrustedBrowserRequests_AllowsSameOriginWrites(t *testing.T) {
 			req := httptest.NewRequest(http.MethodPost, "/api/filters", strings.NewReader(`{}`))
 			req.Host = tt.host
 			req.Header.Set("Origin", tt.origin)
+			if tt.forwardedProto != "" {
+				req.Header.Set("X-Forwarded-Proto", tt.forwardedProto)
+			}
 			req.Header.Set("Sec-Fetch-Site", "same-origin")
 			req.Header.Set("Content-Type", "application/json")
 			rr := httptest.NewRecorder()
@@ -422,14 +428,16 @@ func TestRejectUntrustedBrowserRequests_AllowsSameOriginWrites(t *testing.T) {
 
 func TestRejectUntrustedBrowserRequests_BlocksOriginNotMatchingHost(t *testing.T) {
 	tests := []struct {
-		name         string
-		origin       string
-		secFetchSite string
+		name           string
+		origin         string
+		secFetchSite   string
+		forwardedProto string
 	}{
 		{name: "other port", origin: "http://localhost:3000"},
 		{name: "other host", origin: "http://192.168.1.11:7474"},
 		{name: "opaque origin", origin: "null"},
 		{name: "same host but cross-site fetch", origin: "http://localhost:7474", secFetchSite: "cross-site"},
+		{name: "plain http page against https proxy", origin: "http://localhost:7474", forwardedProto: "https"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -440,6 +448,9 @@ func TestRejectUntrustedBrowserRequests_BlocksOriginNotMatchingHost(t *testing.T
 			req.Header.Set("Origin", tt.origin)
 			if tt.secFetchSite != "" {
 				req.Header.Set("Sec-Fetch-Site", tt.secFetchSite)
+			}
+			if tt.forwardedProto != "" {
+				req.Header.Set("X-Forwarded-Proto", tt.forwardedProto)
 			}
 			req.Header.Set("Content-Type", "application/json")
 			rr := httptest.NewRecorder()

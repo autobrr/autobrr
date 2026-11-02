@@ -232,7 +232,7 @@ func (s *Server) RejectUntrustedBrowserRequests(next http.Handler) http.Handler 
 		originAllowed := false
 		if origin := r.Header.Get("Origin"); origin != "" {
 			_, originAllowed = s.authAllowedOrigins[strings.ToLower(origin)]
-			if !originAllowed && !isSameOrigin(origin, r.Host) {
+			if !originAllowed && !isSameOrigin(origin, r) {
 				s.log.Warn().Str("origin", origin).Str("url", r.URL.Path).Msg("auth disabled: rejected request, origin not in corsAllowedOrigins")
 				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 				return
@@ -273,17 +273,25 @@ func (s *Server) RejectUntrustedBrowserRequests(next http.Handler) http.Handler 
 // isSameOrigin reports whether origin names the host the request was sent to.
 // Browsers send Origin on same-origin writes too, so without this the UI reached
 // on an IP or localhost, which needs no allowlist entry to load, could not save.
-// The scheme is ignored because a TLS-terminating proxy forwards plain HTTP, and
-// the Host itself has already passed RequireAuthDisabledAllowedHost. A matching
-// Origin does not override a cross-site Sec-Fetch-Site the way an allowlisted
-// one does.
-func isSameOrigin(origin, host string) bool {
+// The scheme is checked only when a proxy reports it in X-Forwarded-Proto: a
+// TLS-terminating proxy forwards plain HTTP, so without the header the backend
+// cannot tell which scheme the browser used. The Host itself has already passed
+// RequireAuthDisabledAllowedHost. A matching Origin does not override a
+// cross-site Sec-Fetch-Site the way an allowlisted one does.
+func isSameOrigin(origin string, r *http.Request) bool {
 	u, err := url.Parse(origin)
 	if err != nil || u.Host == "" {
 		return false
 	}
 
-	return strings.EqualFold(u.Host, host)
+	if proto := r.Header.Get("X-Forwarded-Proto"); proto != "" {
+		proto, _, _ = strings.Cut(proto, ",")
+		if !strings.EqualFold(u.Scheme, strings.TrimSpace(proto)) {
+			return false
+		}
+	}
+
+	return strings.EqualFold(u.Host, r.Host)
 }
 
 // RequireAuthDisabledAllowedHost rejects requests whose Host is not allowed
