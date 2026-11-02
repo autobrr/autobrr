@@ -301,9 +301,6 @@ func (s *Server) RestrictAuthDisabledFraming(next http.Handler) http.Handler {
 	})
 }
 
-// LoggerMiddleware logs each request at trace level. Requests whose path exactly
-// matches one of skipPaths (e.g. health-check endpoints) are not logged to keep
-// polling noise out of the logs.
 // RealIPFromTrustedProxies rewrites r.RemoteAddr to the client address from
 // X-Forwarded-For like middleware.RealIP, but only when the TCP peer is a
 // trusted proxy. The chain is read right to left past trusted hops, so a
@@ -348,6 +345,9 @@ func RealIPFromTrustedProxies(trusted []netip.Prefix) func(http.Handler) http.Ha
 	}
 }
 
+// LoggerMiddleware logs each request at trace level. Requests whose path exactly
+// matches one of skipPaths (e.g. health-check endpoints) are not logged to keep
+// polling noise out of the logs.
 func LoggerMiddleware(logger *zerolog.Logger, skipPaths []string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
