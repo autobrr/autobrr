@@ -105,6 +105,8 @@ func TestConfig_ParseAuthAllowedOrigins(t *testing.T) {
 		{"default port of other scheme kept", "https://autobrr.example.com:80", []string{"https://autobrr.example.com:80"}, ""},
 		{"default port dropped from ipv6", "http://[::1]:80", []string{"http://[::1]"}, ""},
 		{"ipv6 literal with port", "https://[::1]:7474", []string{"https://[::1]:7474"}, ""},
+		{"ipv6 literal canonicalized", "https://[0:0:0:0:0:0:0:1]:7474", []string{"https://[::1]:7474"}, ""},
+		{"ipv6 literal lowercased and compressed", "http://[FD00:0:0:0:0:0:0:A]", []string{"http://[fd00::a]"}, ""},
 		{"empty value", "", []string{}, ""},
 		{"bare hostname rejected", "autobrr.example.com", nil, "invalid origin in corsAllowedOrigins: autobrr.example.com"},
 		{"path rejected", "https://autobrr.example.com/api", nil, "invalid origin in corsAllowedOrigins: https://autobrr.example.com/api"},

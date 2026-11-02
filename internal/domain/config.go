@@ -201,11 +201,17 @@ func (c *Config) ParseAuthAllowedOrigins() ([]string, error) {
 			return nil, errors.Wrap(err, "invalid host in corsAllowedOrigins origin: %s", entry)
 		}
 
+		// Browsers send IPv6 literals in canonical form, so [0:0:0:0:0:0:0:1]
+		// must be stored as [::1] to match.
+		host := u.Hostname()
+		if addr, err := netip.ParseAddr(host); err == nil && addr.Is6() {
+			host = "[" + addr.String() + "]"
+		}
+
 		// Browsers omit the scheme's default port from Origin, so an explicit one
 		// would never match.
-		host := u.Host
-		if (u.Scheme == "https" && u.Port() == "443") || (u.Scheme == "http" && u.Port() == "80") {
-			host = strings.TrimSuffix(host, ":"+u.Port())
+		if port := u.Port(); port != "" && !(u.Scheme == "https" && port == "443") && !(u.Scheme == "http" && port == "80") {
+			host += ":" + port
 		}
 
 		origins = append(origins, strings.ToLower(u.Scheme+"://"+host))
