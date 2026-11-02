@@ -34,7 +34,8 @@ import (
 )
 
 type authServiceMock struct {
-	users map[string]*domain.User
+	users    map[string]*domain.User
+	loginErr error
 }
 
 func (a authServiceMock) GetUserCount(ctx context.Context) (int, error) {
@@ -42,13 +43,17 @@ func (a authServiceMock) GetUserCount(ctx context.Context) (int, error) {
 }
 
 func (a authServiceMock) Login(ctx context.Context, username, password string) (*domain.User, error) {
+	if a.loginErr != nil {
+		return nil, a.loginErr
+	}
+
 	u, ok := a.users[username]
 	if !ok {
-		return nil, errors.New("invalid login")
+		return nil, domain.ErrInvalidCredentials
 	}
 
 	if u.Password != password {
-		return nil, errors.New("bad credentials")
+		return nil, domain.ErrInvalidCredentials
 	}
 
 	return u, nil
@@ -760,6 +765,27 @@ func TestAuthHandlerLoginRateLimitIgnoresSpoofedClientHeaders(t *testing.T) {
 		assert.Equal(t, http.StatusTooManyRequests, login(t, handler, proxy, "pass", map[string]string{"X-Forwarded-For": "198.51.100.7"}).Code)
 		assert.Equal(t, http.StatusNoContent, login(t, handler, proxy, "pass", map[string]string{"X-Forwarded-For": "198.51.100.8"}).Code, "a neighbour behind the same proxy is unaffected")
 	})
+}
+
+func TestAuthHandlerLoginOperationalErrorsDoNotCountAsFailures(t *testing.T) {
+	srv := NewServer(Deps{
+		Log:            zerolog.Nop(),
+		Config:         &config.AppConfig{Config: &domain.Config{BaseURL: "/"}},
+		SessionManager: scs.New(),
+	})
+	service := authServiceMock{loginErr: errors.New("database is locked")}
+	handler := newAuthHandler(encoder{}, zerolog.Nop(), srv, srv.config.Config, srv.sessionManager, service, &oidcAuthServiceMock{})
+	router := setupServer(srv)
+	router.Route("/auth", handler.Routes)
+
+	for range loginFailureBurst + 1 {
+		req := httptest.NewRequest(http.MethodPost, "/auth/login", strings.NewReader(`{"username":"test","password":"pass"}`))
+		req.RemoteAddr = "192.0.2.1:1000"
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+
+		assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	}
 }
 
 func TestAuthHandlerLoginStalledBodyDoesNotHoldThrottle(t *testing.T) {

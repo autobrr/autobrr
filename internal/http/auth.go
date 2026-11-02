@@ -151,6 +151,12 @@ func (h *authHandler) login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := h.service.Login(ctx, data.Username, data.Password); err != nil {
+		if !errors.Is(err, domain.ErrInvalidCredentials) {
+			h.log.Error().Err(err).Str("username", data.Username).Str("remote_addr", r.RemoteAddr).Msg("could not check login credentials")
+			h.encoder.StatusError(w, http.StatusInternalServerError, errors.New("could not login"))
+			return
+		}
+
 		h.loginLimiter.record(ip, time.Now())
 		h.log.Error().Err(err).Str("username", data.Username).Str("remote_addr", r.RemoteAddr).Msg("failed login attempt")
 		h.encoder.StatusError(w, http.StatusForbidden, errors.New("could not login: bad credentials"))

@@ -11,6 +11,7 @@ import (
 
 var (
 	ErrRecordNotFound                 = sql.ErrNoRows
+	ErrInvalidCredentials             = errors.New("invalid credentials")
 	ErrUpdateFailed                   = errors.New("update failed")
 	ErrDeleteFailed                   = errors.New("delete failed")
 	ErrNoActiveFiltersFoundForIndexer = errors.New("no active filters found for indexer")
