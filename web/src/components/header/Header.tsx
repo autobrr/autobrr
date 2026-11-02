@@ -38,13 +38,17 @@ export const Header = () => {
         to: loginRoute.id,
       })
     },
-    onError: () => {
-      // Logout 403s while auth is disabled; still clear local state so the UI
-      // can't wedge on a stale session.
-      AuthContext.reset();
-      redirect({
-        to: loginRoute.id,
-      })
+    onError: (error) => {
+      // An expired session is already logged out. Any other failure may have left
+      // the session alive, so keep the user signed in to retry.
+      if (error.message === "Cookie expired or invalid.") {
+        AuthContext.reset();
+        return;
+      }
+
+      toast.custom((toastInstance) => (
+        <Toast type="error" body={error.message} t={toastInstance} />
+      ));
     }
   });
 
