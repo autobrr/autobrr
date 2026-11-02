@@ -18,6 +18,7 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog"
 	"golang.org/x/oauth2"
 )
@@ -88,6 +89,10 @@ func NewOIDCHandler(encoder encoder, log zerolog.Logger, cfg *domain.Config, ses
 const (
 	oidcRequestBurst    = 20
 	oidcRequestInterval = 3 * time.Second
+
+	oidcCallbackLimit   = 4
+	oidcCallbackBacklog = 32
+	oidcProviderTimeout = 30 * time.Second
 )
 
 func (h *OIDCHandler) Routes(r chi.Router) {
@@ -97,7 +102,10 @@ func (h *OIDCHandler) Routes(r chi.Router) {
 	r.Use(newClientRateLimiter(oidcRequestInterval, oidcRequestBurst).Middleware(h.limiterKey))
 
 	r.Get("/config", h.getConfig)
-	r.Get("/callback", h.handleCallback)
+	// The per-client limiter bounds request rate, not concurrent provider calls,
+	// so the callback also gets a global cap; the provider timeout keeps a slow
+	// identity provider from holding a slot indefinitely.
+	r.With(middleware.ThrottleBacklog(oidcCallbackLimit, oidcCallbackBacklog, oidcProviderTimeout)).Get("/callback", h.handleCallback)
 }
 
 func (h *OIDCHandler) getConfig(w http.ResponseWriter, r *http.Request) {
@@ -158,7 +166,10 @@ func (h *OIDCHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 		exchangeOpts = append(exchangeOpts, oauth2.VerifierOption(pkceVerifier))
 	}
 
-	oauth2Token, err := h.oidcService.OAuthExchange(r.Context(), code, exchangeOpts...)
+	providerCtx, cancel := context.WithTimeout(r.Context(), oidcProviderTimeout)
+	defer cancel()
+
+	oauth2Token, err := h.oidcService.OAuthExchange(providerCtx, code, exchangeOpts...)
 	if err != nil {
 		h.log.Error().Err(err).Msg("failed to exchange token")
 		h.encoder.StatusError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to exchange token"))
@@ -172,7 +183,7 @@ func (h *OIDCHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	idToken, err := h.oidcService.VerifyIDToken(r.Context(), rawIDToken)
+	idToken, err := h.oidcService.VerifyIDToken(providerCtx, rawIDToken)
 	if err != nil {
 		h.log.Error().Err(err).Msg("failed to verify ID Token")
 		h.encoder.StatusError(w, http.StatusUnauthorized, errors.Wrap(err, "failed to verify ID Token"))
@@ -186,7 +197,7 @@ func (h *OIDCHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userInfo, err := h.oidcService.UserInfo(r.Context(), oauth2.StaticTokenSource(oauth2Token))
+	userInfo, err := h.oidcService.UserInfo(providerCtx, oauth2.StaticTokenSource(oauth2Token))
 	if err != nil {
 		h.log.Error().Err(err).Msg("failed to get userinfo")
 	}

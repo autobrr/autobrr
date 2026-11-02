@@ -844,3 +844,32 @@ func TestAuthHandlerLoginBodyTooLarge(t *testing.T) {
 
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
 }
+
+type deadlineRecordingOIDCMock struct {
+	*oidcAuthServiceMock
+	deadline time.Time
+}
+
+func (o *deadlineRecordingOIDCMock) OAuthExchange(ctx context.Context, code string, opts ...oauth2.AuthCodeOption) (*oauth2.Token, error) {
+	o.deadline, _ = ctx.Deadline()
+
+	return nil, errors.New("provider unavailable")
+}
+
+func TestOIDCHandlerCallbackBoundsProviderCalls(t *testing.T) {
+	sm := scs.New()
+	service := &deadlineRecordingOIDCMock{oidcAuthServiceMock: &oidcAuthServiceMock{}}
+	h := NewOIDCHandler(encoder{}, zerolog.Nop(), &domain.Config{}, sm, service, func(r *http.Request) string { return "" })
+
+	ctx, err := sm.Load(t.Context(), "")
+	require.NoError(t, err)
+	sm.Put(ctx, "oidc_state", "state")
+
+	req := httptest.NewRequest(http.MethodGet, "/callback?state=state&code=code", nil).WithContext(ctx)
+	rec := httptest.NewRecorder()
+	h.handleCallback(rec, req)
+
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	require.False(t, service.deadline.IsZero(), "provider call must carry a deadline")
+	assert.WithinDuration(t, time.Now().Add(oidcProviderTimeout), service.deadline, 5*time.Second)
+}
