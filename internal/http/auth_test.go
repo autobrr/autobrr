@@ -10,12 +10,14 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/domain"
@@ -641,4 +643,61 @@ func TestAuthHandlerLoginRateLimitsFailures(t *testing.T) {
 	assert.NotEmpty(t, rec.Header().Get("Retry-After"))
 
 	assert.Equal(t, http.StatusNoContent, login("192.0.2.2:1000", "pass").Code, "other clients can still log in")
+}
+
+func TestAuthHandlerLoginStalledBodyDoesNotHoldThrottle(t *testing.T) {
+	srv := NewServer(Deps{
+		Log:            zerolog.Nop(),
+		Config:         &config.AppConfig{Config: &domain.Config{BaseURL: "/"}},
+		SessionManager: scs.New(),
+	})
+	service := authServiceMock{users: map[string]*domain.User{
+		"test": {Username: "test", Password: "pass"},
+	}}
+	handler := newAuthHandler(encoder{}, zerolog.Nop(), srv, srv.config.Config, srv.sessionManager, service, &oidcAuthServiceMock{})
+	router := setupServer(srv)
+	router.Route("/auth", handler.Routes)
+
+	testServer := runTestServer(router)
+	defer testServer.Close()
+
+	conn, err := net.Dial("tcp", testServer.Listener.Addr().String())
+	require.NoError(t, err)
+	defer conn.Close()
+
+	_, err = conn.Write([]byte("POST /auth/login HTTP/1.1\r\nHost: autobrr\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\n{"))
+	require.NoError(t, err)
+
+	// Give the server time to route the stalled request into the handler chain.
+	time.Sleep(100 * time.Millisecond)
+
+	client := newHttpTestClient()
+	client.Timeout = 3 * time.Second
+
+	resp, err := client.Post(testServer.URL+"/auth/login", "application/json", strings.NewReader(`{"username":"test","password":"pass"}`))
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
+}
+
+func TestAuthHandlerLoginBodyTooLarge(t *testing.T) {
+	srv := NewServer(Deps{
+		Log:            zerolog.Nop(),
+		Config:         &config.AppConfig{Config: &domain.Config{BaseURL: "/"}},
+		SessionManager: scs.New(),
+	})
+	service := authServiceMock{users: map[string]*domain.User{
+		"test": {Username: "test", Password: "pass"},
+	}}
+	handler := newAuthHandler(encoder{}, zerolog.Nop(), srv, srv.config.Config, srv.sessionManager, service, &oidcAuthServiceMock{})
+	router := setupServer(srv)
+	router.Route("/auth", handler.Routes)
+
+	body := `{"username":"test","password":"pass","padding":"` + strings.Repeat("a", loginBodyLimit) + `"}`
+	req := httptest.NewRequest(http.MethodPost, "/auth/login", strings.NewReader(body))
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
 }

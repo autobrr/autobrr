@@ -4,8 +4,10 @@
 package http
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"time"
 
@@ -44,6 +46,11 @@ const (
 	loginFailureInterval = 20 * time.Second
 )
 
+const (
+	loginBodyLimit       = 4 << 10
+	loginBodyReadTimeout = 10 * time.Second
+)
+
 func newAuthHandler(encoder encoder, log zerolog.Logger, server *Server, config *domain.Config, sessionManager *scs.SessionManager, service authService, oidcService oidcService) *authHandler {
 	h := &authHandler{
 		log:            log,
@@ -67,8 +74,10 @@ func (h *authHandler) Routes(r chi.Router) {
 	// One login at a time bounds argon2 memory (64 MiB per comparison) and makes
 	// the failure limiter's check-then-record in login atomic. The backlog is
 	// deep because rate limited requests are rejected before hashing, so a
-	// guessing client cannot hold the queue and lock everyone else out.
-	r.With(middleware.ThrottleBacklog(1, 64, 10*time.Second)).Post("/login", h.login)
+	// guessing client cannot hold the queue and lock everyone else out. The body
+	// is read before taking the slot, otherwise a client that stalls mid-body
+	// holds it indefinitely.
+	r.With(h.bufferLoginBody, middleware.ThrottleBacklog(1, 64, 10*time.Second)).Post("/login", h.login)
 	r.Post("/onboard", h.onboard)
 	r.Get("/onboard", h.canOnboard)
 
@@ -94,6 +103,30 @@ func (h *authHandler) rejectIfAuthDisabled(w http.ResponseWriter) bool {
 		return true
 	}
 	return false
+}
+
+// bufferLoginBody reads the whole request body into memory under a size and
+// time bound. The read deadline is cleared only on success, because a deadline
+// left on the connection cancels the request context mid-handler. On failure it
+// must stay expired: net/http drains the unread body before writing the
+// response, and without a deadline that drain blocks on a stalled client.
+func (h *authHandler) bufferLoginBody(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rc := http.NewResponseController(w)
+		_ = rc.SetReadDeadline(time.Now().Add(loginBodyReadTimeout))
+
+		body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, loginBodyLimit))
+		if err != nil {
+			h.encoder.StatusError(w, http.StatusBadRequest, errors.Wrap(err, "could not read request body"))
+			return
+		}
+
+		_ = rc.SetReadDeadline(time.Time{})
+
+		r.Body = io.NopCloser(bytes.NewReader(body))
+
+		next.ServeHTTP(w, r)
+	})
 }
 
 func (h *authHandler) login(w http.ResponseWriter, r *http.Request) {
