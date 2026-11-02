@@ -26,6 +26,7 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/alexedwards/scs/v2"
+	"github.com/alexedwards/scs/v2/memstore"
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -599,6 +600,49 @@ func TestRevokeOtherSessions_KeepsCurrentDestroysRest(t *testing.T) {
 	assert.True(t, found)
 
 	for _, token := range []string{other1, other2} {
+		_, found, err := sm.Store.Find(token)
+		assert.NoError(t, err)
+		assert.False(t, found)
+	}
+}
+
+type failingDeleteStore struct {
+	*memstore.MemStore
+	failToken string
+}
+
+func (s *failingDeleteStore) Delete(token string) error {
+	if token == s.failToken {
+		return errors.New("store unavailable")
+	}
+
+	return s.MemStore.Delete(token)
+}
+
+func TestRevokeOtherSessions_ContinuesAfterDestroyFailure(t *testing.T) {
+	store := &failingDeleteStore{MemStore: memstore.New()}
+	sm := scs.New()
+	sm.Store = store
+
+	current := newSessionToken(t, sm)
+	failing := newSessionToken(t, sm)
+	others := []string{newSessionToken(t, sm), newSessionToken(t, sm), newSessionToken(t, sm)}
+	store.failToken = failing
+
+	h := &authHandler{log: zerolog.Nop(), sessionManager: sm}
+
+	ctx, err := sm.Load(context.Background(), current)
+	require.NoError(t, err)
+
+	h.revokeOtherSessions(ctx)
+
+	for _, token := range []string{current, failing} {
+		_, found, err := sm.Store.Find(token)
+		assert.NoError(t, err)
+		assert.True(t, found)
+	}
+
+	for _, token := range others {
 		_, found, err := sm.Store.Find(token)
 		assert.NoError(t, err)
 		assert.False(t, found)

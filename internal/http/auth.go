@@ -304,7 +304,9 @@ func (h *authHandler) updateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // revokeOtherSessions destroys every session except the current one, so a
-// password change invalidates sessions an attacker may already hold.
+// password change invalidates sessions an attacker may already hold. Iterate
+// stops at the first callback error, so a failed Destroy is logged and
+// swallowed to keep the remaining sessions from surviving.
 func (h *authHandler) revokeOtherSessions(ctx context.Context) {
 	currentToken := h.sessionManager.Token(ctx)
 
@@ -313,7 +315,11 @@ func (h *authHandler) revokeOtherSessions(ctx context.Context) {
 			return nil
 		}
 
-		return h.sessionManager.Destroy(sessionCtx)
+		if err := h.sessionManager.Destroy(sessionCtx); err != nil {
+			h.log.Error().Err(err).Msg("could not destroy session after password change")
+		}
+
+		return nil
 	}); err != nil {
 		h.log.Error().Err(err).Msg("could not revoke other sessions after password change")
 	}
