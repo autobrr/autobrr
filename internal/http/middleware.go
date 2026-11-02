@@ -4,6 +4,7 @@
 package http
 
 import (
+	"context"
 	"fmt"
 	"mime"
 	"net"
@@ -138,6 +139,44 @@ func (s *Server) isHealthCheckRequest(r *http.Request) bool {
 	return slices.Contains(s.healthCheckPaths, r.URL.Path)
 }
 
+type peerAddrKey struct{}
+
+// StorePeerAddr saves the TCP peer that opened the connection in the request
+// context. It must run before RealIP, which rewrites r.RemoteAddr from headers
+// any peer may send, so that limiters can still key on who really connected.
+func StorePeerAddr(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if addr, ok := parsePeerAddr(r.RemoteAddr); ok {
+			r = r.WithContext(context.WithValue(r.Context(), peerAddrKey{}, addr))
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func peerAddrFromContext(ctx context.Context) (netip.Addr, bool) {
+	addr, ok := ctx.Value(peerAddrKey{}).(netip.Addr)
+
+	return addr, ok
+}
+
+// parsePeerAddr parses a host:port or bare host remote address, with
+// IPv4-mapped IPv6 unmapped and any IPv6 zone stripped so the address compares
+// consistently against configured prefixes.
+func parsePeerAddr(remoteAddr string) (netip.Addr, bool) {
+	host, _, err := net.SplitHostPort(remoteAddr)
+	if err != nil {
+		host = remoteAddr
+	}
+
+	addr, err := netip.ParseAddr(host)
+	if err != nil {
+		return netip.Addr{}, false
+	}
+
+	return addr.Unmap().WithZone(""), true
+}
+
 // RequireAuthDisabledIPAllowlist restricts access to authAllowedPeerCIDRs
 // when authentication is disabled. It runs before middleware.RealIP so that
 // X-Forwarded-For/X-Real-IP headers cannot be used to spoof past the restriction -
@@ -149,21 +188,12 @@ func (s *Server) RequireAuthDisabledIPAllowlist(next http.Handler) http.Handler 
 			return
 		}
 
-		host, _, err := net.SplitHostPort(r.RemoteAddr)
-		if err != nil {
-			host = r.RemoteAddr
-		}
-
-		addr, err := netip.ParseAddr(host)
-		if err != nil {
+		addr, ok := parsePeerAddr(r.RemoteAddr)
+		if !ok {
 			s.log.Error().Str("remote_addr", r.RemoteAddr).Msg("auth disabled: could not parse remote address")
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return
 		}
-
-		// Normalize IPv4-mapped IPv6 and strip any IPv6 zone so the peer compares
-		// consistently against the configured prefixes.
-		addr = addr.Unmap().WithZone("")
 
 		if addr.IsLoopback() && s.isHealthCheckRequest(r) {
 			next.ServeHTTP(w, r)
@@ -340,19 +370,8 @@ func RealIPFromTrustedProxies(trusted []netip.Prefix) func(http.Handler) http.Ha
 		}))
 
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			host, _, err := net.SplitHostPort(r.RemoteAddr)
-			if err != nil {
-				host = r.RemoteAddr
-			}
-
-			peer, err := netip.ParseAddr(host)
-			if err != nil {
-				next.ServeHTTP(w, r)
-				return
-			}
-
-			peer = peer.Unmap().WithZone("")
-			if !slices.ContainsFunc(trusted, func(p netip.Prefix) bool { return p.Contains(peer) }) {
+			peer, ok := parsePeerAddr(r.RemoteAddr)
+			if !ok || !isTrustedProxy(trusted, peer) {
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -360,6 +379,10 @@ func RealIPFromTrustedProxies(trusted []netip.Prefix) func(http.Handler) http.Ha
 			rewrite.ServeHTTP(w, r)
 		})
 	}
+}
+
+func isTrustedProxy(trusted []netip.Prefix, peer netip.Addr) bool {
+	return slices.ContainsFunc(trusted, func(p netip.Prefix) bool { return p.Contains(peer) })
 }
 
 // LoggerMiddleware logs each request at trace level. Requests whose path exactly

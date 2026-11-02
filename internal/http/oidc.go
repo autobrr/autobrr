@@ -50,6 +50,7 @@ type OIDCHandler struct {
 	oidcConfig     *OIDCConfig
 	oidcService    oidcService
 	sessionManager *scs.SessionManager
+	limiterKey     func(r *http.Request) string
 }
 
 // OIDCClaims represents the claims returned from the OIDC provider
@@ -63,7 +64,9 @@ type OIDCClaims struct {
 	Picture   string `json:"picture"`
 }
 
-func NewOIDCHandler(encoder encoder, log zerolog.Logger, cfg *domain.Config, sessionManager *scs.SessionManager, service oidcService) *OIDCHandler {
+// NewOIDCHandler builds the OIDC login handler; limiterKey identifies the client
+// its request limiter buckets on.
+func NewOIDCHandler(encoder encoder, log zerolog.Logger, cfg *domain.Config, sessionManager *scs.SessionManager, service oidcService, limiterKey func(r *http.Request) string) *OIDCHandler {
 	return &OIDCHandler{
 		encoder: encoder,
 		log:     log,
@@ -78,6 +81,7 @@ func NewOIDCHandler(encoder encoder, log zerolog.Logger, cfg *domain.Config, ses
 		},
 		oidcService:    service,
 		sessionManager: sessionManager,
+		limiterKey:     limiterKey,
 	}
 }
 
@@ -90,7 +94,7 @@ func (h *OIDCHandler) Routes(r chi.Router) {
 	// Every /config call stores fresh state in a new session and every callback
 	// hits the provider, so bound both per client instead of with a global
 	// throttle that one client could hold to block every OIDC login.
-	r.Use(newClientRateLimiter(oidcRequestInterval, oidcRequestBurst).Middleware)
+	r.Use(newClientRateLimiter(oidcRequestInterval, oidcRequestBurst).Middleware(h.limiterKey))
 
 	r.Get("/config", h.getConfig)
 	r.Get("/callback", h.handleCallback)

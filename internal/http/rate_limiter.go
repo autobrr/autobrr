@@ -14,8 +14,10 @@ import (
 	"golang.org/x/time/rate"
 )
 
-// clientRateLimiter keeps a token bucket per client IP, so one noisy client
-// runs out of attempts without locking out anyone else.
+// clientRateLimiter keeps a token bucket per client, so one noisy client runs
+// out of attempts without locking out anyone else. Callers key it with
+// Server.limiterKey: the TCP peer, or the forwarded client behind a trusted
+// proxy, never an address a client could pick through forwarded headers.
 type clientRateLimiter struct {
 	limit    rate.Limit
 	burst    int
@@ -73,21 +75,24 @@ func (l *clientRateLimiter) reset(ip string) {
 	l.limiters.Delete(ip)
 }
 
-// Middleware rejects requests with a 429 once the client IP is out of tokens.
-func (l *clientRateLimiter) Middleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if wait := l.take(clientIP(r.RemoteAddr), time.Now()); wait > 0 {
-			setRetryAfter(w, wait)
-			http.Error(w, http.StatusText(http.StatusTooManyRequests), http.StatusTooManyRequests)
-			return
-		}
+// Middleware rejects requests with a 429 once the client identified by key is
+// out of tokens.
+func (l *clientRateLimiter) Middleware(key func(r *http.Request) string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if wait := l.take(key(r), time.Now()); wait > 0 {
+				setRetryAfter(w, wait)
+				http.Error(w, http.StatusText(http.StatusTooManyRequests), http.StatusTooManyRequests)
+				return
+			}
 
-		next.ServeHTTP(w, r)
-	})
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
-// clientIP keys limiters on the address without its port, since every new
-// connection from the same client gets a fresh source port.
+// clientIP strips the port from a remote address, since every new connection
+// from the same client gets a fresh source port.
 func clientIP(remoteAddr string) string {
 	host, _, err := net.SplitHostPort(remoteAddr)
 	if err != nil {

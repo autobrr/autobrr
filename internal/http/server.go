@@ -186,6 +186,27 @@ func NewServer(deps Deps) *Server {
 	return srv
 }
 
+// limiterKey returns the address the login and OIDC limiters bucket on: the TCP
+// peer, or the client RealIPFromTrustedProxies resolved when that peer is a
+// trusted proxy. The legacy RealIP rewrites r.RemoteAddr from headers any peer
+// may send, so a rewritten address is never trusted from an unknown peer.
+func (s *Server) limiterKey(r *http.Request) string {
+	peer, ok := peerAddrFromContext(r.Context())
+	if !ok {
+		// Only routers built without StorePeerAddr get here (unit tests), and
+		// those have no RealIP in front, so r.RemoteAddr is still the TCP peer.
+		return clientIP(r.RemoteAddr)
+	}
+
+	if isTrustedProxy(s.trustedProxyPrefixes, peer) {
+		if ip := middleware.GetClientIP(r.Context()); ip != "" {
+			return ip
+		}
+	}
+
+	return peer.String()
+}
+
 // buildAuthAllowlists derives the origin and host allowlists and the
 // frame-ancestors policy enforced while auth is disabled.
 func (s *Server) buildAuthAllowlists() error {
@@ -308,7 +329,9 @@ func (s *Server) Handler() http.Handler {
 
 	r.Use(hlog.NewHandler(s.log))
 	r.Use(hlog.RequestIDHandler("request_id", "X-Request-Id"))
-	// Must run before RealIP so forwarded headers cannot bypass the allowlist.
+	// Both must run before RealIP so forwarded headers can neither bypass the
+	// allowlist nor pick the address the login limiters bucket on.
+	r.Use(StorePeerAddr)
 	r.Use(s.RequireAuthDisabledIPAllowlist)
 	r.Use(s.RequireAuthDisabledAllowedHost)
 	r.Use(s.RestrictAuthDisabledFraming)

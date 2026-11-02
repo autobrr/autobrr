@@ -645,6 +645,79 @@ func TestAuthHandlerLoginRateLimitsFailures(t *testing.T) {
 	assert.Equal(t, http.StatusNoContent, login("192.0.2.2:1000", "pass").Code, "other clients can still log in")
 }
 
+func TestAuthHandlerLoginRateLimitIgnoresSpoofedClientHeaders(t *testing.T) {
+	const (
+		attacker = "203.0.113.9:8888"
+		victim   = "198.51.100.7:9999"
+		proxy    = "10.0.0.1:7777"
+	)
+
+	newHandler := func(t *testing.T, trustedProxies []string) http.Handler {
+		t.Helper()
+
+		srv := NewServer(Deps{
+			Log:            zerolog.Nop(),
+			Config:         &config.AppConfig{Config: &domain.Config{BaseURL: "/", BaseURLModeLegacy: true, TrustedProxies: trustedProxies}},
+			SessionManager: scs.New(),
+			AuthService:    authServiceMock{users: map[string]*domain.User{"test": {Username: "test", Password: "pass"}}},
+			OIDCService:    &oidcAuthServiceMock{},
+		})
+
+		return srv.Handler()
+	}
+
+	login := func(t *testing.T, handler http.Handler, remoteAddr, password string, headers map[string]string) *httptest.ResponseRecorder {
+		t.Helper()
+
+		req := httptest.NewRequest(http.MethodPost, "/api/auth/login", strings.NewReader(`{"username":"test","password":"`+password+`"}`))
+		req.RemoteAddr = remoteAddr
+		for k, v := range headers {
+			req.Header.Set(k, v)
+		}
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+
+		return rec
+	}
+
+	for _, header := range []string{"X-Real-IP", "True-Client-IP", "X-Forwarded-For"} {
+		t.Run("legacy RealIP ignores "+header, func(t *testing.T) {
+			handler := newHandler(t, nil)
+			spoofed := map[string]string{header: "198.51.100.7"}
+
+			for range loginFailureBurst {
+				assert.Equal(t, http.StatusForbidden, login(t, handler, attacker, "wrong", spoofed).Code)
+			}
+
+			assert.Equal(t, http.StatusTooManyRequests, login(t, handler, attacker, "pass", spoofed).Code, "the attacker's own peer address is limited")
+			assert.Equal(t, http.StatusNoContent, login(t, handler, victim, "pass", nil).Code, "the spoofed address can still log in")
+		})
+
+		t.Run("untrusted peer cannot spoof "+header+" past trusted proxies", func(t *testing.T) {
+			handler := newHandler(t, []string{"10.0.0.1"})
+			spoofed := map[string]string{header: "198.51.100.7"}
+
+			for range loginFailureBurst {
+				assert.Equal(t, http.StatusForbidden, login(t, handler, attacker, "wrong", spoofed).Code)
+			}
+
+			assert.Equal(t, http.StatusTooManyRequests, login(t, handler, attacker, "pass", spoofed).Code)
+			assert.Equal(t, http.StatusNoContent, login(t, handler, victim, "pass", nil).Code)
+		})
+	}
+
+	t.Run("clients behind a trusted proxy are limited independently", func(t *testing.T) {
+		handler := newHandler(t, []string{"10.0.0.1"})
+
+		for range loginFailureBurst {
+			assert.Equal(t, http.StatusForbidden, login(t, handler, proxy, "wrong", map[string]string{"X-Forwarded-For": "198.51.100.7"}).Code)
+		}
+
+		assert.Equal(t, http.StatusTooManyRequests, login(t, handler, proxy, "pass", map[string]string{"X-Forwarded-For": "198.51.100.7"}).Code)
+		assert.Equal(t, http.StatusNoContent, login(t, handler, proxy, "pass", map[string]string{"X-Forwarded-For": "198.51.100.8"}).Code, "a neighbour behind the same proxy is unaffected")
+	})
+}
+
 func TestAuthHandlerLoginStalledBodyDoesNotHoldThrottle(t *testing.T) {
 	srv := NewServer(Deps{
 		Log:            zerolog.Nop(),

@@ -39,8 +39,9 @@ type authHandler struct {
 	loginLimiter   *clientRateLimiter
 }
 
-// Only failed logins draw from the per-IP bucket, so someone who knows the
-// password is never locked out by their own logins.
+// Only failed logins draw from the per-client bucket (keyed by
+// Server.limiterKey), so someone who knows the password is never locked out by
+// their own logins.
 const (
 	loginFailureBurst    = 5
 	loginFailureInterval = 20 * time.Second
@@ -64,7 +65,7 @@ func newAuthHandler(encoder encoder, log zerolog.Logger, server *Server, config 
 	}
 
 	if h.oidcService.IsEnabled() {
-		h.oidcHandler = NewOIDCHandler(encoder, log, config, sessionManager, oidcService)
+		h.oidcHandler = NewOIDCHandler(encoder, log, config, sessionManager, oidcService, server.limiterKey)
 	}
 
 	return h
@@ -134,7 +135,7 @@ func (h *authHandler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ip := clientIP(r.RemoteAddr)
+	ip := h.server.limiterKey(r)
 	if wait := h.loginLimiter.retryAfter(ip, time.Now()); wait > 0 {
 		h.log.Error().Str("remote_addr", r.RemoteAddr).Dur("retry_after", wait).Msg("login rate limited after repeated failures")
 		setRetryAfter(w, wait)
