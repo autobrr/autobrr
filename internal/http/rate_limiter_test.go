@@ -97,6 +97,8 @@ func TestServerLimiterKey(t *testing.T) {
 		{"IPv4-mapped peer is unmapped", nil, middleware.RealIP, "[::ffff:203.0.113.9]:8888", nil, "203.0.113.9"},
 		{"untrusted peer keeps its address", []netip.Prefix{netip.MustParsePrefix("10.0.0.1/32")}, RealIPFromTrustedProxies([]netip.Prefix{netip.MustParsePrefix("10.0.0.1/32")}), "203.0.113.9:8888", map[string]string{"X-Forwarded-For": "198.51.100.7"}, "203.0.113.9"},
 		{"trusted proxy resolves the client", []netip.Prefix{netip.MustParsePrefix("10.0.0.1/32")}, RealIPFromTrustedProxies([]netip.Prefix{netip.MustParsePrefix("10.0.0.1/32")}), "10.0.0.1:8888", map[string]string{"X-Forwarded-For": "198.51.100.7"}, "198.51.100.7"},
+		{"IPv6 peer is grouped by /64", nil, middleware.RealIP, "[2001:db8:1:2:aaaa::1]:8888", nil, "2001:db8:1:2::/64"},
+		{"IPv6 client behind a trusted proxy is grouped by /64", []netip.Prefix{netip.MustParsePrefix("10.0.0.1/32")}, RealIPFromTrustedProxies([]netip.Prefix{netip.MustParsePrefix("10.0.0.1/32")}), "10.0.0.1:8888", map[string]string{"X-Forwarded-For": "2001:db8:1:2::77"}, "2001:db8:1:2::/64"},
 		{"trusted proxy without a chain keeps the peer", []netip.Prefix{netip.MustParsePrefix("10.0.0.1/32")}, RealIPFromTrustedProxies([]netip.Prefix{netip.MustParsePrefix("10.0.0.1/32")}), "10.0.0.1:8888", nil, "10.0.0.1"},
 	}
 

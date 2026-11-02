@@ -188,23 +188,27 @@ func NewServer(deps Deps) *Server {
 
 // limiterKey returns the address the login and OIDC limiters bucket on: the TCP
 // peer, or the client RealIPFromTrustedProxies resolved when that peer is a
-// trusted proxy. The legacy RealIP rewrites r.RemoteAddr from headers any peer
+// trusted proxy, with IPv6 grouped by /64. The legacy RealIP rewrites r.RemoteAddr from headers any peer
 // may send, so a rewritten address is never trusted from an unknown peer.
 func (s *Server) limiterKey(r *http.Request) string {
 	peer, ok := peerAddrFromContext(r.Context())
 	if !ok {
 		// Only routers built without StorePeerAddr get here (unit tests), and
 		// those have no RealIP in front, so r.RemoteAddr is still the TCP peer.
+		if addr, ok := parsePeerAddr(r.RemoteAddr); ok {
+			return limiterBucket(addr)
+		}
+
 		return clientIP(r.RemoteAddr)
 	}
 
 	if isTrustedProxy(s.trustedProxyPrefixes, peer) {
-		if ip := middleware.GetClientIP(r.Context()); ip != "" {
-			return ip
+		if client, ok := parsePeerAddr(middleware.GetClientIP(r.Context())); ok {
+			return limiterBucket(client)
 		}
 	}
 
-	return peer.String()
+	return limiterBucket(peer)
 }
 
 // buildAuthAllowlists derives the origin and host allowlists and the

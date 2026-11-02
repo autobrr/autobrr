@@ -7,6 +7,7 @@ import (
 	"math"
 	"net"
 	"net/http"
+	"net/netip"
 	"strconv"
 	"time"
 
@@ -24,15 +25,24 @@ type clientRateLimiter struct {
 	limiters *ttlcache.Cache[string, *rate.Limiter]
 }
 
+// newClientRateLimiter expires a bucket once it has gone untouched for as long
+// as a full refill takes, when it is indistinguishable from a fresh one. That
+// bounds memory by the clients seen per refill window instead of per hour.
 func newClientRateLimiter(interval time.Duration, burst int) *clientRateLimiter {
 	return &clientRateLimiter{
 		limit:    rate.Every(interval),
 		burst:    burst,
-		limiters: ttlcache.New[string, *rate.Limiter](ttlcache.SetDefaultTTL(time.Hour)),
+		limiters: ttlcache.New[string, *rate.Limiter](ttlcache.SetDefaultTTL(time.Duration(burst) * interval)),
 	}
 }
 
+// limiter looks the bucket up with Get first because only Get pushes the
+// expiration forward; a GetOrSet hit would let a drained bucket expire early.
 func (l *clientRateLimiter) limiter(ip string) *rate.Limiter {
+	if limiter, ok := l.limiters.Get(ip); ok {
+		return limiter
+	}
+
 	limiter, _ := l.limiters.GetOrSet(ip, rate.NewLimiter(l.limit, l.burst), ttlcache.DefaultTTL)
 
 	return limiter
@@ -89,6 +99,16 @@ func (l *clientRateLimiter) Middleware(key func(r *http.Request) string) func(ht
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+// limiterBucket groups IPv6 clients by /64, the smallest block an ISP assigns,
+// so one client cannot mint a fresh bucket for every address in its prefix.
+func limiterBucket(addr netip.Addr) string {
+	if addr.Is6() {
+		return netip.PrefixFrom(addr, 64).Masked().String()
+	}
+
+	return addr.String()
 }
 
 // clientIP strips the port from a remote address, since every new connection
