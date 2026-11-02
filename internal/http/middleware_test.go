@@ -483,10 +483,40 @@ func TestRejectUntrustedBrowserRequests_AllowsCrossSiteFetchFromAllowlistedOrigi
 	assert.Equal(t, http.StatusOK, rr.Code)
 }
 
-func TestRejectUntrustedBrowserRequests_AllowsNonCrossSiteFetchValues(t *testing.T) {
-	// "none" is a user-initiated navigation (address bar, bookmark) and
-	// "same-site" covers sibling subdomains; neither is an attack vector here.
-	for _, site := range []string{"same-origin", "same-site", "none"} {
+func TestRejectUntrustedBrowserRequests_BlocksSameSiteSubresource(t *testing.T) {
+	// An <img> on a sibling subdomain carries the proxy's SameSite=Lax cookie and
+	// no Origin; it must not reach state-changing GET routes.
+	s := newAuthDisabledTestServerWithOrigins([]string{"127.0.0.1/32"}, "https://autobrr.example.com")
+
+	req := httptest.NewRequest(http.MethodGet, "/api/webhook/lists/trigger", nil)
+	req.Host = "autobrr.example.com"
+	req.Header.Set("Sec-Fetch-Site", "same-site")
+	req.Header.Set("Sec-Fetch-Dest", "image")
+	rr := httptest.NewRecorder()
+
+	s.RejectUntrustedBrowserRequests(okHandler()).ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusForbidden, rr.Code)
+}
+
+func TestRejectUntrustedBrowserRequests_AllowsSameSiteFetchFromAllowlistedOrigin(t *testing.T) {
+	s := newAuthDisabledTestServerWithOrigins([]string{"127.0.0.1/32"}, "https://autobrr.example.com,https://dash.example.com")
+
+	req := httptest.NewRequest(http.MethodPost, "/api/filters", strings.NewReader(`{}`))
+	req.Host = "autobrr.example.com"
+	req.Header.Set("Origin", "https://dash.example.com")
+	req.Header.Set("Sec-Fetch-Site", "same-site")
+	req.Header.Set("Content-Type", "application/json")
+	rr := httptest.NewRecorder()
+
+	s.RejectUntrustedBrowserRequests(okHandler()).ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
+}
+
+func TestRejectUntrustedBrowserRequests_AllowsSameOriginAndNoneFetchValues(t *testing.T) {
+	// "none" is a user-initiated navigation (address bar, bookmark).
+	for _, site := range []string{"same-origin", "none"} {
 		t.Run(site, func(t *testing.T) {
 			s := newAuthDisabledTestServerWithOrigins([]string{"127.0.0.1/32"}, "https://autobrr.example.com")
 

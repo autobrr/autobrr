@@ -326,7 +326,7 @@ export const APIClient = {
     update: (filter: Filter) => appClient.Put<Filter>(`api/filters/${filter.id}`, {
       body: filter
     }),
-    duplicate: (id: number) => appClient.Get<Filter>(`api/filters/${id}/duplicate`),
+    duplicate: (id: number) => appClient.Post<Filter>(`api/filters/${id}/duplicate`),
     toggleEnable: (id: number, enabled: boolean) => appClient.Put(`api/filters/${id}/enabled`, {
       body: { enabled }
     }),

@@ -212,12 +212,16 @@ func (s *Server) RequireAuthDisabledIPAllowlist(next http.Handler) http.Handler 
 	})
 }
 
-// RejectUntrustedBrowserRequests blocks cross-site browser requests to the API
-// while authentication is disabled. CORS cannot do that: it only controls whether
-// the browser may read the response, and rs/cors invokes the handler regardless of
-// origin, so a cross-site request still executes server-side. Requests without
-// browser markers (curl, API clients) pass untouched. Fetch metadata is absent
-// over plain HTTP, so DNS rebinding is handled by RequireAuthDisabledAllowedHost.
+// RejectUntrustedBrowserRequests blocks cross-site and same-site browser requests
+// to the API while authentication is disabled. CORS cannot do that: it only
+// controls whether the browser may read the response, and rs/cors invokes the
+// handler regardless of origin, so a cross-site request still executes
+// server-side. Same-site is rejected too because a sibling subdomain under the
+// same registrable domain shares the reverse proxy's SameSite=Lax cookie, so an
+// <img> there reaches state-changing GET routes; the UI's own requests are
+// same-origin. Requests without browser markers (curl, API clients) pass
+// untouched. Fetch metadata is absent over plain HTTP, so DNS rebinding is
+// handled by RequireAuthDisabledAllowedHost.
 func (s *Server) RejectUntrustedBrowserRequests(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !s.config.Config.IsAuthDisabled() {
@@ -235,13 +239,15 @@ func (s *Server) RejectUntrustedBrowserRequests(next http.Handler) http.Handler 
 			}
 		}
 
-		// Sec-Fetch-Site covers what Origin cannot: cross-site GET navigations
-		// (links, iframes) carry no Origin header. An allowlisted Origin overrides
-		// it so operators can deliberately grant cross-origin API access via
+		// Sec-Fetch-Site covers what Origin cannot: GET navigations and subresource
+		// loads (links, iframes, <img>) carry no Origin header. same-site is as
+		// hostile as cross-site here: an attacker on a sibling subdomain rides the
+		// proxy's SameSite=Lax cookie. An allowlisted Origin overrides both so
+		// operators can deliberately grant cross-origin API access via
 		// corsAllowedOrigins.
 		secFetchSite := r.Header.Get("Sec-Fetch-Site")
-		if secFetchSite == "cross-site" && !originAllowed {
-			s.log.Warn().Str("url", r.URL.Path).Msg("auth disabled: rejected cross-site browser request")
+		if (secFetchSite == "cross-site" || secFetchSite == "same-site") && !originAllowed {
+			s.log.Warn().Str("sec_fetch_site", secFetchSite).Str("url", r.URL.Path).Msg("auth disabled: rejected browser request from another site")
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return
 		}
