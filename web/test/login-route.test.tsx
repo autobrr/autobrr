@@ -31,10 +31,11 @@ const beforeLoad = async (search: { redirect?: string }) => {
 
 test.each([
   [undefined, "/"],
+  ["/filters", "/filters"],
   ["/filters/12?tab=actions", "/filters/12?tab=actions"],
-  ["https://evil.example/", "/"],
+  ["https://evil.example.com/x", "/"],
   ["//evil.example/", "/"],
-  ["/\\evil.example/", "/"],
+  ["/\\evil.example.com", "/"],
   ["/\t/evil.example", "/"],
   ["//[", "/"]
 ])("auth disabled: redirect %s enters the app at %s", async (redirect, want) => {
@@ -47,6 +48,24 @@ test.each([
     expect(thrown.options.href).toBe(want);
   }
   expect(AuthContext.get()).toMatchObject({ isLoggedIn: true, authMethod: "disabled" });
+});
+
+test("auth disabled: redirect check does not need URL.parse", async () => {
+  vi.spyOn(APIClient.auth, "validate").mockResolvedValue({ username: "admin", auth_method: "disabled" });
+
+  // Browsers before Chrome 126, Firefox 126 and Safari 17.4 have no static URL.parse.
+  const parse = URL.parse;
+  Object.defineProperty(URL, "parse", { value: undefined, configurable: true, writable: true });
+  try {
+    const { thrown } = await beforeLoad({ redirect: "/filters" });
+
+    expect(isRedirect(thrown)).toBe(true);
+    if (isRedirect(thrown)) {
+      expect(thrown.options.href).toBe("/filters");
+    }
+  } finally {
+    Object.defineProperty(URL, "parse", { value: parse, configurable: true, writable: true });
+  }
 });
 
 test("auth enabled without a session renders the login form", async () => {

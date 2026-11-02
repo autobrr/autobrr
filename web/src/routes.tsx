@@ -289,6 +289,20 @@ export const OnboardRoute = createRoute({
   component: lazyRouteComponent(() => import("@screens/auth/Onboarding"), "Onboarding")
 });
 
+// Only same-origin paths. A prefix check is not enough: browsers read "/\evil"
+// and "/\t/evil" as "//evil", another origin.
+const isSameOriginPath = (redirect: string): boolean => {
+  if (!redirect.startsWith("/")) {
+    return false;
+  }
+
+  try {
+    return new URL(redirect, window.location.origin).origin === window.location.origin;
+  } catch {
+    return false;
+  }
+};
+
 export const LoginRoute = createRoute({
   getParentRoute: () => RootRoute,
   path: 'login',
@@ -306,12 +320,7 @@ export const LoginRoute = createRoute({
         authMethod: validation.auth_method
       });
 
-      // Only same-origin paths. A prefix check is not enough: browsers read "/\evil"
-      // and "/\t/evil" as "//evil", another origin.
-      let target = "/";
-      if (search.redirect?.startsWith("/") && URL.parse(search.redirect, window.location.origin)?.origin === window.location.origin) {
-        target = search.redirect;
-      }
+      const target = search.redirect && isSameOriginPath(search.redirect) ? search.redirect : "/";
       throw redirect({ href: target });
     }
 
