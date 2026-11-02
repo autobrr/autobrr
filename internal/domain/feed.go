@@ -52,6 +52,14 @@ func (f Feed) Validate() error {
 		return errors.New("user agent must not contain control characters")
 	}
 
+	if f.Settings != nil {
+		switch f.Settings.ProcessOrder {
+		case "", FeedProcessOrderOldestFirst, FeedProcessOrderNewestFirst:
+		default:
+			return errors.New("invalid process order: %s", f.Settings.ProcessOrder)
+		}
+	}
+
 	return nil
 }
 
@@ -71,19 +79,50 @@ func (f Feed) MarshalJSON() ([]byte, error) {
 type FeedSettingsJSON struct {
 	DownloadType FeedDownloadType `json:"download_type"`
 	CacheTTLDays int              `json:"cache_ttl_days"`
+	MaxPages     int              `json:"max_pages"`
+	ProcessOrder FeedProcessOrder `json:"process_order"`
 }
 
 // DefaultFeedCacheTTLDays is the feed cache item TTL used when a feed has no explicit cache TTL configured.
 const DefaultFeedCacheTTLDays = 31
 
-// CacheTTL returns the expiry time for new feed cache items.
-func (f Feed) CacheTTL() time.Time {
-	days := DefaultFeedCacheTTLDays
+// DefaultFeedPages is the max pages fetched per feed run when none is configured.
+const DefaultFeedPages = 1
+
+// MaxFeedPages caps the per-feed max pages setting.
+const MaxFeedPages = 10
+
+// CacheTTLDays returns the number of days feed cache items are kept.
+func (f Feed) CacheTTLDays() int {
 	if f.Settings != nil && f.Settings.CacheTTLDays > 0 {
-		days = f.Settings.CacheTTLDays
+		return f.Settings.CacheTTLDays
 	}
 
-	return time.Now().AddDate(0, 0, days)
+	return DefaultFeedCacheTTLDays
+}
+
+// CacheTTL returns the expiry time for new feed cache items.
+func (f Feed) CacheTTL() time.Time {
+	return time.Now().AddDate(0, 0, f.CacheTTLDays())
+}
+
+// CacheCoversLastRun reports whether items cached by the last run are still unexpired at now.
+func (f Feed) CacheCoversLastRun(now time.Time) bool {
+	return !f.LastRun.IsZero() && f.LastRun.After(now.AddDate(0, 0, -f.CacheTTLDays()))
+}
+
+// PaginationMaxPages returns the max pages fetched per feed run, clamped to MaxFeedPages.
+func (f Feed) PaginationMaxPages() int {
+	if f.Settings != nil && f.Settings.MaxPages > 0 {
+		return min(f.Settings.MaxPages, MaxFeedPages)
+	}
+
+	return DefaultFeedPages
+}
+
+// ProcessNewestFirst reports whether new items are sent to filters newest first instead of oldest first.
+func (f Feed) ProcessNewestFirst() bool {
+	return f.Settings != nil && f.Settings.ProcessOrder == FeedProcessOrderNewestFirst
 }
 
 type FeedIndexer struct {
@@ -106,6 +145,14 @@ const (
 	FeedDownloadTypeMagnet  FeedDownloadType = "MAGNET"
 	FeedDownloadTypeTorrent FeedDownloadType = "TORRENT"
 	FeedDownloadTypeNzb     FeedDownloadType = "NZB"
+)
+
+// FeedProcessOrder is the order new feed items are sent to filters in; empty means oldest first.
+type FeedProcessOrder string
+
+const (
+	FeedProcessOrderOldestFirst FeedProcessOrder = "OLDEST_FIRST"
+	FeedProcessOrderNewestFirst FeedProcessOrder = "NEWEST_FIRST"
 )
 
 type FeedCacheItem struct {

@@ -50,6 +50,7 @@ irc:
         - NB
       parse:
         type: single
+        sizeunits: binary
         lines:
           - pattern: 'Ny torrent: (?P<releaseName>.*) :: Kategori: (?P<category>.*) :: Scene: (?P<scene>.*) :: St.+rrelse: (?P<torrentSize>.*) :: (?P<baseUrl>https?\:\/\/[^\/]+\/).*[\?]id=(?P<torrentId>\d+)'
             tests:
