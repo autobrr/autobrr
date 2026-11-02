@@ -33,7 +33,10 @@ test.each([
   [undefined, "/"],
   ["/filters/12?tab=actions", "/filters/12?tab=actions"],
   ["https://evil.example/", "/"],
-  ["//evil.example/", "/"]
+  ["//evil.example/", "/"],
+  ["/\\evil.example/", "/"],
+  ["/\t/evil.example", "/"],
+  ["//[", "/"]
 ])("auth disabled: redirect %s enters the app at %s", async (redirect, want) => {
   vi.spyOn(APIClient.auth, "validate").mockResolvedValue({ username: "admin", auth_method: "disabled" });
 

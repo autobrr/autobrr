@@ -306,8 +306,12 @@ export const LoginRoute = createRoute({
         authMethod: validation.auth_method
       });
 
-      // Only same-app paths; an absolute href would make this an open redirect.
-      const target = search.redirect?.startsWith("/") && !search.redirect.startsWith("//") ? search.redirect : "/";
+      // Only same-origin paths. A prefix check is not enough: browsers read "/\evil"
+      // and "/\t/evil" as "//evil", another origin.
+      let target = "/";
+      if (search.redirect?.startsWith("/") && URL.parse(search.redirect, window.location.origin)?.origin === window.location.origin) {
+        target = search.redirect;
+      }
       throw redirect({ href: target });
     }
 
