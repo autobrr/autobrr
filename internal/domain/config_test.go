@@ -104,10 +104,16 @@ func TestConfig_ParseAuthAllowedOrigins(t *testing.T) {
 		{"default http port dropped", "http://nas:80", []string{"http://nas"}, ""},
 		{"default port of other scheme kept", "https://autobrr.example.com:80", []string{"https://autobrr.example.com:80"}, ""},
 		{"default port dropped from ipv6", "http://[::1]:80", []string{"http://[::1]"}, ""},
+		{"ipv6 literal with port", "https://[::1]:7474", []string{"https://[::1]:7474"}, ""},
 		{"empty value", "", []string{}, ""},
 		{"bare hostname rejected", "autobrr.example.com", nil, "invalid origin in corsAllowedOrigins: autobrr.example.com"},
 		{"path rejected", "https://autobrr.example.com/api", nil, "invalid origin in corsAllowedOrigins: https://autobrr.example.com/api"},
-		{"wildcard rejected", "*", nil, "invalid origin in corsAllowedOrigins: *"},
+		{"userinfo rejected", "https://admin@autobrr.example.com", nil, "invalid origin in corsAllowedOrigins: https://admin@autobrr.example.com"},
+		{"wildcard rejected", "*", nil, "wildcard origin in corsAllowedOrigins: * is not supported while authentication is disabled"},
+		{"wildcard subdomain rejected", "https://*.example.com", nil, "wildcard origin in corsAllowedOrigins: https://*.example.com is not supported while authentication is disabled"},
+		{"port out of range rejected", "https://autobrr.example.com:99999", nil, "invalid host in corsAllowedOrigins origin: https://autobrr.example.com:99999: invalid port: 99999"},
+		{"non-numeric port rejected", "https://autobrr.example.com:abc", nil, "invalid origin in corsAllowedOrigins: https://autobrr.example.com:abc"},
+		{"invalid hostname character rejected", "https://autobrr_example.com!", nil, "invalid host in corsAllowedOrigins origin: https://autobrr_example.com!"},
 	}
 
 	for _, tt := range tests {
@@ -219,7 +225,7 @@ func TestConfig_ValidateAuthDisabledConfig(t *testing.T) {
 			AuthAllowedPeerCIDRs:        []string{"127.0.0.1/32"},
 			CorsAllowedOrigins:          "*",
 		}
-		assert.EqualError(t, c.ValidateAuthDisabledConfig(), "corsAllowedOrigins must not contain a wildcard \"*\" when authentication is disabled")
+		assert.EqualError(t, c.ValidateAuthDisabledConfig(), "wildcard origin in corsAllowedOrigins: * is not supported while authentication is disabled")
 	})
 
 	t.Run("auth disabled with wildcard hidden in a cors list is rejected", func(t *testing.T) {
@@ -227,9 +233,29 @@ func TestConfig_ValidateAuthDisabledConfig(t *testing.T) {
 			AuthDisabled:                true,
 			AuthDisabledAcknowledgement: AuthDisabledAcknowledgementValue,
 			AuthAllowedPeerCIDRs:        []string{"127.0.0.1/32"},
-			CorsAllowedOrigins:          "*,https://autobrr.example.com",
+			CorsAllowedOrigins:          "https://autobrr.example.com,*",
 		}
-		assert.EqualError(t, c.ValidateAuthDisabledConfig(), "corsAllowedOrigins must not contain a wildcard \"*\" when authentication is disabled")
+		assert.EqualError(t, c.ValidateAuthDisabledConfig(), "wildcard origin in corsAllowedOrigins: * is not supported while authentication is disabled")
+	})
+
+	t.Run("auth disabled with wildcard subdomain cors origin is rejected", func(t *testing.T) {
+		c := &Config{
+			AuthDisabled:                true,
+			AuthDisabledAcknowledgement: AuthDisabledAcknowledgementValue,
+			AuthAllowedPeerCIDRs:        []string{"127.0.0.1/32"},
+			CorsAllowedOrigins:          "https://*.example.com",
+		}
+		assert.EqualError(t, c.ValidateAuthDisabledConfig(), "wildcard origin in corsAllowedOrigins: https://*.example.com is not supported while authentication is disabled")
+	})
+
+	t.Run("auth disabled with out-of-range cors origin port is rejected", func(t *testing.T) {
+		c := &Config{
+			AuthDisabled:                true,
+			AuthDisabledAcknowledgement: AuthDisabledAcknowledgementValue,
+			AuthAllowedPeerCIDRs:        []string{"127.0.0.1/32"},
+			CorsAllowedOrigins:          "https://autobrr.example.com:99999",
+		}
+		assert.ErrorContains(t, c.ValidateAuthDisabledConfig(), "invalid host in corsAllowedOrigins origin: https://autobrr.example.com:99999")
 	})
 
 	t.Run("auth disabled with malformed cors origin is rejected", func(t *testing.T) {

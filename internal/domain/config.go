@@ -171,7 +171,8 @@ func parsePeerPrefixes(entries []string, field string) ([]netip.Prefix, error) {
 // scheme://host[:port] origin values, dropping the scheme's default port. While
 // authentication is disabled the configured origins are enforced server-side
 // against the Origin and Host of browser requests, so every entry must be a real
-// origin: no wildcard, no bare hostname, no path.
+// origin: no wildcard, no bare hostname, no path, and a host that passes
+// NormalizeHost so it can feed the Host allowlist.
 func (c *Config) ParseAuthAllowedOrigins() ([]string, error) {
 	origins := make([]string, 0)
 
@@ -181,6 +182,12 @@ func (c *Config) ParseAuthAllowedOrigins() ([]string, error) {
 			continue
 		}
 
+		// rs/cors accepts https://*.example.com, but the same list is matched
+		// literally against Origin and Host here, so a wildcard can never match.
+		if strings.Contains(entry, "*") {
+			return nil, errors.New("wildcard origin in corsAllowedOrigins: %s is not supported while authentication is disabled", entry)
+		}
+
 		u, err := url.Parse(entry)
 		if err != nil {
 			return nil, errors.Wrap(err, "invalid origin in corsAllowedOrigins: %s", entry)
@@ -188,6 +195,10 @@ func (c *Config) ParseAuthAllowedOrigins() ([]string, error) {
 
 		if (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" || u.User != nil || (u.Path != "" && u.Path != "/") || u.RawQuery != "" || u.Fragment != "" {
 			return nil, errors.New("invalid origin in corsAllowedOrigins: %s (expected http(s)://host[:port])", entry)
+		}
+
+		if _, err := NormalizeHost(u.Host); err != nil {
+			return nil, errors.Wrap(err, "invalid host in corsAllowedOrigins origin: %s", entry)
 		}
 
 		// Browsers omit the scheme's default port from Origin, so an explicit one
@@ -294,12 +305,6 @@ func (c *Config) ValidateAuthDisabledConfig() error {
 	// Host of browser requests are enforced against them server-side, so they must
 	// be explicit, valid origins - a wildcard would let any website script the API
 	// from an allowlisted browser.
-	for origin := range strings.SplitSeq(c.CorsAllowedOrigins, ",") {
-		if strings.TrimSpace(origin) == "*" {
-			return errors.New("corsAllowedOrigins must not contain a wildcard \"*\" when authentication is disabled")
-		}
-	}
-
 	origins, err := c.ParseAuthAllowedOrigins()
 	if err != nil {
 		return err
