@@ -810,6 +810,13 @@ func TestOIDCCallbackAllowedUser(t *testing.T) {
 			wantStatus:   http.StatusBadGateway,
 		},
 		{
+			name:         "userinfo failure with a verified non-matching ID token email",
+			allowedEmail: "me@example.com",
+			claims:       map[string]any{"sub": "abc-123", "email": "other@example.com", "email_verified": true},
+			userInfoErr:  errors.New("provider unavailable: internal.example.lan"),
+			wantStatus:   http.StatusBadGateway,
+		},
+		{
 			name:           "userinfo failure does not affect subject setting",
 			allowedSubject: "abc-123",
 			claims:         map[string]any{"sub": "intruder"},
@@ -838,6 +845,7 @@ func TestOIDCCallbackAllowedUser(t *testing.T) {
 			require.Equal(t, tt.wantStatus, rec.Code, rec.Body.String())
 			if tt.userInfoErr != nil {
 				assert.NotContains(t, rec.Body.String(), tt.userInfoErr.Error(), "provider errors stay in the log")
+				assert.NotContains(t, rec.Body.String(), "internal.example.lan", "provider host stays in the log")
 			}
 
 			ctx := flow.session(t)
