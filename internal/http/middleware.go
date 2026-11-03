@@ -4,11 +4,19 @@
 package http
 
 import (
+	"context"
 	"fmt"
+	"mime"
+	"net"
 	"net/http"
+	"net/netip"
+	"net/url"
 	"runtime/debug"
+	"slices"
 	"strings"
 	"time"
+
+	"github.com/autobrr/autobrr/internal/domain"
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog"
@@ -70,6 +78,11 @@ func (s *secureSessionResponseWriter) Unwrap() http.ResponseWriter {
 
 func (s *Server) IsAuthenticated(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if s.config.Config.IsAuthDisabled() {
+			next.ServeHTTP(w, r)
+			return
+		}
+
 		if token := r.Header.Get("X-API-Token"); token != "" {
 			// check header
 			if !s.apiService.ValidateAPIKey(r.Context(), token) {
@@ -91,6 +104,9 @@ func (s *Server) IsAuthenticated(next http.Handler) http.Handler {
 				if err := s.sessionManager.Destroy(r.Context()); err != nil {
 					s.log.Error().Err(err).Msg("failed to destroy session")
 				}
+				// 403 on purpose, never 401: a 401 makes browsers holding cached
+				// reverse-proxy Basic Auth credentials treat them as invalid and
+				// re-prompt, breaking those setups
 				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 				return
 			}
@@ -111,7 +127,282 @@ func (s *Server) IsAuthenticated(next http.Handler) http.Handler {
 	})
 }
 
-func LoggerMiddleware(logger *zerolog.Logger) func(next http.Handler) http.Handler {
+// isHealthCheckRequest reports whether r is a GET/HEAD to one of the built-in
+// health endpoints (matched by exact resolved path, base URL included). Those are
+// allowed from loopback even when the peer is not in authAllowedPeerCIDRs,
+// so container/orchestrator health checks on the same host keep working.
+func (s *Server) isHealthCheckRequest(r *http.Request) bool {
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		return false
+	}
+
+	return slices.Contains(s.healthCheckPaths, r.URL.Path)
+}
+
+type peerAddrKey struct{}
+
+// StorePeerAddr saves the TCP peer that opened the connection in the request
+// context. It must run before RealIP, which rewrites r.RemoteAddr from headers
+// any peer may send, so that limiters can still key on who really connected.
+func StorePeerAddr(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if addr, ok := parsePeerAddr(r.RemoteAddr); ok {
+			r = r.WithContext(context.WithValue(r.Context(), peerAddrKey{}, addr))
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func peerAddrFromContext(ctx context.Context) (netip.Addr, bool) {
+	addr, ok := ctx.Value(peerAddrKey{}).(netip.Addr)
+
+	return addr, ok
+}
+
+// parsePeerAddr parses a host:port or bare host remote address, with
+// IPv4-mapped IPv6 unmapped and any IPv6 zone stripped so the address compares
+// consistently against configured prefixes.
+func parsePeerAddr(remoteAddr string) (netip.Addr, bool) {
+	host, _, err := net.SplitHostPort(remoteAddr)
+	if err != nil {
+		host = remoteAddr
+	}
+
+	addr, err := netip.ParseAddr(host)
+	if err != nil {
+		return netip.Addr{}, false
+	}
+
+	return addr.Unmap().WithZone(""), true
+}
+
+// RequireAuthDisabledIPAllowlist restricts access to authAllowedPeerCIDRs
+// when authentication is disabled. It runs before middleware.RealIP so that
+// X-Forwarded-For/X-Real-IP headers cannot be used to spoof past the restriction -
+// it always checks the real TCP peer that opened the connection.
+func (s *Server) RequireAuthDisabledIPAllowlist(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !s.config.Config.IsAuthDisabled() {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		addr, ok := parsePeerAddr(r.RemoteAddr)
+		if !ok {
+			s.log.Error().Str("remote_addr", r.RemoteAddr).Msg("auth disabled: could not parse remote address")
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+			return
+		}
+
+		if addr.IsLoopback() && s.isHealthCheckRequest(r) {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		for _, prefix := range s.authAllowedPeerPrefixes {
+			if prefix.Contains(addr) {
+				next.ServeHTTP(w, r)
+				return
+			}
+		}
+
+		s.log.Warn().Str("peer_ip", addr.String()).Msg("auth disabled: rejected request, peer not in authAllowedPeerCIDRs")
+		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+	})
+}
+
+// RejectUntrustedBrowserRequests blocks cross-site and same-site browser requests
+// to the API while authentication is disabled. CORS cannot do that: it only
+// controls whether the browser may read the response, and rs/cors invokes the
+// handler regardless of origin, so a cross-site request still executes
+// server-side. Same-site is rejected too because a sibling subdomain under the
+// same registrable domain shares the reverse proxy's SameSite=Lax cookie, so an
+// <img> there reaches state-changing GET routes; the UI's own requests are
+// same-origin. Requests without browser markers (curl, API clients) pass
+// untouched. Fetch metadata is absent over plain HTTP, so DNS rebinding is
+// handled by RequireAuthDisabledAllowedHost.
+func (s *Server) RejectUntrustedBrowserRequests(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !s.config.Config.IsAuthDisabled() {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		originAllowed := false
+		if origin := r.Header.Get("Origin"); origin != "" {
+			_, originAllowed = s.authAllowedOrigins[strings.ToLower(origin)]
+			if !originAllowed && !isSameOrigin(origin, r) {
+				s.log.Warn().Str("origin", origin).Str("url", r.URL.Path).Msg("auth disabled: rejected request, origin not in corsAllowedOrigins")
+				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+				return
+			}
+		}
+
+		// Sec-Fetch-Site covers what Origin cannot: GET navigations and subresource
+		// loads (links, iframes, <img>) carry no Origin header. same-site is as
+		// hostile as cross-site here: an attacker on a sibling subdomain rides the
+		// proxy's SameSite=Lax cookie. An allowlisted Origin overrides both so
+		// operators can deliberately grant cross-origin API access via
+		// corsAllowedOrigins.
+		secFetchSite := r.Header.Get("Sec-Fetch-Site")
+		if (secFetchSite == "cross-site" || secFetchSite == "same-site") && !originAllowed {
+			s.log.Warn().Str("sec_fetch_site", secFetchSite).Str("url", r.URL.Path).Msg("auth disabled: rejected browser request from another site")
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+			return
+		}
+
+		switch r.Method {
+		case http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete:
+			// A cross-site HTML form can submit JSON inside a text/plain body with
+			// no preflight; requiring the JSON media type on mutations closes that
+			// for browsers that predate Origin and Sec-Fetch.
+			if r.ContentLength != 0 {
+				if mt, _, err := mime.ParseMediaType(r.Header.Get("Content-Type")); err != nil || mt != "application/json" {
+					s.log.Warn().Str("content_type", r.Header.Get("Content-Type")).Str("url", r.URL.Path).Msg("auth disabled: rejected mutation, content type must be application/json")
+					http.Error(w, http.StatusText(http.StatusUnsupportedMediaType), http.StatusUnsupportedMediaType)
+					return
+				}
+			}
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+// isSameOrigin reports whether origin names the host the request was sent to.
+// Browsers send Origin on same-origin writes too, so without this the UI reached
+// on an IP or localhost, which needs no allowlist entry to load, could not save.
+// The scheme is checked only when a proxy reports it in X-Forwarded-Proto: a
+// TLS-terminating proxy forwards plain HTTP, so without the header the backend
+// cannot tell which scheme the browser used. The Host itself has already passed
+// RequireAuthDisabledAllowedHost. A matching Origin does not override a
+// cross-site Sec-Fetch-Site the way an allowlisted one does.
+func isSameOrigin(origin string, r *http.Request) bool {
+	u, err := url.Parse(origin)
+	if err != nil || u.Host == "" {
+		return false
+	}
+
+	if proto := r.Header.Get("X-Forwarded-Proto"); proto != "" {
+		proto, _, _ = strings.Cut(proto, ",")
+		if !strings.EqualFold(u.Scheme, strings.TrimSpace(proto)) {
+			return false
+		}
+	}
+
+	return strings.EqualFold(u.Host, r.Host)
+}
+
+// RequireAuthDisabledAllowedHost rejects requests whose Host is not allowed
+// while authentication is disabled. A DNS-rebound browser is an allowlisted peer
+// sending a same-origin request; only the Host header gives it away, and over
+// plain HTTP it carries neither Origin nor Sec-Fetch-Site, so every request is
+// checked regardless of browser markers.
+func (s *Server) RequireAuthDisabledAllowedHost(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !s.config.Config.IsAuthDisabled() {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		if !s.isAllowedHost(r.Host) {
+			s.log.Error().Str("host", r.Host).Str("url", r.URL.Path).Msg("auth disabled: rejected request, host not in authAllowedHosts or corsAllowedOrigins")
+			// The peer already passed the IP allowlist, so this is almost always a
+			// trusted client on an unlisted hostname; naming the fix beats a bare
+			// Forbidden page, and a rebinding attacker learns nothing new from it.
+			http.Error(w, "Forbidden: this hostname is not allowed while authentication is disabled, add it to authAllowedHosts in config.toml", http.StatusForbidden)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+// isAllowedHost reports whether host is an IP literal, localhost, or a host from
+// authAllowedHosts, corsAllowedOrigins or the machine hostname. Rebinding needs a
+// DNS name the attacker controls, which rules out the first two.
+func (s *Server) isAllowedHost(host string) bool {
+	host, err := domain.NormalizeHost(host)
+	if err != nil {
+		return false
+	}
+
+	if _, err := netip.ParseAddr(host); err == nil {
+		return true
+	}
+
+	if host == "localhost" || strings.HasSuffix(host, ".localhost") {
+		return true
+	}
+
+	_, ok := s.authAllowedHosts[host]
+
+	return ok
+}
+
+// RestrictAuthDisabledFraming limits which sites may frame autobrr while
+// authentication is disabled. With auth on, the SameSite=Lax session cookie
+// keeps a cross-site frame logged out; with auth off, any framing site would get
+// a fully working UI to clickjack.
+func (s *Server) RestrictAuthDisabledFraming(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !s.config.Config.IsAuthDisabled() {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		policy := s.authFrameAncestors
+		if policy == "" {
+			policy = "frame-ancestors 'self'"
+		}
+		w.Header().Set("Content-Security-Policy", policy)
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+// RealIPFromTrustedProxies rewrites r.RemoteAddr to the client address from
+// X-Forwarded-For like middleware.RealIP, but only when the TCP peer is a
+// trusted proxy. The chain is read right to left past trusted hops, so a
+// client cannot pick its own address by sending the header itself.
+func RealIPFromTrustedProxies(trusted []netip.Prefix) func(http.Handler) http.Handler {
+	prefixes := make([]string, 0, len(trusted))
+	for _, p := range trusted {
+		prefixes = append(prefixes, p.String())
+	}
+
+	fromXFF := middleware.ClientIPFromXFF(prefixes...)
+
+	return func(next http.Handler) http.Handler {
+		rewrite := fromXFF(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if ip := middleware.GetClientIP(r.Context()); ip != "" {
+				r.RemoteAddr = ip
+			}
+
+			next.ServeHTTP(w, r)
+		}))
+
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			peer, ok := parsePeerAddr(r.RemoteAddr)
+			if !ok || !isTrustedProxy(trusted, peer) {
+				next.ServeHTTP(w, r)
+				return
+			}
+
+			rewrite.ServeHTTP(w, r)
+		})
+	}
+}
+
+func isTrustedProxy(trusted []netip.Prefix, peer netip.Addr) bool {
+	return slices.ContainsFunc(trusted, func(p netip.Prefix) bool { return p.Contains(peer) })
+}
+
+// LoggerMiddleware logs each request at trace level. Requests whose path exactly
+// matches one of skipPaths (e.g. health-check endpoints) are not logged to keep
+// polling noise out of the logs.
+func LoggerMiddleware(logger *zerolog.Logger, skipPaths []string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			// the hlog ctx logger carries the request_id field; fall back if
@@ -138,13 +429,20 @@ func LoggerMiddleware(logger *zerolog.Logger) func(next http.Handler) http.Handl
 					http.Error(ww, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				}
 
-				if !strings.Contains("/api/healthz/liveness|/api/healthz/readiness", r.URL.Path) {
+				if !slices.Contains(skipPaths, r.URL.Path) {
+					// prefer the client IP a ClientIPFrom* middleware resolved from a
+					// trusted header; RemoteAddr otherwise (RealIP-rewritten when active).
+					remoteIP := r.RemoteAddr
+					if ip := middleware.GetClientIP(r.Context()); ip != "" {
+						remoteIP = ip
+					}
+
 					// log end request
 					log.Trace().
 						Str("type", "access").
 						Timestamp().
 						Fields(map[string]any{
-							"remote_ip":  r.RemoteAddr,
+							"remote_ip":  remoteIP,
 							"url":        r.URL.Path,
 							"proto":      r.Proto,
 							"method":     r.Method,

@@ -11,6 +11,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 
+	"github.com/alphadose/haxmap"
 	"github.com/rs/zerolog"
 )
 
@@ -25,28 +26,18 @@ type Service struct {
 	log  zerolog.Logger
 	repo repo
 
-	keyCache map[string]domain.APIKey
+	keyCache *haxmap.Map[string, domain.APIKey]
 }
 
 func NewService(log zerolog.Logger, repo repo) *Service {
 	return &Service{
 		log:      log.With().Str("module", "api").Logger(),
 		repo:     repo,
-		keyCache: map[string]domain.APIKey{},
+		keyCache: haxmap.New[string, domain.APIKey](),
 	}
 }
 
 func (s *Service) List(ctx context.Context) ([]domain.APIKey, error) {
-	if len(s.keyCache) > 0 {
-		keys := make([]domain.APIKey, 0, len(s.keyCache))
-
-		for _, key := range s.keyCache {
-			keys = append(keys, key)
-		}
-
-		return keys, nil
-	}
-
 	return s.repo.GetAllAPIKeys(ctx)
 }
 
@@ -57,10 +48,7 @@ func (s *Service) Store(ctx context.Context, apiKey *domain.APIKey) error {
 		return err
 	}
 
-	if len(s.keyCache) > 0 {
-		// set new apiKey
-		s.keyCache[apiKey.Key] = *apiKey
-	}
+	s.keyCache.Set(apiKey.Key, *apiKey)
 
 	return nil
 }
@@ -76,27 +64,23 @@ func (s *Service) Delete(ctx context.Context, key string) error {
 		return errors.Wrap(err, "could not delete api key: %s", key)
 	}
 
-	// remove key from cache
-	delete(s.keyCache, key)
+	s.keyCache.Del(key)
 
 	return nil
 }
 
 func (s *Service) ValidateAPIKey(ctx context.Context, key string) bool {
-	if _, ok := s.keyCache[key]; ok {
-		s.log.Trace().Str("api_key", key).Msg("cache hit")
+	if _, ok := s.keyCache.Get(key); ok {
 		return true
 	}
 
 	apiKey, err := s.repo.GetKey(ctx, key)
 	if err != nil {
-		s.log.Trace().Str("api_key", key).Msg("cache invalid key")
+		s.log.Trace().Msg("invalid api key")
 		return false
 	}
 
-	s.log.Trace().Str("api_key", key).Msg("cache miss")
-
-	s.keyCache[key] = *apiKey
+	s.keyCache.Set(key, *apiKey)
 
 	return true
 }

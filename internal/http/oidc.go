@@ -51,6 +51,7 @@ type OIDCHandler struct {
 	oidcConfig     *OIDCConfig
 	oidcService    oidcService
 	sessionManager *scs.SessionManager
+	limiterKey     func(r *http.Request) string
 }
 
 // OIDCClaims represents the claims returned from the OIDC provider
@@ -64,7 +65,9 @@ type OIDCClaims struct {
 	Picture   string `json:"picture"`
 }
 
-func NewOIDCHandler(encoder encoder, log zerolog.Logger, cfg *domain.Config, sessionManager *scs.SessionManager, service oidcService) *OIDCHandler {
+// NewOIDCHandler builds the OIDC login handler; limiterKey identifies the client
+// its request limiter buckets on.
+func NewOIDCHandler(encoder encoder, log zerolog.Logger, cfg *domain.Config, sessionManager *scs.SessionManager, service oidcService, limiterKey func(r *http.Request) string) *OIDCHandler {
 	return &OIDCHandler{
 		encoder: encoder,
 		log:     log,
@@ -79,14 +82,30 @@ func NewOIDCHandler(encoder encoder, log zerolog.Logger, cfg *domain.Config, ses
 		},
 		oidcService:    service,
 		sessionManager: sessionManager,
+		limiterKey:     limiterKey,
 	}
 }
 
+const (
+	oidcRequestBurst    = 20
+	oidcRequestInterval = 3 * time.Second
+
+	oidcCallbackLimit   = 4
+	oidcCallbackBacklog = 32
+	oidcProviderTimeout = 30 * time.Second
+)
+
 func (h *OIDCHandler) Routes(r chi.Router) {
-	r.Use(middleware.ThrottleBacklog(1, 1, time.Second))
+	// Every /config call stores fresh state in a new session and every callback
+	// hits the provider, so bound both per client instead of with a global
+	// throttle that one client could hold to block every OIDC login.
+	r.Use(newClientRateLimiter(oidcRequestInterval, oidcRequestBurst).Middleware(h.limiterKey))
 
 	r.Get("/config", h.getConfig)
-	r.Get("/callback", h.handleCallback)
+	// The per-client limiter bounds request rate, not concurrent provider calls,
+	// so the callback also gets a global cap; the provider timeout keeps a slow
+	// identity provider from holding a slot indefinitely.
+	r.With(middleware.ThrottleBacklog(oidcCallbackLimit, oidcCallbackBacklog, oidcProviderTimeout)).Get("/callback", h.handleCallback)
 }
 
 func (h *OIDCHandler) getConfig(w http.ResponseWriter, r *http.Request) {
@@ -148,7 +167,10 @@ func (h *OIDCHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 		exchangeOpts = append(exchangeOpts, oauth2.VerifierOption(pkceVerifier))
 	}
 
-	oauth2Token, err := h.oidcService.OAuthExchange(r.Context(), code, exchangeOpts...)
+	providerCtx, cancel := context.WithTimeout(r.Context(), oidcProviderTimeout)
+	defer cancel()
+
+	oauth2Token, err := h.oidcService.OAuthExchange(providerCtx, code, exchangeOpts...)
 	if err != nil {
 		h.log.Error().Err(err).Msg("failed to exchange token")
 		h.encoder.StatusError(w, http.StatusInternalServerError, errors.Wrap(err, "failed to exchange token"))
@@ -162,7 +184,7 @@ func (h *OIDCHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	idToken, err := h.oidcService.VerifyIDToken(r.Context(), rawIDToken)
+	idToken, err := h.oidcService.VerifyIDToken(providerCtx, rawIDToken)
 	if err != nil {
 		h.log.Error().Err(err).Msg("failed to verify ID Token")
 		h.encoder.StatusError(w, http.StatusUnauthorized, errors.Wrap(err, "failed to verify ID Token"))
@@ -176,7 +198,7 @@ func (h *OIDCHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userInfo, err := h.oidcService.UserInfo(r.Context(), oauth2.StaticTokenSource(oauth2Token))
+	userInfo, err := h.oidcService.UserInfo(providerCtx, oauth2.StaticTokenSource(oauth2Token))
 	if err != nil {
 		h.log.Error().Err(err).Msg("failed to get userinfo")
 	}
