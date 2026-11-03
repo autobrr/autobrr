@@ -114,6 +114,12 @@ const (
 
 	oidcLoginTimeout      = 30 * time.Minute
 	oidcStateCookiePrefix = "autobrr_oidc_"
+
+	// /config is public, so these bound what unauthenticated callers can make the
+	// server hold: per-client rate limits do not cap clients spread over many
+	// addresses, and a return page would otherwise only be limited by the header size.
+	oidcMaxPendingLogins  = 1024
+	oidcMaxRedirectLength = 2048
 )
 
 func (h *OIDCHandler) Routes(r chi.Router) {
@@ -157,7 +163,7 @@ func (h *OIDCHandler) getConfig(w http.ResponseWriter, r *http.Request) {
 	h.log.Debug().Bool("enabled", config.Enabled).Str("authorization_url", config.AuthorizationURL).Str("state", config.State).Msg("returning OIDC config")
 
 	login := pendingOIDCLogin{verifier: config.PKCEVerifier}
-	if target := r.URL.Query().Get("redirect"); target != "" && isRedirectUnderBase(target, h.config.BaseURL) {
+	if target := r.URL.Query().Get("redirect"); target != "" && len(target) <= oidcMaxRedirectLength && isRedirectUnderBase(target, h.config.BaseURL) {
 		login.target = target
 	}
 
@@ -391,11 +397,39 @@ func (h *OIDCHandler) GetConfigResponse() GetConfigResponse {
 // several tabs log in at once: their first requests carry no session cookie, so
 // each would start its own session and only the last cookie set would survive.
 func (h *OIDCHandler) startLogin(w http.ResponseWriter, r *http.Request, state string, login pendingOIDCLogin) {
+	h.m.Lock()
+	h.evictOldestLoginIfFull()
 	h.pendingLogins.Set(state, login, ttlcache.DefaultTTL)
+	h.m.Unlock()
 
 	http.SetCookie(w, h.stateCookie(r, state, int(oidcLoginTimeout.Seconds())))
 
 	h.log.Debug().Str("state", state).Msg("started OIDC login")
+}
+
+// evictOldestLoginIfFull drops the login closest to expiry once the store is full.
+// Evicting costs that login a retry; refusing new logins instead would let anyone
+// who can reach /config block every login. Callers hold h.m.
+func (h *OIDCHandler) evictOldestLoginIfFull() {
+	keys := h.pendingLogins.GetKeys()
+	if len(keys) < oidcMaxPendingLogins {
+		return
+	}
+
+	var oldest string
+	var oldestExpiry time.Time
+	for _, key := range keys {
+		item, ok := h.pendingLogins.GetItem(key)
+		if !ok {
+			continue
+		}
+		if oldest == "" || item.GetTime().Before(oldestExpiry) {
+			oldest, oldestExpiry = key, item.GetTime()
+		}
+	}
+
+	h.pendingLogins.Delete(oldest)
+	h.log.Warn().Int("pending_logins", len(keys)).Msg("too many pending OIDC logins, dropped the oldest")
 }
 
 // finishLogin returns the pending login for state when this browser started it.
@@ -443,7 +477,14 @@ func (h *OIDCHandler) stateCookie(r *http.Request, state string, maxAge int) *ht
 // provider sends the browser to the configured redirect URL, so its path is the
 // one the callback arrives on, including any reverse proxy prefix.
 func (h *OIDCHandler) stateCookiePath() string {
-	if u, err := url.Parse(h.config.OIDCRedirectURL); err == nil && u.Path != "" {
+	basePath := h.sessionManager.Cookie.Path
+	if !strings.HasSuffix(basePath, "/") {
+		basePath += "/"
+	}
+
+	// A redirect URL outside the base URL only works if a proxy forwards or
+	// redirects it into autobrr, and a redirect would leave the narrow path behind.
+	if u, err := url.Parse(h.config.OIDCRedirectURL); err == nil && strings.HasPrefix(u.Path, basePath) {
 		return u.Path
 	}
 

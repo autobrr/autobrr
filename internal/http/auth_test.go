@@ -894,9 +894,7 @@ func TestOIDCHandlerProviderUnavailable(t *testing.T) {
 	assert.Empty(t, config.State)
 	assert.Equal(t, "https://auth.example.com", config.IssuerURL)
 	assert.Empty(t, h.pendingLogins.GetKeys())
-	for _, c := range rec.Result().Cookies() {
-		assert.NotContains(t, c.Name, oidcStateCookiePrefix)
-	}
+	assert.Empty(t, rec.Result().Cookies())
 
 	rec = httptest.NewRecorder()
 	h.handleCallback(rec, httptest.NewRequest(http.MethodGet, "/callback?state=state&code=code", nil))

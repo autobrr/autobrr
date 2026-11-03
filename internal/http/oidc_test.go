@@ -13,6 +13,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -127,6 +128,7 @@ func TestOIDCConfigStoresRedirect(t *testing.T) {
 		{name: "outside base URL", baseURL: "/autobrr/", redirect: "/filters/12"},
 		{name: "other origin", baseURL: "/", redirect: "https://evil.example/"},
 		{name: "no redirect", baseURL: "/"},
+		{name: "redirect longer than the limit", baseURL: "/", redirect: "/filters?q=" + strings.Repeat("a", oidcMaxRedirectLength)},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
@@ -184,6 +186,7 @@ func TestIsRedirectUnderBase(t *testing.T) {
 // and claims decoding instead of stubs.
 type oidcProviderMock struct {
 	oidcConfigServiceMock
+	t        *testing.T
 	key      *rsa.PrivateKey
 	verifier *oidc.IDTokenVerifier
 	tokenURL string
@@ -200,6 +203,7 @@ func newOIDCProviderMock(t *testing.T) *oidcProviderMock {
 
 	p := &oidcProviderMock{
 		oidcConfigServiceMock: oidcConfigServiceMock{pkce: true},
+		t:                     t,
 		key:                   key,
 		verifier:              oidc.NewVerifier(oidcTestIssuer, &oidc.StaticKeySet{PublicKeys: []crypto.PublicKey{&key.PublicKey}}, &oidc.Config{ClientID: "autobrr"}),
 		codeVerifiers:         map[string]string{},
@@ -229,10 +233,11 @@ func (p *oidcProviderMock) token(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]any{"access_token": "access-token", "token_type": "Bearer", "id_token": idToken})
+	if err := json.NewEncoder(w).Encode(map[string]any{"access_token": "access-token", "token_type": "Bearer", "id_token": idToken}); err != nil {
+		p.t.Errorf("could not write token response: %v", err)
+	}
 }
 
-// codeVerifier returns the code_verifier the token endpoint received for code.
 func (p *oidcProviderMock) codeVerifier(code string) string {
 	p.m.Lock()
 	defer p.m.Unlock()
@@ -402,14 +407,22 @@ func TestOIDCCallbackSendsPKCEVerifier(t *testing.T) {
 func TestOIDCCallbackConcurrentLogins(t *testing.T) {
 	t.Parallel()
 	flow := newOIDCLoginFlow(t, "/autobrr/")
-	filters, _ := flow.start(t, "/autobrr/filters")
-	releases, _ := flow.start(t, "/autobrr/releases")
-	settings, _ := flow.start(t, "/autobrr/settings")
+	filters, filtersURL := flow.start(t, "/autobrr/filters")
+	releases, releasesURL := flow.start(t, "/autobrr/releases")
+	settings, settingsURL := flow.start(t, "/autobrr/settings")
+	challenges := map[string]string{
+		filters:  filtersURL.Query().Get("code_challenge"),
+		releases: releasesURL.Query().Get("code_challenge"),
+		settings: settingsURL.Query().Get("code_challenge"),
+	}
 
 	for state, want := range map[string]string{releases: "/autobrr/releases", settings: "/autobrr/settings", filters: "/autobrr/filters"} {
 		rec := flow.callback(t, state)
 		require.Equal(t, http.StatusFound, rec.Code, rec.Body.String())
 		assert.Equal(t, want, rec.Header().Get("Location"))
+
+		sum := sha256.Sum256([]byte(flow.provider.codeVerifier("code-" + state)))
+		assert.Equal(t, challenges[state], base64.RawURLEncoding.EncodeToString(sum[:]))
 	}
 }
 
@@ -543,4 +556,45 @@ func TestOIDCFinishLoginTakesStateOnce(t *testing.T) {
 	wg.Wait()
 
 	assert.Equal(t, int32(1), taken.Load())
+}
+
+func TestOIDCPendingLoginsAreCapped(t *testing.T) {
+	t.Parallel()
+	flow := newOIDCLoginFlow(t, "/")
+	first, _ := flow.start(t, "")
+
+	for i := range oidcMaxPendingLogins {
+		req := httptest.NewRequest(http.MethodGet, "/config", nil)
+		flow.handler.startLogin(httptest.NewRecorder(), req, fmt.Sprintf("state-%d", i), pendingOIDCLogin{})
+	}
+
+	assert.Len(t, flow.handler.pendingLogins.GetKeys(), oidcMaxPendingLogins)
+	_, kept := flow.handler.pendingLogins.Get(first)
+	assert.False(t, kept, "the oldest login is evicted first")
+	_, kept = flow.handler.pendingLogins.Get(fmt.Sprintf("state-%d", oidcMaxPendingLogins-1))
+	assert.True(t, kept)
+}
+
+func TestOIDCStateCookiePath(t *testing.T) {
+	t.Parallel()
+	for _, tt := range []struct {
+		name        string
+		baseURL     string
+		redirectURL string
+		want        string
+	}{
+		{name: "callback under base URL", baseURL: "/autobrr/", redirectURL: "https://autobrr.example.com/autobrr/api/auth/oidc/callback", want: "/autobrr/api/auth/oidc/callback"},
+		{name: "callback at root", baseURL: "/", redirectURL: "https://autobrr.example.com/api/auth/oidc/callback", want: "/api/auth/oidc/callback"},
+		{name: "callback outside base URL", baseURL: "/autobrr/", redirectURL: "https://autobrr.example.com/oidc/callback", want: "/autobrr/"},
+		{name: "base URL without trailing slash", baseURL: "/autobrr", redirectURL: "https://autobrr.example.com/autobrrx/callback", want: "/autobrr"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			sessions := scs.New()
+			sessions.Cookie.Path = tt.baseURL
+			handler := NewOIDCHandler(encoder{}, zerolog.Nop(), &domain.Config{OIDCEnabled: true, BaseURL: tt.baseURL, OIDCRedirectURL: tt.redirectURL}, sessions, &oidcConfigServiceMock{}, func(*http.Request) string { return "" })
+
+			assert.Equal(t, tt.want, handler.stateCookiePath())
+		})
+	}
 }
