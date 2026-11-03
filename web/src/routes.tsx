@@ -33,7 +33,7 @@ import {
 } from "@api/queries";
 import { RingResizeSpinner } from "@components/Icons";
 import { AuthContext } from "@utils/Context";
-import { consumeLoggedOut } from "@utils/logout";
+import { claimAutoRedirect, consumeLoggedOut } from "@utils/autoLogin";
 import { queryClient } from "@api/QueryClient";
 
 import { ErrorPage } from "@components/alerts";
@@ -347,7 +347,10 @@ export const LoginRoute = createRoute({
       // autoRedirect=false keeps the login page reachable when the provider is down,
       // and lets logout stay logged out while the provider session is still active.
       if (oidcConfig.autoRedirect && search.autoRedirect !== false && oidcConfig.authorizationUrl && !preload) {
-        throw redirect({ href: oidcConfig.authorizationUrl, reloadDocument: true });
+        if (claimAutoRedirect()) {
+          throw redirect({ href: oidcConfig.authorizationUrl, reloadDocument: true });
+        }
+        console.warn("automatic OIDC login did not create a session, showing the login page");
       }
       return;
     }

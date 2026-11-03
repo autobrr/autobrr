@@ -17,7 +17,7 @@ import { RightNav } from "./RightNav";
 import { MobileNav } from "./MobileNav";
 import { useInboxEvents } from "@hooks/useInbox";
 import { AuthContext } from "@utils/Context";
-import { markLoggedOut } from "@utils/logout";
+import { markLoggedOut } from "@utils/autoLogin";
 import { InboxMenu } from "./InboxMenu";
 import { AlertBanner } from "./AlertBanner";
 

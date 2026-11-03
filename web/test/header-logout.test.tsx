@@ -13,7 +13,7 @@ import "@app/i18n";
 import { APIClient } from "@api/APIClient";
 import { AuthenticatedLayout } from "@components/layouts";
 import { AuthContext } from "@utils/Context";
-import { consumeLoggedOut } from "@utils/logout";
+import { consumeLoggedOut } from "@utils/autoLogin";
 
 vi.mock("@hooks/useInbox", () => ({ useInboxEvents: () => {} }));
 vi.mock("@components/header/InboxMenu", () => ({ InboxMenu: () => null }));

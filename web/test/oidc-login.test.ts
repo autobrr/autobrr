@@ -9,10 +9,11 @@ import { afterEach, expect, test, vi } from "vitest";
 import { APIClient } from "@api/APIClient";
 import { AuthKeys } from "@api/query_keys";
 import { LoginRoute, OnboardRoute, Router } from "@app/routes";
-import { consumeLoggedOut, markLoggedOut } from "@utils/logout";
+import { claimAutoRedirect, consumeLoggedOut, markLoggedOut } from "@utils/autoLogin";
 
 afterEach(() => {
   vi.restoreAllMocks();
+  sessionStorage.clear();
 });
 
 const config = {
@@ -108,6 +109,26 @@ test("preloading the login route keeps a pending logout", async () => {
 
   await expect(loadLogin(new QueryClient(), true).result).resolves.toBeUndefined();
   expect(consumeLoggedOut()).toBe(true);
+});
+
+test("returning without a session right after an automatic login shows the login page", async () => {
+  vi.spyOn(APIClient.auth, "getOIDCConfig").mockResolvedValue(config);
+  vi.spyOn(console, "warn").mockImplementation(() => {});
+  const now = vi.spyOn(Date, "now").mockReturnValue(1_000_000);
+
+  await expect(loadLogin().result).rejects.toMatchObject({ options: { href: config.authorizationUrl } });
+  now.mockReturnValue(1_000_000 + 5_000);
+  await expect(loadLogin().result).resolves.toBeUndefined();
+
+  now.mockReturnValue(1_000_000 + 60_000);
+  await expect(loadLogin().result).rejects.toMatchObject({ options: { href: config.authorizationUrl } });
+});
+
+test("an automatic login that never ran does not hold back the next one", async () => {
+  vi.spyOn(APIClient.auth, "getOIDCConfig").mockResolvedValue({ ...config, autoRedirect: false });
+  await loadLogin().result;
+
+  expect(claimAutoRedirect()).toBe(true);
 });
 
 test("login fetches fresh authorization state after a session changes", async () => {
