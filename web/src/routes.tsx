@@ -33,6 +33,7 @@ import {
 } from "@api/queries";
 import { RingResizeSpinner } from "@components/Icons";
 import { AuthContext } from "@utils/Context";
+import { claimAutoRedirect, consumeLoggedOut } from "@utils/autoLogin";
 import { queryClient } from "@api/QueryClient";
 
 import { ErrorPage } from "@components/alerts";
@@ -308,8 +309,9 @@ export const LoginRoute = createRoute({
   path: 'login',
   validateSearch: z.object({
     redirect: z.optional(z.string()),
+    autoRedirect: z.catch(z.optional(z.boolean()), undefined),
   }),
-  beforeLoad: async ({ context, navigate, search }) => {
+  beforeLoad: async ({ context, navigate, preload, search }) => {
     // With built-in auth disabled there is nothing to log in to, so bookmarks and
     // stale tabs on /login continue into the app instead of a form that always fails.
     const validation = await APIClient.auth.validate().catch(() => undefined);
@@ -324,17 +326,41 @@ export const LoginRoute = createRoute({
       throw redirect({ href: target });
     }
 
-    // First check if OIDC is enabled
+    // A preload must not fetch the OIDC config: each fetch replaces the state of a
+    // login that may be pending. beforeLoad runs again on the real navigation.
+    if (preload) {
+      return;
+    }
+
+    if (consumeLoggedOut() && search.autoRedirect !== false) {
+      throw redirect({ to: LoginRoute.to, search: { ...search, autoRedirect: false }, replace: true });
+    }
+
+    let oidcConfig;
     try {
-      const oidcConfig = await context.queryClient.query({ ...OIDCConfigQueryOptions(), staleTime: "static" });
-      if (oidcConfig.enabled) {
-        return;
-      }
+      // Each login needs an authorization URL whose state belongs to the current session.
+      const target = search.redirect && isSameOriginPath(search.redirect) ? search.redirect : undefined;
+      oidcConfig = await context.queryClient.query({
+        ...OIDCConfigQueryOptions(),
+        queryFn: () => APIClient.auth.getOIDCConfig(target),
+        staleTime: 0
+      });
     } catch (error) {
       console.debug("Failed to get OIDC config, proceeding with onboarding check:", error);
     }
 
-    // Only check onboarding if OIDC is not enabled
+    if (oidcConfig?.enabled) {
+      // autoRedirect=false keeps the login page reachable when the provider is down,
+      // and lets logout stay logged out while the provider session is still active.
+      if (oidcConfig.autoRedirect && search.autoRedirect !== false && oidcConfig.authorizationUrl) {
+        if (claimAutoRedirect()) {
+          throw redirect({ href: oidcConfig.authorizationUrl, reloadDocument: true });
+        }
+        return { autoLoginFailed: true };
+      }
+      return;
+    }
+
     const canOnboard = await context.queryClient.query({ ...CanOnboardQueryOptions(), staleTime: "static" });
     if (canOnboard) {
       console.info("onboarding available, redirecting");
@@ -374,7 +400,7 @@ export const AuthRoute = createRoute({
         throw redirect({
           to: LoginRoute.to,
           search: {
-            redirect: location.href,
+            redirect: location.publicHref,
           },
         });
       }
@@ -417,7 +443,7 @@ export const AuthRoute = createRoute({
           throw redirect({
             to: LoginRoute.to,
             search: {
-              redirect: location.href,
+              redirect: location.publicHref,
             },
           });
         }

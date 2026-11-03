@@ -18,6 +18,7 @@ import toast from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { Tooltip } from "@components/tooltips/Tooltip";
 import { OpenIdIcon } from "@components/Icons";
+import { WarningAlert } from "@components/alerts";
 
 import Logo from "@app/logo.svg?react";
 import { AuthContext, AuthInfo } from "@utils/Context";
@@ -44,6 +45,7 @@ export const Login = () => {
 
     const loginRoute = getRouteApi('/login');
     const search = loginRoute.useSearch();
+    const autoLoginFailed = loginRoute.useRouteContext({ select: (context) => "autoLoginFailed" in context && context.autoLoginFailed });
 
     const {data: canOnboard} = useQuery(CanOnboardQueryOptions());
     const {data: oidcConfig} = useQuery(OIDCConfigQueryOptions());
@@ -137,6 +139,9 @@ export const Login = () => {
             {/* Wait for OIDC config to load before rendering any login forms */}
             {typeof oidcConfig !== 'undefined' && (
                 <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-[480px]">
+                    {autoLoginFailed && (
+                        <WarningAlert className="mb-6" text={t("errors.autoLoginFailed")}/>
+                    )}
                     <div className={`px-6 ${(!canOnboard && (!oidcConfig?.enabled || !oidcConfig?.disableBuiltInLogin)) ? 'py-12 bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg sm:px-12 border border-gray-150 dark:border-gray-775' : ''}`}>
                         {/* Built-in login form */}
                         {!canOnboard && (!oidcConfig?.enabled || !oidcConfig?.disableBuiltInLogin) && (

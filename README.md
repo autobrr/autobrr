@@ -344,6 +344,7 @@ The following environment variables can be used:
 | `AUTOBRR__OIDC_CLIENT_SECRET`            | OIDC client secret                                                                                            | -           |
 | `AUTOBRR__OIDC_REDIRECT_URL`             | OIDC callback URL                                                                                             | -           |
 | `AUTOBRR__OIDC_DISABLE_BUILT_IN_LOGIN`   | Disable login form (only works when using external auth)                                                      | `false`     |
+| `AUTOBRR__OIDC_AUTO_REDIRECT`            | Redirect unauthenticated visitors to the OIDC provider                                                        | `false`     |
 | `AUTOBRR__CORS_ALLOWED_ORIGINS`          | Allowed CORS origins, comma separated. Required when auth is disabled                                         | -           |
 | `AUTOBRR__AUTH_DISABLED`                 | Disable built-in authentication (see [Disabling built-in authentication](#disabling-built-in-authentication)) | `false`     |
 | `AUTOBRR__AUTH_DISABLED_ACKNOWLEDGEMENT` | Must be set to the acknowledgement value from the [docs](https://autobrr.com/configuration/authentication#disable-authentication) | -           |
@@ -358,6 +359,14 @@ The following environment variables can be used:
 | `AUTOBRR__PROFILING_ENABLED`             | Enable profiling                                                                                              | `false`     |
 | `AUTOBRR__PROFILING_HOST`                | Profiling listen address                                                                                      | `127.0.0.1` |
 | `AUTOBRR__PROFILING_PORT`                | Profiling listen port                                                                                         | `6060`      |
+
+#### Automatic OIDC login
+
+With OIDC configured, set `AUTOBRR__OIDC_AUTO_REDIRECT=true` to send unauthenticated visitors directly to your provider's login page. OIDC must be enabled with either `AUTOBRR__OIDC_ENABLED=true` or `oidcEnabled = true` in `config.toml`. You can also set `oidcAutoRedirect = true` in `config.toml`. Restart autobrr after changing the setting. After the provider login, autobrr returns you to the page you were trying to open.
+
+The default is `false`, which keeps the login page and its OpenID Connect button. `AUTOBRR__OIDC_DISABLE_BUILT_IN_LOGIN` separately controls whether the password form appears.
+
+To reach the login page while automatic redirection is on, for example when the provider is down, open `/login?autoRedirect=false` (under your base URL, if you set one). Signing out of autobrr also lands there, so an active provider session does not sign you straight back in.
 
 #### Docker secrets
 

@@ -16,6 +16,7 @@ import toast from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { OpenIdIcon } from "@components/Icons";
 import { AuthContext } from "@utils/Context";
+import { markLoggedOut } from "@utils/autoLogin";
 
 const AccountSettings = () => {
   const { t } = useTranslation("settings");
@@ -60,6 +61,7 @@ function Credentials() {
   const logoutMutation = useMutation({
     mutationFn: APIClient.auth.logout,
     onSuccess: () => {
+      markLoggedOut();
       AuthContext.reset();
 
       toast.custom((tst) => (

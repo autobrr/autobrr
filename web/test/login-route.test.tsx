@@ -70,7 +70,7 @@ test("auth disabled: redirect check does not need URL.parse", async () => {
 
 test("auth enabled without a session renders the login form", async () => {
   vi.spyOn(APIClient.auth, "validate").mockRejectedValue(new Error("Forbidden"));
-  vi.spyOn(APIClient.auth, "getOIDCConfig").mockResolvedValue({ enabled: false, authorizationUrl: "", state: "", disableBuiltInLogin: false, issuerUrl: "" });
+  vi.spyOn(APIClient.auth, "getOIDCConfig").mockResolvedValue({ enabled: false, autoRedirect: false, authorizationUrl: "", state: "", disableBuiltInLogin: false, issuerUrl: "" });
   vi.spyOn(APIClient.auth, "canOnboard").mockRejectedValue(new Error("Forbidden"));
 
   const { thrown, navigate } = await beforeLoad({ redirect: "/filters" });
