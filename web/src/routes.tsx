@@ -350,7 +350,7 @@ export const LoginRoute = createRoute({
         if (claimAutoRedirect()) {
           throw redirect({ href: oidcConfig.authorizationUrl, reloadDocument: true });
         }
-        console.warn("automatic OIDC login did not create a session, showing the login page");
+        return { autoLoginFailed: true };
       }
       return;
     }

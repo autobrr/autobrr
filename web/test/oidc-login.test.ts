@@ -113,12 +113,11 @@ test("preloading the login route keeps a pending logout", async () => {
 
 test("returning without a session right after an automatic login shows the login page", async () => {
   vi.spyOn(APIClient.auth, "getOIDCConfig").mockResolvedValue(config);
-  vi.spyOn(console, "warn").mockImplementation(() => {});
   const now = vi.spyOn(Date, "now").mockReturnValue(1_000_000);
 
   await expect(loadLogin().result).rejects.toMatchObject({ options: { href: config.authorizationUrl } });
   now.mockReturnValue(1_000_000 + 5_000);
-  await expect(loadLogin().result).resolves.toBeUndefined();
+  await expect(loadLogin().result).resolves.toEqual({ autoLoginFailed: true });
 
   now.mockReturnValue(1_000_000 + 60_000);
   await expect(loadLogin().result).rejects.toMatchObject({ options: { href: config.authorizationUrl } });
