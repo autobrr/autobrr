@@ -21,6 +21,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -38,9 +39,10 @@ const (
 // oidcCallbackServiceMock verifies real RS256 ID tokens against a static key, so
 // the callback runs go-oidc's verification without a provider to talk to.
 type oidcCallbackServiceMock struct {
-	verifier *oidc.IDTokenVerifier
-	idToken  string
-	userInfo *oidc.UserInfo
+	verifier    *oidc.IDTokenVerifier
+	idToken     string
+	userInfo    *oidc.UserInfo
+	userInfoErr error
 }
 
 func (s *oidcCallbackServiceMock) IsEnabled() bool       { return true }
@@ -62,7 +64,7 @@ func (s *oidcCallbackServiceMock) VerifyIDToken(ctx context.Context, idToken str
 }
 
 func (s *oidcCallbackServiceMock) UserInfo(context.Context, oauth2.TokenSource) (*oidc.UserInfo, error) {
-	return s.userInfo, nil
+	return s.userInfo, s.userInfoErr
 }
 
 func signTestIDToken(t *testing.T, key *rsa.PrivateKey, claims map[string]any) string {
@@ -85,7 +87,7 @@ func signTestIDToken(t *testing.T, key *rsa.PrivateKey, claims map[string]any) s
 
 // runOIDCCallback drives a callback with a valid state and returns the response
 // along with the resulting session token.
-func runOIDCCallback(t *testing.T, cfg *domain.Config, idClaims map[string]any, userInfo *oidc.UserInfo) (*httptest.ResponseRecorder, *scs.SessionManager, string) {
+func runOIDCCallback(t *testing.T, cfg *domain.Config, idClaims map[string]any, userInfo *oidc.UserInfo, userInfoErr error) (*httptest.ResponseRecorder, *scs.SessionManager, string) {
 	t.Helper()
 
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -100,9 +102,10 @@ func runOIDCCallback(t *testing.T, cfg *domain.Config, idClaims map[string]any, 
 	maps.Copy(claims, idClaims)
 
 	service := &oidcCallbackServiceMock{
-		verifier: oidc.NewVerifier(testOIDCIssuer, &oidc.StaticKeySet{PublicKeys: []crypto.PublicKey{&key.PublicKey}}, &oidc.Config{ClientID: testOIDCClientID}),
-		idToken:  signTestIDToken(t, key, claims),
-		userInfo: userInfo,
+		verifier:    oidc.NewVerifier(testOIDCIssuer, &oidc.StaticKeySet{PublicKeys: []crypto.PublicKey{&key.PublicKey}}, &oidc.Config{ClientID: testOIDCClientID}),
+		idToken:     signTestIDToken(t, key, claims),
+		userInfo:    userInfo,
+		userInfoErr: userInfoErr,
 	}
 
 	sm := scs.New()
@@ -134,7 +137,9 @@ func TestOIDCCallbackAllowedUser(t *testing.T) {
 		allowedUser string
 		idClaims    map[string]any
 		userInfo    *oidc.UserInfo
+		userInfoErr error
 		wantStatus  int
+		wantEmail   string
 	}{
 		{
 			name:       "unset allows any user",
@@ -164,12 +169,14 @@ func TestOIDCCallbackAllowedUser(t *testing.T) {
 			allowedUser: "Me@Example.com",
 			idClaims:    map[string]any{"sub": "abc-123", "email": "me@example.com", "email_verified": true},
 			wantStatus:  http.StatusFound,
+			wantEmail:   "me@example.com",
 		},
 		{
 			name:        "email_verified sent as string",
 			allowedUser: "me@example.com",
 			idClaims:    map[string]any{"sub": "abc-123", "email": "me@example.com", "email_verified": "true"},
 			wantStatus:  http.StatusFound,
+			wantEmail:   "me@example.com",
 		},
 		{
 			name:        "unverified email rejected",
@@ -189,6 +196,7 @@ func TestOIDCCallbackAllowedUser(t *testing.T) {
 			idClaims:    map[string]any{"sub": "abc-123"},
 			userInfo:    &oidc.UserInfo{Subject: "abc-123", Email: "me@example.com", EmailVerified: true},
 			wantStatus:  http.StatusFound,
+			wantEmail:   "me@example.com",
 		},
 		{
 			name:        "unverified userinfo email overrides verified ID token email",
@@ -197,17 +205,41 @@ func TestOIDCCallbackAllowedUser(t *testing.T) {
 			userInfo:    &oidc.UserInfo{Subject: "abc-123", Email: "me@example.com", EmailVerified: false},
 			wantStatus:  http.StatusForbidden,
 		},
+		{
+			name:        "userinfo for another subject ignored",
+			allowedUser: "me@example.com",
+			idClaims:    map[string]any{"sub": "intruder"},
+			userInfo:    &oidc.UserInfo{Subject: "abc-123", Email: "me@example.com", EmailVerified: true},
+			wantStatus:  http.StatusForbidden,
+		},
+		{
+			name:        "userinfo failure reported when email could not be verified",
+			allowedUser: "me@example.com",
+			idClaims:    map[string]any{"sub": "abc-123"},
+			userInfoErr: errors.New("provider unavailable"),
+			wantStatus:  http.StatusBadGateway,
+		},
+		{
+			name:        "userinfo failure does not block subject match",
+			allowedUser: "abc-123",
+			idClaims:    map[string]any{"sub": "abc-123"},
+			userInfoErr: errors.New("provider unavailable"),
+			wantStatus:  http.StatusFound,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &domain.Config{BaseURL: "/", OIDCEnabled: true, OIDCAllowedUser: tt.allowedUser}
 
-			rec, sm, token := runOIDCCallback(t, cfg, tt.idClaims, tt.userInfo)
+			rec, sm, token := runOIDCCallback(t, cfg, tt.idClaims, tt.userInfo, tt.userInfoErr)
 			assert.Equal(t, tt.wantStatus, rec.Code)
 
 			ctx, err := sm.Load(t.Context(), token)
 			require.NoError(t, err)
 			assert.Equal(t, tt.wantStatus == http.StatusFound, sm.GetBool(ctx, "authenticated"))
+			if tt.wantStatus == http.StatusFound {
+				assert.Equal(t, tt.wantEmail, sm.GetString(ctx, "oidc_verified_email"))
+			}
 		})
 	}
 }
@@ -256,6 +288,14 @@ func TestIsAuthenticatedRechecksOIDCAllowedUser(t *testing.T) {
 			sm.LoadAndSave(s.IsAuthenticated(okHandler())).ServeHTTP(rec, req)
 
 			assert.Equal(t, tt.wantStatus, rec.Code)
+
+			// allowed requests may renew the token, so only the destroyed
+			// session is still reachable under the original one
+			if tt.wantStatus == http.StatusForbidden {
+				ctx, err := sm.Load(t.Context(), token)
+				require.NoError(t, err)
+				assert.False(t, sm.GetBool(ctx, "authenticated"))
+			}
 		})
 	}
 }

@@ -48,7 +48,7 @@ func (s *OIDCService) ValidateConfig() error {
 		Str("oidc_client_id", s.cfg.OIDCClientID).
 		Str("oidc_redirect_url", s.cfg.OIDCRedirectURL).
 		Str("oidc_scopes", s.cfg.OIDCScopes).
-		Str("oidc_allowed_user", s.cfg.OIDCAllowedUser).
+		Bool("oidc_allowed_user_set", s.cfg.OIDCAllowedUser != "").
 		Msg("initializing OIDC handler with oidcConfig")
 
 	var validationErrors []string
