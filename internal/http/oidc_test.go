@@ -73,18 +73,14 @@ func TestOIDCConfigAutoRedirect(t *testing.T) {
 				OIDCAutoRedirect: tt.autoRedirect,
 			}, sessions, &oidcConfigServiceMock{pkce: tt.pkce}, func(*http.Request) string { return "" })
 
-			var storedState, storedVerifier string
 			next := sessions.LoadAndSave(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				sessions.Put(r.Context(), "authenticated", tt.authenticated)
-				sessions.Put(r.Context(), "oidc_state", "previous-state")
-				sessions.Put(r.Context(), "oidc_pkce_verifier", "previous-verifier")
 				handler.getConfig(w, r)
-				storedState = sessions.GetString(r.Context(), "oidc_state")
-				storedVerifier = sessions.GetString(r.Context(), "oidc_pkce_verifier")
 			}))
 			rec := httptest.NewRecorder()
 			next.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/api/auth/oidc/config", nil))
 			require.Equal(t, http.StatusOK, rec.Code)
+			assert.NotContains(t, rec.Body.String(), "pkceVerifier")
 
 			var response GetConfigResponse
 			require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &response))
@@ -94,20 +90,20 @@ func TestOIDCConfigAutoRedirect(t *testing.T) {
 			require.NotEmpty(t, response.State)
 			assert.Equal(t, response.State, authURL.Query().Get("state"))
 
+			login, pending := handler.pendingLogins.Get(response.State)
 			if tt.authenticated {
-				assert.Equal(t, "previous-state", storedState)
-				assert.Equal(t, "previous-verifier", storedVerifier)
+				assert.False(t, pending)
 				return
 			}
 
-			assert.Equal(t, response.State, storedState)
+			require.True(t, pending)
 			if tt.pkce {
-				require.NotEmpty(t, storedVerifier)
-				challenge := sha256.Sum256([]byte(storedVerifier))
+				require.NotEmpty(t, login.verifier)
+				challenge := sha256.Sum256([]byte(login.verifier))
 				assert.Equal(t, base64.RawURLEncoding.EncodeToString(challenge[:]), authURL.Query().Get("code_challenge"))
 				assert.Equal(t, "S256", authURL.Query().Get("code_challenge_method"))
 			} else {
-				assert.Empty(t, storedVerifier)
+				assert.Empty(t, login.verifier)
 				assert.Empty(t, authURL.Query().Get("code_challenge"))
 			}
 		})
@@ -133,20 +129,19 @@ func TestOIDCConfigStoresRedirect(t *testing.T) {
 			sessions := scs.New()
 			handler := NewOIDCHandler(encoder{}, zerolog.Nop(), &domain.Config{OIDCEnabled: true, BaseURL: tt.baseURL}, sessions, &oidcConfigServiceMock{}, func(*http.Request) string { return "" })
 
-			var stored string
-			next := sessions.LoadAndSave(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				sessions.Put(r.Context(), "oidc_redirect", "/stale")
-				handler.getConfig(w, r)
-				stored = sessions.GetString(r.Context(), "oidc_redirect")
-			}))
 			target := "/api/auth/oidc/config"
 			if tt.redirect != "" {
 				target += "?redirect=" + url.QueryEscape(tt.redirect)
 			}
 			rec := httptest.NewRecorder()
-			next.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, target, nil))
+			sessions.LoadAndSave(http.HandlerFunc(handler.getConfig)).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, target, nil))
 			require.Equal(t, http.StatusOK, rec.Code)
-			assert.Equal(t, tt.want, stored)
+
+			var response GetConfigResponse
+			require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &response))
+			login, pending := handler.pendingLogins.Get(response.State)
+			require.True(t, pending)
+			assert.Equal(t, tt.want, login.target)
 		})
 	}
 }
@@ -240,48 +235,133 @@ func (p *oidcProviderMock) UserInfo(_ context.Context, _ oauth2.TokenSource) (*o
 	return nil, errors.New("userinfo not offered")
 }
 
+// oidcLoginFlow drives the config and callback routes the way a browser does,
+// keeping cookies in a jar shared by every login it starts.
+type oidcLoginFlow struct {
+	app     http.Handler
+	cookies map[string]*http.Cookie
+}
+
+func newOIDCLoginFlow(t *testing.T, baseURL string) *oidcLoginFlow {
+	sessions := scs.New()
+	sessions.Cookie.Path = baseURL
+	handler := NewOIDCHandler(encoder{}, zerolog.Nop(), &domain.Config{OIDCEnabled: true, BaseURL: baseURL}, sessions, newOIDCProviderMock(t), func(*http.Request) string { return "" })
+	router := chi.NewRouter()
+	router.Route("/oidc", handler.Routes)
+
+	return &oidcLoginFlow{app: sessions.LoadAndSave(router), cookies: map[string]*http.Cookie{}}
+}
+
+func (f *oidcLoginFlow) do(t *testing.T, target string) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(http.MethodGet, target, nil)
+	for _, c := range f.cookies {
+		req.AddCookie(c)
+	}
+	rec := httptest.NewRecorder()
+	f.app.ServeHTTP(rec, req)
+
+	for _, c := range rec.Result().Cookies() {
+		if c.MaxAge < 0 {
+			delete(f.cookies, c.Name)
+			continue
+		}
+		f.cookies[c.Name] = c
+	}
+
+	return rec
+}
+
+// start begins a login without the browser's cookies, like a tab whose session expired.
+func (f *oidcLoginFlow) start(t *testing.T, redirect string) string {
+	target := "/oidc/config"
+	if redirect != "" {
+		target += "?redirect=" + url.QueryEscape(redirect)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, target, nil)
+	rec := httptest.NewRecorder()
+	f.app.ServeHTTP(rec, req)
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	for _, c := range rec.Result().Cookies() {
+		f.cookies[c.Name] = c
+	}
+
+	var config GetConfigResponse
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &config))
+
+	return config.State
+}
+
+func (f *oidcLoginFlow) callback(t *testing.T, state string) *httptest.ResponseRecorder {
+	return f.do(t, "/oidc/callback?code=code&state="+url.QueryEscape(state))
+}
+
 func TestOIDCCallbackReturnsToRequestedPage(t *testing.T) {
 	t.Parallel()
 	for _, tt := range []struct {
 		name     string
-		baseURL  string
 		redirect string
 		want     string
 	}{
-		{name: "requested page", baseURL: "/autobrr/", redirect: "/autobrr/filters/12?tab=actions", want: "/autobrr/filters/12?tab=actions"},
-		{name: "no requested page", baseURL: "/autobrr/", want: "/autobrr/"},
-		{name: "page outside base URL", baseURL: "/autobrr/", redirect: "/elsewhere", want: "/autobrr/"},
+		{name: "requested page", redirect: "/autobrr/filters/12?tab=actions", want: "/autobrr/filters/12?tab=actions"},
+		{name: "no requested page", want: "/autobrr/"},
+		{name: "page outside base URL", redirect: "/elsewhere", want: "/autobrr/"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			sessions := scs.New()
-			handler := NewOIDCHandler(encoder{}, zerolog.Nop(), &domain.Config{OIDCEnabled: true, BaseURL: tt.baseURL}, sessions, newOIDCProviderMock(t), func(*http.Request) string { return "" })
-			router := chi.NewRouter()
-			router.Route("/oidc", handler.Routes)
-			app := sessions.LoadAndSave(router)
+			flow := newOIDCLoginFlow(t, "/autobrr/")
+			state := flow.start(t, tt.redirect)
 
-			configURL := "/oidc/config"
-			if tt.redirect != "" {
-				configURL += "?redirect=" + url.QueryEscape(tt.redirect)
-			}
-			rec := httptest.NewRecorder()
-			app.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, configURL, nil))
-			require.Equal(t, http.StatusOK, rec.Code)
-
-			var config GetConfigResponse
-			require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &config))
-			cookies := rec.Result().Cookies()
-			require.NotEmpty(t, cookies)
-
-			req := httptest.NewRequest(http.MethodGet, "/oidc/callback?code=code&state="+url.QueryEscape(config.State), nil)
-			for _, c := range cookies {
-				req.AddCookie(c)
-			}
-			rec = httptest.NewRecorder()
-			app.ServeHTTP(rec, req)
-
+			rec := flow.callback(t, state)
 			require.Equal(t, http.StatusFound, rec.Code, rec.Body.String())
 			assert.Equal(t, tt.want, rec.Header().Get("Location"))
 		})
 	}
+}
+
+func TestOIDCCallbackConcurrentLogins(t *testing.T) {
+	t.Parallel()
+	flow := newOIDCLoginFlow(t, "/autobrr/")
+	filters := flow.start(t, "/autobrr/filters")
+	releases := flow.start(t, "/autobrr/releases")
+	settings := flow.start(t, "/autobrr/settings")
+
+	for state, want := range map[string]string{releases: "/autobrr/releases", settings: "/autobrr/settings", filters: "/autobrr/filters"} {
+		rec := flow.callback(t, state)
+		require.Equal(t, http.StatusFound, rec.Code, rec.Body.String())
+		assert.Equal(t, want, rec.Header().Get("Location"))
+	}
+}
+
+func TestOIDCCallbackRejectsForeignAndReusedState(t *testing.T) {
+	t.Parallel()
+
+	t.Run("state started in another browser", func(t *testing.T) {
+		t.Parallel()
+		attacker := newOIDCLoginFlow(t, "/")
+		state := attacker.start(t, "")
+		attacker.cookies = map[string]*http.Cookie{}
+
+		assert.Equal(t, http.StatusBadRequest, attacker.callback(t, state).Code)
+	})
+
+	t.Run("state used twice", func(t *testing.T) {
+		t.Parallel()
+		flow := newOIDCLoginFlow(t, "/")
+		state := flow.start(t, "")
+		stateCookie := flow.cookies[stateCookieName(state)]
+
+		require.Equal(t, http.StatusFound, flow.callback(t, state).Code)
+
+		flow.cookies[stateCookie.Name] = stateCookie
+		assert.Equal(t, http.StatusBadRequest, flow.callback(t, state).Code)
+	})
+
+	t.Run("unknown state", func(t *testing.T) {
+		t.Parallel()
+		flow := newOIDCLoginFlow(t, "/")
+
+		assert.Equal(t, http.StatusBadRequest, flow.callback(t, "unknown").Code)
+	})
 }

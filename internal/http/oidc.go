@@ -7,6 +7,7 @@ import (
 	"cmp"
 	"context"
 	"crypto/rand"
+	"crypto/subtle"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -19,6 +20,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/alexedwards/scs/v2"
+	"github.com/autobrr/go-cache/ttlcache"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -56,6 +58,14 @@ type OIDCHandler struct {
 	oidcService    oidcService
 	sessionManager *scs.SessionManager
 	limiterKey     func(r *http.Request) string
+	pendingLogins  *ttlcache.Cache[string, pendingOIDCLogin]
+}
+
+// pendingOIDCLogin is a login that was sent to the provider and whose callback
+// has not arrived yet, keyed by its state.
+type pendingOIDCLogin struct {
+	verifier string
+	target   string
 }
 
 // OIDCClaims represents the claims returned from the OIDC provider
@@ -87,6 +97,7 @@ func NewOIDCHandler(encoder encoder, log zerolog.Logger, cfg *domain.Config, ses
 		oidcService:    service,
 		sessionManager: sessionManager,
 		limiterKey:     limiterKey,
+		pendingLogins:  ttlcache.New[string, pendingOIDCLogin](ttlcache.SetDefaultTTL(oidcLoginTimeout), ttlcache.DisableUpdateTime(true)),
 	}
 }
 
@@ -97,6 +108,9 @@ const (
 	oidcCallbackLimit   = 4
 	oidcCallbackBacklog = 32
 	oidcProviderTimeout = 30 * time.Second
+
+	oidcLoginTimeout      = 15 * time.Minute
+	oidcStateCookiePrefix = "autobrr_oidc_"
 )
 
 func (h *OIDCHandler) Routes(r chi.Router) {
@@ -139,14 +153,12 @@ func (h *OIDCHandler) getConfig(w http.ResponseWriter, r *http.Request) {
 
 	h.log.Debug().Bool("enabled", config.Enabled).Str("authorization_url", config.AuthorizationURL).Str("state", config.State).Msg("returning OIDC config")
 
-	// Only set state cookie if user is not already authenticated
-	h.SetStateCookie(w, r, config.State, config.PKCEVerifier)
-
+	login := pendingOIDCLogin{verifier: config.PKCEVerifier}
 	if target := r.URL.Query().Get("redirect"); target != "" && isRedirectUnderBase(target, h.config.BaseURL) {
-		h.sessionManager.Put(r.Context(), "oidc_redirect", target)
-	} else {
-		h.sessionManager.Remove(r.Context(), "oidc_redirect")
+		login.target = target
 	}
+
+	h.startLogin(w, r, config.State, login)
 
 	h.encoder.StatusResponse(w, http.StatusOK, config)
 }
@@ -160,29 +172,12 @@ func (h *OIDCHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get and validate state parameter
-	expectedState := h.sessionManager.GetString(r.Context(), "oidc_state")
-	if expectedState == "" {
-		h.log.Error().Msg("no state found in session")
-		h.encoder.StatusError(w, http.StatusBadRequest, errors.New("invalid state: no state found in session"))
+	login, ok := h.finishLogin(w, r, r.URL.Query().Get("state"))
+	if !ok {
+		h.log.Error().Msg("OIDC callback state is unknown, expired or not from this browser")
+		h.encoder.StatusError(w, http.StatusBadRequest, errors.New("invalid state: login expired or was started in another browser"))
 		return
 	}
-
-	actualState := r.URL.Query().Get("state")
-	if actualState != expectedState {
-		h.log.Error().Str("expected", expectedState).Str("got", actualState).Msg("state did not match")
-		h.encoder.StatusError(w, http.StatusBadRequest, errors.New("invalid state: state mismatch"))
-		return
-	}
-
-	// Clear the state from session after successful validation
-	h.sessionManager.Remove(r.Context(), "oidc_state")
-
-	// Retrieve and clear the PKCE verifier stored during the authorization request
-	pkceVerifier := h.sessionManager.GetString(r.Context(), "oidc_pkce_verifier")
-	h.sessionManager.Remove(r.Context(), "oidc_pkce_verifier")
-
-	redirectTarget := h.sessionManager.PopString(r.Context(), "oidc_redirect")
 
 	code := r.URL.Query().Get("code")
 	if code == "" {
@@ -192,8 +187,8 @@ func (h *OIDCHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var exchangeOpts []oauth2.AuthCodeOption
-	if pkceVerifier != "" {
-		exchangeOpts = append(exchangeOpts, oauth2.VerifierOption(pkceVerifier))
+	if login.verifier != "" {
+		exchangeOpts = append(exchangeOpts, oauth2.VerifierOption(login.verifier))
 	}
 
 	providerCtx, cancel := context.WithTimeout(r.Context(), oidcProviderTimeout)
@@ -294,9 +289,9 @@ func (h *OIDCHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 	h.sessionManager.Put(r.Context(), "profile_picture", claims.Picture)
 	h.sessionManager.RememberMe(r.Context(), true)
 
-	if redirectTarget != "" {
-		h.log.Debug().Str("redirect_url", redirectTarget).Msg("redirecting to requested page after OIDC callback")
-		http.Redirect(w, r, redirectTarget, http.StatusFound)
+	if login.target != "" {
+		h.log.Debug().Str("redirect_url", login.target).Msg("redirecting to requested page after OIDC callback")
+		http.Redirect(w, r, login.target, http.StatusFound)
 		return
 	}
 
@@ -359,7 +354,7 @@ type GetConfigResponse struct {
 	AutoRedirect        bool   `json:"autoRedirect"`
 	AuthorizationURL    string `json:"authorizationUrl"`
 	State               string `json:"state"`
-	PKCEVerifier        string `json:"pkceVerifier"`
+	PKCEVerifier        string `json:"-"`
 	DisableBuiltInLogin bool   `json:"disableBuiltInLogin"`
 	IssuerURL           string `json:"issuerUrl"`
 }
@@ -388,13 +383,57 @@ func (h *OIDCHandler) GetConfigResponse() GetConfigResponse {
 	}
 }
 
-// SetStateCookie sets a secure cookie containing the OIDC state parameter.
-// The state parameter is verified when the OAuth provider redirects back to our callback.
-// Short expiration ensures the authentication flow must be completed in a reasonable timeframe.
-func (h *OIDCHandler) SetStateCookie(_ http.ResponseWriter, r *http.Request, state, pkceVerifier string) {
-	// Store the state and PKCE verifier in the session for later validation
-	h.sessionManager.Put(r.Context(), "oidc_state", state)
-	h.sessionManager.Put(r.Context(), "oidc_pkce_verifier", pkceVerifier)
+// startLogin records a login sent to the provider and binds its state to this
+// browser with a cookie of its own. Keeping logins out of the session lets
+// several tabs log in at once: their first requests carry no session cookie, so
+// each would start its own session and only the last cookie set would survive.
+func (h *OIDCHandler) startLogin(w http.ResponseWriter, r *http.Request, state string, login pendingOIDCLogin) {
+	h.pendingLogins.Set(state, login, ttlcache.DefaultTTL)
 
-	h.log.Debug().Str("state", state).Msg("stored OIDC state and PKCE verifier in session")
+	http.SetCookie(w, h.stateCookie(r, state, int(oidcLoginTimeout.Seconds())))
+
+	h.log.Debug().Str("state", state).Msg("started OIDC login")
+}
+
+// finishLogin returns the pending login for state when this browser started it.
+// The state cookie keeps a callback URL minted for another browser from logging
+// this one in, and each state works once.
+func (h *OIDCHandler) finishLogin(w http.ResponseWriter, r *http.Request, state string) (pendingOIDCLogin, bool) {
+	if state == "" {
+		return pendingOIDCLogin{}, false
+	}
+
+	cookie, err := r.Cookie(stateCookieName(state))
+	if err != nil || subtle.ConstantTimeCompare([]byte(cookie.Value), []byte(state)) != 1 {
+		return pendingOIDCLogin{}, false
+	}
+
+	http.SetCookie(w, h.stateCookie(r, state, -1))
+
+	login, ok := h.pendingLogins.Get(state)
+	if !ok {
+		return pendingOIDCLogin{}, false
+	}
+
+	h.pendingLogins.Delete(state)
+
+	return login, true
+}
+
+func (h *OIDCHandler) stateCookie(r *http.Request, state string, maxAge int) *http.Cookie {
+	return &http.Cookie{
+		Name:     stateCookieName(state),
+		Value:    state,
+		Path:     h.sessionManager.Cookie.Path,
+		MaxAge:   maxAge,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		Secure:   r.Header.Get("X-Forwarded-Proto") == "https",
+	}
+}
+
+// stateCookieName gives every pending login its own cookie, so concurrent logins
+// in several tabs do not overwrite each other.
+func stateCookieName(state string) string {
+	return oidcStateCookiePrefix + state[:min(len(state), 16)]
 }

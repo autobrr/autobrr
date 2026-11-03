@@ -27,6 +27,7 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/alexedwards/scs/v2/memstore"
+	"github.com/autobrr/go-cache/ttlcache"
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -866,11 +867,10 @@ func TestOIDCHandlerCallbackBoundsProviderCalls(t *testing.T) {
 	service := &deadlineRecordingOIDCMock{oidcAuthServiceMock: &oidcAuthServiceMock{}}
 	h := NewOIDCHandler(encoder{}, zerolog.Nop(), &domain.Config{}, sm, service, func(r *http.Request) string { return "" })
 
-	ctx, err := sm.Load(t.Context(), "")
-	require.NoError(t, err)
-	sm.Put(ctx, "oidc_state", "state")
+	h.pendingLogins.Set("state", pendingOIDCLogin{}, ttlcache.DefaultTTL)
 
-	req := httptest.NewRequest(http.MethodGet, "/callback?state=state&code=code", nil).WithContext(ctx)
+	req := httptest.NewRequest(http.MethodGet, "/callback?state=state&code=code", nil)
+	req.AddCookie(&http.Cookie{Name: stateCookieName("state"), Value: "state"})
 	rec := httptest.NewRecorder()
 	h.handleCallback(rec, req)
 
@@ -883,12 +883,8 @@ func TestOIDCHandlerProviderUnavailable(t *testing.T) {
 	sm := scs.New()
 	h := NewOIDCHandler(encoder{}, zerolog.Nop(), &domain.Config{OIDCEnabled: true, OIDCIssuer: "https://auth.example.com"}, sm, &oidcAuthServiceMock{unavailable: true}, func(r *http.Request) string { return "" })
 
-	var state string
 	rec := httptest.NewRecorder()
-	sm.LoadAndSave(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		h.getConfig(w, r)
-		state = sm.GetString(r.Context(), "oidc_state")
-	})).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/config", nil))
+	sm.LoadAndSave(http.HandlerFunc(h.getConfig)).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/config", nil))
 
 	require.Equal(t, http.StatusOK, rec.Code)
 	var config GetConfigResponse
@@ -897,7 +893,10 @@ func TestOIDCHandlerProviderUnavailable(t *testing.T) {
 	assert.Empty(t, config.AuthorizationURL)
 	assert.Empty(t, config.State)
 	assert.Equal(t, "https://auth.example.com", config.IssuerURL)
-	assert.Empty(t, state)
+	assert.Empty(t, h.pendingLogins.GetKeys())
+	for _, c := range rec.Result().Cookies() {
+		assert.NotContains(t, c.Name, oidcStateCookiePrefix)
+	}
 
 	rec = httptest.NewRecorder()
 	h.handleCallback(rec, httptest.NewRequest(http.MethodGet, "/callback?state=state&code=code", nil))
