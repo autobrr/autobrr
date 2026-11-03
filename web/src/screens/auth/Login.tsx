@@ -46,7 +46,13 @@ export const Login = () => {
     const search = loginRoute.useSearch();
 
     const {data: canOnboard} = useQuery(CanOnboardQueryOptions());
-    const {data: oidcConfig} = useQuery(OIDCConfigQueryOptions());
+    // While the provider is unreachable the config carries no authorization URL;
+    // polling lets the page enable OIDC login once the provider responds.
+    const {data: oidcConfig} = useQuery({
+        ...OIDCConfigQueryOptions(),
+        refetchInterval: (query) => query.state.data?.enabled && !query.state.data.authorizationUrl ? 10_000 : false
+    });
+    const oidcUnavailable = oidcConfig?.enabled && !oidcConfig.authorizationUrl;
 
     const form = useForm({
         defaultValues: {
@@ -276,11 +282,15 @@ export const Login = () => {
                                 <button
                                     type="button"
                                     onClick={handleOIDCLogin}
-                                    className="w-full flex items-center justify-center gap-3 py-2 px-4 border border-gray-300 dark:border-gray-700 rounded-md shadow-xs text-sm font-medium text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                                    disabled={oidcUnavailable}
+                                    className="w-full flex items-center justify-center gap-3 py-2 px-4 border border-gray-300 dark:border-gray-700 rounded-md shadow-xs text-sm font-medium text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-white dark:disabled:hover:bg-gray-800"
                                 >
                                     <OpenIdIcon className="h-5 w-5"/>
                                     <span>{t("openidConnect")}</span>
                                 </button>
+                                {oidcUnavailable && (
+                                    <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">{t("oidcUnavailable")}</p>
+                                )}
                             </div>
                         )}
                     </div>

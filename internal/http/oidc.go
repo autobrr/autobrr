@@ -25,6 +25,7 @@ import (
 
 type oidcService interface {
 	IsEnabled() bool
+	IsReady() bool
 	ValidateConfig() error
 	UserInfo(ctx context.Context, tokenSource oauth2.TokenSource) (*oidc.UserInfo, error)
 	VerifyIDToken(ctx context.Context, idToken string) (*oidc.IDToken, error)
@@ -109,7 +110,18 @@ func (h *OIDCHandler) Routes(r chi.Router) {
 }
 
 func (h *OIDCHandler) getConfig(w http.ResponseWriter, r *http.Request) {
-	// Get the config first
+	// Until the provider is discovered there is no authorization URL to hand out;
+	// an empty one tells the login page to keep the OIDC button disabled.
+	if !h.oidcService.IsReady() {
+		h.log.Debug().Str("issuer", h.oidcConfig.Issuer).Msg("OIDC provider not discovered yet, login page shows it as unavailable")
+		h.encoder.StatusResponse(w, http.StatusOK, GetConfigResponse{
+			Enabled:             h.oidcConfig.Enabled,
+			DisableBuiltInLogin: h.oidcConfig.DisableBuiltInLogin,
+			IssuerURL:           h.oidcConfig.Issuer,
+		})
+		return
+	}
+
 	config := h.GetConfigResponse()
 
 	// Check for existing session
@@ -131,6 +143,12 @@ func (h *OIDCHandler) getConfig(w http.ResponseWriter, r *http.Request) {
 
 func (h *OIDCHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 	h.log.Debug().Msg("handling OIDC callback")
+
+	if !h.oidcService.IsReady() {
+		h.log.Error().Str("issuer", h.oidcConfig.Issuer).Msg("OIDC callback arrived before the provider was discovered")
+		h.encoder.StatusError(w, http.StatusServiceUnavailable, errors.New("OIDC provider is not available"))
+		return
+	}
 
 	// Get and validate state parameter
 	expectedState := h.sessionManager.GetString(r.Context(), "oidc_state")
