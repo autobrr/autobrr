@@ -105,3 +105,14 @@ func TestOIDCServiceDiscoveryRetriesUntilProviderResponds(t *testing.T) {
 	up.Store(true)
 	require.Eventually(t, s.IsReady, oidcDiscoveryMinDelay+5*time.Second, 50*time.Millisecond)
 }
+
+func TestOIDCServiceValidateConfigRejectsBothAllowedUserSettings(t *testing.T) {
+	s := newTestOIDCService("https://auth.example.com")
+	require.NoError(t, s.ValidateConfig())
+
+	s.cfg.OIDCAllowedSubject = "abc-123"
+	require.NoError(t, s.ValidateConfig())
+
+	s.cfg.OIDCAllowedEmail = "me@example.com"
+	assert.ErrorContains(t, s.ValidateConfig(), "set only one of oidcAllowedSubject and oidcAllowedEmail")
+}

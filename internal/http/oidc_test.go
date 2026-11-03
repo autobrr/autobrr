@@ -702,13 +702,14 @@ func (f *oidcLoginFlow) session(t *testing.T) context.Context {
 func TestOIDCCallbackAllowedUser(t *testing.T) {
 	t.Parallel()
 	for _, tt := range []struct {
-		name        string
-		allowedUser string
-		claims      map[string]any
-		userInfo    *oidc.UserInfo
-		userInfoErr error
-		wantStatus  int
-		wantEmail   string
+		name           string
+		allowedSubject string
+		allowedEmail   string
+		claims         map[string]any
+		userInfo       *oidc.UserInfo
+		userInfoErr    error
+		wantStatus     int
+		wantEmail      string
 	}{
 		{
 			name:       "unset allows any user",
@@ -716,90 +717,118 @@ func TestOIDCCallbackAllowedUser(t *testing.T) {
 			wantStatus: http.StatusFound,
 		},
 		{
-			name:        "subject match",
-			allowedUser: "abc-123",
-			claims:      map[string]any{"sub": "abc-123"},
-			wantStatus:  http.StatusFound,
+			name:           "subject match",
+			allowedSubject: "abc-123",
+			claims:         map[string]any{"sub": "abc-123"},
+			wantStatus:     http.StatusFound,
 		},
 		{
-			name:        "subject is case-sensitive",
-			allowedUser: "ABC-123",
-			claims:      map[string]any{"sub": "abc-123"},
-			wantStatus:  http.StatusForbidden,
+			name:           "subject is case-sensitive",
+			allowedSubject: "ABC-123",
+			claims:         map[string]any{"sub": "abc-123"},
+			wantStatus:     http.StatusForbidden,
 		},
 		{
-			name:        "other subject rejected",
-			allowedUser: "abc-123",
-			claims:      map[string]any{"sub": "intruder"},
-			wantStatus:  http.StatusForbidden,
+			name:           "other subject rejected",
+			allowedSubject: "abc-123",
+			claims:         map[string]any{"sub": "intruder"},
+			wantStatus:     http.StatusForbidden,
 		},
 		{
-			name:        "verified email match ignores case",
-			allowedUser: "Me@Example.com",
-			claims:      map[string]any{"sub": "abc-123", "email": "me@example.com", "email_verified": true},
-			wantStatus:  http.StatusFound,
-			wantEmail:   "me@example.com",
+			name:           "subject setting ignores a matching verified email",
+			allowedSubject: "me@example.com",
+			claims:         map[string]any{"sub": "intruder", "email": "me@example.com", "email_verified": true},
+			wantStatus:     http.StatusForbidden,
 		},
 		{
-			name:        "email_verified sent as string",
-			allowedUser: "me@example.com",
-			claims:      map[string]any{"sub": "abc-123", "email": "me@example.com", "email_verified": "true"},
-			wantStatus:  http.StatusFound,
-			wantEmail:   "me@example.com",
+			name:         "email setting ignores a subject that looks like the email",
+			allowedEmail: "me@example.com",
+			claims:       map[string]any{"sub": "me@example.com"},
+			wantStatus:   http.StatusForbidden,
 		},
 		{
-			name:        "unverified email rejected",
-			allowedUser: "me@example.com",
-			claims:      map[string]any{"sub": "abc-123", "email": "me@example.com", "email_verified": false},
-			wantStatus:  http.StatusForbidden,
+			name:         "verified email match ignores case",
+			allowedEmail: "Me@Example.com",
+			claims:       map[string]any{"sub": "abc-123", "email": "me@example.com", "email_verified": true},
+			wantStatus:   http.StatusFound,
+			wantEmail:    "me@example.com",
 		},
 		{
-			name:        "missing email_verified rejected",
-			allowedUser: "me@example.com",
-			claims:      map[string]any{"sub": "abc-123", "email": "me@example.com"},
-			wantStatus:  http.StatusForbidden,
+			name:         "email_verified sent as string",
+			allowedEmail: "me@example.com",
+			claims:       map[string]any{"sub": "abc-123", "email": "me@example.com", "email_verified": "true"},
+			wantStatus:   http.StatusFound,
+			wantEmail:    "me@example.com",
 		},
 		{
-			name:        "verified email from userinfo",
-			allowedUser: "me@example.com",
-			claims:      map[string]any{"sub": "abc-123"},
-			userInfo:    &oidc.UserInfo{Subject: "abc-123", Email: "me@example.com", EmailVerified: true},
-			wantStatus:  http.StatusFound,
-			wantEmail:   "me@example.com",
+			name:         "unverified email rejected",
+			allowedEmail: "me@example.com",
+			claims:       map[string]any{"sub": "abc-123", "email": "me@example.com", "email_verified": false},
+			wantStatus:   http.StatusForbidden,
 		},
 		{
-			name:        "unverified userinfo email overrides verified ID token email",
-			allowedUser: "me@example.com",
-			claims:      map[string]any{"sub": "abc-123", "email": "old@example.com", "email_verified": true},
-			userInfo:    &oidc.UserInfo{Subject: "abc-123", Email: "me@example.com", EmailVerified: false},
-			wantStatus:  http.StatusForbidden,
+			name:         "missing email_verified rejected",
+			allowedEmail: "me@example.com",
+			claims:       map[string]any{"sub": "abc-123", "email": "me@example.com"},
+			wantStatus:   http.StatusForbidden,
 		},
 		{
-			name:        "userinfo for another subject ignored",
-			allowedUser: "me@example.com",
-			claims:      map[string]any{"sub": "intruder"},
-			userInfo:    &oidc.UserInfo{Subject: "abc-123", Email: "me@example.com", EmailVerified: true},
-			wantStatus:  http.StatusForbidden,
+			name:         "verified email from userinfo",
+			allowedEmail: "me@example.com",
+			claims:       map[string]any{"sub": "abc-123"},
+			userInfo:     &oidc.UserInfo{Subject: "abc-123", Email: "me@example.com", EmailVerified: true},
+			wantStatus:   http.StatusFound,
+			wantEmail:    "me@example.com",
 		},
 		{
-			name:        "userinfo failure reported when email could not be verified",
-			allowedUser: "me@example.com",
-			claims:      map[string]any{"sub": "abc-123"},
-			userInfoErr: errors.New("provider unavailable"),
-			wantStatus:  http.StatusBadGateway,
+			name:         "unverified userinfo email overrides verified ID token email",
+			allowedEmail: "me@example.com",
+			claims:       map[string]any{"sub": "abc-123", "email": "old@example.com", "email_verified": true},
+			userInfo:     &oidc.UserInfo{Subject: "abc-123", Email: "me@example.com", EmailVerified: false},
+			wantStatus:   http.StatusForbidden,
 		},
 		{
-			name:        "userinfo failure does not block subject match",
-			allowedUser: "abc-123",
-			claims:      map[string]any{"sub": "abc-123"},
-			userInfoErr: errors.New("provider unavailable"),
-			wantStatus:  http.StatusFound,
+			name:         "userinfo for another subject cannot supply the email",
+			allowedEmail: "me@example.com",
+			claims:       map[string]any{"sub": "intruder"},
+			userInfo:     &oidc.UserInfo{Subject: "abc-123", Email: "me@example.com", EmailVerified: true},
+			wantStatus:   http.StatusForbidden,
+		},
+		{
+			name:         "userinfo for another subject ignored, ID token email still used",
+			allowedEmail: "me@example.com",
+			claims:       map[string]any{"sub": "abc-123", "email": "me@example.com", "email_verified": true},
+			userInfo:     &oidc.UserInfo{Subject: "intruder", Email: "other@example.com", EmailVerified: false},
+			wantStatus:   http.StatusFound,
+			wantEmail:    "me@example.com",
+		},
+		{
+			name:         "userinfo failure reported when email could not be verified",
+			allowedEmail: "me@example.com",
+			claims:       map[string]any{"sub": "abc-123"},
+			userInfoErr:  errors.New("provider unavailable: internal.example.lan"),
+			wantStatus:   http.StatusBadGateway,
+		},
+		{
+			name:           "userinfo failure does not affect subject setting",
+			allowedSubject: "abc-123",
+			claims:         map[string]any{"sub": "intruder"},
+			userInfoErr:    errors.New("provider unavailable"),
+			wantStatus:     http.StatusForbidden,
+		},
+		{
+			name:           "userinfo failure does not block subject match",
+			allowedSubject: "abc-123",
+			claims:         map[string]any{"sub": "abc-123"},
+			userInfoErr:    errors.New("provider unavailable"),
+			wantStatus:     http.StatusFound,
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			flow := newOIDCLoginFlow(t, "/")
-			flow.handler.config.OIDCAllowedUser = tt.allowedUser
+			flow.handler.config.OIDCAllowedSubject = tt.allowedSubject
+			flow.handler.config.OIDCAllowedEmail = tt.allowedEmail
 			flow.provider.claims = tt.claims
 			flow.provider.userInfo = tt.userInfo
 			flow.provider.userInfoErr = tt.userInfoErr
@@ -807,10 +836,15 @@ func TestOIDCCallbackAllowedUser(t *testing.T) {
 
 			rec := flow.callback(t, state)
 			require.Equal(t, tt.wantStatus, rec.Code, rec.Body.String())
+			if tt.userInfoErr != nil {
+				assert.NotContains(t, rec.Body.String(), tt.userInfoErr.Error(), "provider errors stay in the log")
+			}
 
 			ctx := flow.session(t)
 			assert.Equal(t, tt.wantStatus == http.StatusFound, flow.sessions.GetBool(ctx, "authenticated"))
 			if tt.wantStatus == http.StatusFound {
+				assert.Equal(t, "oidc", flow.sessions.GetString(ctx, "auth_method"))
+				assert.Equal(t, tt.claims["sub"], flow.sessions.GetString(ctx, "oidc_subject"))
 				assert.Equal(t, tt.wantEmail, flow.sessions.GetString(ctx, "oidc_verified_email"))
 			}
 		})
@@ -819,26 +853,28 @@ func TestOIDCCallbackAllowedUser(t *testing.T) {
 
 func TestIsAuthenticatedRechecksOIDCAllowedUser(t *testing.T) {
 	tests := []struct {
-		name        string
-		authMethod  string
-		subject     string
-		email       string
-		allowedUser string
-		wantStatus  int
+		name           string
+		authMethod     string
+		subject        string
+		email          string
+		allowedSubject string
+		allowedEmail   string
+		wantStatus     int
 	}{
 		{name: "unset allows existing session", authMethod: "oidc", subject: "someone", wantStatus: http.StatusOK},
-		{name: "subject still allowed", authMethod: "oidc", subject: "abc-123", allowedUser: "abc-123", wantStatus: http.StatusOK},
-		{name: "verified email still allowed", authMethod: "oidc", subject: "abc-123", email: "me@example.com", allowedUser: "ME@example.com", wantStatus: http.StatusOK},
-		{name: "allowed user changed", authMethod: "oidc", subject: "abc-123", allowedUser: "other", wantStatus: http.StatusForbidden},
-		{name: "session from before the setting existed", authMethod: "oidc", allowedUser: "abc-123", wantStatus: http.StatusForbidden},
-		{name: "password session unaffected", authMethod: "password", allowedUser: "abc-123", wantStatus: http.StatusOK},
+		{name: "subject still allowed", authMethod: "oidc", subject: "abc-123", allowedSubject: "abc-123", wantStatus: http.StatusOK},
+		{name: "verified email still allowed", authMethod: "oidc", subject: "abc-123", email: "me@example.com", allowedEmail: "ME@example.com", wantStatus: http.StatusOK},
+		{name: "allowed subject changed", authMethod: "oidc", subject: "abc-123", allowedSubject: "other", wantStatus: http.StatusForbidden},
+		{name: "switched from subject to email", authMethod: "oidc", subject: "abc-123", allowedEmail: "me@example.com", wantStatus: http.StatusForbidden},
+		{name: "session from before the setting existed", authMethod: "oidc", allowedSubject: "abc-123", wantStatus: http.StatusForbidden},
+		{name: "password session unaffected", authMethod: "password", allowedSubject: "abc-123", wantStatus: http.StatusOK},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			sm := scs.New()
 			s := &Server{
 				log:            zerolog.Nop(),
-				config:         &config.AppConfig{Config: &domain.Config{OIDCAllowedUser: tt.allowedUser}},
+				config:         &config.AppConfig{Config: &domain.Config{OIDCAllowedSubject: tt.allowedSubject, OIDCAllowedEmail: tt.allowedEmail}},
 				sessionManager: sm,
 			}
 

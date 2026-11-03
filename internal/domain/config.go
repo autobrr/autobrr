@@ -51,7 +51,8 @@ type Config struct {
 	OIDCScopes              string `toml:"oidcScopes"`
 	OIDCDisableBuiltInLogin bool   `toml:"oidcDisableBuiltInLogin"`
 	OIDCAutoRedirect        bool   `toml:"oidcAutoRedirect"`
-	OIDCAllowedUser         string `toml:"oidcAllowedUser"`
+	OIDCAllowedSubject      string `toml:"oidcAllowedSubject"`
+	OIDCAllowedEmail        string `toml:"oidcAllowedEmail"`
 	MetricsEnabled          bool   `toml:"metricsEnabled"`
 	MetricsHost             string `toml:"metricsHost"`
 	MetricsPort             int    `toml:"metricsPort"`
@@ -286,18 +287,18 @@ func NormalizeHost(host string) (string, error) {
 }
 
 // IsOIDCUserAllowed reports whether the OIDC user with the given subject and
-// provider-verified email may log in. Every user is allowed when OIDCAllowedUser
-// is unset. The subject is opaque and compared exactly, the email case-insensitively.
+// provider-verified email may log in. Each setting is matched only against its
+// own claim, so a subject that looks like the allowed email never matches it.
+// Every user is allowed when neither setting is set.
 func (c *Config) IsOIDCUserAllowed(subject, verifiedEmail string) bool {
-	if c.OIDCAllowedUser == "" {
+	switch {
+	case c.OIDCAllowedSubject != "":
+		return subject == c.OIDCAllowedSubject
+	case c.OIDCAllowedEmail != "":
+		return verifiedEmail != "" && strings.EqualFold(verifiedEmail, c.OIDCAllowedEmail)
+	default:
 		return true
 	}
-
-	if subject != "" && subject == c.OIDCAllowedUser {
-		return true
-	}
-
-	return verifiedEmail != "" && strings.EqualFold(verifiedEmail, c.OIDCAllowedUser)
 }
 
 // ValidateAuthDisabledConfig validates that disabling authentication is configured

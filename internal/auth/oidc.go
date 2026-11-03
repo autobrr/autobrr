@@ -64,7 +64,8 @@ func (s *OIDCService) ValidateConfig() error {
 		Str("oidc_client_id", s.cfg.OIDCClientID).
 		Str("oidc_redirect_url", s.cfg.OIDCRedirectURL).
 		Str("oidc_scopes", s.cfg.OIDCScopes).
-		Bool("oidc_allowed_user_set", s.cfg.OIDCAllowedUser != "").
+		Bool("oidc_allowed_subject_set", s.cfg.OIDCAllowedSubject != "").
+		Bool("oidc_allowed_email_set", s.cfg.OIDCAllowedEmail != "").
 		Msg("initializing OIDC handler with oidcConfig")
 
 	var validationErrors []string
@@ -83,6 +84,10 @@ func (s *OIDCService) ValidateConfig() error {
 
 	if s.cfg.OIDCRedirectURL == "" {
 		validationErrors = append(validationErrors, "redirect URL is required")
+	}
+
+	if s.cfg.OIDCAllowedSubject != "" && s.cfg.OIDCAllowedEmail != "" {
+		validationErrors = append(validationErrors, "set only one of oidcAllowedSubject and oidcAllowedEmail")
 	}
 
 	if len(validationErrors) > 0 {
@@ -106,8 +111,8 @@ func (s *OIDCService) Discover(ctx context.Context) error {
 		return err
 	}
 
-	if s.cfg.OIDCAllowedUser == "" {
-		s.log.Warn().Msg("oidcAllowedUser is not set: any user your OIDC provider authenticates for this client can log in")
+	if s.cfg.OIDCAllowedSubject == "" && s.cfg.OIDCAllowedEmail == "" {
+		s.log.Warn().Msg("neither oidcAllowedSubject nor oidcAllowedEmail is set: any user your OIDC provider authenticates for this client can log in")
 	}
 
 	go s.discover(ctx)

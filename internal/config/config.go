@@ -132,11 +132,14 @@ checkForUpdates = true
 # Environment variable: AUTOBRR__OIDC_AUTO_REDIRECT
 #oidcAutoRedirect = false
 #
-# Only allow this OIDC user to log in: the subject identifier (sub) or the email
-# address the provider has verified. When unset, any user your provider
-# authenticates for this client can log in.
-# Environment variable: AUTOBRR__OIDC_ALLOWED_USER
-#oidcAllowedUser = ""
+# Only allow one OIDC user to log in, by subject identifier (sub) or by the email
+# address the provider has verified. Set one of the two, not both. When neither
+# is set, any user your provider authenticates for this client can log in.
+# Environment variable: AUTOBRR__OIDC_ALLOWED_SUBJECT
+#oidcAllowedSubject = ""
+#
+# Environment variable: AUTOBRR__OIDC_ALLOWED_EMAIL
+#oidcAllowedEmail = ""
 
 # Disable authentication (DANGEROUS)
 #
@@ -503,8 +506,12 @@ func (c *AppConfig) loadFromEnv() {
 		c.Config.OIDCAutoRedirect = strings.EqualFold(v, "true")
 	}
 
-	if v := GetEnvStr("OIDC_ALLOWED_USER"); v != "" {
-		c.Config.OIDCAllowedUser = v
+	if v := GetEnvStr("OIDC_ALLOWED_SUBJECT"); v != "" {
+		c.Config.OIDCAllowedSubject = v
+	}
+
+	if v := GetEnvStr("OIDC_ALLOWED_EMAIL"); v != "" {
+		c.Config.OIDCAllowedEmail = v
 	}
 
 	// Metrics configuration

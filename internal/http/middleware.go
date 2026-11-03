@@ -111,8 +111,8 @@ func (s *Server) IsAuthenticated(next http.Handler) http.Handler {
 				return
 			}
 
-			// sessions outlive restarts, so one created before oidcAllowedUser was
-			// set or changed must not keep a now-disallowed user logged in
+			// sessions outlive restarts, so one created before the allowed OIDC user
+			// was set or changed must not keep a now-disallowed user logged in
 			if s.sessionManager.GetString(r.Context(), "auth_method") == "oidc" {
 				subject := s.sessionManager.GetString(r.Context(), "oidc_subject")
 				if !s.config.Config.IsOIDCUserAllowed(subject, s.sessionManager.GetString(r.Context(), "oidc_verified_email")) {

@@ -256,7 +256,7 @@ func (h *OIDCHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// OIDC Core 5.3.4: userinfo for another subject must not be used, or its
-	// verified email could satisfy oidcAllowedUser for this login
+	// verified email could satisfy oidcAllowedEmail for this login
 	if userInfo != nil && userInfo.Subject != claims.Sub {
 		h.log.Warn().Str("sub", claims.Sub).Str("userinfo_sub", userInfo.Subject).Msg("userinfo subject does not match ID token subject, ignoring userinfo")
 		userInfo = nil
@@ -313,8 +313,10 @@ func (h *OIDCHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 	h.log.Debug().Str("email", claims.Email).Str("preferred_username", claims.Username).Str("nickname", claims.Nickname).Str("name", claims.Name).Str("sub", claims.Sub).Msg("successfully processed OIDC claims")
 
 	if !h.config.IsOIDCUserAllowed(claims.Sub, claims.VerifiedEmail()) {
-		if userInfoErr != nil {
-			h.encoder.StatusError(w, http.StatusBadGateway, errors.Wrap(userInfoErr, "could not verify user: failed to get userinfo"))
+		// only the email check depends on userinfo; the error itself is logged
+		// above and may carry the provider's response body
+		if userInfoErr != nil && h.config.OIDCAllowedEmail != "" {
+			h.encoder.StatusError(w, http.StatusBadGateway, errors.New("could not verify user: failed to get userinfo"))
 			return
 		}
 
