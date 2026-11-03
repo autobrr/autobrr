@@ -22,7 +22,7 @@ import { WarningAlert } from "@components/alerts";
 
 import Logo from "@app/logo.svg?react";
 import { AuthContext, AuthInfo } from "@utils/Context";
-import { classNames } from "@utils";
+import { classNames, isSameOriginPath } from "@utils";
 import { useToggle } from "@hooks/hooks";
 
 type LoginFormFields = {
@@ -126,12 +126,16 @@ export const Login = () => {
     };
 
     React.useLayoutEffect(() => {
-        if (auth.isLoggedIn && search.redirect) {
-            router.history.push(search.redirect)
-        } else if (auth.isLoggedIn) {
-            router.history.push("/")
+        if (!auth.isLoggedIn) {
+            return;
         }
-    }, [auth.isLoggedIn, search.redirect, router.history])
+
+        // ?redirect= holds the router path or the full path with the base URL,
+        // depending on who sent the user here. navigate resolves both against the
+        // base URL; history.push takes them as-is and leaves the app under one.
+        const target = search.redirect && isSameOriginPath(search.redirect) ? search.redirect : "/";
+        router.navigate({ href: target });
+    }, [auth.isLoggedIn, search.redirect, router])
 
     return (
         <div className="flex min-h-full flex-1 flex-col justify-center py-12 sm:px-6 lg:px-8">
