@@ -14,6 +14,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -24,6 +25,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 
@@ -192,6 +194,11 @@ type oidcProviderMock struct {
 	verifier *oidc.IDTokenVerifier
 	tokenURL string
 
+	// claims are added to every ID token, overriding the defaults
+	claims      map[string]any
+	userInfo    *oidc.UserInfo
+	userInfoErr error
+
 	m             sync.Mutex
 	codeVerifiers map[string]string
 }
@@ -207,6 +214,7 @@ func newOIDCProviderMock(t *testing.T) *oidcProviderMock {
 		t:                     t,
 		key:                   key,
 		verifier:              oidc.NewVerifier(oidcTestIssuer, &oidc.StaticKeySet{PublicKeys: []crypto.PublicKey{&key.PublicKey}}, &oidc.Config{ClientID: "autobrr"}),
+		userInfoErr:           errors.New("userinfo not offered"),
 		codeVerifiers:         map[string]string{},
 	}
 
@@ -252,14 +260,17 @@ func (p *oidcProviderMock) signIDToken() (string, error) {
 		return "", err
 	}
 
-	payload, err := json.Marshal(map[string]any{
+	claims := map[string]any{
 		"iss":                oidcTestIssuer,
 		"aud":                "autobrr",
 		"sub":                "user-1",
 		"preferred_username": "alice",
 		"iat":                time.Now().Unix(),
 		"exp":                time.Now().Add(time.Minute).Unix(),
-	})
+	}
+	maps.Copy(claims, p.claims)
+
+	payload, err := json.Marshal(claims)
 	if err != nil {
 		return "", err
 	}
@@ -285,7 +296,7 @@ func (p *oidcProviderMock) VerifyIDToken(ctx context.Context, idToken string) (*
 }
 
 func (p *oidcProviderMock) UserInfo(_ context.Context, _ oauth2.TokenSource) (*oidc.UserInfo, error) {
-	return nil, errors.New("userinfo not offered")
+	return p.userInfo, p.userInfoErr
 }
 
 const oidcTestOrigin = "https://autobrr.example.com"
@@ -297,6 +308,7 @@ type oidcLoginFlow struct {
 	app      http.Handler
 	handler  *OIDCHandler
 	provider *oidcProviderMock
+	sessions *scs.SessionManager
 	jar      *cookiejar.Jar
 	routes   string
 }
@@ -324,7 +336,7 @@ func newOIDCLoginFlow(t *testing.T, baseURL string) *oidcLoginFlow {
 	jar, err := cookiejar.New(nil)
 	require.NoError(t, err)
 
-	return &oidcLoginFlow{app: sessions.LoadAndSave(router), handler: handler, provider: provider, jar: jar, routes: routes}
+	return &oidcLoginFlow{app: sessions.LoadAndSave(router), handler: handler, provider: provider, sessions: sessions, jar: jar, routes: routes}
 }
 
 func (f *oidcLoginFlow) do(t *testing.T, target string, withCookies bool) *httptest.ResponseRecorder {
@@ -668,6 +680,239 @@ func TestOIDCStateCookiePath(t *testing.T) {
 			handler := NewOIDCHandler(encoder{}, zerolog.Nop(), &domain.Config{OIDCEnabled: true, BaseURL: tt.baseURL, OIDCRedirectURL: tt.redirectURL}, sessions, &oidcConfigServiceMock{}, func(*http.Request) string { return "" })
 
 			assert.Equal(t, tt.want, handler.stateCookiePath())
+		})
+	}
+}
+
+// session loads the session this browser holds after the login flow.
+func (f *oidcLoginFlow) session(t *testing.T) context.Context {
+	var token string
+	for _, c := range f.jar.Cookies(f.callbackURL(t)) {
+		if c.Name == f.sessions.Cookie.Name {
+			token = c.Value
+		}
+	}
+
+	ctx, err := f.sessions.Load(t.Context(), token)
+	require.NoError(t, err)
+
+	return ctx
+}
+
+func TestOIDCCallbackAllowedUser(t *testing.T) {
+	t.Parallel()
+	for _, tt := range []struct {
+		name           string
+		allowedSubject string
+		allowedEmail   string
+		claims         map[string]any
+		userInfo       *oidc.UserInfo
+		userInfoErr    error
+		wantStatus     int
+		wantEmail      string
+	}{
+		{
+			name:       "unset allows any user",
+			claims:     map[string]any{"sub": "someone"},
+			wantStatus: http.StatusFound,
+		},
+		{
+			name:           "subject match",
+			allowedSubject: "abc-123",
+			claims:         map[string]any{"sub": "abc-123"},
+			wantStatus:     http.StatusFound,
+		},
+		{
+			name:           "subject is case-sensitive",
+			allowedSubject: "ABC-123",
+			claims:         map[string]any{"sub": "abc-123"},
+			wantStatus:     http.StatusForbidden,
+		},
+		{
+			name:           "other subject rejected",
+			allowedSubject: "abc-123",
+			claims:         map[string]any{"sub": "intruder"},
+			wantStatus:     http.StatusForbidden,
+		},
+		{
+			name:           "subject setting ignores a matching verified email",
+			allowedSubject: "me@example.com",
+			claims:         map[string]any{"sub": "intruder", "email": "me@example.com", "email_verified": true},
+			wantStatus:     http.StatusForbidden,
+		},
+		{
+			name:         "email setting ignores a subject that looks like the email",
+			allowedEmail: "me@example.com",
+			claims:       map[string]any{"sub": "me@example.com"},
+			wantStatus:   http.StatusForbidden,
+		},
+		{
+			name:         "verified email match ignores case",
+			allowedEmail: "Me@Example.com",
+			claims:       map[string]any{"sub": "abc-123", "email": "me@example.com", "email_verified": true},
+			wantStatus:   http.StatusFound,
+			wantEmail:    "me@example.com",
+		},
+		{
+			name:         "email_verified sent as string",
+			allowedEmail: "me@example.com",
+			claims:       map[string]any{"sub": "abc-123", "email": "me@example.com", "email_verified": "true"},
+			wantStatus:   http.StatusFound,
+			wantEmail:    "me@example.com",
+		},
+		{
+			name:         "unverified email rejected",
+			allowedEmail: "me@example.com",
+			claims:       map[string]any{"sub": "abc-123", "email": "me@example.com", "email_verified": false},
+			wantStatus:   http.StatusForbidden,
+		},
+		{
+			name:         "missing email_verified rejected",
+			allowedEmail: "me@example.com",
+			claims:       map[string]any{"sub": "abc-123", "email": "me@example.com"},
+			wantStatus:   http.StatusForbidden,
+		},
+		{
+			name:         "verified email from userinfo",
+			allowedEmail: "me@example.com",
+			claims:       map[string]any{"sub": "abc-123"},
+			userInfo:     &oidc.UserInfo{Subject: "abc-123", Email: "me@example.com", EmailVerified: true},
+			wantStatus:   http.StatusFound,
+			wantEmail:    "me@example.com",
+		},
+		{
+			name:         "unverified userinfo email overrides verified ID token email",
+			allowedEmail: "me@example.com",
+			claims:       map[string]any{"sub": "abc-123", "email": "old@example.com", "email_verified": true},
+			userInfo:     &oidc.UserInfo{Subject: "abc-123", Email: "me@example.com", EmailVerified: false},
+			wantStatus:   http.StatusForbidden,
+		},
+		{
+			name:         "userinfo for another subject cannot supply the email",
+			allowedEmail: "me@example.com",
+			claims:       map[string]any{"sub": "intruder"},
+			userInfo:     &oidc.UserInfo{Subject: "abc-123", Email: "me@example.com", EmailVerified: true},
+			wantStatus:   http.StatusForbidden,
+		},
+		{
+			name:         "userinfo for another subject ignored, ID token email still used",
+			allowedEmail: "me@example.com",
+			claims:       map[string]any{"sub": "abc-123", "email": "me@example.com", "email_verified": true},
+			userInfo:     &oidc.UserInfo{Subject: "intruder", Email: "other@example.com", EmailVerified: false},
+			wantStatus:   http.StatusFound,
+			wantEmail:    "me@example.com",
+		},
+		{
+			name:         "userinfo failure reported when email could not be verified",
+			allowedEmail: "me@example.com",
+			claims:       map[string]any{"sub": "abc-123"},
+			userInfoErr:  errors.New("provider unavailable: internal.example.lan"),
+			wantStatus:   http.StatusBadGateway,
+		},
+		{
+			name:         "userinfo failure with a verified non-matching ID token email",
+			allowedEmail: "me@example.com",
+			claims:       map[string]any{"sub": "abc-123", "email": "other@example.com", "email_verified": true},
+			userInfoErr:  errors.New("provider unavailable: internal.example.lan"),
+			wantStatus:   http.StatusBadGateway,
+		},
+		{
+			name:           "userinfo failure does not affect subject setting",
+			allowedSubject: "abc-123",
+			claims:         map[string]any{"sub": "intruder"},
+			userInfoErr:    errors.New("provider unavailable"),
+			wantStatus:     http.StatusForbidden,
+		},
+		{
+			name:           "userinfo failure does not block subject match",
+			allowedSubject: "abc-123",
+			claims:         map[string]any{"sub": "abc-123"},
+			userInfoErr:    errors.New("provider unavailable"),
+			wantStatus:     http.StatusFound,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			flow := newOIDCLoginFlow(t, "/")
+			flow.handler.config.OIDCAllowedSubject = tt.allowedSubject
+			flow.handler.config.OIDCAllowedEmail = tt.allowedEmail
+			flow.provider.claims = tt.claims
+			flow.provider.userInfo = tt.userInfo
+			flow.provider.userInfoErr = tt.userInfoErr
+			state, _ := flow.start(t, "")
+
+			rec := flow.callback(t, state)
+			require.Equal(t, tt.wantStatus, rec.Code, rec.Body.String())
+			if tt.userInfoErr != nil {
+				assert.NotContains(t, rec.Body.String(), tt.userInfoErr.Error(), "provider errors stay in the log")
+				assert.NotContains(t, rec.Body.String(), "internal.example.lan", "provider host stays in the log")
+			}
+
+			ctx := flow.session(t)
+			assert.Equal(t, tt.wantStatus == http.StatusFound, flow.sessions.GetBool(ctx, "authenticated"))
+			if tt.wantStatus == http.StatusFound {
+				assert.Equal(t, "oidc", flow.sessions.GetString(ctx, "auth_method"))
+				assert.Equal(t, tt.claims["sub"], flow.sessions.GetString(ctx, "oidc_subject"))
+				assert.Equal(t, tt.wantEmail, flow.sessions.GetString(ctx, "oidc_verified_email"))
+			}
+		})
+	}
+}
+
+func TestIsAuthenticatedRechecksOIDCAllowedUser(t *testing.T) {
+	tests := []struct {
+		name           string
+		authMethod     string
+		subject        string
+		email          string
+		allowedSubject string
+		allowedEmail   string
+		wantStatus     int
+	}{
+		{name: "unset allows existing session", authMethod: "oidc", subject: "someone", wantStatus: http.StatusOK},
+		{name: "subject still allowed", authMethod: "oidc", subject: "abc-123", allowedSubject: "abc-123", wantStatus: http.StatusOK},
+		{name: "verified email still allowed", authMethod: "oidc", subject: "abc-123", email: "me@example.com", allowedEmail: "ME@example.com", wantStatus: http.StatusOK},
+		{name: "allowed subject changed", authMethod: "oidc", subject: "abc-123", allowedSubject: "other", wantStatus: http.StatusForbidden},
+		{name: "switched from subject to email", authMethod: "oidc", subject: "abc-123", allowedEmail: "me@example.com", wantStatus: http.StatusForbidden},
+		{name: "session from before the setting existed", authMethod: "oidc", allowedSubject: "abc-123", wantStatus: http.StatusForbidden},
+		{name: "password session unaffected", authMethod: "password", allowedSubject: "abc-123", wantStatus: http.StatusOK},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sm := scs.New()
+			s := &Server{
+				log:            zerolog.Nop(),
+				config:         &config.AppConfig{Config: &domain.Config{OIDCAllowedSubject: tt.allowedSubject, OIDCAllowedEmail: tt.allowedEmail}},
+				sessionManager: sm,
+			}
+
+			ctx, err := sm.Load(t.Context(), "")
+			require.NoError(t, err)
+			sm.Put(ctx, "authenticated", true)
+			sm.Put(ctx, "auth_method", tt.authMethod)
+			if tt.subject != "" {
+				sm.Put(ctx, "oidc_subject", tt.subject)
+			}
+			if tt.email != "" {
+				sm.Put(ctx, "oidc_verified_email", tt.email)
+			}
+			token, _, err := sm.Commit(ctx)
+			require.NoError(t, err)
+
+			req := httptest.NewRequest(http.MethodGet, "/api/config", nil)
+			req.AddCookie(&http.Cookie{Name: sm.Cookie.Name, Value: token})
+			rec := httptest.NewRecorder()
+			sm.LoadAndSave(s.IsAuthenticated(okHandler())).ServeHTTP(rec, req)
+
+			assert.Equal(t, tt.wantStatus, rec.Code)
+
+			// allowed requests may renew the token, so only the destroyed
+			// session is still reachable under the original one
+			if tt.wantStatus == http.StatusForbidden {
+				ctx, err := sm.Load(t.Context(), token)
+				require.NoError(t, err)
+				assert.False(t, sm.GetBool(ctx, "authenticated"))
+			}
 		})
 	}
 }

@@ -111,6 +111,20 @@ func (s *Server) IsAuthenticated(next http.Handler) http.Handler {
 				return
 			}
 
+			// sessions outlive restarts, so one created before the allowed OIDC user
+			// was set or changed must not keep a now-disallowed user logged in
+			if s.sessionManager.GetString(r.Context(), "auth_method") == "oidc" {
+				subject := s.sessionManager.GetString(r.Context(), "oidc_subject")
+				if !s.config.Config.IsOIDCUserAllowed(subject, s.sessionManager.GetString(r.Context(), "oidc_verified_email")) {
+					s.log.Warn().Str("sub", subject).Str("remote_addr", r.RemoteAddr).Msg("OIDC session user is no longer allowed, destroying session")
+					if err := s.sessionManager.Destroy(r.Context()); err != nil {
+						s.log.Error().Err(err).Msg("failed to destroy session")
+					}
+					http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+					return
+				}
+			}
+
 			deadline := s.sessionManager.Deadline(r.Context())
 			if time.Until(deadline) <= 7*24*time.Hour {
 				s.log.Trace().Time("deadline", deadline).Msg("session expiring in less than 7 days, extending")
