@@ -63,7 +63,7 @@ func TestOIDCConfigAutoRedirect(t *testing.T) {
 			handler := NewOIDCHandler(encoder{}, zerolog.Nop(), &domain.Config{
 				OIDCEnabled:      tt.enabled,
 				OIDCAutoRedirect: tt.autoRedirect,
-			}, sessions, &oidcConfigServiceMock{pkce: tt.pkce})
+			}, sessions, &oidcConfigServiceMock{pkce: tt.pkce}, func(*http.Request) string { return "" })
 
 			var storedState, storedVerifier string
 			next := sessions.LoadAndSave(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
