@@ -4,7 +4,7 @@
  */
 
 import { useRef } from "react";
-import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { TrashIcon } from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
 
@@ -13,11 +13,13 @@ import { DeleteModal } from "@components/modals";
 import { APIKeyAddForm } from "@forms/settings/APIKeyAddForm";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
+import { WarningAlert } from "@components/alerts";
 import { APIClient } from "@api/APIClient";
 import { ApikeysQueryOptions } from "@api/queries";
 import { ApiKeys } from "@api/query_keys";
 import { useToggle } from "@hooks/hooks";
 import { classNames } from "@utils";
+import { AuthContext } from "@utils/Context";
 import { EmptySimple } from "@components/emptystates";
 import { Section } from "./_components";
 import { PlusIcon } from "@heroicons/react/24/solid";
@@ -27,7 +29,24 @@ function APISettings() {
   const { t } = useTranslation("settings");
   const [addFormIsOpen, toggleAddForm] = useToggle(false);
 
-  const apikeysQuery = useSuspenseQuery(ApikeysQueryOptions())
+  // Backend blocks API key management while auth is disabled; skip the fetch so
+  // the (403'd) endpoint isn't hit and the notice below can render.
+  const authDisabled = AuthContext.useSelector((s) => s.authMethod) === "disabled";
+
+  const apikeysQuery = useQuery({ ...ApikeysQueryOptions(), enabled: !authDisabled });
+
+  if (authDisabled) {
+    return (
+      <Section
+        title={t("forms.apiKey.listTitle")}
+        description={t("forms.apiKey.listDescription")}
+      >
+        <div className="sm:px-2">
+          <WarningAlert text={t("forms.apiKey.authDisabledNotice")} />
+        </div>
+      </Section>
+    );
+  }
 
   return (
     <Section

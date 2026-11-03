@@ -38,7 +38,18 @@ export const Header = () => {
         to: loginRoute.id,
       })
     },
-    onError: () => {}
+    onError: (error) => {
+      // An expired session is already logged out. Any other failure may have left
+      // the session alive, so keep the user signed in to retry.
+      if (error.message === "Cookie expired or invalid.") {
+        AuthContext.reset();
+        return;
+      }
+
+      toast.custom((toastInstance) => (
+        <Toast type="error" body={error.message} t={toastInstance} />
+      ));
+    }
   });
 
   return (
