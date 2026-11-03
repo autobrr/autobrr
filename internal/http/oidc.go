@@ -56,13 +56,32 @@ type OIDCHandler struct {
 
 // OIDCClaims represents the claims returned from the OIDC provider
 type OIDCClaims struct {
-	Email     string `json:"email"`
-	Username  string `json:"preferred_username"`
-	Name      string `json:"name"`
-	GivenName string `json:"given_name"`
-	Nickname  string `json:"nickname"`
-	Sub       string `json:"sub"`
-	Picture   string `json:"picture"`
+	Email         string   `json:"email"`
+	EmailVerified oidcBool `json:"email_verified"`
+	Username      string   `json:"preferred_username"`
+	Name          string   `json:"name"`
+	GivenName     string   `json:"given_name"`
+	Nickname      string   `json:"nickname"`
+	Sub           string   `json:"sub"`
+	Picture       string   `json:"picture"`
+}
+
+// oidcBool decodes a boolean claim that some providers send as the string "true".
+type oidcBool bool
+
+func (b *oidcBool) UnmarshalJSON(data []byte) error {
+	*b = string(data) == "true" || string(data) == `"true"`
+
+	return nil
+}
+
+// VerifiedEmail returns the email only when the provider asserts it is verified.
+func (c OIDCClaims) VerifiedEmail() string {
+	if !c.EmailVerified {
+		return ""
+	}
+
+	return c.Email
 }
 
 // NewOIDCHandler builds the OIDC login handler; limiterKey identifies the client
@@ -203,8 +222,14 @@ func (h *OIDCHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if userInfo != nil {
+		// take the userinfo email and its verification status together, never an
+		// unverified userinfo email paired with the ID token's verified flag
+		if userInfo.Email != "" {
+			claims.Email = userInfo.Email
+			claims.EmailVerified = oidcBool(userInfo.EmailVerified)
+		}
+
 		var userInfoClaims struct {
-			Email    string `json:"email"`
 			Username string `json:"preferred_username"`
 			Name     string `json:"name"`
 			Nickname string `json:"nickname"`
@@ -213,11 +238,8 @@ func (h *OIDCHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 		if err := userInfo.Claims(&userInfoClaims); err != nil {
 			h.log.Warn().Err(err).Msg("failed to parse claims from userinfo endpoint, proceeding with ID token claims if available")
 		} else {
-			h.log.Debug().Str("userinfo_email", userInfoClaims.Email).Str("userinfo_username", userInfoClaims.Username).Str("userinfo_name", userInfoClaims.Name).Str("userinfo_nickname", userInfoClaims.Nickname).Msg("successfully parsed claims from userinfo endpoint")
+			h.log.Debug().Str("userinfo_email", userInfo.Email).Str("userinfo_username", userInfoClaims.Username).Str("userinfo_name", userInfoClaims.Name).Str("userinfo_nickname", userInfoClaims.Nickname).Msg("successfully parsed claims from userinfo endpoint")
 
-			if userInfoClaims.Email != "" {
-				claims.Email = userInfoClaims.Email
-			}
 			if userInfoClaims.Username != "" {
 				claims.Username = userInfoClaims.Username
 			}
@@ -249,6 +271,12 @@ func (h *OIDCHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 
 	h.log.Debug().Str("email", claims.Email).Str("preferred_username", claims.Username).Str("nickname", claims.Nickname).Str("name", claims.Name).Str("sub", claims.Sub).Msg("successfully processed OIDC claims")
 
+	if !h.config.IsOIDCUserAllowed(claims.Sub, claims.VerifiedEmail()) {
+		h.log.Warn().Str("sub", claims.Sub).Str("email", claims.Email).Bool("email_verified", bool(claims.EmailVerified)).Str("remote_addr", r.RemoteAddr).Msg("OIDC user is not allowed to log in")
+		h.encoder.StatusError(w, http.StatusForbidden, errors.New("user is not allowed to log in"))
+		return
+	}
+
 	// Create new session
 	if err := h.sessionManager.RenewToken(r.Context()); err != nil {
 		h.log.Error().Err(err).Str("username", claims.Username).Str("remote_addr", r.RemoteAddr).Msg("failed to renew session token")
@@ -261,6 +289,8 @@ func (h *OIDCHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 	h.sessionManager.Put(r.Context(), "username", claims.Username)
 	h.sessionManager.Put(r.Context(), "created", time.Now().Unix())
 	h.sessionManager.Put(r.Context(), "auth_method", "oidc")
+	h.sessionManager.Put(r.Context(), "oidc_subject", claims.Sub)
+	h.sessionManager.Put(r.Context(), "oidc_verified_email", claims.VerifiedEmail())
 	h.sessionManager.Put(r.Context(), "profile_picture", claims.Picture)
 	h.sessionManager.RememberMe(r.Context(), true)
 

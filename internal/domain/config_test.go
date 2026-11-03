@@ -314,3 +314,26 @@ func TestConfig_ValidateAuthDisabledConfig(t *testing.T) {
 		assert.NoError(t, c.ValidateAuthDisabledConfig())
 	})
 }
+
+func TestConfig_IsOIDCUserAllowed(t *testing.T) {
+	tests := []struct {
+		name          string
+		allowedUser   string
+		subject       string
+		verifiedEmail string
+		want          bool
+	}{
+		{"unset allows anyone", "", "anyone", "", true},
+		{"subject match", "abc-123", "abc-123", "", true},
+		{"subject is case-sensitive", "ABC-123", "abc-123", "", false},
+		{"email match ignores case", "Me@Example.com", "abc-123", "me@example.com", true},
+		{"no identity", "abc-123", "", "", false},
+		{"different user", "abc-123", "xyz", "other@example.com", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Config{OIDCAllowedUser: tt.allowedUser}
+			assert.Equal(t, tt.want, c.IsOIDCUserAllowed(tt.subject, tt.verifiedEmail))
+		})
+	}
+}

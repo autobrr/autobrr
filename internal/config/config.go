@@ -127,6 +127,11 @@ checkForUpdates = true
 #
 # Disable Built In Login Form (only works when using external auth)
 #oidcDisableBuiltInLogin = false
+#
+# Only allow this OIDC user to log in: the subject identifier (sub) or the email
+# address the provider has verified. When unset, any user your provider
+# authenticates for this client can log in.
+#oidcAllowedUser = ""
 
 # Disable authentication (DANGEROUS)
 #
@@ -487,6 +492,10 @@ func (c *AppConfig) loadFromEnv() {
 
 	if v := GetEnvStr("OIDC_DISABLE_BUILT_IN_LOGIN"); v != "" {
 		c.Config.OIDCDisableBuiltInLogin = strings.EqualFold(strings.ToLower(v), "true")
+	}
+
+	if v := GetEnvStr("OIDC_ALLOWED_USER"); v != "" {
+		c.Config.OIDCAllowedUser = v
 	}
 
 	// Metrics configuration

@@ -50,6 +50,7 @@ type Config struct {
 	OIDCRedirectURL         string `toml:"oidcRedirectUrl"`
 	OIDCScopes              string `toml:"oidcScopes"`
 	OIDCDisableBuiltInLogin bool   `toml:"oidcDisableBuiltInLogin"`
+	OIDCAllowedUser         string `toml:"oidcAllowedUser"`
 	MetricsEnabled          bool   `toml:"metricsEnabled"`
 	MetricsHost             string `toml:"metricsHost"`
 	MetricsPort             int    `toml:"metricsPort"`
@@ -281,6 +282,21 @@ func NormalizeHost(host string) (string, error) {
 	}
 
 	return host, nil
+}
+
+// IsOIDCUserAllowed reports whether the OIDC user with the given subject and
+// provider-verified email may log in. Every user is allowed when OIDCAllowedUser
+// is unset. The subject is opaque and compared exactly, the email case-insensitively.
+func (c *Config) IsOIDCUserAllowed(subject, verifiedEmail string) bool {
+	if c.OIDCAllowedUser == "" {
+		return true
+	}
+
+	if subject != "" && subject == c.OIDCAllowedUser {
+		return true
+	}
+
+	return verifiedEmail != "" && strings.EqualFold(verifiedEmail, c.OIDCAllowedUser)
 }
 
 // ValidateAuthDisabledConfig validates that disabling authentication is configured

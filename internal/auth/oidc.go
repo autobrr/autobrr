@@ -48,6 +48,7 @@ func (s *OIDCService) ValidateConfig() error {
 		Str("oidc_client_id", s.cfg.OIDCClientID).
 		Str("oidc_redirect_url", s.cfg.OIDCRedirectURL).
 		Str("oidc_scopes", s.cfg.OIDCScopes).
+		Str("oidc_allowed_user", s.cfg.OIDCAllowedUser).
 		Msg("initializing OIDC handler with oidcConfig")
 
 	var validationErrors []string
@@ -84,6 +85,10 @@ func (s *OIDCService) Discover(ctx context.Context) error {
 	if err := s.ValidateConfig(); err != nil {
 		s.log.Error().Err(err).Msg("failed to validate OIDC config")
 		return err
+	}
+
+	if s.cfg.OIDCAllowedUser == "" {
+		s.log.Warn().Msg("oidcAllowedUser is not set: any user your OIDC provider authenticates for this client can log in")
 	}
 
 	go func() {
