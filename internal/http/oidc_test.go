@@ -6,6 +6,10 @@
 package http
 
 import (
+	"context"
+	"crypto"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
@@ -13,10 +17,14 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/alexedwards/scs/v2"
+	"github.com/coreos/go-oidc/v3/oidc"
+	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -168,6 +176,112 @@ func TestIsRedirectUnderBase(t *testing.T) {
 		t.Run(tt.target, func(t *testing.T) {
 			t.Parallel()
 			assert.Equal(t, tt.want, isRedirectUnderBase(tt.target, tt.baseURL))
+		})
+	}
+}
+
+// oidcProviderMock signs real ID tokens so the callback runs the go-oidc verifier
+// and claims decoding instead of a stubbed token.
+type oidcProviderMock struct {
+	oidcConfigServiceMock
+	key      *rsa.PrivateKey
+	verifier *oidc.IDTokenVerifier
+}
+
+const oidcTestIssuer = "https://auth.example.com"
+
+func newOIDCProviderMock(t *testing.T) *oidcProviderMock {
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+
+	keySet := &oidc.StaticKeySet{PublicKeys: []crypto.PublicKey{&key.PublicKey}}
+
+	return &oidcProviderMock{
+		key:      key,
+		verifier: oidc.NewVerifier(oidcTestIssuer, keySet, &oidc.Config{ClientID: "autobrr"}),
+	}
+}
+
+func (p *oidcProviderMock) OAuthExchange(_ context.Context, _ string, _ ...oauth2.AuthCodeOption) (*oauth2.Token, error) {
+	header, err := json.Marshal(map[string]string{"alg": "RS256", "typ": "JWT"})
+	if err != nil {
+		return nil, err
+	}
+
+	payload, err := json.Marshal(map[string]any{
+		"iss":                oidcTestIssuer,
+		"aud":                "autobrr",
+		"sub":                "user-1",
+		"preferred_username": "alice",
+		"iat":                time.Now().Unix(),
+		"exp":                time.Now().Add(time.Minute).Unix(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	signingInput := base64.RawURLEncoding.EncodeToString(header) + "." + base64.RawURLEncoding.EncodeToString(payload)
+	digest := sha256.Sum256([]byte(signingInput))
+	signature, err := rsa.SignPKCS1v15(rand.Reader, p.key, crypto.SHA256, digest[:])
+	if err != nil {
+		return nil, err
+	}
+
+	token := &oauth2.Token{AccessToken: "access-token", TokenType: "Bearer"}
+
+	return token.WithExtra(map[string]any{"id_token": signingInput + "." + base64.RawURLEncoding.EncodeToString(signature)}), nil
+}
+
+func (p *oidcProviderMock) VerifyIDToken(ctx context.Context, idToken string) (*oidc.IDToken, error) {
+	return p.verifier.Verify(ctx, idToken)
+}
+
+func (p *oidcProviderMock) UserInfo(_ context.Context, _ oauth2.TokenSource) (*oidc.UserInfo, error) {
+	return nil, errors.New("userinfo not offered")
+}
+
+func TestOIDCCallbackReturnsToRequestedPage(t *testing.T) {
+	t.Parallel()
+	for _, tt := range []struct {
+		name     string
+		baseURL  string
+		redirect string
+		want     string
+	}{
+		{name: "requested page", baseURL: "/autobrr/", redirect: "/autobrr/filters/12?tab=actions", want: "/autobrr/filters/12?tab=actions"},
+		{name: "no requested page", baseURL: "/autobrr/", want: "/autobrr/"},
+		{name: "page outside base URL", baseURL: "/autobrr/", redirect: "/elsewhere", want: "/autobrr/"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			sessions := scs.New()
+			handler := NewOIDCHandler(encoder{}, zerolog.Nop(), &domain.Config{OIDCEnabled: true, BaseURL: tt.baseURL}, sessions, newOIDCProviderMock(t), func(*http.Request) string { return "" })
+			router := chi.NewRouter()
+			router.Route("/oidc", handler.Routes)
+			app := sessions.LoadAndSave(router)
+
+			configURL := "/oidc/config"
+			if tt.redirect != "" {
+				configURL += "?redirect=" + url.QueryEscape(tt.redirect)
+			}
+			rec := httptest.NewRecorder()
+			app.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, configURL, nil))
+			require.Equal(t, http.StatusOK, rec.Code)
+
+			var config GetConfigResponse
+			require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &config))
+			cookies := rec.Result().Cookies()
+			require.NotEmpty(t, cookies)
+
+			req := httptest.NewRequest(http.MethodGet, "/oidc/callback?code=code&state="+url.QueryEscape(config.State), nil)
+			for _, c := range cookies {
+				req.AddCookie(c)
+			}
+			rec = httptest.NewRecorder()
+			app.ServeHTTP(rec, req)
+
+			require.Equal(t, http.StatusFound, rec.Code, rec.Body.String())
+			assert.Equal(t, tt.want, rec.Header().Get("Location"))
 		})
 	}
 }
