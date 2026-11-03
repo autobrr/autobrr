@@ -4,30 +4,41 @@ import (
 	"context"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 
-	"github.com/avast/retry-go"
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/rs/zerolog"
 	"golang.org/x/oauth2"
 )
 
 const (
-	oidcInitMaxAttempts = 50
+	oidcDiscoveryTimeout  = 15 * time.Second
+	oidcDiscoveryMinDelay = 5 * time.Second
+	oidcDiscoveryMaxDelay = time.Minute
 )
+
+// ErrProviderUnavailable is returned until the OIDC provider has been discovered.
+var ErrProviderUnavailable = errors.New("OIDC provider is not available")
 
 type OIDCService struct {
 	log zerolog.Logger
 	cfg *domain.Config
 
-	issuer   string
-	provider *oidc.Provider
-	verifier *oidc.IDTokenVerifier
+	// discovered is nil until discovery succeeds. It is written once by the
+	// discovery goroutine and read by request handlers, so it is swapped in whole.
+	discovered atomic.Pointer[discoveredProvider]
+}
 
-	oauthConfig *oauth2.Config
+type discoveredProvider struct {
+	issuer       string
+	provider     *oidc.Provider
+	verifier     *oidc.IDTokenVerifier
+	oauthConfig  *oauth2.Config
+	supportsPKCE bool
 }
 
 func NewOIDCService(log zerolog.Logger, cfg *domain.Config) *OIDCService {
@@ -39,6 +50,11 @@ func NewOIDCService(log zerolog.Logger, cfg *domain.Config) *OIDCService {
 
 func (s *OIDCService) IsEnabled() bool {
 	return s.cfg.OIDCEnabled
+}
+
+// IsReady reports whether the provider has been discovered and logins can start.
+func (s *OIDCService) IsReady() bool {
+	return s.discovered.Load() != nil
 }
 
 func (s *OIDCService) ValidateConfig() error {
@@ -75,6 +91,9 @@ func (s *OIDCService) ValidateConfig() error {
 	return nil
 }
 
+// Discover validates the config and discovers the provider in the background.
+// A provider that is down at startup must not stop autobrr from starting, so
+// discovery keeps retrying until it succeeds or ctx is cancelled.
 func (s *OIDCService) Discover(ctx context.Context) error {
 	if !s.IsEnabled() {
 		s.log.Debug().Msg("OIDC disabled")
@@ -86,44 +105,38 @@ func (s *OIDCService) Discover(ctx context.Context) error {
 		return err
 	}
 
-	go func() {
-		if err := s.discover(ctx); err != nil {
-			s.log.Error().Err(err).Msg("failed to discover OIDC provider")
+	go s.discover(ctx)
+
+	return nil
+}
+
+func (s *OIDCService) discover(ctx context.Context) {
+	delay := oidcDiscoveryMinDelay
+
+	for attempt := 1; ; attempt++ {
+		discovered, err := s.discoverProvider(ctx)
+		if err == nil {
+			s.discovered.Store(discovered)
+			s.log.Info().Str("issuer", discovered.issuer).Bool("pkce", discovered.supportsPKCE).Msg("OIDC provider initialized successfully")
+			return
 		}
-	}()
 
-	return nil
+		s.log.Warn().Err(err).Int("attempt", attempt).Dur("retry_in", delay).Msg("could not discover OIDC provider, logins are unavailable until it responds")
+
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(delay):
+		}
+
+		delay = min(delay*2, oidcDiscoveryMaxDelay)
+	}
 }
 
-func (s *OIDCService) discover(ctx context.Context) error {
+// discoverProvider tries the issuer with and without a trailing slash, since
+// providers disagree on which form their discovery document reports.
+func (s *OIDCService) discoverProvider(ctx context.Context) (*discoveredProvider, error) {
 	issuer := s.cfg.OIDCIssuer
-	if err := s.DiscoverProvider(ctx, issuer); err != nil {
-		return errors.Wrap(err, "failed to discover OIDC provider")
-	}
-
-	s.initVerifier()
-
-	var claims *Claims
-	if err := s.provider.Claims(&claims); err != nil {
-		s.log.Warn().Err(err).Msg("failed to parse provider claims for endpoints")
-	} else {
-		s.log.Debug().Str("authorization_endpoint", claims.AuthURL).Str("token_endpoint", claims.TokenURL).Str("jwks_uri", claims.JWKSURL).Str("userinfo_endpoint", claims.UserURL).Msg("discovered OIDC provider endpoints")
-	}
-
-	scopes := []string{"openid", "profile", "email"}
-
-	s.oauthConfig = &oauth2.Config{
-		ClientID:     s.cfg.OIDCClientID,
-		ClientSecret: s.cfg.OIDCClientSecret,
-		RedirectURL:  s.cfg.OIDCRedirectURL,
-		Endpoint:     s.provider.Endpoint(),
-		Scopes:       scopes,
-	}
-
-	return nil
-}
-
-func (s *OIDCService) DiscoverProvider(ctx context.Context, issuer string) error {
 	candidates := []string{issuer}
 	if strings.HasSuffix(issuer, "/") {
 		candidates = append(candidates, strings.TrimRight(issuer, "/"))
@@ -131,96 +144,131 @@ func (s *OIDCService) DiscoverProvider(ctx context.Context, issuer string) error
 		candidates = append(candidates, issuer+"/")
 	}
 
-	retryFunc := func() error {
-		var lastErr error
-		for _, candidate := range candidates {
-			s.log.Trace().Str("issuer", candidate).Msg("attempting OIDC provider initialization")
+	var lastErr error
+	for _, candidate := range candidates {
+		s.log.Trace().Str("issuer", candidate).Msg("attempting OIDC provider initialization")
 
-			provider, err := oidc.NewProvider(ctx, candidate)
-			if err == nil {
-				s.log.Info().Str("issuer", candidate).Msg("OIDC provider initialized successfully")
-				s.issuer = candidate
-				s.provider = provider
-				return nil
-			}
-
+		attemptCtx, cancel := context.WithTimeout(ctx, oidcDiscoveryTimeout)
+		provider, err := oidc.NewProvider(attemptCtx, candidate)
+		cancel()
+		if err != nil {
 			lastErr = err
-
-			s.log.Warn().Err(err).Str("issuer", candidate).Msg("failed to initialize OIDC provider candidate, retrying..")
-
-			time.Sleep(500 * time.Millisecond)
+			continue
 		}
-		return lastErr
+
+		var claims Claims
+		if err := provider.Claims(&claims); err != nil {
+			s.log.Warn().Err(err).Msg("failed to parse provider claims for endpoints")
+		} else {
+			s.log.Debug().Str("authorization_endpoint", claims.AuthURL).Str("token_endpoint", claims.TokenURL).Str("jwks_uri", claims.JWKSURL).Str("userinfo_endpoint", claims.UserURL).Msg("discovered OIDC provider endpoints")
+		}
+
+		return &discoveredProvider{
+			issuer:   candidate,
+			provider: provider,
+			verifier: provider.Verifier(&oidc.Config{ClientID: s.cfg.OIDCClientID}),
+			oauthConfig: &oauth2.Config{
+				ClientID:     s.cfg.OIDCClientID,
+				ClientSecret: s.cfg.OIDCClientSecret,
+				RedirectURL:  s.cfg.OIDCRedirectURL,
+				Endpoint:     provider.Endpoint(),
+				Scopes:       []string{"openid", "profile", "email"},
+			},
+			supportsPKCE: slices.Contains(claims.CodeChallenges, "S256"),
+		}, nil
 	}
 
-	return retry.Do(
-		retryFunc,
-		retry.OnRetry(func(n uint, err error) {
-			if n > 0 {
-				s.log.Debug().Int("attempt", int(n)).Msg("OIDC provider initialization attempt")
-			}
-		}),
-		retry.Attempts(oidcInitMaxAttempts),
-		retry.Delay(time.Second*5),
-		retry.DelayType(retry.FixedDelay),
-		retry.LastErrorOnly(true),
-		retry.MaxJitter(time.Second*1),
-	)
-}
-
-func (s *OIDCService) initVerifier() {
-	oidcConfig := &oidc.Config{
-		ClientID: s.cfg.OIDCClientID,
-	}
-	s.verifier = s.provider.Verifier(oidcConfig)
+	return nil, lastErr
 }
 
 func (s *OIDCService) GetProvider() *oidc.Provider {
-	return s.provider
+	if d := s.discovered.Load(); d != nil {
+		return d.provider
+	}
+
+	return nil
 }
 
 func (s *OIDCService) GetIssuer() string {
-	return s.issuer
+	if d := s.discovered.Load(); d != nil {
+		return d.issuer
+	}
+
+	return ""
 }
 
 func (s *OIDCService) GetVerifier() *oidc.IDTokenVerifier {
-	return s.verifier
+	if d := s.discovered.Load(); d != nil {
+		return d.verifier
+	}
+
+	return nil
 }
 
 func (s *OIDCService) GetEndpoint() oauth2.Endpoint {
-	return s.provider.Endpoint()
+	if d := s.discovered.Load(); d != nil {
+		return d.provider.Endpoint()
+	}
+
+	return oauth2.Endpoint{}
 }
 
 func (s *OIDCService) GetAuthorizationURL() string {
-	return s.provider.Endpoint().AuthURL
+	return s.GetEndpoint().AuthURL
 }
 
 func (s *OIDCService) GetTokenURL() string {
-	return s.provider.Endpoint().TokenURL
+	return s.GetEndpoint().TokenURL
 }
 
 func (s *OIDCService) UserInfo(ctx context.Context, tokenSource oauth2.TokenSource) (*oidc.UserInfo, error) {
-	userInfo, err := s.provider.UserInfo(ctx, tokenSource)
+	d := s.discovered.Load()
+	if d == nil {
+		return nil, ErrProviderUnavailable
+	}
+
+	userInfo, err := d.provider.UserInfo(ctx, tokenSource)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get userinfo from provider")
 	}
-	return userInfo, err
+
+	return userInfo, nil
 }
 
 func (s *OIDCService) VerifyIDToken(ctx context.Context, idToken string) (*oidc.IDToken, error) {
-	return s.verifier.Verify(ctx, idToken)
+	d := s.discovered.Load()
+	if d == nil {
+		return nil, ErrProviderUnavailable
+	}
+
+	return d.verifier.Verify(ctx, idToken)
 }
 
 func (s *OIDCService) GetOAuthConfig() *oauth2.Config {
-	return s.oauthConfig
+	if d := s.discovered.Load(); d != nil {
+		return d.oauthConfig
+	}
+
+	return nil
 }
 
 func (s *OIDCService) OAuthExchange(ctx context.Context, code string, opts ...oauth2.AuthCodeOption) (*oauth2.Token, error) {
-	return s.oauthConfig.Exchange(ctx, code, opts...)
+	d := s.discovered.Load()
+	if d == nil {
+		return nil, ErrProviderUnavailable
+	}
+
+	return d.oauthConfig.Exchange(ctx, code, opts...)
 }
 
+// OauthAuthCodeURL returns "" until the provider has been discovered.
 func (s *OIDCService) OauthAuthCodeURL(state string, opts ...oauth2.AuthCodeOption) string {
-	return s.oauthConfig.AuthCodeURL(state, opts...)
+	d := s.discovered.Load()
+	if d == nil {
+		return ""
+	}
+
+	return d.oauthConfig.AuthCodeURL(state, opts...)
 }
 
 type Claims struct {
@@ -232,9 +280,9 @@ type Claims struct {
 }
 
 func (s *OIDCService) SupportsPKCE() bool {
-	var claims Claims
-	if err := s.provider.Claims(&claims); err != nil {
-		return false
+	if d := s.discovered.Load(); d != nil {
+		return d.supportsPKCE
 	}
-	return slices.Contains(claims.CodeChallenges, "S256")
+
+	return false
 }

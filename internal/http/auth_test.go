@@ -89,10 +89,15 @@ func (a authServiceMock) UpdateUser(ctx context.Context, req domain.UpdateUserRe
 }
 
 type oidcAuthServiceMock struct {
+	unavailable bool
 }
 
 func (o *oidcAuthServiceMock) IsEnabled() bool {
 	return false
+}
+
+func (o *oidcAuthServiceMock) IsReady() bool {
+	return !o.unavailable
 }
 
 func (o *oidcAuthServiceMock) ValidateConfig() error {
@@ -872,4 +877,29 @@ func TestOIDCHandlerCallbackBoundsProviderCalls(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, rec.Code)
 	require.False(t, service.deadline.IsZero(), "provider call must carry a deadline")
 	assert.WithinDuration(t, time.Now().Add(oidcProviderTimeout), service.deadline, 5*time.Second)
+}
+
+func TestOIDCHandlerProviderUnavailable(t *testing.T) {
+	sm := scs.New()
+	h := NewOIDCHandler(encoder{}, zerolog.Nop(), &domain.Config{OIDCEnabled: true, OIDCIssuer: "https://auth.example.com"}, sm, &oidcAuthServiceMock{unavailable: true}, func(r *http.Request) string { return "" })
+
+	var state string
+	rec := httptest.NewRecorder()
+	sm.LoadAndSave(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h.getConfig(w, r)
+		state = sm.GetString(r.Context(), "oidc_state")
+	})).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/config", nil))
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	var config GetConfigResponse
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &config))
+	assert.True(t, config.Enabled)
+	assert.Empty(t, config.AuthorizationURL)
+	assert.Empty(t, config.State)
+	assert.Equal(t, "https://auth.example.com", config.IssuerURL)
+	assert.Empty(t, state)
+
+	rec = httptest.NewRecorder()
+	h.handleCallback(rec, httptest.NewRequest(http.MethodGet, "/callback?state=state&code=code", nil))
+	assert.Equal(t, http.StatusServiceUnavailable, rec.Code)
 }
