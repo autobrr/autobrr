@@ -313,6 +313,13 @@ func newOIDCLoginFlow(t *testing.T, baseURL string) *oidcLoginFlow {
 	}, sessions, provider, func(*http.Request) string { return "" })
 	router := chi.NewRouter()
 	router.Route(routes, handler.Routes)
+	router.Get(routes+"/session", func(w http.ResponseWriter, r *http.Request) {
+		if !sessions.GetBool(r.Context(), "authenticated") {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	})
 
 	jar, err := cookiejar.New(nil)
 	require.NoError(t, err)
@@ -405,7 +412,7 @@ func TestOIDCCallbackSendsPKCEVerifier(t *testing.T) {
 	assert.Equal(t, authURL.Query().Get("code_challenge"), base64.RawURLEncoding.EncodeToString(challenge[:]))
 }
 
-func TestOIDCCallbackConcurrentLogins(t *testing.T) {
+func TestOIDCCallbackInterleavedLogins(t *testing.T) {
 	t.Parallel()
 	flow := newOIDCLoginFlow(t, "/autobrr/")
 	filters, filtersURL := flow.start(t, "/autobrr/filters")
@@ -426,6 +433,70 @@ func TestOIDCCallbackConcurrentLogins(t *testing.T) {
 		sum := sha256.Sum256([]byte(flow.provider.codeVerifier("code-" + state)))
 		assert.Equal(t, challenges[state], base64.RawURLEncoding.EncodeToString(sum[:]))
 	}
+}
+
+// TestOIDCCallbackSimultaneousLogins sends every login's requests at the same time,
+// so the race detector sees the pending-login store, cookies and sessions under
+// overlapping requests. The goroutines only record results: require must run on
+// the test goroutine.
+func TestOIDCCallbackSimultaneousLogins(t *testing.T) {
+	t.Parallel()
+	flow := newOIDCLoginFlow(t, "/autobrr/")
+	targets := []string{"/autobrr/filters", "/autobrr/releases", "/autobrr/settings", "/autobrr/logs", "/autobrr/"}
+
+	type result struct {
+		configCode   int
+		callbackCode int
+		state        string
+		location     string
+		challenge    string
+	}
+	results := make([]result, len(targets))
+
+	var wg sync.WaitGroup
+	for i, target := range targets {
+		wg.Go(func() {
+			u, _ := url.Parse(oidcTestOrigin + flow.routes + "/config?redirect=" + url.QueryEscape(target))
+			req := httptest.NewRequest(http.MethodGet, u.String(), nil)
+			req.Header.Set("X-Forwarded-Proto", "https")
+			rec := httptest.NewRecorder()
+			flow.app.ServeHTTP(rec, req)
+			flow.jar.SetCookies(u, rec.Result().Cookies())
+
+			var config GetConfigResponse
+			_ = json.Unmarshal(rec.Body.Bytes(), &config)
+			authURL, _ := url.Parse(config.AuthorizationURL)
+			results[i] = result{configCode: rec.Code, state: config.State, challenge: authURL.Query().Get("code_challenge")}
+
+			cu, _ := url.Parse(oidcTestOrigin + flow.routes + "/callback?code=" + url.QueryEscape("code-"+config.State) + "&state=" + url.QueryEscape(config.State))
+			req = httptest.NewRequest(http.MethodGet, cu.String(), nil)
+			req.Header.Set("X-Forwarded-Proto", "https")
+			for _, c := range flow.jar.Cookies(cu) {
+				req.AddCookie(c)
+			}
+			callback := httptest.NewRecorder()
+			flow.app.ServeHTTP(callback, req)
+			flow.jar.SetCookies(cu, callback.Result().Cookies())
+			results[i].callbackCode = callback.Code
+			results[i].location = callback.Header().Get("Location")
+		})
+	}
+	wg.Wait()
+
+	challenges := map[string]bool{}
+	for i, res := range results {
+		require.Equal(t, http.StatusOK, res.configCode)
+		assert.Equal(t, http.StatusFound, res.callbackCode, targets[i])
+		assert.Equal(t, targets[i], res.location)
+
+		sum := sha256.Sum256([]byte(flow.provider.codeVerifier("code-" + res.state)))
+		assert.Equal(t, res.challenge, base64.RawURLEncoding.EncodeToString(sum[:]))
+		challenges[res.challenge] = true
+	}
+	assert.Len(t, challenges, len(targets))
+
+	assert.Equal(t, http.StatusNoContent, flow.do(t, flow.routes+"/session", true).Code, "the browser ends up with an authenticated session")
+	assert.Empty(t, flow.handler.pendingLogins.GetKeys())
 }
 
 func TestOIDCStateCookie(t *testing.T) {
