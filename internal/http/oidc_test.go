@@ -128,6 +128,7 @@ func TestOIDCConfigStoresRedirect(t *testing.T) {
 		{name: "outside base URL", baseURL: "/autobrr/", redirect: "/filters/12"},
 		{name: "other origin", baseURL: "/", redirect: "https://evil.example/"},
 		{name: "no redirect", baseURL: "/"},
+		{name: "redirect at the limit", baseURL: "/", redirect: "/filters?q=" + strings.Repeat("a", oidcMaxRedirectLength-len("/filters?q=")), want: "/filters?q=" + strings.Repeat("a", oidcMaxRedirectLength-len("/filters?q="))},
 		{name: "redirect longer than the limit", baseURL: "/", redirect: "/filters?q=" + strings.Repeat("a", oidcMaxRedirectLength)},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -415,6 +416,7 @@ func TestOIDCCallbackConcurrentLogins(t *testing.T) {
 		releases: releasesURL.Query().Get("code_challenge"),
 		settings: settingsURL.Query().Get("code_challenge"),
 	}
+	require.Len(t, map[string]bool{challenges[filters]: true, challenges[releases]: true, challenges[settings]: true}, 3, "every login gets its own PKCE verifier")
 
 	for state, want := range map[string]string{releases: "/autobrr/releases", settings: "/autobrr/settings", filters: "/autobrr/filters"} {
 		rec := flow.callback(t, state)
