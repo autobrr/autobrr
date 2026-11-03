@@ -34,6 +34,7 @@ import {
 import { RingResizeSpinner } from "@components/Icons";
 import { AuthContext } from "@utils/Context";
 import { claimAutoRedirect, consumeLoggedOut } from "@utils/autoLogin";
+import { isSameOriginPath } from "@utils";
 import { queryClient } from "@api/QueryClient";
 
 import { ErrorPage } from "@components/alerts";
@@ -289,20 +290,6 @@ export const OnboardRoute = createRoute({
   },
   component: lazyRouteComponent(() => import("@screens/auth/Onboarding"), "Onboarding")
 });
-
-// Only same-origin paths. A prefix check is not enough: browsers read "/\evil"
-// and "/\t/evil" as "//evil", another origin.
-const isSameOriginPath = (redirect: string): boolean => {
-  if (!redirect.startsWith("/")) {
-    return false;
-  }
-
-  try {
-    return new URL(redirect, window.location.origin).origin === window.location.origin;
-  } catch {
-    return false;
-  }
-};
 
 export const LoginRoute = createRoute({
   getParentRoute: () => RootRoute,
