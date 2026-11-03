@@ -263,12 +263,14 @@ export const APIClient = {
     canOnboard: () => appClient.Get("api/auth/onboard"),
     updateUser: (req: UserUpdate) => appClient.Patch(`api/auth/user/${req.username_current}`,
       { body: req }),
-    getOIDCConfig: async () => {
+    getOIDCConfig: async (redirect?: string) => {
       try {
-        return await appClient.Get<{ enabled: boolean; authorizationUrl: string; state: string; disableBuiltInLogin: boolean; issuerUrl: string }>("api/auth/oidc/config");
+        return await appClient.Get<{ enabled: boolean; autoRedirect: boolean; authorizationUrl: string; state: string; disableBuiltInLogin: boolean; issuerUrl: string }>("api/auth/oidc/config", {
+          queryString: redirect ? { redirect } : undefined
+        });
       } catch (error: unknown) {
         if (error instanceof Error && error.message?.includes('404')) {
-          return { enabled: false, authorizationUrl: '', state: '', disableBuiltInLogin: false, issuerUrl: '' };
+          return { enabled: false, autoRedirect: false, authorizationUrl: '', state: '', disableBuiltInLogin: false, issuerUrl: '' };
         }
         throw error;
       }
