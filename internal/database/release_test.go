@@ -12,7 +12,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 
-	"github.com/moistari/rls"
+	"github.com/autobrr/rls"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

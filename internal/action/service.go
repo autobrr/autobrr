@@ -11,6 +11,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/downloader"
 	"github.com/autobrr/autobrr/internal/events"
+	"github.com/autobrr/autobrr/internal/meta"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
 	"github.com/rs/zerolog"
@@ -50,6 +51,7 @@ type Service struct {
 	rlsDownloadSvc rlsDownloadService
 
 	httpClient *http.Client
+	userAgent  string
 }
 
 func NewService(log zerolog.Logger, bus eventBus, repo actionRepo, clientSvc downloaderService, downloadSvc rlsDownloadService) *Service {
@@ -64,6 +66,7 @@ func NewService(log zerolog.Logger, bus eventBus, repo actionRepo, clientSvc dow
 			Timeout:   time.Second * 120,
 			Transport: sharedhttp.TransportTLSInsecure,
 		},
+		userAgent: meta.GetUserAgent(),
 	}
 
 	return s

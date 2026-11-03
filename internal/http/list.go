@@ -19,7 +19,7 @@ type listService interface {
 	Update(ctx context.Context, list *domain.List) error
 	Delete(ctx context.Context, id int64) error
 	FindByID(ctx context.Context, id int64) (*domain.List, error)
-	List(ctx context.Context) ([]*domain.List, error)
+	List(ctx context.Context, params domain.ListQueryParams) ([]*domain.List, error)
 	RefreshList(ctx context.Context, id int64) error
 	RefreshAll(ctx context.Context) error
 	RefreshArrLists(ctx context.Context) error
@@ -48,7 +48,7 @@ func (h listHandler) Routes(r chi.Router) {
 }
 
 func (h listHandler) list(w http.ResponseWriter, r *http.Request) {
-	data, err := h.listSvc.List(r.Context())
+	data, err := h.listSvc.List(r.Context(), domain.ListQueryParams{})
 	if err != nil {
 		h.encoder.Error(w, err)
 		return

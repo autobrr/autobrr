@@ -355,7 +355,7 @@ const LogsDropdown = () => {
         leaveTo="transform opacity-0 scale-95"
       >
         <MenuItems
-          className="absolute right-0 mt-1 origin-top-right bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black ring-opacity-10 focus:outline-hidden"
+          className="absolute right-0 mt-1 origin-top-right bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700 rounded-md shadow-lg ring-1 ring-black/10 focus:outline-hidden"
         >
           <div className="p-3">
             <MenuItem>

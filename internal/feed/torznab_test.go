@@ -1,12 +1,11 @@
 package feed
 
 import (
-	"context"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/torznab"
@@ -16,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestTorznabJob_processItems(t *testing.T) {
+func TestTorznabSource_toRelease(t *testing.T) {
 	const (
 		magnetURI  = "magnet:?xt=urn:btih:deadbeef"
 		proxyURL   = "http://jackett:9117/dl/mock/?jackett_apikey=key&file=Some.Release"
@@ -80,9 +79,9 @@ func TestTorznabJob_processItems(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			j := &TorznabJob{
-				Log: zerolog.New(io.Discard),
-				Feed: &domain.Feed{
+			src := &torznabSource{
+				log: zerolog.Nop(),
+				feed: &domain.Feed{
 					Indexer:  domain.IndexerMinimal{Name: "Mock Feed", Identifier: "mock-feed"},
 					Settings: tt.settings,
 				},
@@ -90,104 +89,84 @@ func TestTorznabJob_processItems(t *testing.T) {
 
 			tt.item.Title = "Some.Release.Title.2022.09.22.720p.WEB.h264-GROUP"
 
-			releases, err := j.processItems([]torznab.FeedItem{tt.item})
-			require.NoError(t, err)
-			require.Len(t, releases, 1)
+			rls := src.toRelease(&tt.item)
 
-			assert.Equal(t, tt.wantDownloadURL, releases[0].DownloadURL, "download url")
-			assert.Equal(t, tt.wantMagnetURI, releases[0].MagnetURI, "magnet uri")
+			assert.Equal(t, tt.wantDownloadURL, rls.DownloadURL, "download url")
+			assert.Equal(t, tt.wantMagnetURI, rls.MagnetURI, "magnet uri")
 		})
 	}
 }
 
-func TestTorznabJob_RunE(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		queryType := r.URL.Query().Get("t")
-		switch queryType {
-		case "search":
-			payload, err := os.ReadFile("testdata/torznab/torznab_response.xml")
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			w.Header().Set("Content-Type", "application/xml")
-			w.Write(payload)
-			break
+func TestTorznabSource_fetch(t *testing.T) {
+	offsets := make(chan string, 1)
 
-		case "caps":
-			payload, err := os.ReadFile("testdata/torznab/caps_response.xml")
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("t") != "caps" {
+			select {
+			case offsets <- r.URL.Query().Get("offset"):
+			default:
 			}
-			w.Header().Set("Content-Type", "application/xml")
-			w.Write(payload)
-			break
 		}
+
+		fixture := "testdata/torznab/torznab_response.xml"
+		if r.URL.Query().Get("t") == "caps" {
+			fixture = "testdata/torznab/caps_response.xml"
+		}
+
+		payload, err := os.ReadFile(fixture)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/xml")
+		_, _ = w.Write(payload)
 	}))
 	defer srv.Close()
 
-	type fields struct {
-		Feed       *domain.Feed
-		Name       string
-		Log        zerolog.Logger
-		URL        string
-		Client     *torznab.Client
-		Repo       jobFeedRepo
-		CacheRepo  jobFeedCacheRepo
-		ReleaseSvc jobReleaseSvc
-		attempts   int
-		errors     []error
-		JobID      int
+	f := &domain.Feed{
+		Type:    string(domain.FeedTypeTorznab),
+		URL:     srv.URL,
+		Indexer: domain.IndexerMinimal{Name: "Mock Feed", Identifier: "mock-feed"},
 	}
-	type args struct {
-		ctx context.Context
+
+	src, err := (&Service{}).newSource(t.Context(), f, zerolog.Nop())
+	require.NoError(t, err)
+
+	res, err := src.fetch(t.Context(), 50)
+	require.NoError(t, err)
+
+	assert.Equal(t, "50", <-offsets, "offset sent to the indexer")
+	assert.NotEmpty(t, res.raw)
+	require.NotEmpty(t, res.entries)
+
+	for _, e := range res.entries {
+		assert.NotEmpty(t, e.key)
+
+		rls := e.release()
+		assert.Equal(t, e.title, rls.TorrentName)
+		assert.Equal(t, domain.ReleaseImplementationTorznab, rls.Implementation)
 	}
-	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr assert.ErrorAssertionFunc
-	}{
-		{
-			name: "test",
-			fields: fields{
-				Name: "test",
-				Log:  zerolog.New(io.Discard),
-				Feed: &domain.Feed{
-					MaxAge: 0,
-					Indexer: domain.IndexerMinimal{
-						ID:                 0,
-						Name:               "Mock Feed",
-						Identifier:         "mock-feed",
-						IdentifierExternal: "Mock Indexer",
-					},
-				},
-				URL:        srv.URL,
-				Client:     torznab.NewClient(torznab.Config{Host: srv.URL}),
-				Repo:       &mockFeedRepo{},
-				CacheRepo:  &mockFeedCacheRepo{},
-				ReleaseSvc: &mockReleaseSvc{},
-			},
-		},
+}
+
+func TestTorznabSource_toRelease_metadata(t *testing.T) {
+	pubDate := time.Date(2026, time.September, 24, 5, 58, 24, 0, time.UTC)
+
+	s := &torznabSource{
+		log:  zerolog.Nop(),
+		feed: &domain.Feed{Indexer: domain.IndexerMinimal{Name: "Mock Feed", Identifier: "mock-feed"}},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			j := &TorznabJob{
-				Feed:       tt.fields.Feed,
-				Name:       tt.fields.Name,
-				Log:        tt.fields.Log,
-				URL:        tt.fields.URL,
-				Client:     tt.fields.Client,
-				Repo:       tt.fields.Repo,
-				CacheRepo:  tt.fields.CacheRepo,
-				ReleaseSvc: tt.fields.ReleaseSvc,
-				attempts:   tt.fields.attempts,
-				errors:     tt.fields.errors,
-				JobID:      tt.fields.JobID,
-			}
-			err := j.RunE(t.Context())
-			assert.NoError(t, err)
-		})
-	}
+
+	rls := s.toRelease(&torznab.FeedItem{
+		Title:   "That Show S01 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-NOGROUP",
+		TvdbId:  "12345",
+		ImdbId:  "tt1234567",
+		TmdbId:  "54321",
+		PubDate: torznab.Time{Time: pubDate},
+	})
+
+	assert.Equal(t, 12345, rls.MetaTVDB, "tvdb id")
+	assert.Equal(t, "tt1234567", rls.MetaIMDB, "imdb id")
+	assert.Equal(t, 54321, rls.MetaTMDB, "tmdb id")
+	assert.Equal(t, pubDate, rls.PublishDate, "publish date")
 }

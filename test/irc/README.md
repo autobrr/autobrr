@@ -30,7 +30,9 @@ first (e.g. a per-package profiling script) must pass the tag to `go list` too:
 
 ## Layout
 
-- `ircd/` - the minimal test IRC server. It implements just enough of the protocol
+- `ircd/` - the minimal test IRC server. It also builds under the `e2e` tag, so
+  browser tests in `test/e2e/` can drive invite and auth setups the mock indexer
+  does not model. It implements just enough of the protocol
   for the `ergochat/irc-go` client to register and operate: CAP/SASL PLAIN
   negotiation, NickServ IDENTIFY, channel modes `+k` (key), `+i` (invite-only) and
   `+r` (registered-only), auditorium-style hidden announcers, and **virtual bots**
@@ -47,7 +49,9 @@ first (e.g. a per-package profiling script) must pass the tag to `go list` too:
 ## What's covered
 
 - **Auth**: NONE (direct join), SASL PLAIN, NickServ IDENTIFY - the latter two gate
-  a `+r` channel so reaching `Monitoring` proves authentication worked.
+  a `+r` channel so reaching `Monitoring` proves authentication worked. NickServ
+  offline at connect (`401`) keeps the network waiting and retries IDENTIFY
+  until services are back, right away when NickServ greets the nick on linking.
 - **Channel modes**: `+k` bad/missing key → `475` surfaced as a channel error, `+k`
   with the right key → joins, `+i` without an invite → `473`.
 - **Invite flow**: gatekeeper accepts (INVITE → join), gatekeeper rejects (parks in

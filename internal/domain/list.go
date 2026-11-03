@@ -64,6 +64,12 @@ const (
 	ListRefreshStatusError   ListRefreshStatus = "ERROR"
 )
 
+// ListQueryParams narrows a list query. A zero value matches every list.
+type ListQueryParams struct {
+	Enabled           *bool
+	LastRefreshStatus ListRefreshStatus
+}
+
 type List struct {
 	ID                     int64             `json:"id"`
 	Name                   string            `json:"name"`

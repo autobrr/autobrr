@@ -17,7 +17,7 @@ import (
 )
 
 type listRepo interface {
-	List(ctx context.Context) ([]*domain.List, error)
+	List(ctx context.Context, params domain.ListQueryParams) ([]*domain.List, error)
 	FindByID(ctx context.Context, listID int64) (*domain.List, error)
 	Store(ctx context.Context, listID *domain.List) error
 	Update(ctx context.Context, listID *domain.List) error
@@ -65,8 +65,8 @@ func NewService(log zerolog.Logger, eventBus eventBus, repo listRepo, downloader
 	}
 }
 
-func (s *Service) List(ctx context.Context) ([]*domain.List, error) {
-	data, err := s.repo.List(ctx)
+func (s *Service) List(ctx context.Context, params domain.ListQueryParams) ([]*domain.List, error) {
+	data, err := s.repo.List(ctx, params)
 	if err != nil {
 		return nil, err
 	}
@@ -180,7 +180,7 @@ func (s *Service) Delete(ctx context.Context, listID int64) error {
 }
 
 func (s *Service) RefreshAll(ctx context.Context) error {
-	lists, err := s.List(ctx)
+	lists, err := s.List(ctx, domain.ListQueryParams{Enabled: new(true)})
 	if err != nil {
 		return err
 	}
@@ -253,14 +253,14 @@ func (s *Service) RefreshList(ctx context.Context, listID int64) error {
 }
 
 func (s *Service) RefreshArrLists(ctx context.Context) error {
-	lists, err := s.List(ctx)
+	lists, err := s.List(ctx, domain.ListQueryParams{Enabled: new(true)})
 	if err != nil {
 		return err
 	}
 
 	var selectedLists []*domain.List
 	for _, list := range lists {
-		if list.Type.ArrClient() && list.Enabled {
+		if list.Type.ArrClient() {
 			selectedLists = append(selectedLists, list)
 		}
 	}
@@ -273,14 +273,14 @@ func (s *Service) RefreshArrLists(ctx context.Context) error {
 }
 
 func (s *Service) RefreshOtherLists(ctx context.Context) error {
-	lists, err := s.List(ctx)
+	lists, err := s.List(ctx, domain.ListQueryParams{Enabled: new(true)})
 	if err != nil {
 		return err
 	}
 
 	var selectedLists []*domain.List
 	for _, list := range lists {
-		if list.Type.RegularList() && list.Enabled {
+		if list.Type.RegularList() {
 			selectedLists = append(selectedLists, list)
 		}
 	}

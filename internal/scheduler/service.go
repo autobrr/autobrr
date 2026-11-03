@@ -45,20 +45,24 @@ func NewService(log zerolog.Logger, bus eventBus, config *domain.Config, updateS
 	}
 }
 
-func (s *Service) Start() error {
-	s.log.Debug().Msg("scheduler.Start")
+// Start runs the scheduler. The app jobs are added after a short delay, unless
+// ctx ends first.
+func (s *Service) Start(ctx context.Context) error {
+	s.log.Debug().Msg("starting scheduler")
 
-	// start scheduler
 	s.cron.Start()
 
-	// init jobs
-	go s.addAppJobs()
+	go s.addAppJobs(ctx)
 
 	return nil
 }
 
-func (s *Service) addAppJobs() {
-	time.Sleep(5 * time.Second)
+func (s *Service) addAppJobs(ctx context.Context) {
+	select {
+	case <-ctx.Done():
+		return
+	case <-time.After(5 * time.Second):
+	}
 
 	if s.config.CheckForUpdates {
 		updateCheckerJob := NewUpdateCheckerJob(s.log, s.eventBus, "app-check-updates", s.version, s.updateSvc)
@@ -75,9 +79,17 @@ func (s *Service) addAppJobs() {
 	}
 }
 
-func (s *Service) Stop() {
-	s.log.Debug().Msg("scheduler.Stop")
-	s.cron.Stop()
+// Stop stops scheduling new runs and waits for running jobs to finish, so they
+// do not outlive the database. It gives up waiting when ctx ends.
+func (s *Service) Stop(ctx context.Context) error {
+	s.log.Debug().Msg("stopping scheduler..")
+
+	select {
+	case <-s.cron.Stop().Done():
+		return nil
+	case <-ctx.Done():
+		return errors.Wrap(ctx.Err(), "running jobs did not finish")
+	}
 }
 
 // registerJob replaces any entry already registered under identifier while holding the lock, so

@@ -310,3 +310,12 @@ func (m IrcMessage) Bytes() []byte {
 	}
 	return j
 }
+
+// IrcUnhealthyNetwork is a network the health monitor has reported as unhealthy and
+// that has not recovered yet.
+type IrcUnhealthyNetwork struct {
+	ID      int64
+	Name    string
+	Reasons []string
+	Since   time.Time
+}

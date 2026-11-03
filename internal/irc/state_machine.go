@@ -48,7 +48,7 @@ func (s ConnectionState) String() string {
 
 var validTransitions = map[ConnectionState][]ConnectionState{
 	// StateError is reachable from Disconnected because the irc-go client auto-
-	// reconnects from inside Loop() without going back through Handler.Run() (so
+	// reconnects on its own without going back through Handler.Run() (so
 	// OnConnecting is never called and the SM stays Disconnected during the new
 	// registration). A fatal in-band failure on that reconnect - e.g. a 465 G-Line -
 	// calls OnError while still Disconnected; allowing the transition surfaces the
@@ -223,7 +223,6 @@ func (sm *ConnectionStateMachine) onStateEntry(state ConnectionState) {
 		sm.m.Lock()
 		sm.authAttempts = 0
 		sm.m.Unlock()
-		sm.handler.setConnectionStatus()
 
 	case StateAuthenticating:
 		sm.handleAuthentication()

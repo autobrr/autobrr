@@ -452,7 +452,7 @@ func TestDownloaderRepo_Delete(t *testing.T) {
 			err = repo.Delete(ctx, mockClient.ID)
 			require.NoError(t, err)
 
-			lists, err := listRepo.List(ctx)
+			lists, err := listRepo.List(ctx, domain.ListQueryParams{})
 			require.NoError(t, err)
 
 			var updatedList *domain.List

@@ -4,9 +4,11 @@
 package irc
 
 import (
+	"context"
 	"testing"
 	"time"
 
+	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/pkg/errors"
 
@@ -165,7 +167,7 @@ func TestCheckNetworkHealth_StartupProxyLookupFailure(t *testing.T) {
 	s := NewService(zerolog.Nop(), bus, &mockSSEServer{}, newStubIrcRepo(proxiedNetwork()), nil, stubIndexerService{}, stubProxyService{err: errors.New("database is locked")})
 
 	s.StartHandlers()
-	t.Cleanup(s.StopHandlers)
+	t.Cleanup(func() { s.StopHandlers(context.Background()) })
 
 	h, found := s.networkHandlers.Get(proxiedNetwork().ID)
 	require.True(t, found, "a network whose proxy lookup failed must still get a handler")
@@ -258,4 +260,41 @@ func TestCheckNetworkHealth_AnnounceJoinErrorKeepsReason(t *testing.T) {
 			assert.NotContains(t, got[0].Message, "connection state")
 		})
 	}
+}
+
+func TestUnhealthyNetworks_FollowsReportedEpisodes(t *testing.T) {
+	s, _ := newHealthTestService(t)
+	assert.Empty(t, s.UnhealthyNetworks())
+
+	stopWithError(addHealthTestHandler(s, 1, "TorrentLeech", StateDisconnected), "authentication failed: account does not exist")
+	addHealthTestHandler(s, 2, "PTP", StateDisconnected)
+	addHealthTestHandler(s, 3, "BroadcasTheNet", StateFullyOperational)
+
+	start := time.Now()
+	s.checkNetworkHealth(t.Context(), start)
+
+	got := s.UnhealthyNetworks()
+	require.Len(t, got, 1, "a network still inside the grace period must not be reported")
+	assert.Equal(t, int64(1), got[0].ID)
+	assert.Equal(t, "TorrentLeech", got[0].Name)
+	assert.Equal(t, []string{"authentication failed: account does not exist"}, got[0].Reasons)
+	assert.Equal(t, start, got[0].Since)
+
+	s.checkNetworkHealth(t.Context(), start.Add(unhealthyGracePeriod))
+	assert.Equal(t, []string{"PTP", "TorrentLeech"}, unhealthyNames(s.UnhealthyNetworks()))
+
+	s.networkHandlers.Del(1)
+	assert.Equal(t, []string{"PTP"}, unhealthyNames(s.UnhealthyNetworks()), "a removed network must drop out before the next check")
+
+	addHealthTestHandler(s, 2, "PTP", StateFullyOperational)
+	assert.Empty(t, s.UnhealthyNetworks(), "a replaced handler must drop out before the next check")
+}
+
+func unhealthyNames(networks []domain.IrcUnhealthyNetwork) []string {
+	names := make([]string, 0, len(networks))
+	for _, network := range networks {
+		names = append(names, network.Name)
+	}
+
+	return names
 }

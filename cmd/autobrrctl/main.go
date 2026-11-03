@@ -23,6 +23,7 @@ import (
 	"github.com/autobrr/autobrr/internal/database/tools"
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/internal/meta"
 	"github.com/autobrr/autobrr/internal/user"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
@@ -71,6 +72,14 @@ func init() {
 }
 
 func main() {
+	meta.Set(version, commit, date)
+
+	var (
+		version = meta.GetVersion()
+		commit  = meta.GetCommit()
+		date    = meta.GetDate()
+	)
+
 	var configPath string
 	flag.StringVar(&configPath, "config", "", "path to configuration file")
 	flag.Parse()
@@ -123,7 +132,7 @@ func main() {
 		}
 
 		// read config
-		cfg := config.New(configPath, version)
+		cfg := config.New(configPath)
 
 		// init new logger
 		l := logger.New(cfg.Config, nil)
@@ -157,7 +166,7 @@ func main() {
 			Password: hashed,
 		}
 
-		if err := userRepo.Store(ctx, req); err != nil {
+		if err := userSvc.CreateUser(ctx, req); err != nil {
 			log.Fatalf("failed to create user: %v", err)
 		}
 
@@ -173,7 +182,7 @@ func main() {
 		}
 
 		// read config
-		cfg := config.New(configPath, version)
+		cfg := config.New(configPath)
 
 		// init new logger
 		l := logger.New(cfg.Config, nil)
@@ -257,7 +266,7 @@ func main() {
 			ExcludeTables: strings.Split(excludeTables, ","),
 		}
 
-		l := logger.New(&domain.Config{LogLevel: "TRACE", Version: "dev"}, nil)
+		l := logger.New(&domain.Config{LogLevel: "TRACE"}, nil)
 
 		c := tools.NewConverter(l, sqliteDBPath, postgresDBURL)
 		if err := c.Convert(ctx, opts); err != nil {
@@ -293,13 +302,8 @@ func main() {
 			}
 			fmt.Println("Database seeding completed successfully!")
 		} else {
-			if err := s.Reset(); err != nil {
-				fmt.Println("Error resetting the database:", err)
-				os.Exit(1)
-			}
-
-			if err := s.Seed(); err != nil {
-				fmt.Println("Error seeding the database:", err)
+			if err := s.ResetAndSeed(); err != nil {
+				fmt.Println("Error resetting and seeding the database:", err)
 				os.Exit(1)
 			}
 			fmt.Println("Database reset and reseed completed successfully!")
@@ -324,7 +328,7 @@ func main() {
 		}
 
 		// read config
-		cfg := config.New(configPath, version)
+		cfg := config.New(configPath)
 
 		// init new logger
 		l := logger.New(cfg.Config, nil)
@@ -375,7 +379,7 @@ func main() {
 			}
 
 			safeName := sanitizeFilename(fullFilter.Name)
-			filename := fmt.Sprintf("%s.json", safeName)
+			filename := fmt.Sprintf("%d-%s.json", fullFilter.ID, safeName)
 			filePath := filepath.Join(outputDir, filename)
 
 			if err := os.WriteFile(filePath, jsonData, 0644); err != nil {

@@ -38,29 +38,31 @@ func (s *Service) GetUserCount(ctx context.Context) (int, error) {
 
 func (s *Service) Login(ctx context.Context, username, password string) (*domain.User, error) {
 	if username == "" || password == "" {
-		return nil, errors.New("empty credentials supplied")
+		return nil, errors.Wrap(domain.ErrInvalidCredentials, "empty credentials supplied")
 	}
 
-	// find user
 	u, err := s.userSvc.FindByUsername(ctx, username)
 	if err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			return nil, errors.Wrapf(domain.ErrInvalidCredentials, "invalid login: %s", username)
+		}
+
 		s.log.Error().Err(err).Str("username", username).Msg("could not find user by username")
-		return nil, errors.Wrapf(err, "invalid login: %s", username)
+		return nil, errors.Wrapf(err, "could not find user: %s", username)
 	}
 
 	if u == nil {
-		return nil, errors.Errorf("invalid login: %s", username)
+		return nil, errors.Wrapf(domain.ErrInvalidCredentials, "invalid login: %s", username)
 	}
 
-	// compare password from request and the saved password
 	match, err := s.ComparePasswordAndHash(password, u.Password)
 	if err != nil {
-		return nil, errors.New("error checking credentials")
+		return nil, errors.Wrap(err, "error checking credentials")
 	}
 
 	if !match {
 		s.log.Error().Msg("bad credentials")
-		return nil, errors.Errorf("invalid login: %s", username)
+		return nil, errors.Wrapf(domain.ErrInvalidCredentials, "invalid login: %s", username)
 	}
 
 	return u, nil

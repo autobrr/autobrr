@@ -4,6 +4,8 @@
 package action
 
 import (
+	"time"
+
 	"github.com/autobrr/autobrr/internal/domain"
 )
 
@@ -16,4 +18,15 @@ func arrDownloadClient(settings domain.DownloaderSettings, action *domain.Action
 	}
 
 	return settings.ExternalDownloadClientId, settings.ExternalDownloadClient
+}
+
+// arrPublishDate returns the release publish date for an arr push in RFC3339.
+// Placeholder and future dates fall back to now to avoid bypassing or extending arr delays.
+func arrPublishDate(release *domain.Release) string {
+	now := time.Now()
+	if !release.PublishDate.After(time.Date(1970, time.April, 1, 0, 0, 0, 0, time.UTC)) || release.PublishDate.After(now) {
+		return now.UTC().Format(time.RFC3339)
+	}
+
+	return release.PublishDate.UTC().Format(time.RFC3339)
 }

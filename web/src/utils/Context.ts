@@ -19,6 +19,7 @@ interface SettingsType {
   hideWrappedText: boolean;
   incognitoMode: boolean;
   browserNotifications: boolean;
+  dismissedUpdate: string;
 }
 
 export const isDarkTheme = (theme: Theme): boolean => {
@@ -49,7 +50,7 @@ export interface DashboardConfigType {
 export interface AuthInfo {
   username: string;
   isLoggedIn: boolean;
-  authMethod?: 'password' | 'oidc';
+  authMethod?: 'password' | 'oidc' | 'disabled';
   profilePicture?: string;
   issuerUrl?: string;
 }
@@ -71,7 +72,8 @@ const SettingsContextDefaults: SettingsType = {
   indentLogLines: false,
   hideWrappedText: false,
   incognitoMode: false,
-  browserNotifications: false
+  browserNotifications: false,
+  dismissedUpdate: ""
 };
 
 const FilterListContextDefaults: FilterListState = {

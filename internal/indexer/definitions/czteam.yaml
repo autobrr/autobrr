@@ -50,6 +50,7 @@ irc:
         - Tabacila
       parse:
         type: single
+        sizeunits: binary
         lines:
           - pattern: 'New Torrent:\s+(?P<releaseName>.+?)\s+--\s+(?:\[(?P<freeleech>FreeLeech!)\]\s+--\s+)?\[(?P<category>[^\]]+)\]\s+\[(?P<torrentSize>[^\]]+)\]\s+--\s+(?P<baseUrl>https?:\/\/[^\/]+\/)details\.php\?id=(?P<torrentId>\d+)'
             tests:

@@ -9,9 +9,11 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/meta"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/pkgerrors"
+	"golang.org/x/term"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
@@ -27,7 +29,7 @@ func New(cfg *domain.Config, sseSrv sseServer) zerolog.Logger {
 	writers := make([]io.Writer, 0, 3)
 
 	// use pretty logging for dev only
-	if cfg.Version == "dev" {
+	if meta.GetVersion() == "dev" || term.IsTerminal(int(os.Stderr.Fd())) {
 		writers = append(writers, zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
 	} else {
 		writers = append(writers, os.Stderr)

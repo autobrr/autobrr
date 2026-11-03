@@ -585,7 +585,13 @@
       "label": "Label",
       "labelPlaceholder": "eg. label1,label2",
       "renameToPath": "Do not add torrent name to path",
-      "renameDefault": "No"
+      "renameDefault": "No",
+      "priority": "Priority",
+      "priorityDefault": "Default",
+      "priorityTooltip": "rTorrent bandwidth priority. Higher priority torrents get a bigger share of the upload and download slots.",
+      "ratioGroup": "Ratio group",
+      "ratioGroupPlaceholder": "eg. rat_0",
+      "ratioGroupTooltip": "ruTorrent ratio group to add the torrent to. The ratio plugin names its groups rat_0 to rat_7, in the order they are listed in the ruTorrent ratio settings. Leave empty to use the default ratio group."
     },
     "porla": {
       "preset": "Preset",

@@ -585,7 +585,13 @@
       "label": "标签",
       "labelPlaceholder": "例如：label1,label2",
       "renameToPath": "不要把种子名称加到路径中",
-      "renameDefault": "否"
+      "renameDefault": "否",
+      "priority": "优先级",
+      "priorityDefault": "默认",
+      "priorityTooltip": "rTorrent 带宽优先级。优先级更高的种子会获得更多的上传和下载槽位。",
+      "ratioGroup": "分享率组",
+      "ratioGroupPlaceholder": "例如：rat_0",
+      "ratioGroupTooltip": "要将种子加入的 ruTorrent 分享率组。ratio 插件将分组命名为 rat_0 到 rat_7，顺序与 ruTorrent 分享率设置中列出的顺序一致。留空则使用默认分享率组。"
     },
     "porla": {
       "preset": "预设",

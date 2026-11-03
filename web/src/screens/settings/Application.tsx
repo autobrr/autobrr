@@ -9,7 +9,7 @@ import { useTranslation } from "react-i18next";
 
 import { APIClient } from "@api/APIClient";
 import { ConfigQueryOptions, UpdatesQueryOptions } from "@api/queries";
-import { SettingsKeys } from "@api/query_keys";
+import { AlertKeys, SettingsKeys } from "@api/query_keys";
 import { SettingsContext } from "@utils/Context";
 import type { Language, Theme } from "@utils/Context";
 import { Checkbox } from "@components/Checkbox";
@@ -34,6 +34,7 @@ function ApplicationSettings() {
     mutationFn: APIClient.updates.check,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: SettingsKeys.updates() });
+      queryClient.invalidateQueries({ queryKey: AlertKeys.all });
     }
   });
 

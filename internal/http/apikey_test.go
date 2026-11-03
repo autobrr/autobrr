@@ -10,9 +10,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/domain"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -21,6 +23,8 @@ type apikeyServiceStub struct {
 	keys    map[string]*domain.APIKey
 	updated *domain.APIKey
 }
+
+func (s *apikeyServiceStub) List(context.Context) ([]domain.APIKey, error) { return nil, nil }
 
 func (s *apikeyServiceStub) ValidateAPIKey(_ context.Context, token string) (*domain.APIKey, bool) {
 	key, ok := s.keys[token]
@@ -48,7 +52,7 @@ func TestAPIKeyScopeMiddleware(t *testing.T) {
 		"filters-write":  {Key: "filters-write", Scopes: []string{"filters:write"}},
 		"webhooks-write": {Key: "webhooks-write", Scopes: []string{"webhooks:write"}},
 	}}
-	s := &Server{apiService: service}
+	s := &Server{apiService: service, config: &config.AppConfig{Config: &domain.Config{}}}
 
 	ok := func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -107,12 +111,45 @@ func TestAPIKeyScopeMiddleware(t *testing.T) {
 	}
 }
 
+func newAPIKeyTestRouter(cfg *domain.Config) chi.Router {
+	h := newAPIKeyHandler(newEncoder(zerolog.Nop()), &apikeyServiceStub{}, cfg)
+	r := chi.NewRouter()
+	r.Route("/keys", h.Routes)
+	return r
+}
+
+func TestAPIKeyHandler_BlockedWhenAuthDisabled(t *testing.T) {
+	cfg := &domain.Config{
+		AuthDisabled:                true,
+		AuthDisabledAcknowledgement: domain.AuthDisabledAcknowledgementValue,
+	}
+	r := newAPIKeyTestRouter(cfg)
+
+	cases := []struct {
+		method string
+		path   string
+	}{
+		{http.MethodGet, "/keys/"},
+		{http.MethodPost, "/keys/"},
+		{http.MethodDelete, "/keys/some-key"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.method, func(t *testing.T) {
+			req := httptest.NewRequest(tc.method, tc.path, nil)
+			rr := httptest.NewRecorder()
+			r.ServeHTTP(rr, req)
+			assert.Equal(t, http.StatusForbidden, rr.Code)
+		})
+	}
+}
+
 func TestAPIKeyHandlerUpdate(t *testing.T) {
 	service := &apikeyServiceStub{keys: map[string]*domain.APIKey{
 		"mock-key": {Key: "mock-key", Scopes: []string{domain.APIScopeAll}},
 	}}
 	router := chi.NewRouter()
-	newAPIKeyHandler(encoder{}, service).Routes(router)
+	newAPIKeyHandler(encoder{}, service, &domain.Config{}).Routes(router)
 
 	tests := []struct {
 		name   string
@@ -137,4 +174,14 @@ func TestAPIKeyHandlerUpdate(t *testing.T) {
 
 	assert.Equal(t, "mock-key", service.updated.Key)
 	assert.Equal(t, []string{"webhooks:write"}, service.updated.Scopes)
+}
+
+func TestAPIKeyHandler_AllowedWhenAuthEnabled(t *testing.T) {
+	r := newAPIKeyTestRouter(&domain.Config{})
+
+	req := httptest.NewRequest(http.MethodGet, "/keys/", nil)
+	rr := httptest.NewRecorder()
+	r.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusOK, rr.Code)
 }

@@ -26,7 +26,7 @@ func (s *Service) runWebhook(ctx context.Context, action *domain.Action) error {
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "autobrr")
+	req.Header.Set("User-Agent", s.userAgent)
 
 	start := time.Now()
 	res, err := s.httpClient.Do(req)

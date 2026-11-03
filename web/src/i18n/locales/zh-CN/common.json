@@ -37,7 +37,10 @@
     "openMainMenu": "打开主菜单",
     "newUpdateAvailable": "发现新版本更新！",
     "listRefreshFailed": "列表刷新失败！",
-    "multipleListRefreshesFailed": "多个列表刷新失败！"
+    "multipleListRefreshesFailed": "多个列表刷新失败！",
+    "ircNetworkUnhealthy": "IRC 网络异常！",
+    "multipleIrcNetworksUnhealthy": "多个 IRC 网络异常！",
+    "dismiss": "忽略"
   },
   "inbox": {
     "title": "通知",
@@ -59,8 +62,6 @@
     "confirmDeleteOne": "删除此通知？此操作无法撤销。",
     "confirmDeleteMany": "删除已选择的 {{selected}} 条通知？此操作无法撤销。",
     "cleared": "通知已清除",
-    "previous": "上一页",
-    "next": "下一页",
     "unread": "未读",
     "filterLabel": "筛选通知",
     "filterAll": "全部",
@@ -80,6 +81,12 @@
     "eventFilter": "事件类型",
     "allEvents": "全部事件",
     "moreActions": "更多操作",
+    "columns": {
+      "age": "时间",
+      "message": "消息",
+      "event": "事件类型",
+      "actions": "动作"
+    },
     "fields": {
       "indexer": "索引器",
       "filter": "过滤器",

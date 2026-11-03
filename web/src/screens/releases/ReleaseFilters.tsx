@@ -45,7 +45,7 @@ const ListboxFilter = ({
             <span className="block truncate">{label}</span>
             <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
               <ChevronDownIcon
-                className="w-5 h-5 ml-2 -mr-1 text-gray-600 hover:text-gray-600"
+                className="w-5 h-5 ml-2 -mr-1 text-gray-600 dark:text-gray-400"
                 aria-hidden="true"
               />
             </span>
@@ -96,7 +96,7 @@ export const IndexerSelectColumnFilter = ({ column }: { column: Column<DataTable
             <span className="block truncate">{label}</span>
             <span className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
               <ChevronDownIcon
-                className="w-5 h-5 ml-2 -mr-1 text-gray-600 hover:text-gray-600"
+                className="w-5 h-5 ml-2 -mr-1 text-gray-600 dark:text-gray-400"
                 aria-hidden="true"
               />
             </span>

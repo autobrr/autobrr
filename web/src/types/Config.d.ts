@@ -4,6 +4,7 @@
  */
 
 type LogLevel = "DEBUG" | "INFO" | "WARN" | "ERROR" | "TRACE";
+type AuthMode = "builtin" | "oidc" | "disabled";
 
 interface Config {
   config_dir: string;
@@ -17,6 +18,7 @@ interface Config {
   log_max_backups: number;
   base_url: string;
   check_for_updates: boolean;
+  auth_mode: AuthMode;
   version: string;
   commit: string;
   date: string;

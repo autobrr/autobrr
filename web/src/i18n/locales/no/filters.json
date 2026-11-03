@@ -585,7 +585,13 @@
       "label": "Etikett",
       "labelPlaceholder": "f.eks. etikett1,etikett2",
       "renameToPath": "Ikke legg til torrentnavn i stien",
-      "renameDefault": "Nei"
+      "renameDefault": "Nei",
+      "priority": "Prioritet",
+      "priorityDefault": "Standard",
+      "priorityTooltip": "Båndbreddeprioritet i rTorrent. Torrenter med høyere prioritet får en større andel av opplastings- og nedlastingsplassene.",
+      "ratioGroup": "Ratiogruppe",
+      "ratioGroupPlaceholder": "f.eks. rat_0",
+      "ratioGroupTooltip": "ruTorrent-ratiogruppen torrenten legges til i. Ratio-pluginen navngir gruppene rat_0 til rat_7, i rekkefølgen de vises i ratioinnstillingene i ruTorrent. La stå tomt for å bruke standard ratiogruppe."
     },
     "porla": {
       "preset": "Forhåndsinnstilling",

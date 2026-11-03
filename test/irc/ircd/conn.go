@@ -1,7 +1,7 @@
 // Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-//go:build irc_integration_test
+//go:build irc_integration_test || e2e
 
 package ircd
 
@@ -24,6 +24,9 @@ type conn struct {
 
 	wmu sync.Mutex // guards writes to nc
 
+	// nick is written by the connection's goroutine at registration and by
+	// Server.SendNickChange, so access it through getNick/setNick.
+	nickMu     sync.Mutex
 	nick       string
 	user       string
 	account    string // set once authenticated (SASL or NickServ); "" = unregistered
@@ -48,13 +51,25 @@ func (c *conn) send(line string) {
 	_, _ = c.nc.Write([]byte(line + "\r\n"))
 }
 
+func (c *conn) getNick() string {
+	c.nickMu.Lock()
+	defer c.nickMu.Unlock()
+	return c.nick
+}
+
+func (c *conn) setNick(nick string) {
+	c.nickMu.Lock()
+	c.nick = nick
+	c.nickMu.Unlock()
+}
+
 func (c *conn) sendf(format string, args ...any) {
 	c.send(fmt.Sprintf(format, args...))
 }
 
 // numeric writes a server numeric reply targeted at this client's nick.
 func (c *conn) numeric(code int, params ...string) {
-	nick := c.nick
+	nick := c.getNick()
 	if nick == "" {
 		nick = "*"
 	}
@@ -93,7 +108,7 @@ func (c *conn) handle(msg ircmsg.Message) (quit bool) {
 		c.handleCap(msg)
 	case "NICK":
 		if len(msg.Params) > 0 {
-			c.nick = msg.Params[0]
+			c.setNick(msg.Params[0])
 		}
 		c.tryRegister()
 	case "USER":
@@ -178,7 +193,8 @@ func (c *conn) handleAuthenticate(msg ircmsg.Message) {
 	}
 
 	c.account = parts[1]
-	c.sendf(":%s 900 %s %s!%s %s :You are now logged in as %s", serverName, c.nick, c.nick, userHost, c.account, c.account)
+	nick := c.getNick()
+	c.sendf(":%s 900 %s %s!%s %s :You are now logged in as %s", serverName, nick, nick, userHost, c.account, c.account)
 	c.numeric(903, "SASL authentication successful")
 }
 
@@ -186,7 +202,7 @@ func (c *conn) handleAuthenticate(msg ircmsg.Message) {
 // CAP negotiation) CAP END have all been received, sending the welcome burst the
 // ergochat client waits on before it considers itself connected.
 func (c *conn) tryRegister() {
-	if c.registered || c.nick == "" || c.user == "" {
+	if c.registered || c.getNick() == "" || c.user == "" {
 		return
 	}
 	if c.sawCapLS && !c.capEnded {
@@ -204,14 +220,16 @@ func (c *conn) tryRegister() {
 	c.registered = true
 	c.srv.registerConn(c)
 
-	c.sendf(":%s 001 %s :Welcome to the test network, %s", serverName, c.nick, c.nick)
-	c.sendf(":%s 002 %s :Your host is %s", serverName, c.nick, serverName)
-	c.sendf(":%s 003 %s :This server is for tests", serverName, c.nick)
-	c.sendf(":%s 004 %s %s testircd oiwr biklmnopstv", serverName, c.nick, serverName)
-	c.sendf(":%s 005 %s CHANTYPES=# PREFIX=(ov)@+ NETWORK=Test CASEMAPPING=ascii :are supported by this server", serverName, c.nick)
-	c.sendf(":%s 375 %s :- %s Message of the Day -", serverName, c.nick, serverName)
-	c.sendf(":%s 372 %s :- in-process test ircd", serverName, c.nick)
-	c.sendf(":%s 376 %s :End of /MOTD command.", serverName, c.nick)
+	nick := c.getNick()
+
+	c.sendf(":%s 001 %s :Welcome to the test network, %s", serverName, nick, nick)
+	c.sendf(":%s 002 %s :Your host is %s", serverName, nick, serverName)
+	c.sendf(":%s 003 %s :This server is for tests", serverName, nick)
+	c.sendf(":%s 004 %s %s testircd oiwr biklmnopstv", serverName, nick, serverName)
+	c.sendf(":%s 005 %s CHANTYPES=# PREFIX=(ov)@+ NETWORK=Test CASEMAPPING=ascii :are supported by this server", serverName, nick)
+	c.sendf(":%s 375 %s :- %s Message of the Day -", serverName, nick, serverName)
+	c.sendf(":%s 372 %s :- in-process test ircd", serverName, nick)
+	c.sendf(":%s 376 %s :End of /MOTD command.", serverName, nick)
 
 	// modelled ban: registration succeeds, then the server K-Line/G-Lines us with a
 	// 465 and closes the link. Sending it post-welcome (rather than rejecting at
@@ -244,10 +262,11 @@ func (c *conn) handleJoin(msg ircmsg.Message) {
 
 func (c *conn) joinOne(name, key string) {
 	ch := c.srv.getOrCreateChannel(name)
+	nick := c.getNick()
 
 	c.srv.mu.Lock()
 	badKey := ch.key != "" && key != ch.key
-	needInvite := ch.inviteOnly && !ch.invited[strings.ToLower(c.nick)]
+	needInvite := ch.inviteOnly && !ch.invited[strings.ToLower(nick)]
 	needReg := ch.regOnly && c.account == ""
 	c.srv.mu.Unlock()
 
@@ -264,16 +283,16 @@ func (c *conn) joinOne(name, key string) {
 	}
 
 	c.srv.mu.Lock()
-	ch.members[strings.ToLower(c.nick)] = c
+	ch.members[strings.ToLower(nick)] = c
 	ch.joins++
-	names := ch.namesList(c.nick)
+	names := ch.namesList(nick)
 	c.srv.mu.Unlock()
 
 	// echo the JOIN to the joiner and any other members
-	c.srv.broadcast(ch, fmt.Sprintf(":%s!%s JOIN %s", c.nick, userHost, ch.name), nil)
+	c.srv.broadcast(ch, fmt.Sprintf(":%s!%s JOIN %s", nick, userHost, ch.name), nil)
 
-	c.sendf(":%s 353 %s = %s :%s", serverName, c.nick, ch.name, strings.Join(names, " "))
-	c.sendf(":%s 366 %s %s :End of /NAMES list.", serverName, c.nick, ch.name)
+	c.sendf(":%s 353 %s = %s :%s", serverName, nick, ch.name, strings.Join(names, " "))
+	c.sendf(":%s 366 %s %s :End of /NAMES list.", serverName, c.srv.endOfNamesTarget(nick), ch.name)
 }
 
 // namesList returns the NAMES entries for a channel: the joining client, other
@@ -295,9 +314,9 @@ func (c *conn) handlePart(msg ircmsg.Message) {
 	}
 	for name := range strings.SplitSeq(msg.Params[0], ",") {
 		ch := c.srv.getOrCreateChannel(name)
-		c.srv.broadcast(ch, fmt.Sprintf(":%s!%s PART %s", c.nick, userHost, ch.name), nil)
+		c.srv.broadcast(ch, fmt.Sprintf(":%s!%s PART %s", c.getNick(), userHost, ch.name), nil)
 		c.srv.mu.Lock()
-		delete(ch.members, strings.ToLower(c.nick))
+		delete(ch.members, strings.ToLower(c.getNick()))
 		c.srv.mu.Unlock()
 	}
 }
@@ -316,18 +335,22 @@ func (c *conn) handleMessage(msg ircmsg.Message, notice bool) {
 
 	if isChannel(target) {
 		ch := c.srv.getOrCreateChannel(target)
-		c.srv.broadcast(ch, fmt.Sprintf(":%s!%s %s %s :%s", c.nick, userHost, kind, ch.name, text), c)
+		c.srv.broadcast(ch, fmt.Sprintf(":%s!%s %s %s :%s", c.getNick(), userHost, kind, ch.name, text), c)
 		return
 	}
 
 	// direct message: NickServ, a virtual bot, another client, or nobody
 	if strings.EqualFold(target, "NickServ") {
+		if c.srv.missNickServ() {
+			c.numeric(401, target, "No such nick/channel")
+			return
+		}
 		c.handleNickServ(text)
 		return
 	}
 	if bot := c.srv.getBot(target); bot != nil {
 		if bot.OnPrivmsg != nil {
-			bot.OnPrivmsg(bot, c.nick, text)
+			bot.OnPrivmsg(bot, c.getNick(), text)
 		}
 		return
 	}
@@ -335,7 +358,7 @@ func (c *conn) handleMessage(msg ircmsg.Message, notice bool) {
 	dst := c.srv.conns[strings.ToLower(target)]
 	c.srv.mu.Unlock()
 	if dst != nil {
-		dst.sendf(":%s!%s %s %s :%s", c.nick, userHost, kind, target, text)
+		dst.sendf(":%s!%s %s %s :%s", c.getNick(), userHost, kind, target, text)
 		return
 	}
 
@@ -350,14 +373,15 @@ func (c *conn) handleNickServ(text string) {
 	if len(fields) < 2 || !strings.EqualFold(fields[0], "IDENTIFY") {
 		return
 	}
-	account := c.nick
+	nick := c.getNick()
+	account := nick
 	if len(fields) >= 3 {
 		account = fields[1] // IDENTIFY <account> <password>
 	}
 	c.account = account
 
-	c.sendf(":NickServ!services@%s NOTICE %s :You are now identified for %s", serverName, c.nick, account)
-	c.sendf(":%s MODE %s +r", serverName, c.nick)
+	c.sendf(":NickServ!services@%s NOTICE %s :You are now identified for %s", serverName, nick, account)
+	c.sendf(":%s MODE %s +r", serverName, nick)
 }
 
 func (c *conn) handleMode(msg ircmsg.Message) {
@@ -368,11 +392,11 @@ func (c *conn) handleMode(msg ircmsg.Message) {
 	}
 	target := msg.Params[0]
 	if isChannel(target) {
-		c.sendf(":%s 324 %s %s +", serverName, c.nick, target)
+		c.sendf(":%s 324 %s %s +", serverName, c.getNick(), target)
 		return
 	}
 	if len(msg.Params) > 1 {
-		c.sendf(":%s!%s MODE %s %s", c.nick, userHost, target, msg.Params[1])
+		c.sendf(":%s!%s MODE %s %s", c.getNick(), userHost, target, msg.Params[1])
 	}
 }
 

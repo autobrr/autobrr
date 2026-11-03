@@ -11,7 +11,7 @@ import (
 )
 
 type listService interface {
-	List(ctx context.Context) ([]*domain.List, error)
+	List(ctx context.Context, params domain.ListQueryParams) ([]*domain.List, error)
 }
 
 type listCollector struct {
@@ -31,7 +31,7 @@ func (collector *listCollector) Describe(ch chan<- *prometheus.Desc) {
 }
 
 func (collector *listCollector) Collect(ch chan<- prometheus.Metric) {
-	lists, err := collector.listService.List(context.TODO())
+	lists, err := collector.listService.List(context.TODO(), domain.ListQueryParams{})
 	if err != nil {
 		ch <- prometheus.NewInvalidMetric(collector.errorMetric, err)
 		return

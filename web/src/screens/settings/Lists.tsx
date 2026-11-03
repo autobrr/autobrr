@@ -13,7 +13,7 @@ import { useTranslation } from "react-i18next";
 
 import { useToggle } from "@hooks/hooks";
 import { APIClient } from "@api/APIClient";
-import { FeedKeys, ListKeys } from "@api/query_keys";
+import { AlertKeys, FeedKeys, ListKeys } from "@api/query_keys";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { Checkbox } from "@components/Checkbox";
@@ -123,6 +123,7 @@ function ListItem({ list }: ListItemProps) {
     mutationFn: (req: List) => APIClient.lists.update(req),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ListKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: AlertKeys.all });
 
       toast.custom((toastInstance) => (
         <Toast
@@ -179,6 +180,7 @@ function ListItem({ list }: ListItemProps) {
     mutationFn: (listID: number) => APIClient.lists.delete(listID),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ListKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: AlertKeys.all });
 
       toast.custom((toastInstance) => <Toast type="success" body={t("listScreens.lists.deleted", { name: list.name })} t={toastInstance}/>);
     }

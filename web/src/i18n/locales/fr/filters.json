@@ -585,7 +585,13 @@
       "label": "Label",
       "labelPlaceholder": "ex. label1,label2",
       "renameToPath": "Ne pas ajouter le nom du torrent au chemin",
-      "renameDefault": "Non"
+      "renameDefault": "Non",
+      "priority": "Priorité",
+      "priorityDefault": "Par défaut",
+      "priorityTooltip": "Priorité de bande passante rTorrent. Les torrents de priorité plus élevée obtiennent une plus grande part des slots d'envoi et de téléchargement.",
+      "ratioGroup": "Groupe de ratio",
+      "ratioGroupPlaceholder": "ex. rat_0",
+      "ratioGroupTooltip": "Groupe de ratio ruTorrent auquel ajouter le torrent. Le plugin ratio nomme ses groupes rat_0 à rat_7, dans l'ordre où ils apparaissent dans les paramètres de ratio de ruTorrent. Laisser vide pour utiliser le groupe de ratio par défaut."
     },
     "porla": {
       "preset": "Préréglage",

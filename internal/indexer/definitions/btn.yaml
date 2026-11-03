@@ -12,7 +12,6 @@ protocol: torrent
 supports:
   - irc
   - rss
-  - api
 # source: gazelle
 settings:
   - name: authkey
@@ -26,24 +25,6 @@ settings:
     required: true
     label: Torrent pass
     help: Right click DL on a torrent and get the torrent_pass.
-
-  - name: api_key
-    type: secret
-    required: true
-    label: API Key
-    help: Username -> Edit Profile -> API
-
-# api:
-#   url: https://api.broadcasthe.net
-#   type: jsonrpc
-#   limits:
-#     max: 150
-#     per: hour
-#   settings:
-#     - name: api_key
-#       type: secret
-#       label: API Key
-#       help: Username -> Edit Profile -> API
 
 irc:
   network: BroadcasTheNet
@@ -88,21 +69,33 @@ irc:
                 expect:
                   title: The Show
 
-          - pattern: '^(?:\[ (?P<year>\d+) \] )?\[ (?P<category>.*) \] \[ (?P<releaseTags>.*) \] \[ Uploader: (?P<uploader>.*?) \](?: \[ Pretime: (?P<preTime>.*) \])?'
+          - pattern: '^(?:\[ (?P<year>\d+) \] )?\[ (?P<category>.*) \] \[ (?P<releaseTags>.*?)(?: \| TVDB: (?P<tvdb>\d*))?(?: \| (?P<torrentSize>[\d.,]+ ?[KMGTP]i?B))? \] \[ Uploader: (?P<uploader>.*?) \](?: \[ Pretime: (?P<preTime>.*) \])?'
             tests:
+              - line: '[ 2010 ] [ Episode ] [ MKV | x264 | WEB | P2P | TVDB: 42932 | 2.45 GB ] [ Uploader: Uploader1 ]'
+                expect:
+                  year: "2010"
+                  category: Episode
+                  releaseTags: MKV | x264 | WEB | P2P
+                  tvdb: "42932"
+                  torrentSize: 2.45 GB
+                  uploader: Uploader1
+                  preTime: ""
+
               - line: '[ 2010 ] [ Episode ] [ MKV | x264 | WEB | P2P ] [ Uploader: Uploader1 ]'
                 expect:
                   year: "2010"
                   category: Episode
                   releaseTags: MKV | x264 | WEB | P2P
+                  tvdb: ""
+                  torrentSize: ""
                   uploader: Uploader1
                   preTime: ""
 
           - pattern: \[ (?P<baseUrl>https?:\/\/.*\/).+id=(?P<groupId>\d+) \/ https?:\/\/.*\/.+id=(?P<torrentId>\d+) \]
             tests:
-              - line: '[ https://XXXXXXXXX/torrents.php?id=7338 / https://XXXXXXXXX/torrents.php?action=download&id=9116 ]'
+              - line: '[ https://broadcasthe.net/torrents.php?id=7338 / https://broadcasthe.net/torrents.php?action=download&id=9116 ]'
                 expect:
-                  baseUrl: https://XXXXXXXXX/
+                  baseUrl: https://broadcasthe.net/
                   groupId: "7338"
                   torrentId: "9116"
 

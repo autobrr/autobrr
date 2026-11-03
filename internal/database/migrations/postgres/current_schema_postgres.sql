@@ -343,6 +343,7 @@ CREATE TABLE action
     limit_ratio             REAL,
     limit_seed_time         INT,
     priority                TEXT,
+    ratio_group             TEXT,
     reannounce_skip         BOOLEAN DEFAULT false,
     reannounce_delete       BOOLEAN DEFAULT false,
     reannounce_interval     INTEGER DEFAULT 7,

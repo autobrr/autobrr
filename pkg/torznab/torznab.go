@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/autobrr/autobrr/internal/meta"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/pkg/sharedhttp"
 
@@ -22,7 +23,8 @@ import (
 )
 
 type Client struct {
-	http *http.Client
+	http      *http.Client
+	userAgent string
 
 	Host   string
 	ApiKey string
@@ -77,11 +79,25 @@ func NewClient(config Config) *Client {
 	}
 
 	return &Client{
-		http:   httpClient,
-		Host:   config.Host,
-		ApiKey: config.ApiKey,
-		log:    config.Log,
+		http:      httpClient,
+		Host:      config.Host,
+		ApiKey:    config.ApiKey,
+		log:       config.Log,
+		userAgent: meta.GetUserAgent(),
 	}
+}
+
+// mergeQuery merges params into the feed url's query, with params winning on conflicts.
+func mergeQuery(hostQuery string, params url.Values) url.Values {
+	// ParseQuery returns the pairs it could parse alongside the error, so a single
+	// malformed pair doesn't drop the rest of the feed url's params
+	qp, _ := url.ParseQuery(hostQuery)
+
+	for key, values := range params {
+		qp[key] = values
+	}
+
+	return qp
 }
 
 func (c *Client) get(ctx context.Context, params url.Values) (*Feed, error) {
@@ -95,7 +111,7 @@ func (c *Client) get(ctx context.Context, params url.Values) (*Feed, error) {
 	}
 
 	u.Path = strings.TrimSuffix(u.Path, "/")
-	u.RawQuery = params.Encode()
+	u.RawQuery = mergeQuery(u.RawQuery, params).Encode()
 	reqUrl := u.String()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqUrl, nil)
@@ -111,6 +127,7 @@ func (c *Client) get(ctx context.Context, params url.Values) (*Feed, error) {
 	//if c.ApiKey != "" {
 	//	req.Header.Add("X-API-Key", c.ApiKey)
 	//}
+	req.Header.Set("User-Agent", c.userAgent)
 
 	resp, err := c.http.Do(req)
 	if err != nil {
@@ -154,6 +171,19 @@ func (c *Client) get(ctx context.Context, params url.Values) (*Feed, error) {
 	return &response, nil
 }
 
+// defaultSearchLimit is the page size used when caps report no max limit.
+const defaultSearchLimit = 50
+
+// pageLimit returns the page size to request, preferring the caps max limit.
+func (c *Client) pageLimit() int {
+	if c.Capabilities != nil && c.Capabilities.Limits.Max > 0 {
+		return c.Capabilities.Limits.Max
+	}
+
+	return defaultSearchLimit
+}
+
+// FetchFeed fetches the latest items from the feed in a single request.
 func (c *Client) FetchFeed(ctx context.Context) (*Feed, error) {
 	if err := c.getAndSetCaps(ctx); err != nil {
 		return nil, err
@@ -162,10 +192,7 @@ func (c *Client) FetchFeed(ctx context.Context) (*Feed, error) {
 	params := url.Values{}
 	params.Set("t", "search")
 	params.Set("extended", "1")
-	params.Add("limit", "50")
-	if c.Capabilities != nil && c.Capabilities.Limits.Max > 0 {
-		params.Set("limit", strconv.Itoa(c.Capabilities.Limits.Max))
-	}
+	params.Set("limit", strconv.Itoa(c.pageLimit()))
 
 	res, err := c.get(ctx, params)
 	if err != nil {
@@ -193,7 +220,7 @@ func (c *Client) getCaps(ctx context.Context) (*Caps, error) {
 	}
 
 	u.Path = strings.TrimSuffix(u.Path, "/")
-	u.RawQuery = params.Encode()
+	u.RawQuery = mergeQuery(u.RawQuery, params).Encode()
 	reqUrl := u.String()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqUrl, nil)
@@ -209,6 +236,7 @@ func (c *Client) getCaps(ctx context.Context) (*Caps, error) {
 	//if c.ApiKey != "" {
 	//	req.Header.Add("X-API-Key", c.ApiKey)
 	//}
+	req.Header.Set("User-Agent", c.userAgent)
 
 	resp, err := c.http.Do(req)
 	if err != nil {
@@ -280,7 +308,8 @@ func (c *Client) GetCaps() *Caps {
 	return c.Capabilities
 }
 
-func (c *Client) Search(ctx context.Context, query string, categories []int) (*SearchResponse, error) {
+// Search queries the indexer for one page of results starting at offset.
+func (c *Client) Search(ctx context.Context, query string, categories []int, offset int) (*SearchResponse, error) {
 	if err := c.getAndSetCaps(ctx); err != nil {
 		return nil, err
 	}
@@ -291,9 +320,9 @@ func (c *Client) Search(ctx context.Context, query string, categories []int) (*S
 		params.Add("q", query)
 	}
 	params.Set("extended", "1")
-	params.Add("limit", "50")
-	if c.Capabilities != nil && c.Capabilities.Limits.Max > 0 {
-		params.Set("limit", strconv.Itoa(c.Capabilities.Limits.Max))
+	params.Set("limit", strconv.Itoa(c.pageLimit()))
+	if offset > 0 {
+		params.Set("offset", strconv.Itoa(offset))
 	}
 
 	cats := make([]string, 0)
@@ -315,6 +344,8 @@ func (c *Client) Search(ctx context.Context, query string, categories []int) (*S
 		Title: res.Channel.Title,
 		Items: res.Channel.Items,
 		Raw:   res.Raw,
+		Limit: c.pageLimit(),
+		Total: res.Channel.Paging.Total,
 	}
 
 	return resp, nil

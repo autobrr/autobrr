@@ -7,11 +7,11 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"sync"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 
+	"github.com/alphadose/haxmap"
 	"github.com/rs/zerolog"
 )
 
@@ -27,15 +27,14 @@ type Service struct {
 	log  zerolog.Logger
 	repo repo
 
-	m        sync.RWMutex
-	keyCache map[string]domain.APIKey
+	keyCache *haxmap.Map[string, domain.APIKey]
 }
 
 func NewService(log zerolog.Logger, repo repo) *Service {
 	return &Service{
 		log:      log.With().Str("module", "api").Logger(),
 		repo:     repo,
-		keyCache: map[string]domain.APIKey{},
+		keyCache: haxmap.New[string, domain.APIKey](),
 	}
 }
 
@@ -50,7 +49,13 @@ func (s *Service) Store(ctx context.Context, apiKey *domain.APIKey) error {
 
 	apiKey.Key = GenerateSecureToken(16)
 
-	return s.repo.Store(ctx, apiKey)
+	if err := s.repo.Store(ctx, apiKey); err != nil {
+		return err
+	}
+
+	s.keyCache.Set(apiKey.Key, *apiKey)
+
+	return nil
 }
 
 func (s *Service) Update(ctx context.Context, apiKey *domain.APIKey) error {
@@ -62,9 +67,7 @@ func (s *Service) Update(ctx context.Context, apiKey *domain.APIKey) error {
 		return err
 	}
 
-	s.m.Lock()
-	delete(s.keyCache, apiKey.Key)
-	s.m.Unlock()
+	s.keyCache.Del(apiKey.Key)
 
 	return nil
 }
@@ -80,35 +83,24 @@ func (s *Service) Delete(ctx context.Context, key string) error {
 		return errors.Wrap(err, "could not delete api key: %s", key)
 	}
 
-	s.m.Lock()
-	delete(s.keyCache, key)
-	s.m.Unlock()
+	s.keyCache.Del(key)
 
 	return nil
 }
 
 // ValidateAPIKey returns the stored key matching token, or false when no such key exists.
 func (s *Service) ValidateAPIKey(ctx context.Context, token string) (*domain.APIKey, bool) {
-	s.m.RLock()
-	apiKey, ok := s.keyCache[token]
-	s.m.RUnlock()
-
-	if ok {
-		s.log.Trace().Str("api_key", token).Msg("cache hit")
+	if apiKey, ok := s.keyCache.Get(token); ok {
 		return &apiKey, true
 	}
 
 	found, err := s.repo.GetKey(ctx, token)
 	if err != nil {
-		s.log.Trace().Str("api_key", token).Msg("cache invalid key")
+		s.log.Trace().Msg("invalid api key")
 		return nil, false
 	}
 
-	s.log.Trace().Str("api_key", token).Msg("cache miss")
-
-	s.m.Lock()
-	s.keyCache[token] = *found
-	s.m.Unlock()
+	s.keyCache.Set(token, *found)
 
 	return found, true
 }

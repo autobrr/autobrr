@@ -22,7 +22,7 @@ import { classNames, IsEmptyDate, simplifyDate } from "@utils";
 import { IrcNetworkAddForm, IrcNetworkUpdateForm } from "@forms";
 import { useToggle } from "@hooks/hooks";
 import { APIClient } from "@api/APIClient";
-import { IrcKeys } from "@api/query_keys";
+import { AlertKeys, IrcKeys } from "@api/query_keys";
 import { IrcQueryOptions } from "@api/queries";
 import { EmptySimple } from "@components/emptystates";
 import { DeleteModal } from "@components/modals";
@@ -291,6 +291,7 @@ const ListItem = ({ network, expanded }: ListItemProps) => {
     mutationFn: (network: IrcNetwork) => APIClient.irc.updateNetwork(network).then(() => network),
     onSuccess: (network: IrcNetwork) => {
       queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: AlertKeys.all });
       toast.custom(toastItem => (
         <Toast
           type="success"
@@ -572,6 +573,7 @@ const ListItemDropdown = ({
     mutationFn: (id: number) => APIClient.irc.deleteNetwork(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: IrcKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: AlertKeys.all });
       queryClient.invalidateQueries({ queryKey: IrcKeys.detail(network.id) });
 
       toast.custom((toastItem) => <Toast type="success" body={t("forms.irc.networkDeleted", { name: network.name })} t={toastItem} />);

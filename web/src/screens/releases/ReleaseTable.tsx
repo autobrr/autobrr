@@ -16,23 +16,18 @@ import {
   ColumnFiltersState,
   OnChangeFn,
 } from "@tanstack/react-table";
-import {
-  ChevronDoubleLeftIcon,
-  ChevronDoubleRightIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  EyeIcon,
-  EyeSlashIcon
-} from "@heroicons/react/24/solid";
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid";
 
 import { ReleasesListQueryOptions } from "@api/queries";
 import { RandomLinuxIsos, RandomIsoTracker } from "@utils";
 import { RingResizeSpinner } from "@components/Icons";
 import { IndexerSelectColumnFilter, PushStatusSelectColumnFilter, SearchColumnFilter } from "./ReleaseFilters";
 import { EmptyListState } from "@components/emptystates";
-import { TableButton, TablePageButton, AgeCell, IndexerCell, LinksCell, NameCell, ReleaseStatusCell } from "@components/data-table";
+import { TablePagination, AgeCell, IndexerCell, LinksCell, NameCell, ReleaseStatusCell } from "@components/data-table";
 import { dataTableFeatures, type DataTableFeatures } from "@components/data-table/features";
 import { SettingsContext } from "@utils/Context";
+
+const PAGE_SIZES = [5, 10, 20, 50] as const;
 
 const EmptyReleaseList = () => {
   const { t } = useTranslation("common");
@@ -360,74 +355,14 @@ export const ReleaseTable = () => {
                 </tbody>
               </table>
 
-              {/* Pagination */}
-              <div className="flex items-center justify-between px-6 py-3 border-t border-gray-200 dark:border-gray-700">
-                <div className="flex justify-between flex-1 sm:hidden">
-                  <TableButton onClick={() => tableInstance.previousPage()} disabled={!tableInstance.getCanPreviousPage()}>{t("releaseTable.previous")}</TableButton>
-                  <TableButton onClick={() => tableInstance.nextPage()} disabled={!tableInstance.getCanNextPage()}>{t("releaseTable.next")}</TableButton>
-                </div>
-                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                  <div className="flex items-baseline gap-x-2">
-                  <span className="text-sm text-gray-700 dark:text-gray-500">
-                  {t("releaseTable.pageOf", {
-                    page: tableInstance.state.pagination.pageIndex + 1,
-                    total: tableInstance.getPageCount()
-                  })}
-                  </span>
-                    <label>
-                      <span className="sr-only bg-gray-700">{t("releaseTable.itemsPerPage")}</span>
-                      <select
-                        className="py-1 pl-2 pr-8 text-sm block w-full border-gray-300 rounded-md shadow-xs cursor-pointer transition-colors dark:bg-gray-800 dark:border-gray-600 dark:text-gray-400 dark:hover:text-gray-200 focus:border-blue-300 focus:ring-3 focus:ring-blue-200 focus:ring-opacity-50"
-                        value={tableInstance.state.pagination.pageSize}
-                        onChange={e => {
-                          tableInstance.setPageSize(Number(e.target.value));
-                        }}
-                      >
-                        {[5, 10, 20, 50].map(pageSize => (
-                          <option key={pageSize} value={pageSize}>
-                            {t("releaseTable.entries", { count: pageSize })}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
-                  <div>
-                    <nav className="inline-flex -space-x-px rounded-md shadow-xs" aria-label={t("releaseTable.pagination")}>
-                      <TablePageButton
-                        className="rounded-l-md"
-                        onClick={() => tableInstance.firstPage()}
-                        disabled={!tableInstance.getCanPreviousPage()}
-                      >
-                        <span className="sr-only">{t("releaseTable.first")}</span>
-                        <ChevronDoubleLeftIcon className="w-4 h-4" aria-hidden="true"/>
-                      </TablePageButton>
-                      <TablePageButton
-                        className="pl-1 pr-2"
-                        onClick={() => tableInstance.previousPage()}
-                        disabled={!tableInstance.getCanPreviousPage()}
-                      >
-                        <ChevronLeftIcon className="w-4 h-4 mr-1" aria-hidden="true"/>
-                        <span>{t("releaseTable.prev")}</span>
-                      </TablePageButton>
-                      <TablePageButton
-                      className="pl-2 pr-1"
-                      onClick={() => tableInstance.nextPage()}
-                      disabled={!tableInstance.getCanNextPage()}>
-                        <span>{t("releaseTable.next")}</span>
-                        <ChevronRightIcon className="w-4 h-4 ml-1" aria-hidden="true"/>
-                      </TablePageButton>
-                      <TablePageButton
-                        className="rounded-r-md"
-                        onClick={() => tableInstance.lastPage()}
-                        disabled={!tableInstance.getCanNextPage()}
-                      >
-                        <ChevronDoubleRightIcon className="w-4 h-4" aria-hidden="true"/>
-                        <span className="sr-only">{t("releaseTable.last")}</span>
-                      </TablePageButton>
-                    </nav>
-                  </div>
-                </div>
-              </div>
+              <TablePagination
+                pageIndex={tableInstance.state.pagination.pageIndex}
+                pageCount={tableInstance.getPageCount()}
+                pageSize={tableInstance.state.pagination.pageSize}
+                pageSizes={PAGE_SIZES}
+                onPageChange={(pageIndex) => tableInstance.setPageIndex(pageIndex)}
+                onPageSizeChange={(pageSize) => tableInstance.setPageSize(pageSize)}
+              />
 
               <div className="absolute -bottom-11 right-0 p-2">
                 <button

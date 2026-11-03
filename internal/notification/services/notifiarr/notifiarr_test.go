@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/autobrr/autobrr/internal/meta"
+
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
@@ -36,7 +38,7 @@ func TestClient_SendMessage(t *testing.T) {
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 		assert.Equal(t, "mock-api-key", r.Header.Get("X-API-Key"))
-		assert.Equal(t, "autobrr", r.Header.Get("User-Agent"))
+		assert.Equal(t, meta.GetUserAgent(), r.Header.Get("User-Agent"))
 
 		body, err := io.ReadAll(r.Body)
 		assert.NoError(t, err)

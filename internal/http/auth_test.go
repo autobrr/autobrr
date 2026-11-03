@@ -10,12 +10,14 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/domain"
@@ -24,6 +26,7 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/alexedwards/scs/v2"
+	"github.com/alexedwards/scs/v2/memstore"
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -31,7 +34,8 @@ import (
 )
 
 type authServiceMock struct {
-	users map[string]*domain.User
+	users    map[string]*domain.User
+	loginErr error
 }
 
 func (a authServiceMock) GetUserCount(ctx context.Context) (int, error) {
@@ -39,13 +43,17 @@ func (a authServiceMock) GetUserCount(ctx context.Context) (int, error) {
 }
 
 func (a authServiceMock) Login(ctx context.Context, username, password string) (*domain.User, error) {
+	if a.loginErr != nil {
+		return nil, a.loginErr
+	}
+
 	u, ok := a.users[username]
 	if !ok {
-		return nil, errors.New("invalid login")
+		return nil, domain.ErrInvalidCredentials
 	}
 
 	if u.Password != password {
-		return nil, errors.New("bad credentials")
+		return nil, domain.ErrInvalidCredentials
 	}
 
 	return u, nil
@@ -309,6 +317,7 @@ func TestAuthHandlerLogin(t *testing.T) {
 
 	server := &Server{
 		log:            logger,
+		config:         &config.AppConfig{Config: &domain.Config{}},
 		sessionManager: sessionManager,
 	}
 
@@ -360,6 +369,7 @@ func TestAuthHandlerValidateOK(t *testing.T) {
 
 	server := &Server{
 		log:            logger,
+		config:         &config.AppConfig{Config: &domain.Config{}},
 		sessionManager: sessionManager,
 	}
 
@@ -419,6 +429,7 @@ func TestAuthHandlerValidateBad(t *testing.T) {
 
 	server := &Server{
 		log:            logger,
+		config:         &config.AppConfig{Config: &domain.Config{}},
 		sessionManager: sessionManager,
 	}
 
@@ -460,6 +471,7 @@ func TestAuthHandlerLoginBad(t *testing.T) {
 
 	server := &Server{
 		log:            logger,
+		config:         &config.AppConfig{Config: &domain.Config{}},
 		sessionManager: sessionManager,
 	}
 
@@ -508,6 +520,7 @@ func TestAuthHandlerLogout(t *testing.T) {
 
 	server := &Server{
 		log:            logger,
+		config:         &config.AppConfig{Config: &domain.Config{}},
 		sessionManager: sessionManager,
 	}
 
@@ -557,4 +570,306 @@ func TestAuthHandlerLogout(t *testing.T) {
 	//if v := resp.Header.Get("Set-Cookie"); v != "" {
 	//	t.Errorf("logout handler returned cookie")
 	//}
+}
+
+func newSessionToken(t *testing.T, sm *scs.SessionManager) string {
+	t.Helper()
+
+	ctx, err := sm.Load(context.Background(), "")
+	assert.NoError(t, err)
+
+	sm.Put(ctx, "authenticated", true)
+
+	token, _, err := sm.Commit(ctx)
+	assert.NoError(t, err)
+
+	return token
+}
+
+func TestRevokeOtherSessions_KeepsCurrentDestroysRest(t *testing.T) {
+	sm := scs.New()
+
+	current := newSessionToken(t, sm)
+	other1 := newSessionToken(t, sm)
+	other2 := newSessionToken(t, sm)
+
+	h := &authHandler{log: zerolog.Nop(), sessionManager: sm}
+
+	ctx, err := sm.Load(context.Background(), current)
+	assert.NoError(t, err)
+
+	h.revokeOtherSessions(ctx)
+
+	_, found, err := sm.Store.Find(current)
+	assert.NoError(t, err)
+	assert.True(t, found)
+
+	for _, token := range []string{other1, other2} {
+		_, found, err := sm.Store.Find(token)
+		assert.NoError(t, err)
+		assert.False(t, found)
+	}
+}
+
+type failingDeleteStore struct {
+	*memstore.MemStore
+	failToken string
+}
+
+func (s *failingDeleteStore) Delete(token string) error {
+	if token == s.failToken {
+		return errors.New("store unavailable")
+	}
+
+	return s.MemStore.Delete(token)
+}
+
+func TestRevokeOtherSessions_ContinuesAfterDestroyFailure(t *testing.T) {
+	store := &failingDeleteStore{MemStore: memstore.New()}
+	sm := scs.New()
+	sm.Store = store
+
+	current := newSessionToken(t, sm)
+	failing := newSessionToken(t, sm)
+	others := []string{newSessionToken(t, sm), newSessionToken(t, sm), newSessionToken(t, sm)}
+	store.failToken = failing
+
+	h := &authHandler{log: zerolog.Nop(), sessionManager: sm}
+
+	ctx, err := sm.Load(context.Background(), current)
+	require.NoError(t, err)
+
+	h.revokeOtherSessions(ctx)
+
+	for _, token := range []string{current, failing} {
+		_, found, err := sm.Store.Find(token)
+		assert.NoError(t, err)
+		assert.True(t, found)
+	}
+
+	for _, token := range others {
+		_, found, err := sm.Store.Find(token)
+		assert.NoError(t, err)
+		assert.False(t, found)
+	}
+}
+
+func TestAuthHandlerLoginRateLimitsFailures(t *testing.T) {
+	srv := NewServer(Deps{
+		Log:            zerolog.Nop(),
+		Config:         &config.AppConfig{Config: &domain.Config{BaseURL: "/"}},
+		SessionManager: scs.New(),
+	})
+	service := authServiceMock{users: map[string]*domain.User{
+		"test": {Username: "test", Password: "pass"},
+	}}
+	handler := newAuthHandler(encoder{}, zerolog.Nop(), srv, srv.config.Config, srv.sessionManager, service, &oidcAuthServiceMock{})
+	router := setupServer(srv)
+	router.Route("/auth", handler.Routes)
+
+	login := func(remoteAddr, password string) *httptest.ResponseRecorder {
+		t.Helper()
+
+		req := httptest.NewRequest(http.MethodPost, "/auth/login", strings.NewReader(`{"username":"test","password":"`+password+`"}`))
+		req.RemoteAddr = remoteAddr
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+
+		return rec
+	}
+
+	for range loginFailureBurst - 1 {
+		assert.Equal(t, http.StatusForbidden, login("192.0.2.1:1000", "wrong").Code)
+	}
+	assert.Equal(t, http.StatusNoContent, login("192.0.2.1:1001", "pass").Code, "success resets the failure count")
+
+	for range loginFailureBurst {
+		assert.Equal(t, http.StatusForbidden, login("192.0.2.1:1002", "wrong").Code)
+	}
+
+	rec := login("192.0.2.1:1003", "pass")
+	assert.Equal(t, http.StatusTooManyRequests, rec.Code, "correct password is refused while limited")
+	assert.NotEmpty(t, rec.Header().Get("Retry-After"))
+
+	assert.Equal(t, http.StatusNoContent, login("192.0.2.2:1000", "pass").Code, "other clients can still log in")
+}
+
+func TestAuthHandlerLoginRateLimitIgnoresSpoofedClientHeaders(t *testing.T) {
+	const (
+		attacker = "203.0.113.9:8888"
+		victim   = "198.51.100.7:9999"
+		proxy    = "10.0.0.1:7777"
+	)
+
+	newHandler := func(t *testing.T, trustedProxies []string) http.Handler {
+		t.Helper()
+
+		srv := NewServer(Deps{
+			Log:            zerolog.Nop(),
+			Config:         &config.AppConfig{Config: &domain.Config{BaseURL: "/", BaseURLModeLegacy: true, TrustedProxies: trustedProxies}},
+			SessionManager: scs.New(),
+			AuthService:    authServiceMock{users: map[string]*domain.User{"test": {Username: "test", Password: "pass"}}},
+			OIDCService:    &oidcAuthServiceMock{},
+		})
+
+		return srv.Handler()
+	}
+
+	login := func(t *testing.T, handler http.Handler, remoteAddr, password string, headers map[string]string) *httptest.ResponseRecorder {
+		t.Helper()
+
+		req := httptest.NewRequest(http.MethodPost, "/api/auth/login", strings.NewReader(`{"username":"test","password":"`+password+`"}`))
+		req.RemoteAddr = remoteAddr
+		for k, v := range headers {
+			req.Header.Set(k, v)
+		}
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+
+		return rec
+	}
+
+	for _, header := range []string{"X-Real-IP", "True-Client-IP", "X-Forwarded-For"} {
+		t.Run("legacy RealIP ignores "+header, func(t *testing.T) {
+			handler := newHandler(t, nil)
+			spoofed := map[string]string{header: "198.51.100.7"}
+
+			for range loginFailureBurst {
+				assert.Equal(t, http.StatusForbidden, login(t, handler, attacker, "wrong", spoofed).Code)
+			}
+
+			assert.Equal(t, http.StatusTooManyRequests, login(t, handler, attacker, "pass", spoofed).Code, "the attacker's own peer address is limited")
+			assert.Equal(t, http.StatusNoContent, login(t, handler, victim, "pass", nil).Code, "the spoofed address can still log in")
+		})
+
+		t.Run("untrusted peer cannot spoof "+header+" past trusted proxies", func(t *testing.T) {
+			handler := newHandler(t, []string{"10.0.0.1"})
+			spoofed := map[string]string{header: "198.51.100.7"}
+
+			for range loginFailureBurst {
+				assert.Equal(t, http.StatusForbidden, login(t, handler, attacker, "wrong", spoofed).Code)
+			}
+
+			assert.Equal(t, http.StatusTooManyRequests, login(t, handler, attacker, "pass", spoofed).Code)
+			assert.Equal(t, http.StatusNoContent, login(t, handler, victim, "pass", nil).Code)
+		})
+	}
+
+	t.Run("clients behind a trusted proxy are limited independently", func(t *testing.T) {
+		handler := newHandler(t, []string{"10.0.0.1"})
+
+		for range loginFailureBurst {
+			assert.Equal(t, http.StatusForbidden, login(t, handler, proxy, "wrong", map[string]string{"X-Forwarded-For": "198.51.100.7"}).Code)
+		}
+
+		assert.Equal(t, http.StatusTooManyRequests, login(t, handler, proxy, "pass", map[string]string{"X-Forwarded-For": "198.51.100.7"}).Code)
+		assert.Equal(t, http.StatusNoContent, login(t, handler, proxy, "pass", map[string]string{"X-Forwarded-For": "198.51.100.8"}).Code, "a neighbour behind the same proxy is unaffected")
+	})
+}
+
+func TestAuthHandlerLoginOperationalErrorsDoNotCountAsFailures(t *testing.T) {
+	srv := NewServer(Deps{
+		Log:            zerolog.Nop(),
+		Config:         &config.AppConfig{Config: &domain.Config{BaseURL: "/"}},
+		SessionManager: scs.New(),
+	})
+	service := authServiceMock{loginErr: errors.New("database is locked")}
+	handler := newAuthHandler(encoder{}, zerolog.Nop(), srv, srv.config.Config, srv.sessionManager, service, &oidcAuthServiceMock{})
+	router := setupServer(srv)
+	router.Route("/auth", handler.Routes)
+
+	for range loginFailureBurst + 1 {
+		req := httptest.NewRequest(http.MethodPost, "/auth/login", strings.NewReader(`{"username":"test","password":"pass"}`))
+		req.RemoteAddr = "192.0.2.1:1000"
+		rec := httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+
+		assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	}
+}
+
+func TestAuthHandlerLoginStalledBodyDoesNotHoldThrottle(t *testing.T) {
+	srv := NewServer(Deps{
+		Log:            zerolog.Nop(),
+		Config:         &config.AppConfig{Config: &domain.Config{BaseURL: "/"}},
+		SessionManager: scs.New(),
+	})
+	service := authServiceMock{users: map[string]*domain.User{
+		"test": {Username: "test", Password: "pass"},
+	}}
+	handler := newAuthHandler(encoder{}, zerolog.Nop(), srv, srv.config.Config, srv.sessionManager, service, &oidcAuthServiceMock{})
+	router := setupServer(srv)
+	router.Route("/auth", handler.Routes)
+
+	testServer := runTestServer(router)
+	defer testServer.Close()
+
+	conn, err := net.Dial("tcp", testServer.Listener.Addr().String())
+	require.NoError(t, err)
+	defer conn.Close()
+
+	_, err = conn.Write([]byte("POST /auth/login HTTP/1.1\r\nHost: autobrr\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\n{"))
+	require.NoError(t, err)
+
+	// Give the server time to route the stalled request into the handler chain.
+	time.Sleep(100 * time.Millisecond)
+
+	client := newHttpTestClient()
+	client.Timeout = 3 * time.Second
+
+	resp, err := client.Post(testServer.URL+"/auth/login", "application/json", strings.NewReader(`{"username":"test","password":"pass"}`))
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
+}
+
+func TestAuthHandlerLoginBodyTooLarge(t *testing.T) {
+	srv := NewServer(Deps{
+		Log:            zerolog.Nop(),
+		Config:         &config.AppConfig{Config: &domain.Config{BaseURL: "/"}},
+		SessionManager: scs.New(),
+	})
+	service := authServiceMock{users: map[string]*domain.User{
+		"test": {Username: "test", Password: "pass"},
+	}}
+	handler := newAuthHandler(encoder{}, zerolog.Nop(), srv, srv.config.Config, srv.sessionManager, service, &oidcAuthServiceMock{})
+	router := setupServer(srv)
+	router.Route("/auth", handler.Routes)
+
+	body := `{"username":"test","password":"pass","padding":"` + strings.Repeat("a", loginBodyLimit) + `"}`
+	req := httptest.NewRequest(http.MethodPost, "/auth/login", strings.NewReader(body))
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusBadRequest, rec.Code)
+}
+
+type deadlineRecordingOIDCMock struct {
+	*oidcAuthServiceMock
+	deadline time.Time
+}
+
+func (o *deadlineRecordingOIDCMock) OAuthExchange(ctx context.Context, code string, opts ...oauth2.AuthCodeOption) (*oauth2.Token, error) {
+	o.deadline, _ = ctx.Deadline()
+
+	return nil, errors.New("provider unavailable")
+}
+
+func TestOIDCHandlerCallbackBoundsProviderCalls(t *testing.T) {
+	sm := scs.New()
+	service := &deadlineRecordingOIDCMock{oidcAuthServiceMock: &oidcAuthServiceMock{}}
+	h := NewOIDCHandler(encoder{}, zerolog.Nop(), &domain.Config{}, sm, service, func(r *http.Request) string { return "" })
+
+	ctx, err := sm.Load(t.Context(), "")
+	require.NoError(t, err)
+	sm.Put(ctx, "oidc_state", "state")
+
+	req := httptest.NewRequest(http.MethodGet, "/callback?state=state&code=code", nil).WithContext(ctx)
+	rec := httptest.NewRecorder()
+	h.handleCallback(rec, req)
+
+	assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	require.False(t, service.deadline.IsZero(), "provider call must carry a deadline")
+	assert.WithinDuration(t, time.Now().Add(oidcProviderTimeout), service.deadline, 5*time.Second)
 }
