@@ -313,8 +313,8 @@ export const LoginRoute = createRoute({
       throw redirect({ href: target });
     }
 
-    // A preload must not fetch the OIDC config: each fetch replaces the state of a
-    // login that may be pending. beforeLoad runs again on the real navigation.
+    // A preload must not fetch the OIDC config: each fetch starts a login on the
+    // server that nobody completes. beforeLoad runs again on the real navigation.
     if (preload) {
       return;
     }
@@ -325,7 +325,7 @@ export const LoginRoute = createRoute({
 
     let oidcConfig;
     try {
-      // Each login needs an authorization URL whose state belongs to the current session.
+      // Each login needs its own state, so a cached authorization URL is never reused.
       const target = search.redirect && isSameOriginPath(search.redirect) ? search.redirect : undefined;
       oidcConfig = await context.queryClient.query({
         ...OIDCConfigQueryOptions(),
