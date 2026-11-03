@@ -314,3 +314,29 @@ func TestConfig_ValidateAuthDisabledConfig(t *testing.T) {
 		assert.NoError(t, c.ValidateAuthDisabledConfig())
 	})
 }
+
+func TestConfig_IsOIDCUserAllowed(t *testing.T) {
+	tests := []struct {
+		name           string
+		allowedSubject string
+		allowedEmail   string
+		subject        string
+		verifiedEmail  string
+		want           bool
+	}{
+		{name: "unset allows anyone", subject: "anyone", want: true},
+		{name: "subject match", allowedSubject: "abc-123", subject: "abc-123", want: true},
+		{name: "subject is case-sensitive", allowedSubject: "ABC-123", subject: "abc-123", want: false},
+		{name: "subject setting ignores matching email", allowedSubject: "me@example.com", subject: "xyz", verifiedEmail: "me@example.com", want: false},
+		{name: "email match ignores case", allowedEmail: "Me@Example.com", subject: "abc-123", verifiedEmail: "me@example.com", want: true},
+		{name: "email setting ignores matching subject", allowedEmail: "me@example.com", subject: "me@example.com", want: false},
+		{name: "no verified email", allowedEmail: "me@example.com", subject: "abc-123", want: false},
+		{name: "different user", allowedSubject: "abc-123", subject: "xyz", verifiedEmail: "other@example.com", want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := &Config{OIDCAllowedSubject: tt.allowedSubject, OIDCAllowedEmail: tt.allowedEmail}
+			assert.Equal(t, tt.want, c.IsOIDCUserAllowed(tt.subject, tt.verifiedEmail))
+		})
+	}
+}

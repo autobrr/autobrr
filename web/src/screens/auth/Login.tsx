@@ -18,10 +18,11 @@ import toast from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { Tooltip } from "@components/tooltips/Tooltip";
 import { OpenIdIcon } from "@components/Icons";
+import { WarningAlert } from "@components/alerts";
 
 import Logo from "@app/logo.svg?react";
 import { AuthContext, AuthInfo } from "@utils/Context";
-import { classNames } from "@utils";
+import { classNames, isSameOriginPath } from "@utils";
 import { useToggle } from "@hooks/hooks";
 
 type LoginFormFields = {
@@ -44,9 +45,16 @@ export const Login = () => {
 
     const loginRoute = getRouteApi('/login');
     const search = loginRoute.useSearch();
+    const autoLoginFailed = loginRoute.useRouteContext({ select: (context) => "autoLoginFailed" in context && context.autoLoginFailed });
 
     const {data: canOnboard} = useQuery(CanOnboardQueryOptions());
-    const {data: oidcConfig} = useQuery(OIDCConfigQueryOptions());
+    // While the provider is unreachable the config carries no authorization URL;
+    // polling lets the page enable OIDC login once the provider responds.
+    const {data: oidcConfig} = useQuery({
+        ...OIDCConfigQueryOptions(),
+        refetchInterval: (query) => query.state.data?.enabled && !query.state.data.authorizationUrl ? 10_000 : false
+    });
+    const oidcUnavailable = oidcConfig?.enabled && !oidcConfig.authorizationUrl;
 
     const form = useForm({
         defaultValues: {
@@ -118,12 +126,16 @@ export const Login = () => {
     };
 
     React.useLayoutEffect(() => {
-        if (auth.isLoggedIn && search.redirect) {
-            router.history.push(search.redirect)
-        } else if (auth.isLoggedIn) {
-            router.history.push("/")
+        if (!auth.isLoggedIn) {
+            return;
         }
-    }, [auth.isLoggedIn, search.redirect, router.history])
+
+        // ?redirect= holds the router path or the full path with the base URL,
+        // depending on who sent the user here. navigate resolves both against the
+        // base URL; history.push takes them as-is and leaves the app under one.
+        const target = search.redirect && isSameOriginPath(search.redirect) ? search.redirect : "/";
+        router.navigate({ href: target });
+    }, [auth.isLoggedIn, search.redirect, router])
 
     return (
         <div className="flex min-h-full flex-1 flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -137,6 +149,9 @@ export const Login = () => {
             {/* Wait for OIDC config to load before rendering any login forms */}
             {typeof oidcConfig !== 'undefined' && (
                 <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-[480px]">
+                    {autoLoginFailed && (
+                        <WarningAlert className="mb-6" text={t("errors.autoLoginFailed")}/>
+                    )}
                     <div className={`px-6 ${(!canOnboard && (!oidcConfig?.enabled || !oidcConfig?.disableBuiltInLogin)) ? 'py-12 bg-white dark:bg-gray-800 shadow-sm sm:rounded-lg sm:px-12 border border-gray-150 dark:border-gray-775' : ''}`}>
                         {/* Built-in login form */}
                         {!canOnboard && (!oidcConfig?.enabled || !oidcConfig?.disableBuiltInLogin) && (
@@ -276,11 +291,15 @@ export const Login = () => {
                                 <button
                                     type="button"
                                     onClick={handleOIDCLogin}
-                                    className="w-full flex items-center justify-center gap-3 py-2 px-4 border border-gray-300 dark:border-gray-700 rounded-md shadow-xs text-sm font-medium text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                                    disabled={oidcUnavailable}
+                                    className="w-full flex items-center justify-center gap-3 py-2 px-4 border border-gray-300 dark:border-gray-700 rounded-md shadow-xs text-sm font-medium text-gray-900 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-white dark:disabled:hover:bg-gray-800"
                                 >
                                     <OpenIdIcon className="h-5 w-5"/>
                                     <span>{t("openidConnect")}</span>
                                 </button>
+                                {oidcUnavailable && (
+                                    <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">{t("oidcUnavailable")}</p>
+                                )}
                             </div>
                         )}
                     </div>

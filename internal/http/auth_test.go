@@ -27,6 +27,7 @@ import (
 
 	"github.com/alexedwards/scs/v2"
 	"github.com/alexedwards/scs/v2/memstore"
+	"github.com/autobrr/go-cache/ttlcache"
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
@@ -89,10 +90,15 @@ func (a authServiceMock) UpdateUser(ctx context.Context, req domain.UpdateUserRe
 }
 
 type oidcAuthServiceMock struct {
+	unavailable bool
 }
 
 func (o *oidcAuthServiceMock) IsEnabled() bool {
 	return false
+}
+
+func (o *oidcAuthServiceMock) IsReady() bool {
+	return !o.unavailable
 }
 
 func (o *oidcAuthServiceMock) ValidateConfig() error {
@@ -861,15 +867,36 @@ func TestOIDCHandlerCallbackBoundsProviderCalls(t *testing.T) {
 	service := &deadlineRecordingOIDCMock{oidcAuthServiceMock: &oidcAuthServiceMock{}}
 	h := NewOIDCHandler(encoder{}, zerolog.Nop(), &domain.Config{}, sm, service, func(r *http.Request) string { return "" })
 
-	ctx, err := sm.Load(t.Context(), "")
-	require.NoError(t, err)
-	sm.Put(ctx, "oidc_state", "state")
+	h.pendingLogins.Set("state", pendingOIDCLogin{}, ttlcache.DefaultTTL)
 
-	req := httptest.NewRequest(http.MethodGet, "/callback?state=state&code=code", nil).WithContext(ctx)
+	req := httptest.NewRequest(http.MethodGet, "/callback?state=state&code=code", nil)
+	req.AddCookie(&http.Cookie{Name: stateCookieName("state"), Value: "state"})
 	rec := httptest.NewRecorder()
 	h.handleCallback(rec, req)
 
 	assert.Equal(t, http.StatusInternalServerError, rec.Code)
 	require.False(t, service.deadline.IsZero(), "provider call must carry a deadline")
 	assert.WithinDuration(t, time.Now().Add(oidcProviderTimeout), service.deadline, 5*time.Second)
+}
+
+func TestOIDCHandlerProviderUnavailable(t *testing.T) {
+	sm := scs.New()
+	h := NewOIDCHandler(encoder{}, zerolog.Nop(), &domain.Config{OIDCEnabled: true, OIDCIssuer: "https://auth.example.com"}, sm, &oidcAuthServiceMock{unavailable: true}, func(r *http.Request) string { return "" })
+
+	rec := httptest.NewRecorder()
+	sm.LoadAndSave(http.HandlerFunc(h.getConfig)).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/config", nil))
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	var config GetConfigResponse
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &config))
+	assert.True(t, config.Enabled)
+	assert.Empty(t, config.AuthorizationURL)
+	assert.Empty(t, config.State)
+	assert.Equal(t, "https://auth.example.com", config.IssuerURL)
+	assert.Empty(t, h.pendingLogins.GetKeys())
+	assert.Empty(t, rec.Result().Cookies())
+
+	rec = httptest.NewRecorder()
+	h.handleCallback(rec, httptest.NewRequest(http.MethodGet, "/callback?state=state&code=code", nil))
+	assert.Equal(t, http.StatusServiceUnavailable, rec.Code)
 }
