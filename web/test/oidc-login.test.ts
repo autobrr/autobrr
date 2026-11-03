@@ -68,10 +68,29 @@ test.each([
   expect(navigate).not.toHaveBeenCalled();
 });
 
-test("preloading the login route does not start OIDC login", async () => {
-  vi.spyOn(APIClient.auth, "getOIDCConfig").mockResolvedValue(config);
+test("preloading the login route neither starts OIDC login nor replaces its state", async () => {
+  const getConfig = vi.spyOn(APIClient.auth, "getOIDCConfig").mockResolvedValue(config);
 
   await expect(loadLogin(new QueryClient(), true).result).resolves.toBeUndefined();
+  expect(getConfig).not.toHaveBeenCalled();
+});
+
+test("the login page still renders when the OIDC config fails to load", async () => {
+  vi.spyOn(APIClient.auth, "getOIDCConfig").mockRejectedValue(new Error("provider unavailable"));
+  vi.spyOn(APIClient.auth, "canOnboard").mockRejectedValue(new Error("onboarding unavailable"));
+  const { result, navigate } = loadLogin();
+
+  await expect(result).resolves.toBeUndefined();
+  expect(navigate).not.toHaveBeenCalled();
+});
+
+test("blocked storage turns automatic login off instead of failing the login page", async () => {
+  vi.spyOn(APIClient.auth, "getOIDCConfig").mockResolvedValue(config);
+  vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+    throw new DOMException("storage is disabled", "SecurityError");
+  });
+
+  await expect(loadLogin().result).resolves.toEqual({ autoLoginFailed: true });
 });
 
 test("autoRedirect=false keeps the login page for logout and provider outages", async () => {

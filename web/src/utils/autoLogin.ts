@@ -26,14 +26,21 @@ const autoRedirectWindowMs = 30 * 1000;
 // login did not stick (e.g. the session cookie was dropped), and a silent provider
 // login would otherwise bounce the tab between autobrr and the provider.
 // sessionStorage is per tab and survives the round trip through the provider.
+// Browsers that block storage throw on access; without the guard there is no
+// automatic login, so the login page renders instead.
 export const claimAutoRedirect = (): boolean => {
   const now = Date.now();
-  const last = Number(sessionStorage.getItem(autoRedirectKey));
-  if (last && now - last < autoRedirectWindowMs) {
+
+  try {
+    const last = Number(sessionStorage.getItem(autoRedirectKey));
+    if (last && now - last < autoRedirectWindowMs) {
+      return false;
+    }
+
+    sessionStorage.setItem(autoRedirectKey, String(now));
+  } catch {
     return false;
   }
-
-  sessionStorage.setItem(autoRedirectKey, String(now));
 
   return true;
 };

@@ -326,7 +326,13 @@ export const LoginRoute = createRoute({
       throw redirect({ href: target });
     }
 
-    if (!preload && consumeLoggedOut() && search.autoRedirect !== false) {
+    // A preload must not fetch the OIDC config: each fetch replaces the state of a
+    // login that may be pending. beforeLoad runs again on the real navigation.
+    if (preload) {
+      return;
+    }
+
+    if (consumeLoggedOut() && search.autoRedirect !== false) {
       throw redirect({ to: LoginRoute.to, search: { ...search, autoRedirect: false }, replace: true });
     }
 
@@ -346,7 +352,7 @@ export const LoginRoute = createRoute({
     if (oidcConfig?.enabled) {
       // autoRedirect=false keeps the login page reachable when the provider is down,
       // and lets logout stay logged out while the provider session is still active.
-      if (oidcConfig.autoRedirect && search.autoRedirect !== false && oidcConfig.authorizationUrl && !preload) {
+      if (oidcConfig.autoRedirect && search.autoRedirect !== false && oidcConfig.authorizationUrl) {
         if (claimAutoRedirect()) {
           throw redirect({ href: oidcConfig.authorizationUrl, reloadDocument: true });
         }
