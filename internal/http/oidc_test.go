@@ -105,3 +105,69 @@ func TestOIDCConfigAutoRedirect(t *testing.T) {
 		})
 	}
 }
+
+func TestOIDCConfigStoresRedirect(t *testing.T) {
+	t.Parallel()
+	for _, tt := range []struct {
+		name     string
+		baseURL  string
+		redirect string
+		want     string
+	}{
+		{name: "page under root", baseURL: "/", redirect: "/filters/12?tab=actions", want: "/filters/12?tab=actions"},
+		{name: "page under base URL", baseURL: "/autobrr/", redirect: "/autobrr/filters/12", want: "/autobrr/filters/12"},
+		{name: "outside base URL", baseURL: "/autobrr/", redirect: "/filters/12"},
+		{name: "other origin", baseURL: "/", redirect: "https://evil.example/"},
+		{name: "no redirect", baseURL: "/"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			sessions := scs.New()
+			handler := NewOIDCHandler(encoder{}, zerolog.Nop(), &domain.Config{OIDCEnabled: true, BaseURL: tt.baseURL}, sessions, &oidcConfigServiceMock{}, func(*http.Request) string { return "" })
+
+			var stored string
+			next := sessions.LoadAndSave(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				sessions.Put(r.Context(), "oidc_redirect", "/stale")
+				handler.getConfig(w, r)
+				stored = sessions.GetString(r.Context(), "oidc_redirect")
+			}))
+			target := "/api/auth/oidc/config"
+			if tt.redirect != "" {
+				target += "?redirect=" + url.QueryEscape(tt.redirect)
+			}
+			rec := httptest.NewRecorder()
+			next.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, target, nil))
+			require.Equal(t, http.StatusOK, rec.Code)
+			assert.Equal(t, tt.want, stored)
+		})
+	}
+}
+
+func TestIsRedirectUnderBase(t *testing.T) {
+	t.Parallel()
+	for _, tt := range []struct {
+		target  string
+		baseURL string
+		want    bool
+	}{
+		{target: "/", baseURL: "/", want: true},
+		{target: "/filters/12?tab=actions#top", baseURL: "/", want: true},
+		{target: "/autobrr/", baseURL: "/autobrr/", want: true},
+		{target: "/autobrr/settings", baseURL: "/autobrr", want: true},
+		{target: "/autobrrx/settings", baseURL: "/autobrr"},
+		{target: "/settings", baseURL: "/autobrr/"},
+		{target: "/autobrr/../evil", baseURL: "/autobrr/"},
+		{target: "/autobrr/%2e%2e/evil", baseURL: "/autobrr/"},
+		{target: "//evil.example", baseURL: "/"},
+		{target: "/\\evil.example", baseURL: "/"},
+		{target: "/\t/evil.example", baseURL: "/"},
+		{target: "https://evil.example/", baseURL: "/"},
+		{target: "javascript:alert(1)", baseURL: "/"},
+		{target: "filters", baseURL: "/"},
+	} {
+		t.Run(tt.target, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, isRedirectUnderBase(tt.target, tt.baseURL))
+		})
+	}
+}

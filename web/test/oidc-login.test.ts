@@ -9,6 +9,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { APIClient } from "@api/APIClient";
 import { AuthKeys } from "@api/query_keys";
 import { LoginRoute, OnboardRoute, Router } from "@app/routes";
+import { consumeLoggedOut, markLoggedOut } from "@utils/logout";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -23,7 +24,7 @@ const config = {
   issuerUrl: "https://auth.example.com"
 };
 
-const loadLogin = (queryClient = new QueryClient(), preload = false, search: { autoRedirect?: boolean } = {}) => {
+const loadLogin = (queryClient = new QueryClient(), preload = false, search: { redirect?: string; autoRedirect?: boolean } = {}) => {
   const beforeLoad = LoginRoute.options.beforeLoad;
   if (typeof beforeLoad !== "function") {
     throw new Error("Login route has no beforeLoad handler");
@@ -78,6 +79,35 @@ test("autoRedirect=false keeps the login page for logout and provider outages", 
 
   await expect(result).resolves.toBeUndefined();
   expect(navigate).not.toHaveBeenCalled();
+});
+
+test.each([
+  { redirect: "/filters/12?tab=actions", want: "/filters/12?tab=actions" },
+  { redirect: "https://evil.example/", want: undefined },
+  { redirect: undefined, want: undefined }
+])("login asks the server to return to $redirect after OIDC login", async ({ redirect, want }) => {
+  const getConfig = vi.spyOn(APIClient.auth, "getOIDCConfig").mockResolvedValue(config);
+
+  await expect(loadLogin(new QueryClient(), false, { redirect }).result).rejects.toBeTruthy();
+  expect(getConfig).toHaveBeenCalledWith(want);
+});
+
+test("the login page after a logout drops automatic login and keeps the redirect", async () => {
+  vi.spyOn(APIClient.auth, "getOIDCConfig").mockResolvedValue(config);
+  markLoggedOut();
+
+  await expect(loadLogin(new QueryClient(), false, { redirect: "/filters" }).result).rejects.toMatchObject({
+    options: { to: LoginRoute.to, search: { redirect: "/filters", autoRedirect: false }, replace: true }
+  });
+  expect(consumeLoggedOut()).toBe(false);
+});
+
+test("preloading the login route keeps a pending logout", async () => {
+  vi.spyOn(APIClient.auth, "getOIDCConfig").mockResolvedValue(config);
+  markLoggedOut();
+
+  await expect(loadLogin(new QueryClient(), true).result).resolves.toBeUndefined();
+  expect(consumeLoggedOut()).toBe(true);
 });
 
 test("login fetches fresh authorization state after a session changes", async () => {

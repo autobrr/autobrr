@@ -13,6 +13,7 @@ import "@app/i18n";
 import { APIClient } from "@api/APIClient";
 import { AuthenticatedLayout } from "@components/layouts";
 import { AuthContext } from "@utils/Context";
+import { consumeLoggedOut } from "@utils/logout";
 
 vi.mock("@hooks/useInbox", () => ({ useInboxEvents: () => {} }));
 vi.mock("@components/header/InboxMenu", () => ({ InboxMenu: () => null }));
@@ -63,7 +64,7 @@ const clickLogout = async () => {
 test.each([
   { name: "logout", logout: () => vi.spyOn(APIClient.auth, "logout").mockResolvedValue(undefined as never) },
   { name: "logout with an expired session", logout: () => vi.spyOn(APIClient.auth, "logout").mockRejectedValue(new Error("Cookie expired or invalid.")) }
-])("$name skips the automatic OIDC redirect", async ({ logout }) => {
+])("$name tells the login page not to start OIDC login", async ({ logout }) => {
   AuthContext.set({ isLoggedIn: true, username: "admin", authMethod: "password" });
   logout();
 
@@ -73,5 +74,5 @@ test.each([
   expect(await screen.findByText("login page")).toBeTruthy();
   await waitFor(() => expect(AuthContext.get().isLoggedIn).toBe(false));
   expect(router.state.location.pathname).toBe("/login");
-  expect(router.state.location.search).toEqual({ autoRedirect: false });
+  expect(consumeLoggedOut()).toBe(true);
 });

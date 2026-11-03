@@ -9,6 +9,9 @@ import (
 	"crypto/rand"
 	"fmt"
 	"net/http"
+	"net/url"
+	"path"
+	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -127,6 +130,12 @@ func (h *OIDCHandler) getConfig(w http.ResponseWriter, r *http.Request) {
 	// Only set state cookie if user is not already authenticated
 	h.SetStateCookie(w, r, config.State, config.PKCEVerifier)
 
+	if target := r.URL.Query().Get("redirect"); target != "" && isRedirectUnderBase(target, h.config.BaseURL) {
+		h.sessionManager.Put(r.Context(), "oidc_redirect", target)
+	} else {
+		h.sessionManager.Remove(r.Context(), "oidc_redirect")
+	}
+
 	h.encoder.StatusResponse(w, http.StatusOK, config)
 }
 
@@ -154,6 +163,8 @@ func (h *OIDCHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 	// Retrieve and clear the PKCE verifier stored during the authorization request
 	pkceVerifier := h.sessionManager.GetString(r.Context(), "oidc_pkce_verifier")
 	h.sessionManager.Remove(r.Context(), "oidc_pkce_verifier")
+
+	redirectTarget := h.sessionManager.PopString(r.Context(), "oidc_redirect")
 
 	code := r.URL.Query().Get("code")
 	if code == "" {
@@ -265,6 +276,12 @@ func (h *OIDCHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 	h.sessionManager.Put(r.Context(), "profile_picture", claims.Picture)
 	h.sessionManager.RememberMe(r.Context(), true)
 
+	if redirectTarget != "" {
+		h.log.Debug().Str("redirect_url", redirectTarget).Msg("redirecting to requested page after OIDC callback")
+		http.Redirect(w, r, redirectTarget, http.StatusFound)
+		return
+	}
+
 	// Redirect to the frontend
 	frontendURL := h.config.BaseURL
 	if frontendURL == "/" {
@@ -277,6 +294,32 @@ func (h *OIDCHandler) handleCallback(w http.ResponseWriter, r *http.Request) {
 	h.log.Debug().Str("redirect_url", frontendURL).Str("x_forwarded_proto", r.Header.Get("X-Forwarded-Proto")).Str("x_forwarded_host", r.Header.Get("X-Forwarded-Host")).Str("host", r.Host).Msg("redirecting to frontend after OIDC callback")
 
 	http.Redirect(w, r, frontendURL, http.StatusFound)
+}
+
+// isRedirectUnderBase reports whether target is a plain path inside the base URL.
+// Browsers read a backslash as a slash and strip tabs and newlines, which can turn
+// a path into "//host", so those are rejected outright.
+func isRedirectUnderBase(target, baseURL string) bool {
+	if strings.HasPrefix(target, "//") || strings.Contains(target, "\\") {
+		return false
+	}
+
+	for _, c := range target {
+		if c < 0x20 || c == 0x7f {
+			return false
+		}
+	}
+
+	u, err := url.Parse(target)
+	if err != nil || u.Scheme != "" || u.Host != "" {
+		return false
+	}
+
+	if !strings.HasSuffix(baseURL, "/") {
+		baseURL += "/"
+	}
+
+	return strings.HasPrefix(target, baseURL) && strings.HasPrefix(path.Clean(u.Path)+"/", baseURL)
 }
 
 func generateRandomState() string {

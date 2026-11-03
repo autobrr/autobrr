@@ -362,7 +362,7 @@ The following environment variables can be used:
 
 #### Automatic OIDC login
 
-With OIDC configured, set `AUTOBRR__OIDC_AUTO_REDIRECT=true` to send unauthenticated visitors directly to your provider's login page. OIDC must be enabled with either `AUTOBRR__OIDC_ENABLED=true` or `oidcEnabled = true` in `config.toml`. You can also set `oidcAutoRedirect = true` in `config.toml`. Restart autobrr after changing the setting.
+With OIDC configured, set `AUTOBRR__OIDC_AUTO_REDIRECT=true` to send unauthenticated visitors directly to your provider's login page. OIDC must be enabled with either `AUTOBRR__OIDC_ENABLED=true` or `oidcEnabled = true` in `config.toml`. You can also set `oidcAutoRedirect = true` in `config.toml`. Restart autobrr after changing the setting. After the provider login, autobrr returns you to the page you were trying to open.
 
 The default is `false`, which keeps the login page and its OpenID Connect button. `AUTOBRR__OIDC_DISABLE_BUILT_IN_LOGIN` separately controls whether the password form appears.
 

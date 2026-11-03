@@ -4,7 +4,6 @@
  */
 
 import { useMutation } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
 import { Disclosure, DisclosureButton } from "@headlessui/react";
 import { Bars3Icon, XMarkIcon  } from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
@@ -18,35 +17,30 @@ import { RightNav } from "./RightNav";
 import { MobileNav } from "./MobileNav";
 import { useInboxEvents } from "@hooks/useInbox";
 import { AuthContext } from "@utils/Context";
+import { markLoggedOut } from "@utils/logout";
 import { InboxMenu } from "./InboxMenu";
 import { AlertBanner } from "./AlertBanner";
 
 export const Header = () => {
   const { t } = useTranslation("common");
-  const navigate = useNavigate();
 
   useInboxEvents();
 
-  // Navigate before resetting: a reset first makes AuthenticatedLayout send the
-  // user to a plain /login, which starts a new OIDC login under oidcAutoRedirect.
-  const logout = async () => {
-    await navigate({ to: "/login", search: { autoRedirect: false } });
-    AuthContext.reset();
-  };
-
   const logoutMutation = useMutation({
     mutationFn: APIClient.auth.logout,
-    onSuccess: async () => {
+    onSuccess: () => {
       toast.custom((toastInstance) => (
         <Toast type="success" body={t("header.logoutSuccess")} t={toastInstance} />
       ));
-      await logout();
+      markLoggedOut();
+      AuthContext.reset();
     },
-    onError: async (error) => {
+    onError: (error) => {
       // An expired session is already logged out. Any other failure may have left
       // the session alive, so keep the user signed in to retry.
       if (error.message === "Cookie expired or invalid.") {
-        await logout();
+        markLoggedOut();
+        AuthContext.reset();
         return;
       }
 

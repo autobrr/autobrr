@@ -33,6 +33,7 @@ import {
 } from "@api/queries";
 import { RingResizeSpinner } from "@components/Icons";
 import { AuthContext } from "@utils/Context";
+import { consumeLoggedOut } from "@utils/logout";
 import { queryClient } from "@api/QueryClient";
 
 import { ErrorPage } from "@components/alerts";
@@ -325,10 +326,19 @@ export const LoginRoute = createRoute({
       throw redirect({ href: target });
     }
 
+    if (!preload && consumeLoggedOut() && search.autoRedirect !== false) {
+      throw redirect({ to: LoginRoute.to, search: { ...search, autoRedirect: false }, replace: true });
+    }
+
     let oidcConfig;
     try {
       // Each login needs an authorization URL whose state belongs to the current session.
-      oidcConfig = await context.queryClient.query({ ...OIDCConfigQueryOptions(), staleTime: 0 });
+      const target = search.redirect && isSameOriginPath(search.redirect) ? search.redirect : undefined;
+      oidcConfig = await context.queryClient.query({
+        ...OIDCConfigQueryOptions(),
+        queryFn: () => APIClient.auth.getOIDCConfig(target),
+        staleTime: 0
+      });
     } catch (error) {
       console.debug("Failed to get OIDC config, proceeding with onboarding check:", error);
     }
@@ -381,7 +391,7 @@ export const AuthRoute = createRoute({
         throw redirect({
           to: LoginRoute.to,
           search: {
-            redirect: location.href,
+            redirect: location.publicHref,
           },
         });
       }
@@ -424,7 +434,7 @@ export const AuthRoute = createRoute({
           throw redirect({
             to: LoginRoute.to,
             search: {
-              redirect: location.href,
+              redirect: location.publicHref,
             },
           });
         }
