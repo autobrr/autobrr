@@ -364,9 +364,9 @@ The following environment variables can be used:
 
 With OIDC configured, set `AUTOBRR__OIDC_AUTO_REDIRECT=true` to send unauthenticated visitors directly to your provider's login page. OIDC must be enabled with either `AUTOBRR__OIDC_ENABLED=true` or `oidcEnabled = true` in `config.toml`. You can also set `oidcAutoRedirect = true` in `config.toml`. Restart autobrr after changing the setting.
 
-The default is `false`, which keeps the login page and its OpenID Connect button. `AUTOBRR__OIDC_DISABLE_BUILT_IN_LOGIN` separately controls whether the password form appears. To use that form again, turn off automatic redirection and keep built-in login enabled.
+The default is `false`, which keeps the login page and its OpenID Connect button. `AUTOBRR__OIDC_DISABLE_BUILT_IN_LOGIN` separately controls whether the password form appears.
 
-After signing out of autobrr, automatic redirection starts another OIDC login. If your provider session is still active, it may sign you back in without asking for credentials.
+To reach the login page while automatic redirection is on, for example when the provider is down, open `/login?autoRedirect=false` (under your base URL, if you set one). Signing out of autobrr also lands there, so an active provider session does not sign you straight back in.
 
 #### Docker secrets
 

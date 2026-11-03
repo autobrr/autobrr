@@ -23,7 +23,7 @@ const config = {
   issuerUrl: "https://auth.example.com"
 };
 
-const loadLogin = (queryClient = new QueryClient(), preload = false) => {
+const loadLogin = (queryClient = new QueryClient(), preload = false, search: { autoRedirect?: boolean } = {}) => {
   const beforeLoad = LoginRoute.options.beforeLoad;
   if (typeof beforeLoad !== "function") {
     throw new Error("Login route has no beforeLoad handler");
@@ -35,7 +35,7 @@ const loadLogin = (queryClient = new QueryClient(), preload = false) => {
     preload,
     abortController: new AbortController(),
     params: {},
-    search: {},
+    search,
     location: Router.state.location,
     buildLocation: Router.buildLocation,
     cause: preload ? "preload" : "enter",
@@ -70,6 +70,14 @@ test("preloading the login route does not start OIDC login", async () => {
   vi.spyOn(APIClient.auth, "getOIDCConfig").mockResolvedValue(config);
 
   await expect(loadLogin(new QueryClient(), true).result).resolves.toBeUndefined();
+});
+
+test("autoRedirect=false keeps the login page for logout and provider outages", async () => {
+  vi.spyOn(APIClient.auth, "getOIDCConfig").mockResolvedValue(config);
+  const { result, navigate } = loadLogin(new QueryClient(), false, { autoRedirect: false });
+
+  await expect(result).resolves.toBeUndefined();
+  expect(navigate).not.toHaveBeenCalled();
 });
 
 test("login fetches fresh authorization state after a session changes", async () => {

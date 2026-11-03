@@ -308,6 +308,7 @@ export const LoginRoute = createRoute({
   path: 'login',
   validateSearch: z.object({
     redirect: z.optional(z.string()),
+    autoRedirect: z.catch(z.optional(z.boolean()), undefined),
   }),
   beforeLoad: async ({ context, navigate, preload, search }) => {
     // With built-in auth disabled there is nothing to log in to, so bookmarks and
@@ -333,7 +334,9 @@ export const LoginRoute = createRoute({
     }
 
     if (oidcConfig?.enabled) {
-      if (oidcConfig.autoRedirect && oidcConfig.authorizationUrl && !preload) {
+      // autoRedirect=false keeps the login page reachable when the provider is down,
+      // and lets logout stay logged out while the provider session is still active.
+      if (oidcConfig.autoRedirect && search.autoRedirect !== false && oidcConfig.authorizationUrl && !preload) {
         throw redirect({ href: oidcConfig.authorizationUrl, reloadDocument: true });
       }
       return;
