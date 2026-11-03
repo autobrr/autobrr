@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -59,6 +60,8 @@ type OIDCHandler struct {
 	sessionManager *scs.SessionManager
 	limiterKey     func(r *http.Request) string
 	pendingLogins  *ttlcache.Cache[string, pendingOIDCLogin]
+	// m makes taking a pending login atomic, so a state works for one callback only.
+	m sync.Mutex
 }
 
 // pendingOIDCLogin is a login that was sent to the provider and whose callback
@@ -109,7 +112,7 @@ const (
 	oidcCallbackBacklog = 32
 	oidcProviderTimeout = 30 * time.Second
 
-	oidcLoginTimeout      = 15 * time.Minute
+	oidcLoginTimeout      = 30 * time.Minute
 	oidcStateCookiePrefix = "autobrr_oidc_"
 )
 
@@ -410,6 +413,9 @@ func (h *OIDCHandler) finishLogin(w http.ResponseWriter, r *http.Request, state 
 
 	http.SetCookie(w, h.stateCookie(r, state, -1))
 
+	h.m.Lock()
+	defer h.m.Unlock()
+
 	login, ok := h.pendingLogins.Get(state)
 	if !ok {
 		return pendingOIDCLogin{}, false
@@ -424,12 +430,24 @@ func (h *OIDCHandler) stateCookie(r *http.Request, state string, maxAge int) *ht
 	return &http.Cookie{
 		Name:     stateCookieName(state),
 		Value:    state,
-		Path:     h.sessionManager.Cookie.Path,
+		Path:     h.stateCookiePath(),
 		MaxAge:   maxAge,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 		Secure:   r.Header.Get("X-Forwarded-Proto") == "https",
 	}
+}
+
+// stateCookiePath scopes the state cookies to the callback, the only request that
+// reads them, so abandoned logins do not ride along on every API request. The
+// provider sends the browser to the configured redirect URL, so its path is the
+// one the callback arrives on, including any reverse proxy prefix.
+func (h *OIDCHandler) stateCookiePath() string {
+	if u, err := url.Parse(h.config.OIDCRedirectURL); err == nil && u.Path != "" {
+		return u.Path
+	}
+
+	return h.sessionManager.Cookie.Path
 }
 
 // stateCookieName gives every pending login its own cookie, so concurrent logins

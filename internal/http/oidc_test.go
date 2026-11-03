@@ -14,8 +14,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"net/http"
+	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/url"
+	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -175,12 +179,17 @@ func TestIsRedirectUnderBase(t *testing.T) {
 	}
 }
 
-// oidcProviderMock signs real ID tokens so the callback runs the go-oidc verifier
-// and claims decoding instead of a stubbed token.
+// oidcProviderMock runs the token exchange against a local token endpoint and
+// signs real ID tokens, so the callback goes through oauth2, the go-oidc verifier
+// and claims decoding instead of stubs.
 type oidcProviderMock struct {
 	oidcConfigServiceMock
 	key      *rsa.PrivateKey
 	verifier *oidc.IDTokenVerifier
+	tokenURL string
+
+	m             sync.Mutex
+	codeVerifiers map[string]string
 }
 
 const oidcTestIssuer = "https://auth.example.com"
@@ -189,18 +198,52 @@ func newOIDCProviderMock(t *testing.T) *oidcProviderMock {
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	require.NoError(t, err)
 
-	keySet := &oidc.StaticKeySet{PublicKeys: []crypto.PublicKey{&key.PublicKey}}
-
-	return &oidcProviderMock{
-		key:      key,
-		verifier: oidc.NewVerifier(oidcTestIssuer, keySet, &oidc.Config{ClientID: "autobrr"}),
+	p := &oidcProviderMock{
+		oidcConfigServiceMock: oidcConfigServiceMock{pkce: true},
+		key:                   key,
+		verifier:              oidc.NewVerifier(oidcTestIssuer, &oidc.StaticKeySet{PublicKeys: []crypto.PublicKey{&key.PublicKey}}, &oidc.Config{ClientID: "autobrr"}),
+		codeVerifiers:         map[string]string{},
 	}
+
+	tokenServer := httptest.NewServer(http.HandlerFunc(p.token))
+	t.Cleanup(tokenServer.Close)
+	p.tokenURL = tokenServer.URL
+
+	return p
 }
 
-func (p *oidcProviderMock) OAuthExchange(_ context.Context, _ string, _ ...oauth2.AuthCodeOption) (*oauth2.Token, error) {
+func (p *oidcProviderMock) token(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	p.m.Lock()
+	p.codeVerifiers[r.PostForm.Get("code")] = r.PostForm.Get("code_verifier")
+	p.m.Unlock()
+
+	idToken, err := p.signIDToken()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{"access_token": "access-token", "token_type": "Bearer", "id_token": idToken})
+}
+
+// codeVerifier returns the code_verifier the token endpoint received for code.
+func (p *oidcProviderMock) codeVerifier(code string) string {
+	p.m.Lock()
+	defer p.m.Unlock()
+
+	return p.codeVerifiers[code]
+}
+
+func (p *oidcProviderMock) signIDToken() (string, error) {
 	header, err := json.Marshal(map[string]string{"alg": "RS256", "typ": "JWT"})
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	payload, err := json.Marshal(map[string]any{
@@ -212,19 +255,23 @@ func (p *oidcProviderMock) OAuthExchange(_ context.Context, _ string, _ ...oauth
 		"exp":                time.Now().Add(time.Minute).Unix(),
 	})
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	signingInput := base64.RawURLEncoding.EncodeToString(header) + "." + base64.RawURLEncoding.EncodeToString(payload)
 	digest := sha256.Sum256([]byte(signingInput))
 	signature, err := rsa.SignPKCS1v15(rand.Reader, p.key, crypto.SHA256, digest[:])
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	token := &oauth2.Token{AccessToken: "access-token", TokenType: "Bearer"}
+	return signingInput + "." + base64.RawURLEncoding.EncodeToString(signature), nil
+}
 
-	return token.WithExtra(map[string]any{"id_token": signingInput + "." + base64.RawURLEncoding.EncodeToString(signature)}), nil
+func (p *oidcProviderMock) OAuthExchange(ctx context.Context, code string, opts ...oauth2.AuthCodeOption) (*oauth2.Token, error) {
+	cfg := oauth2.Config{ClientID: "autobrr", Endpoint: oauth2.Endpoint{TokenURL: p.tokenURL, AuthStyle: oauth2.AuthStyleInParams}}
+
+	return cfg.Exchange(ctx, code, opts...)
 }
 
 func (p *oidcProviderMock) VerifyIDToken(ctx context.Context, idToken string) (*oidc.IDToken, error) {
@@ -235,66 +282,84 @@ func (p *oidcProviderMock) UserInfo(_ context.Context, _ oauth2.TokenSource) (*o
 	return nil, errors.New("userinfo not offered")
 }
 
-// oidcLoginFlow drives the config and callback routes the way a browser does,
-// keeping cookies in a jar shared by every login it starts.
+const oidcTestOrigin = "https://autobrr.example.com"
+
+// oidcLoginFlow drives the config and callback routes the way a browser behind
+// a TLS-terminating proxy does: a cookie jar applies each cookie's Path and
+// Secure attributes, and requests carry X-Forwarded-Proto: https.
 type oidcLoginFlow struct {
-	app     http.Handler
-	cookies map[string]*http.Cookie
+	app      http.Handler
+	handler  *OIDCHandler
+	provider *oidcProviderMock
+	jar      *cookiejar.Jar
+	routes   string
 }
 
 func newOIDCLoginFlow(t *testing.T, baseURL string) *oidcLoginFlow {
+	routes := strings.TrimSuffix(baseURL, "/") + "/api/auth/oidc"
 	sessions := scs.New()
 	sessions.Cookie.Path = baseURL
-	handler := NewOIDCHandler(encoder{}, zerolog.Nop(), &domain.Config{OIDCEnabled: true, BaseURL: baseURL}, sessions, newOIDCProviderMock(t), func(*http.Request) string { return "" })
+	provider := newOIDCProviderMock(t)
+	handler := NewOIDCHandler(encoder{}, zerolog.Nop(), &domain.Config{
+		OIDCEnabled:     true,
+		BaseURL:         baseURL,
+		OIDCRedirectURL: oidcTestOrigin + routes + "/callback",
+	}, sessions, provider, func(*http.Request) string { return "" })
 	router := chi.NewRouter()
-	router.Route("/oidc", handler.Routes)
+	router.Route(routes, handler.Routes)
 
-	return &oidcLoginFlow{app: sessions.LoadAndSave(router), cookies: map[string]*http.Cookie{}}
+	jar, err := cookiejar.New(nil)
+	require.NoError(t, err)
+
+	return &oidcLoginFlow{app: sessions.LoadAndSave(router), handler: handler, provider: provider, jar: jar, routes: routes}
 }
 
-func (f *oidcLoginFlow) do(t *testing.T, target string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodGet, target, nil)
-	for _, c := range f.cookies {
-		req.AddCookie(c)
+func (f *oidcLoginFlow) do(t *testing.T, target string, withCookies bool) *httptest.ResponseRecorder {
+	u, err := url.Parse(oidcTestOrigin + target)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, u.String(), nil)
+	req.Header.Set("X-Forwarded-Proto", "https")
+	if withCookies {
+		for _, c := range f.jar.Cookies(u) {
+			req.AddCookie(c)
+		}
 	}
 	rec := httptest.NewRecorder()
 	f.app.ServeHTTP(rec, req)
-
-	for _, c := range rec.Result().Cookies() {
-		if c.MaxAge < 0 {
-			delete(f.cookies, c.Name)
-			continue
-		}
-		f.cookies[c.Name] = c
-	}
+	f.jar.SetCookies(u, rec.Result().Cookies())
 
 	return rec
 }
 
-// start begins a login without the browser's cookies, like a tab whose session expired.
-func (f *oidcLoginFlow) start(t *testing.T, redirect string) string {
-	target := "/oidc/config"
+// start begins a login without sending cookies, like a tab whose session expired,
+// and returns its state and authorization URL.
+func (f *oidcLoginFlow) start(t *testing.T, redirect string) (string, *url.URL) {
+	target := f.routes + "/config"
 	if redirect != "" {
 		target += "?redirect=" + url.QueryEscape(redirect)
 	}
 
-	req := httptest.NewRequest(http.MethodGet, target, nil)
-	rec := httptest.NewRecorder()
-	f.app.ServeHTTP(rec, req)
+	rec := f.do(t, target, false)
 	require.Equal(t, http.StatusOK, rec.Code)
-
-	for _, c := range rec.Result().Cookies() {
-		f.cookies[c.Name] = c
-	}
 
 	var config GetConfigResponse
 	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &config))
+	authURL, err := url.Parse(config.AuthorizationURL)
+	require.NoError(t, err)
 
-	return config.State
+	return config.State, authURL
+}
+
+func (f *oidcLoginFlow) callbackURL(t *testing.T) *url.URL {
+	u, err := url.Parse(oidcTestOrigin + f.routes + "/callback")
+	require.NoError(t, err)
+
+	return u
 }
 
 func (f *oidcLoginFlow) callback(t *testing.T, state string) *httptest.ResponseRecorder {
-	return f.do(t, "/oidc/callback?code=code&state="+url.QueryEscape(state))
+	return f.do(t, f.routes+"/callback?code="+url.QueryEscape("code-"+state)+"&state="+url.QueryEscape(state), true)
 }
 
 func TestOIDCCallbackReturnsToRequestedPage(t *testing.T) {
@@ -311,7 +376,7 @@ func TestOIDCCallbackReturnsToRequestedPage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			flow := newOIDCLoginFlow(t, "/autobrr/")
-			state := flow.start(t, tt.redirect)
+			state, _ := flow.start(t, tt.redirect)
 
 			rec := flow.callback(t, state)
 			require.Equal(t, http.StatusFound, rec.Code, rec.Body.String())
@@ -320,12 +385,26 @@ func TestOIDCCallbackReturnsToRequestedPage(t *testing.T) {
 	}
 }
 
+func TestOIDCCallbackSendsPKCEVerifier(t *testing.T) {
+	t.Parallel()
+	flow := newOIDCLoginFlow(t, "/")
+	state, authURL := flow.start(t, "")
+	require.Equal(t, "S256", authURL.Query().Get("code_challenge_method"))
+
+	require.Equal(t, http.StatusFound, flow.callback(t, state).Code)
+
+	verifier := flow.provider.codeVerifier("code-" + state)
+	require.NotEmpty(t, verifier)
+	challenge := sha256.Sum256([]byte(verifier))
+	assert.Equal(t, authURL.Query().Get("code_challenge"), base64.RawURLEncoding.EncodeToString(challenge[:]))
+}
+
 func TestOIDCCallbackConcurrentLogins(t *testing.T) {
 	t.Parallel()
 	flow := newOIDCLoginFlow(t, "/autobrr/")
-	filters := flow.start(t, "/autobrr/filters")
-	releases := flow.start(t, "/autobrr/releases")
-	settings := flow.start(t, "/autobrr/settings")
+	filters, _ := flow.start(t, "/autobrr/filters")
+	releases, _ := flow.start(t, "/autobrr/releases")
+	settings, _ := flow.start(t, "/autobrr/settings")
 
 	for state, want := range map[string]string{releases: "/autobrr/releases", settings: "/autobrr/settings", filters: "/autobrr/filters"} {
 		rec := flow.callback(t, state)
@@ -334,27 +413,106 @@ func TestOIDCCallbackConcurrentLogins(t *testing.T) {
 	}
 }
 
+func TestOIDCStateCookie(t *testing.T) {
+	t.Parallel()
+	for _, tt := range []struct {
+		name       string
+		https      bool
+		wantSecure bool
+	}{
+		{name: "behind TLS proxy", https: true, wantSecure: true},
+		{name: "plain HTTP"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			flow := newOIDCLoginFlow(t, "/autobrr/")
+			req := httptest.NewRequest(http.MethodGet, oidcTestOrigin+flow.routes+"/config", nil)
+			if tt.https {
+				req.Header.Set("X-Forwarded-Proto", "https")
+			}
+			rec := httptest.NewRecorder()
+			flow.app.ServeHTTP(rec, req)
+
+			var config GetConfigResponse
+			require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &config))
+
+			var stateCookie *http.Cookie
+			for _, c := range rec.Result().Cookies() {
+				if c.Name == stateCookieName(config.State) {
+					stateCookie = c
+				}
+			}
+			require.NotNil(t, stateCookie)
+			assert.Equal(t, "/autobrr/api/auth/oidc/callback", stateCookie.Path)
+			assert.Equal(t, tt.wantSecure, stateCookie.Secure)
+			assert.Equal(t, int(oidcLoginTimeout.Seconds()), stateCookie.MaxAge)
+			assert.True(t, stateCookie.HttpOnly)
+
+			item, ok := flow.handler.pendingLogins.GetItem(config.State)
+			require.True(t, ok)
+			assert.Equal(t, oidcLoginTimeout, item.GetDuration())
+		})
+	}
+}
+
+func TestOIDCStateCookieOnlyReachesCallback(t *testing.T) {
+	t.Parallel()
+	flow := newOIDCLoginFlow(t, "/autobrr/")
+	state, _ := flow.start(t, "")
+
+	app, err := url.Parse(oidcTestOrigin + "/autobrr/api/filters")
+	require.NoError(t, err)
+	for _, c := range flow.jar.Cookies(app) {
+		assert.NotEqual(t, stateCookieName(state), c.Name)
+	}
+
+	names := []string{}
+	for _, c := range flow.jar.Cookies(flow.callbackURL(t)) {
+		names = append(names, c.Name)
+	}
+	assert.Contains(t, names, stateCookieName(state))
+}
+
 func TestOIDCCallbackRejectsForeignAndReusedState(t *testing.T) {
 	t.Parallel()
 
 	t.Run("state started in another browser", func(t *testing.T) {
 		t.Parallel()
 		attacker := newOIDCLoginFlow(t, "/")
-		state := attacker.start(t, "")
-		attacker.cookies = map[string]*http.Cookie{}
+		state, _ := attacker.start(t, "")
+		attacker.jar, _ = cookiejar.New(nil)
 
 		assert.Equal(t, http.StatusBadRequest, attacker.callback(t, state).Code)
+	})
+
+	t.Run("state cookie with another value", func(t *testing.T) {
+		t.Parallel()
+		flow := newOIDCLoginFlow(t, "/")
+		state, _ := flow.start(t, "")
+		flow.jar.SetCookies(flow.callbackURL(t), []*http.Cookie{{Name: stateCookieName(state), Value: "other", Path: flow.callbackURL(t).Path}})
+
+		assert.Equal(t, http.StatusBadRequest, flow.callback(t, state).Code)
 	})
 
 	t.Run("state used twice", func(t *testing.T) {
 		t.Parallel()
 		flow := newOIDCLoginFlow(t, "/")
-		state := flow.start(t, "")
-		stateCookie := flow.cookies[stateCookieName(state)]
+		state, _ := flow.start(t, "")
+		stateCookie := &http.Cookie{Name: stateCookieName(state), Value: state, Path: flow.callbackURL(t).Path}
 
 		require.Equal(t, http.StatusFound, flow.callback(t, state).Code)
 
-		flow.cookies[stateCookie.Name] = stateCookie
+		flow.jar.SetCookies(flow.callbackURL(t), []*http.Cookie{stateCookie})
+		assert.Equal(t, http.StatusBadRequest, flow.callback(t, state).Code)
+	})
+
+	t.Run("expired login", func(t *testing.T) {
+		t.Parallel()
+		flow := newOIDCLoginFlow(t, "/")
+		state, _ := flow.start(t, "")
+		flow.handler.pendingLogins.Set(state, pendingOIDCLogin{}, time.Millisecond)
+		time.Sleep(20 * time.Millisecond)
+
 		assert.Equal(t, http.StatusBadRequest, flow.callback(t, state).Code)
 	})
 
@@ -364,4 +522,25 @@ func TestOIDCCallbackRejectsForeignAndReusedState(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, flow.callback(t, "unknown").Code)
 	})
+}
+
+func TestOIDCFinishLoginTakesStateOnce(t *testing.T) {
+	t.Parallel()
+	flow := newOIDCLoginFlow(t, "/")
+	state, _ := flow.start(t, "")
+
+	var wg sync.WaitGroup
+	var taken atomic.Int32
+	for range 50 {
+		wg.Go(func() {
+			req := httptest.NewRequest(http.MethodGet, "/callback", nil)
+			req.AddCookie(&http.Cookie{Name: stateCookieName(state), Value: state})
+			if _, ok := flow.handler.finishLogin(httptest.NewRecorder(), req, state); ok {
+				taken.Add(1)
+			}
+		})
+	}
+	wg.Wait()
+
+	assert.Equal(t, int32(1), taken.Load())
 }
