@@ -229,12 +229,12 @@ func (c *Client) fetchPage(ctx context.Context, reqURL string) ([]Item, int, err
 
 // parseRetryAfter reads the delay in seconds from a Retry-After header and caps it so a bogus value cannot stall the refresh job.
 func parseRetryAfter(value string) time.Duration {
-	seconds, err := strconv.Atoi(strings.TrimSpace(value))
+	seconds, err := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
 	if err != nil || seconds < 0 {
 		return defaultRetryAfter
 	}
 
-	if seconds >= int(maxRetryAfter/time.Second) {
+	if seconds >= int64(maxRetryAfter/time.Second) {
 		return maxRetryAfter
 	}
 
