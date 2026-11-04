@@ -160,7 +160,7 @@ func (s *Service) transmissionReannounce(ctx context.Context, action *domain.Act
 
 	attempts := 0
 
-	for attempts <= maxAttempts {
+	for attempts < maxAttempts {
 		l.Debug().Int64("client_torrent_id", torrentId).Int("attempt", attempts).Int("max_attempts", maxAttempts).Msg("re-announce attempt")
 
 		// add delay for next run
