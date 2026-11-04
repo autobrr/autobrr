@@ -564,6 +564,55 @@ func TestRSSSource_toReleaseMagnet(t *testing.T) {
 	}
 }
 
+func TestRSSSource_toReleaseCategories(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name           string
+		categories     []string
+		wantCategory   string
+		wantCategories []string
+	}{
+		{
+			name: "no categories",
+		},
+		{
+			name:           "single category",
+			categories:     []string{"Movies"},
+			wantCategory:   "Movies",
+			wantCategories: []string{"Movies"},
+		},
+		{
+			name:           "multiple categories",
+			categories:     []string{"Movies", "HD", "x264"},
+			wantCategory:   "Movies, HD, x264",
+			wantCategories: []string{"Movies", "HD", "x264"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			src := &rssSource{
+				log: zerolog.Nop(),
+				feed: &domain.Feed{
+					URL:     "https://fake-feed.com/rss",
+					Indexer: domain.IndexerMinimal{Name: "Mock Feed", Identifier: "mock-feed"},
+				},
+			}
+
+			got := src.toRelease(&gofeed.Item{
+				Title:      "Some.Release.Title.2022.09.22.720p.WEB.h264-GROUP",
+				Link:       "https://fake-feed.com/details.php?id=00000",
+				Categories: tt.categories,
+			})
+			require.NotNil(t, got)
+
+			assert.Equal(t, tt.wantCategory, got.Category, "category")
+			assert.Equal(t, tt.wantCategories, got.Categories, "categories")
+		})
+	}
+}
+
 func Test_isMaxAge(t *testing.T) {
 	t.Parallel()
 	type args struct {

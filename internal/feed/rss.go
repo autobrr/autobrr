@@ -145,7 +145,7 @@ func (s *rssSource) toRelease(item *gofeed.Item) *domain.Release {
 	}
 
 	for _, v := range item.Categories {
-		rls.Categories = append(rls.Categories, item.Categories...)
+		rls.Categories = append(rls.Categories, v)
 
 		if len(rls.Category) != 0 {
 			rls.Category += ", "
