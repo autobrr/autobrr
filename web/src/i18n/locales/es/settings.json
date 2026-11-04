@@ -537,7 +537,7 @@
       "save": "Guardar",
       "editKey": "Editar clave",
       "permissions": "Permisos",
-      "permissionsDescription": "Elige los permisos mínimos necesarios para tu caso. Gestionar claves API, usuarios y configuración, y los comandos (Exec), no están disponibles para las claves API.",
+      "permissionsDescription": "Elige los permisos mínimos necesarios para tu caso. Gestionar claves API, usuarios y configuración no está disponible para las claves API.",
       "permissionsRequired": "Añade al menos un permiso",
       "addPermissions": "Añadir permisos",
       "selectPermissions": "Seleccionar permisos",

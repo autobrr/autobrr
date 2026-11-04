@@ -537,7 +537,7 @@
     "save": "Lagre",
     "editKey": "Rediger nøkkel",
     "permissions": "Tillatelser",
-    "permissionsDescription": "Velg de minste tillatelsene du trenger. Administrasjon av API-nøkler, brukere og konfigurasjon, og kommandoer (Exec), er ikke tilgjengelig for API-nøkler.",
+    "permissionsDescription": "Velg de minste tillatelsene du trenger. Administrasjon av API-nøkler, brukere og konfigurasjon er ikke tilgjengelig for API-nøkler.",
     "permissionsRequired": "Legg til minst én tillatelse",
     "addPermissions": "Legg til tillatelser",
     "selectPermissions": "Velg tillatelser",

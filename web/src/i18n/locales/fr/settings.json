@@ -537,7 +537,7 @@
       "save": "Enregistrer",
       "editKey": "Modifier la clé",
       "permissions": "Permissions",
-      "permissionsDescription": "Choisissez les permissions minimales nécessaires à votre usage. La gestion des clés API, des utilisateurs et de la configuration, ainsi que les commandes (Exec), ne sont pas disponibles pour les clés API.",
+      "permissionsDescription": "Choisissez les permissions minimales nécessaires à votre usage. La gestion des clés API, des utilisateurs et de la configuration n'est pas disponible pour les clés API.",
       "permissionsRequired": "Ajoutez au moins une permission",
       "addPermissions": "Ajouter des permissions",
       "selectPermissions": "Sélectionner des permissions",

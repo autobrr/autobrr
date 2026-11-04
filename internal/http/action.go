@@ -67,11 +67,6 @@ func (h actionHandler) storeAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if isAPIKeyRequest(r) && data.Type == domain.ActionTypeExec {
-		h.encoder.StatusError(w, http.StatusForbidden, errCommandsRequireSession)
-		return
-	}
-
 	err := h.service.Store(r.Context(), data)
 	if err != nil {
 		h.encoder.Error(w, err)
@@ -96,11 +91,6 @@ func (h actionHandler) updateAction(w http.ResponseWriter, r *http.Request) {
 
 	if data == nil {
 		h.encoder.BadRequestErr(w, errors.New("action is required"))
-		return
-	}
-
-	if isAPIKeyRequest(r) && data.Type == domain.ActionTypeExec {
-		h.encoder.StatusError(w, http.StatusForbidden, errCommandsRequireSession)
 		return
 	}
 

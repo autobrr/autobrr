@@ -31,7 +31,7 @@ type Service struct {
 
 	// m serializes cache fills with key changes. Without it a fill that read a key before an update could cache
 	// the old scopes after the update evicted them, and cache hits never go back to the database.
-	m        sync.Mutex
+	m        sync.RWMutex
 	keyCache *haxmap.Map[string, domain.APIKey]
 }
 
@@ -103,8 +103,8 @@ func (s *Service) ValidateAPIKey(ctx context.Context, token string) (*domain.API
 		return &apiKey, true
 	}
 
-	s.m.Lock()
-	defer s.m.Unlock()
+	s.m.RLock()
+	defer s.m.RUnlock()
 
 	found, err := s.repo.FindByKeyHash(ctx, keyHash)
 	if err != nil {

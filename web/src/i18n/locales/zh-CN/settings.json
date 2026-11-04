@@ -537,7 +537,7 @@
     "save": "保存",
     "editKey": "编辑密钥",
     "permissions": "权限",
-    "permissionsDescription": "请只选择满足需求的最小权限。API 密钥无法管理 API 密钥、用户和配置，也无法使用命令（Exec）。",
+    "permissionsDescription": "请只选择满足需求的最小权限。API 密钥无法管理 API 密钥、用户和配置。",
     "permissionsRequired": "请至少添加一项权限",
     "addPermissions": "添加权限",
     "selectPermissions": "选择权限",

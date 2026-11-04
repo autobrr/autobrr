@@ -539,7 +539,7 @@
     "save": "Save",
     "editKey": "Edit key",
     "permissions": "Permissions",
-    "permissionsDescription": "Choose the minimal permissions necessary for your needs. Managing API keys, users and config, and commands (Exec), are not available to API keys.",
+    "permissionsDescription": "Choose the minimal permissions necessary for your needs. Managing API keys, users and config is not available to API keys.",
     "permissionsRequired": "Add at least one permission",
     "addPermissions": "Add permissions",
     "selectPermissions": "Select permissions",

@@ -537,7 +537,7 @@
       "save": "Uložit",
       "editKey": "Upravit klíč",
       "permissions": "Oprávnění",
-      "permissionsDescription": "Zvolte minimální oprávnění, která potřebujete. Správa API klíčů, uživatelů a konfigurace ani příkazy (Exec) nejsou pro API klíče dostupné.",
+      "permissionsDescription": "Zvolte minimální oprávnění, která potřebujete. Správa API klíčů, uživatelů a konfigurace není pro API klíče dostupná.",
       "permissionsRequired": "Přidejte alespoň jedno oprávnění",
       "addPermissions": "Přidat oprávnění",
       "selectPermissions": "Vyberte oprávnění",

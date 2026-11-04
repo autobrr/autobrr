@@ -175,11 +175,6 @@ func (h filterHandler) testExternal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if isAPIKeyRequest(r) && data.Type == domain.ExternalFilterTypeExec {
-		h.encoder.StatusError(w, http.StatusForbidden, errCommandsRequireSession)
-		return
-	}
-
 	result, err := h.service.TestExternal(r.Context(), data)
 	if err != nil {
 		if errors.Is(err, domain.ErrExternalFilterTypeUnsupported) {
@@ -206,11 +201,6 @@ func (h filterHandler) store(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if isAPIKeyRequest(r) && data.RunsCommands() {
-		h.encoder.StatusError(w, http.StatusForbidden, errCommandsRequireSession)
-		return
-	}
-
 	if err := h.service.Store(r.Context(), data); err != nil {
 		if errors.Is(err, domain.ErrIndexerNotFound) || errors.Is(err, domain.ErrIndexerArchived) {
 			h.encoder.BadRequestErr(w, err)
@@ -232,11 +222,6 @@ func (h filterHandler) update(w http.ResponseWriter, r *http.Request) {
 
 	if data == nil {
 		h.encoder.BadRequestErr(w, errors.New("filter is required"))
-		return
-	}
-
-	if isAPIKeyRequest(r) && data.RunsCommands() {
-		h.encoder.StatusError(w, http.StatusForbidden, errCommandsRequireSession)
 		return
 	}
 
@@ -269,11 +254,6 @@ func (h filterHandler) updatePartial(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
-		return
-	}
-
-	if isAPIKeyRequest(r) && data.RunsCommands() {
-		h.encoder.StatusError(w, http.StatusForbidden, errCommandsRequireSession)
 		return
 	}
 

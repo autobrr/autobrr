@@ -537,7 +537,7 @@
       "save": "Speichern",
       "editKey": "Schlüssel bearbeiten",
       "permissions": "Berechtigungen",
-      "permissionsDescription": "Wähle nur die Berechtigungen, die du wirklich brauchst. API-Schlüssel, Benutzer und Konfiguration verwalten sowie Befehle (Exec) ist mit API-Schlüsseln nicht möglich.",
+      "permissionsDescription": "Wähle nur die Berechtigungen, die du wirklich brauchst. API-Schlüssel, Benutzer und Konfiguration verwalten ist mit API-Schlüsseln nicht möglich.",
       "permissionsRequired": "Füge mindestens eine Berechtigung hinzu",
       "addPermissions": "Berechtigungen hinzufügen",
       "selectPermissions": "Berechtigungen auswählen",

@@ -21,7 +21,6 @@ import (
 	"github.com/autobrr/autobrr/internal/irc"
 	"github.com/autobrr/autobrr/internal/logger"
 	"github.com/autobrr/autobrr/internal/notification"
-	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog"
@@ -217,10 +216,7 @@ func requireStreamAccess(next http.Handler) http.Handler {
 	})
 }
 
-var errCommandsRequireSession = errors.New("commands can not be set or run with an api key")
-
-// isAPIKeyRequest reports whether r was authenticated with an API key instead of a session. Handlers use it to
-// refuse request bodies that would let a key widen its own access, such as commands run on the host.
+// isAPIKeyRequest reports whether r was authenticated with an API key instead of a session.
 func isAPIKeyRequest(r *http.Request) bool {
 	_, ok := r.Context().Value(apiKeyContextKey{}).(*domain.APIKey)
 	return ok
