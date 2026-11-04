@@ -262,6 +262,7 @@ func Test_parseRetryAfter(t *testing.T) {
 		{name: "seconds", input: "10", expect: 10 * time.Second},
 		{name: "zero", input: "0", expect: 0},
 		{name: "capped", input: "3600", expect: maxRetryAfter},
+		{name: "overflow", input: "99999999999", expect: maxRetryAfter},
 		{name: "missing", input: "", expect: defaultRetryAfter},
 		{name: "http date", input: "Wed, 04 Nov 2026 10:00:00 GMT", expect: defaultRetryAfter},
 		{name: "negative", input: "-5", expect: defaultRetryAfter},
@@ -270,6 +271,49 @@ func Test_parseRetryAfter(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.expect, parseRetryAfter(tt.input))
+		})
+	}
+}
+
+func TestClient_GetList_SavedPageParam(t *testing.T) {
+	srv := newPagedServer(t, 116, 100, true)
+	defer srv.Close()
+
+	c := NewClient(zerolog.Nop(), "test", srv.URL, "secret")
+
+	items, err := c.GetList(t.Context(), srv.URL+"/users/john/lists/movies/items?extended=custom&page=2")
+	require.NoError(t, err)
+	require.Len(t, items, 116)
+	assert.Equal(t, "Movie 0", items[0].Movie.Title)
+}
+
+func TestClient_GetList_BadPagination(t *testing.T) {
+	tests := []struct {
+		name      string
+		pageCount string
+		expectErr string
+	}{
+		{name: "too many pages", pageCount: strconv.Itoa(maxPages + 1), expectErr: "exceeding the maximum"},
+		{name: "malformed header", pageCount: "two", expectErr: "invalid X-Pagination-Page-Count"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var requests atomic.Int32
+
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				requests.Add(1)
+				w.Header().Set("Content-Type", "application/json")
+				w.Header().Set("X-Pagination-Page-Count", tt.pageCount)
+				_, _ = w.Write([]byte(`[{"movie":{"title":"Movie"}}]`))
+			}))
+			defer srv.Close()
+
+			c := NewClient(zerolog.Nop(), "test", srv.URL, "")
+
+			_, err := c.GetList(t.Context(), srv.URL+"/users/john/lists/movies/items")
+			require.ErrorContains(t, err, tt.expectErr)
+			assert.Equal(t, int32(1), requests.Load())
 		})
 	}
 }

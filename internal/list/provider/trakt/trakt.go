@@ -107,13 +107,13 @@ func (c *Client) GetList(ctx context.Context, listURL string) ([]Item, error) {
 		return nil, errors.Wrapf(err, "could not parse URL: %s", reqURL)
 	}
 
-	if strings.EqualFold(baseURL.Hostname(), apiHost) {
-		query := baseURL.Query()
-		if !query.Has("limit") {
-			query.Set("limit", strconv.Itoa(pageLimit))
-			baseURL.RawQuery = query.Encode()
-		}
+	query := baseURL.Query()
+	// A pasted API URL may carry a page param; drop it so the walk starts at page 1.
+	query.Del("page")
+	if strings.EqualFold(baseURL.Hostname(), apiHost) && !query.Has("limit") {
+		query.Set("limit", strconv.Itoa(pageLimit))
 	}
+	baseURL.RawQuery = query.Encode()
 
 	items, pageCount, err := c.getPage(ctx, baseURL.String())
 	if err != nil {
@@ -124,9 +124,9 @@ func (c *Client) GetList(ctx context.Context, listURL string) ([]Item, error) {
 		return items, nil
 	}
 
+	// Fail instead of truncating, a partial list would overwrite the filter and drop titles.
 	if pageCount > maxPages {
-		c.log.Warn().Int("page_count", pageCount).Int("max_pages", maxPages).Msg("list has more pages than supported, truncating")
-		pageCount = maxPages
+		return nil, errors.Errorf("list has %d pages, exceeding the maximum of %d", pageCount, maxPages)
 	}
 
 	for page := 2; page <= pageCount; page++ {
@@ -214,7 +214,15 @@ func (c *Client) fetchPage(ctx context.Context, reqURL string) ([]Item, int, err
 
 	// Trakt serves at most one page per request since June 2026, even for /all, see #2812.
 	// Endpoints without pagination (like autobrr hosted lists) omit the header.
-	pageCount, _ := strconv.Atoi(resp.Header.Get("X-Pagination-Page-Count"))
+	header := resp.Header.Get("X-Pagination-Page-Count")
+	if header == "" {
+		return data, 0, nil
+	}
+
+	pageCount, err := strconv.Atoi(header)
+	if err != nil {
+		return nil, 0, errors.Wrapf(err, "invalid X-Pagination-Page-Count header for URL: %s", reqURL)
+	}
 
 	return data, pageCount, nil
 }
@@ -226,5 +234,9 @@ func parseRetryAfter(value string) time.Duration {
 		return defaultRetryAfter
 	}
 
-	return min(time.Duration(seconds)*time.Second, maxRetryAfter)
+	if seconds >= int(maxRetryAfter/time.Second) {
+		return maxRetryAfter
+	}
+
+	return time.Duration(seconds) * time.Second
 }
