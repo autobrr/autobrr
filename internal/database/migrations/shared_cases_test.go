@@ -229,13 +229,14 @@ func validateBuiltinNotificationNotDuplicated(db *sql.DB, t *testing.T) {
 func setupPlaintextAPIKeys(db *sql.DB) error {
 	_, err := db.Exec(`INSERT INTO api_key (name, key, scopes, created_at) VALUES
 		('sonarr', 'plain-key-one', '{"*"}', '2025-01-01 00:00:00'),
-		('radarr', 'plain-key-two', '{"filters:read"}', '2025-02-01 00:00:00')`)
+		('radarr', 'plain-key-two', '{"filters:read"}', '2025-02-01 00:00:00'),
+		('lidarr', 'plain-key-three', '{}', '2025-03-01 00:00:00')`)
 
 	return err
 }
 
 func validateAPIKeysHashed(db *sql.DB, t *testing.T) {
-	rows, err := db.Query(`SELECT id, name, key_hash FROM api_key ORDER BY id`)
+	rows, err := db.Query(`SELECT id, name, key_hash, scopes FROM api_key ORDER BY id`)
 	require.NoError(t, err)
 	defer rows.Close()
 
@@ -243,26 +244,28 @@ func validateAPIKeysHashed(db *sql.DB, t *testing.T) {
 		id      int
 		name    string
 		keyHash string
+		scopes  []string
 	}
 
 	var got []row
 	for rows.Next() {
 		var r row
-		require.NoError(t, rows.Scan(&r.id, &r.name, &r.keyHash))
+		require.NoError(t, rows.Scan(&r.id, &r.name, &r.keyHash, pq.Array(&r.scopes)))
 		got = append(got, r)
 	}
 	require.NoError(t, rows.Err())
 
-	require.Len(t, got, 2)
-	assert.Equal(t, row{id: 1, name: "sonarr", keyHash: domain.HashAPIKey("plain-key-one")}, got[0])
-	assert.Equal(t, row{id: 2, name: "radarr", keyHash: domain.HashAPIKey("plain-key-two")}, got[1])
+	require.Len(t, got, 3)
+	assert.Equal(t, row{id: 1, name: "sonarr", keyHash: domain.HashAPIKey("plain-key-one"), scopes: []string{"*"}}, got[0])
+	assert.Equal(t, row{id: 2, name: "radarr", keyHash: domain.HashAPIKey("plain-key-two"), scopes: []string{"filters:read"}}, got[1])
+	assert.Equal(t, row{id: 3, name: "lidarr", keyHash: domain.HashAPIKey("plain-key-three"), scopes: []string{"*"}}, got[2], "empty scopes predate scoped keys and mean full access")
 
 	_, err = db.Exec(`SELECT key FROM api_key`)
 	assert.Error(t, err, "the plaintext key column must be gone")
 
 	var id int
-	require.NoError(t, db.QueryRow(`INSERT INTO api_key (name, key_hash) VALUES ('lidarr', 'mock-hash') RETURNING id`).Scan(&id))
-	assert.Equal(t, 3, id)
+	require.NoError(t, db.QueryRow(`INSERT INTO api_key (name, key_hash) VALUES ('readarr', 'mock-hash') RETURNING id`).Scan(&id))
+	assert.Equal(t, 4, id)
 
 	_, err = db.Exec(`INSERT INTO api_key (name, key_hash) VALUES ('duplicate', 'mock-hash')`)
 	assert.Error(t, err, "key hashes must be unique")

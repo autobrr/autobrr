@@ -553,9 +553,9 @@ func TestRunMigrationTest_Postgres(t *testing.T) {
 		},
 		{
 			Name:                "api key migration hashes existing keys and adds ids",
-			MigrationIndex:      91,
-			MigrationsUntilName: "91_api_key_explicit_full_access_scope",
-			MigrationToRun:      "92_api_key_add_id_and_hash_key",
+			MigrationIndex:      90,
+			MigrationsUntilName: "90_add_action_ratio_group",
+			MigrationToRun:      "91_api_key_add_id_and_hash_key",
 			SetupData:           setupPlaintextAPIKeys,
 			ValidateResult:      validateAPIKeysHashed,
 		},

@@ -10,8 +10,12 @@ CREATE TABLE api_key
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- keys created before scopes were enforced had full access with empty scopes
 INSERT INTO api_key (name, key_hash, scopes, created_at)
-SELECT name, sha256_hex(key), scopes, created_at
+SELECT name,
+       sha256_hex(key),
+       CASE WHEN scopes = '{}' THEN '{"*"}' ELSE scopes END,
+       created_at
 FROM api_key_old
 ORDER BY created_at;
 
