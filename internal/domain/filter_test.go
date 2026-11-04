@@ -306,6 +306,85 @@ func TestFilter_CheckFilter(t *testing.T) {
 			want: true,
 		},
 		{
+			name: "movie_except_category_2",
+			fields: &Release{
+				TorrentName: "That Movie 2020 2160p BluRay DD5.1 x264-GROUP1",
+				Categories:  []string{"Movies/HD", "2040"},
+				Freeleech:   true,
+				Size:        uint64(30000000001), // 30GB
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					ExceptCategories:   "*movies*",
+					Freeleech:          true,
+					MinSize:            "10 GB",
+					MaxSize:            "40GB",
+					Resolutions:        []string{"1080p", "2160p"},
+					Sources:            []string{"BluRay"},
+					Codecs:             []string{"x264"},
+					Years:              "2015,2018-2022",
+					MatchReleaseGroups: "GROUP1,BADGROUP",
+					Shows:              "*Movie*, good story, bad movie",
+				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "except category", got: "Movies/HD,2040", want: "*movies*"}}},
+			},
+			want: false,
+		},
+		{
+			name: "movie_except_category_3",
+			fields: &Release{
+				TorrentName: "That Movie 2020 2160p BluRay DD5.1 x264-GROUP1",
+				Category:    "Movies",
+				Categories:  []string{"Movies/HD", "2040"},
+				Freeleech:   true,
+				Size:        uint64(30000000001), // 30GB
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					ExceptCategories:   "2040",
+					Freeleech:          true,
+					MinSize:            "10 GB",
+					MaxSize:            "40GB",
+					Resolutions:        []string{"1080p", "2160p"},
+					Sources:            []string{"BluRay"},
+					Codecs:             []string{"x264"},
+					Years:              "2015,2018-2022",
+					MatchReleaseGroups: "GROUP1,BADGROUP",
+					Shows:              "*Movie*, good story, bad movie",
+				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{{key: "except category", got: "Movies/HD,2040,Movies", want: "2040"}}},
+			},
+			want: false,
+		},
+		{
+			name: "movie_except_category_4",
+			fields: &Release{
+				TorrentName: "That Movie 2020 2160p BluRay DD5.1 x264-GROUP1",
+				Categories:  []string{"Movies/HD", "2040"},
+				Freeleech:   true,
+				Size:        uint64(30000000001), // 30GB
+			},
+			args: args{
+				filter: Filter{
+					Enabled:            true,
+					ExceptCategories:   "*tv*",
+					Freeleech:          true,
+					MinSize:            "10 GB",
+					MaxSize:            "40GB",
+					Resolutions:        []string{"1080p", "2160p"},
+					Sources:            []string{"BluRay"},
+					Codecs:             []string{"x264"},
+					Years:              "2015,2018-2022",
+					MatchReleaseGroups: "GROUP1,BADGROUP",
+					Shows:              "*Movie*, good story, bad movie",
+				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			},
+			want: true,
+		},
+		{
 			name: "movie_bad_category",
 			fields: &Release{
 				TorrentName: "That Movie 2020 2160p BluRay DD5.1 x264-GROUP1",
