@@ -9,6 +9,8 @@ import (
 	"database/sql"
 	"testing"
 
+	"github.com/autobrr/autobrr/internal/domain"
+
 	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -222,4 +224,46 @@ func validateBuiltinNotificationNotDuplicated(db *sql.DB, t *testing.T) {
 	err = db.QueryRow(`SELECT name FROM notification WHERE type = 'BUILTIN'`).Scan(&name)
 	require.NoError(t, err)
 	assert.Equal(t, "Existing", name, "the seed must not replace a built-in row that already exists")
+}
+
+func setupPlaintextAPIKeys(db *sql.DB) error {
+	_, err := db.Exec(`INSERT INTO api_key (name, key, scopes, created_at) VALUES
+		('sonarr', 'plain-key-one', '{"*"}', '2025-01-01 00:00:00'),
+		('radarr', 'plain-key-two', '{"filters:read"}', '2025-02-01 00:00:00')`)
+
+	return err
+}
+
+func validateAPIKeysHashed(db *sql.DB, t *testing.T) {
+	rows, err := db.Query(`SELECT id, name, key_hash FROM api_key ORDER BY id`)
+	require.NoError(t, err)
+	defer rows.Close()
+
+	type row struct {
+		id      int
+		name    string
+		keyHash string
+	}
+
+	var got []row
+	for rows.Next() {
+		var r row
+		require.NoError(t, rows.Scan(&r.id, &r.name, &r.keyHash))
+		got = append(got, r)
+	}
+	require.NoError(t, rows.Err())
+
+	require.Len(t, got, 2)
+	assert.Equal(t, row{id: 1, name: "sonarr", keyHash: domain.HashAPIKey("plain-key-one")}, got[0])
+	assert.Equal(t, row{id: 2, name: "radarr", keyHash: domain.HashAPIKey("plain-key-two")}, got[1])
+
+	_, err = db.Exec(`SELECT key FROM api_key`)
+	assert.Error(t, err, "the plaintext key column must be gone")
+
+	var id int
+	require.NoError(t, db.QueryRow(`INSERT INTO api_key (name, key_hash) VALUES ('lidarr', 'mock-hash') RETURNING id`).Scan(&id))
+	assert.Equal(t, 3, id)
+
+	_, err = db.Exec(`INSERT INTO api_key (name, key_hash) VALUES ('duplicate', 'mock-hash')`)
+	assert.Error(t, err, "key hashes must be unique")
 }

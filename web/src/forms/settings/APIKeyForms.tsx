@@ -19,6 +19,8 @@ import { AddFormProps, UpdateFormProps } from "@forms/_shared";
 import { useAppForm, fieldErrors } from "@hooks/form";
 import type { FormFieldErrors } from "@hooks/form";
 import { ErrorField } from "@components/inputs/common";
+import { KeyField } from "@components/fields/text";
+import { WarningAlert } from "@components/alerts";
 import { SlideOverShell, SlideOverTitle } from "@components/panels";
 import { API_KEY_FULL_ACCESS, API_KEY_RESOURCES } from "@domain/constants";
 import { classNames } from "@utils";
@@ -52,15 +54,16 @@ interface APIKeyFormPanelProps {
 function APIKeyFormPanel({ toggle, apikey }: APIKeyFormPanelProps) {
   const { t } = useTranslation("settings");
   const queryClient = useQueryClient();
+  const [createdKey, setCreatedKey] = useState<APIKey | null>(null);
 
   const createMutation = useMutation({
     mutationFn: (key: APIKey) => APIClient.apikeys.create(key),
-    onSuccess: (_, key) => {
+    onSuccess: (created, key) => {
       queryClient.invalidateQueries({ queryKey: ApiKeys.lists() });
 
       toast.custom((toastInstance) => <Toast type="success" body={t("forms.apiKey.created", { name: key.name })} t={toastInstance}/>);
 
-      toggle();
+      setCreatedKey(created);
     }
   });
 
@@ -107,6 +110,10 @@ function APIKeyFormPanel({ toggle, apikey }: APIKeyFormPanelProps) {
     },
     onSubmit: ({ value }) => onSubmit(value)
   });
+
+  if (createdKey) {
+    return <APIKeyCreatedPanel apikey={createdKey} toggle={toggle} />;
+  }
 
   return (
     <form.AppForm>
@@ -206,6 +213,60 @@ function APIKeyFormPanel({ toggle, apikey }: APIKeyFormPanelProps) {
         </div>
       </form>
     </form.AppForm>
+  );
+}
+
+interface APIKeyCreatedPanelProps {
+  apikey: APIKey;
+  toggle: () => void;
+}
+
+function APIKeyCreatedPanel({ apikey, toggle }: APIKeyCreatedPanelProps) {
+  const { t } = useTranslation("settings");
+
+  return (
+    <div className="h-full min-h-0 flex flex-col bg-white dark:bg-gray-800">
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="px-4 py-6 bg-gray-50 dark:bg-gray-900 sm:px-6">
+          <div className="flex items-start justify-between space-x-3">
+            <div className="space-y-1">
+              <SlideOverTitle>{t("forms.apiKey.createdTitle")}</SlideOverTitle>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{apikey.name}</p>
+            </div>
+            <div className="h-7 flex items-center">
+              <button
+                type="button"
+                className="light:bg-white rounded-md text-gray-400 hover:text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-500 cursor-pointer"
+                onClick={toggle}
+              >
+                <span className="sr-only">{t("forms.apiKey.closePanel")}</span>
+                <XMarkIcon className="h-6 w-6" aria-hidden="true"/>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-4 py-6 space-y-4">
+          <WarningAlert text={t("forms.apiKey.createdDescription")} />
+          <div>
+            <p className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{t("forms.apiKey.key")}</p>
+            <KeyField value={apikey.key ?? ""} />
+          </div>
+        </div>
+      </div>
+
+      <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-5 sm:px-6">
+        <div className="flex justify-end">
+          <button
+            type="button"
+            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 cursor-pointer"
+            onClick={toggle}
+          >
+            {t("forms.apiKey.done")}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

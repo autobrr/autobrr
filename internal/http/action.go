@@ -62,6 +62,16 @@ func (h actionHandler) storeAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if data == nil {
+		h.encoder.BadRequestErr(w, errors.New("action is required"))
+		return
+	}
+
+	if !hasFullAccess(r) && data.Type == domain.ActionTypeExec {
+		h.encoder.StatusError(w, http.StatusForbidden, errCommandsRequireFullAccess)
+		return
+	}
+
 	err := h.service.Store(r.Context(), data)
 	if err != nil {
 		h.encoder.Error(w, err)
@@ -81,6 +91,16 @@ func (h actionHandler) updateAction(w http.ResponseWriter, r *http.Request) {
 	var data *domain.Action
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
+		return
+	}
+
+	if data == nil {
+		h.encoder.BadRequestErr(w, errors.New("action is required"))
+		return
+	}
+
+	if !hasFullAccess(r) && data.Type == domain.ActionTypeExec {
+		h.encoder.StatusError(w, http.StatusForbidden, errCommandsRequireFullAccess)
 		return
 	}
 

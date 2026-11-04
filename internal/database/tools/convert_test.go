@@ -55,7 +55,7 @@ VALUES ('PUSH_ERROR', 'Push error', 'could not push', 1, '{"one","two"}', '2026-
 INSERT INTO feed (indexer, name, type, enabled, url, interval, capabilities, indexer_id)
 VALUES ('ggn', 'GGn feed', 'TORZNAB', TRUE, 'https://mock.local/api', 15, '{"search":{"available":"yes"}}', 1);
 INSERT INTO feed_cache (feed_id, key, value, ttl) VALUES (1, 'guid', 'value', '2026-11-21T10:00:00Z');
-INSERT INTO api_key (name, key, scopes) VALUES ('key', 'mock-key', '{read,write}');
+INSERT INTO api_key (id, name, key_hash, scopes) VALUES (7, 'key', 'mock-key-hash', '{read,write}');
 INSERT INTO list (name, type, enabled, client_id, tags_included) VALUES ('list', 'RADARR', TRUE, 1, '{a,b}');
 INSERT INTO list_filter (list_id, filter_id) VALUES (1, 1);
 `
@@ -99,9 +99,11 @@ func TestConverter_RoundTrip(t *testing.T) {
 			assert.Equal(t, 10, filter.Delay)
 			assert.Equal(t, []string{"Album", "Single EP"}, filter.MatchReleaseTypes)
 
-			keys, err := database.NewAPIRepo(log, db).GetAllAPIKeys(t.Context())
+			keys, err := database.NewAPIRepo(log, db).List(t.Context())
 			require.NoError(t, err)
 			require.Len(t, keys, 1)
+			assert.Equal(t, 7, keys[0].ID)
+			assert.Equal(t, "mock-key-hash", keys[0].KeyHash)
 			assert.Equal(t, []string{"read", "write"}, keys[0].Scopes)
 
 			notifications, err := database.NewNotificationRepo(log, db).List(t.Context())

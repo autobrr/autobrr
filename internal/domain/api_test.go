@@ -26,6 +26,7 @@ func TestAPIKey_Validate(t *testing.T) {
 		{name: "unknown_resource", scopes: []string{"users:read"}, wantErr: true},
 		{name: "unknown_access", scopes: []string{"filters:admin"}, wantErr: true},
 		{name: "unsupported_access", scopes: []string{"logs:write"}, wantErr: true},
+		{name: "config_write", scopes: []string{"config:write"}, wantErr: true},
 		{name: "webhooks_read", scopes: []string{"webhooks:read"}, wantErr: true},
 		{name: "duplicate_resource", scopes: []string{"filters:read", "filters:write"}, wantErr: true},
 	}

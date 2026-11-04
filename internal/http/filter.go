@@ -175,6 +175,11 @@ func (h filterHandler) testExternal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !hasFullAccess(r) && data.Type == domain.ExternalFilterTypeExec {
+		h.encoder.StatusError(w, http.StatusForbidden, errCommandsRequireFullAccess)
+		return
+	}
+
 	result, err := h.service.TestExternal(r.Context(), data)
 	if err != nil {
 		if errors.Is(err, domain.ErrExternalFilterTypeUnsupported) {
@@ -196,6 +201,16 @@ func (h filterHandler) store(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if data == nil {
+		h.encoder.BadRequestErr(w, errors.New("filter is required"))
+		return
+	}
+
+	if !hasFullAccess(r) && data.RunsCommands() {
+		h.encoder.StatusError(w, http.StatusForbidden, errCommandsRequireFullAccess)
+		return
+	}
+
 	if err := h.service.Store(r.Context(), data); err != nil {
 		if errors.Is(err, domain.ErrIndexerNotFound) || errors.Is(err, domain.ErrIndexerArchived) {
 			h.encoder.BadRequestErr(w, err)
@@ -212,6 +227,16 @@ func (h filterHandler) update(w http.ResponseWriter, r *http.Request) {
 	var data *domain.Filter
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
+		return
+	}
+
+	if data == nil {
+		h.encoder.BadRequestErr(w, errors.New("filter is required"))
+		return
+	}
+
+	if !hasFullAccess(r) && data.RunsCommands() {
+		h.encoder.StatusError(w, http.StatusForbidden, errCommandsRequireFullAccess)
 		return
 	}
 
@@ -244,6 +269,11 @@ func (h filterHandler) updatePartial(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
+		return
+	}
+
+	if !hasFullAccess(r) && data.RunsCommands() {
+		h.encoder.StatusError(w, http.StatusForbidden, errCommandsRequireFullAccess)
 		return
 	}
 

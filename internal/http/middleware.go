@@ -18,6 +18,10 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/irc"
+	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/internal/notification"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog"
@@ -177,13 +181,48 @@ func requireAccess(resource domain.APIResource, access domain.APIAccess) func(ne
 // requireFullAccess keeps scoped API keys away from routes that could escalate their own access.
 func requireFullAccess(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if apiKey, ok := r.Context().Value(apiKeyContextKey{}).(*domain.APIKey); ok && !apiKey.HasFullAccess() {
+		if !hasFullAccess(r) {
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return
 		}
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+// eventStreamResources maps each server-sent event stream to the resource an API key needs read access to.
+var eventStreamResources = map[string]domain.APIResource{
+	logger.StreamLogs:           domain.APIResourceLogs,
+	irc.EventStreamKey:          domain.APIResourceIRC,
+	notification.InboxStreamKey: domain.APIResourceNotifications,
+}
+
+// requireStreamAccess scopes the stream picked by the stream query param. Every stream is served by the same
+// SSE server, so the route alone does not say what is being read.
+func requireStreamAccess(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resource, ok := eventStreamResources[r.URL.Query().Get("stream")]
+		if !ok {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+
+		if apiKey, ok := r.Context().Value(apiKeyContextKey{}).(*domain.APIKey); ok && !apiKey.HasAccess(resource, domain.APIAccessRead) {
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+var errCommandsRequireFullAccess = errors.New("running commands requires a full access api key")
+
+// hasFullAccess reports whether the request comes from a session or from a full access API key. Handlers use it
+// for request bodies that could escalate a scoped key, such as commands run on the host.
+func hasFullAccess(r *http.Request) bool {
+	apiKey, ok := r.Context().Value(apiKeyContextKey{}).(*domain.APIKey)
+	return !ok || apiKey.HasFullAccess()
 }
 
 // isHealthCheckRequest reports whether r is a GET/HEAD to one of the built-in

@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/irc"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/go-chi/chi/v5"
@@ -65,6 +66,11 @@ func (h ircHandler) Routes(r chi.Router) {
 	})
 
 	r.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
+		// the SSE server also carries the logs and notifications streams, which the irc scope does not cover
+		if r.URL.Query().Get("stream") != irc.EventStreamKey {
+			h.encoder.BadRequestErr(w, errors.New("unsupported stream: '%s'", r.URL.Query().Get("stream")))
+			return
+		}
 
 		// inject CORS headers to bypass checks
 		h.sse.Headers = map[string]string{

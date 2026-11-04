@@ -4,6 +4,8 @@
 package domain
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"slices"
 	"strings"
 	"time"
@@ -11,16 +13,27 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 )
 
+// APIKey is a stored API token. Only KeyHash is persisted; Key holds the plain token right after Store and is
+// otherwise empty, so it is shown once on creation and never again.
 type APIKey struct {
+	ID        int       `json:"id"`
 	Name      string    `json:"name"`
-	Key       string    `json:"key"`
+	Key       string    `json:"key,omitempty"`
+	KeyHash   string    `json:"-"`
 	Scopes    []string  `json:"scopes"`
 	CreatedAt time.Time `json:"created_at"`
+}
+
+// HashAPIKey returns the hex encoded SHA-256 of key, the form API keys are stored and looked up in.
+func HashAPIKey(key string) string {
+	sum := sha256.Sum256([]byte(key))
+	return hex.EncodeToString(sum[:])
 }
 
 // APIScopeAll grants full access, including the endpoints that manage API keys and users.
 const APIScopeAll = "*"
 
+// APIResource is the part of the API a scope grants access to.
 type APIResource string
 
 const (
@@ -39,10 +52,12 @@ const (
 	APIResourceWebhooks      APIResource = "webhooks"
 )
 
+// String returns the resource as used in scopes.
 func (r APIResource) String() string {
 	return string(r)
 }
 
+// APIAccess is the access level a scope grants on a resource.
 type APIAccess string
 
 const (
@@ -50,12 +65,13 @@ const (
 	APIAccessWrite APIAccess = "write"
 )
 
+// String returns the access level as used in scopes.
 func (a APIAccess) String() string {
 	return string(a)
 }
 
 var apiResourceAccess = map[APIResource][]APIAccess{
-	APIResourceConfig:        {APIAccessRead, APIAccessWrite},
+	APIResourceConfig:        {APIAccessRead},
 	APIResourceDownloaders:   {APIAccessRead, APIAccessWrite},
 	APIResourceFeeds:         {APIAccessRead, APIAccessWrite},
 	APIResourceFilters:       {APIAccessRead, APIAccessWrite},

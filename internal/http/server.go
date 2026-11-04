@@ -401,7 +401,7 @@ func (s *Server) Handler() http.Handler {
 			r.With(requireScope(domain.APIResourceUpdates)).Route("/updates", newUpdateHandler(encoder, s.updateService).Routes)
 			r.With(requireAccess(domain.APIResourceWebhooks, domain.APIAccessWrite)).Route("/webhook", newWebhookHandler(encoder, s.listService).Routes)
 
-			r.With(requireAccess(domain.APIResourceLogs, domain.APIAccessRead)).HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
+			r.With(requireStreamAccess).HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
 
 				// inject CORS headers to bypass checks
 				s.sse.Headers = map[string]string{

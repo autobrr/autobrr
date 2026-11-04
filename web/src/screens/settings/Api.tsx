@@ -8,7 +8,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
 
-import { KeyField } from "@components/fields/text";
 import { DeleteModal } from "@components/modals";
 import { APIKeyAddForm, APIKeyUpdateForm } from "@forms/settings/APIKeyForms";
 import { toast } from "@components/hot-toast";
@@ -69,18 +68,15 @@ function APISettings() {
       {apikeysQuery.data && apikeysQuery.data.length > 0 ? (
         <ul className="min-w-full relative">
           <li className="hidden sm:grid grid-cols-12 gap-4 mb-2 border-b border-gray-200 dark:border-gray-700">
-            <div className="col-span-3 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <div className="col-span-4 px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               {t("forms.apiKey.name")}
             </div>
-            <div className="col-span-5 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              {t("forms.apiKey.key")}
-            </div>
-            <div className="col-span-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <div className="col-span-7 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               {t("forms.apiKey.permissions")}
             </div>
           </li>
 
-          {apikeysQuery.data.map((k, idx) => <APIListItem key={idx} apikey={k} />)}
+          {apikeysQuery.data.map((k) => <APIListItem key={k.id} apikey={k} />)}
         </ul>
       ) : (
         <EmptySimple
@@ -107,10 +103,10 @@ function APIListItem({ apikey }: ApiKeyItemProps) {
   const queryClient = useQueryClient();
 
   const deleteMutation = useMutation({
-    mutationFn: (key: string) => APIClient.apikeys.delete(key),
+    mutationFn: (id: number) => APIClient.apikeys.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ApiKeys.lists() });
-      queryClient.invalidateQueries({ queryKey: ApiKeys.detail(apikey.key) });
+      queryClient.invalidateQueries({ queryKey: ApiKeys.detail(apikey.id) });
 
       toast.custom((tst) => (
         <Toast
@@ -132,7 +128,7 @@ function APIListItem({ apikey }: ApiKeyItemProps) {
         toggle={toggleDeleteModal}
         buttonRef={cancelModalButtonRef}
         deleteAction={() => {
-          deleteMutation.mutate(apikey.key);
+          deleteMutation.mutate(apikey.id);
           toggleDeleteModal();
         }}
         title={t("forms.apiKey.removeTitle", { name: apikey.name })}
@@ -140,7 +136,7 @@ function APIListItem({ apikey }: ApiKeyItemProps) {
       />
 
       <div className="sm:grid grid-cols-12 gap-4 items-center py-2">
-        <div className="col-span-3 px-2 sm:px-6 py-2 sm:py-0 truncate block sm:text-sm text-md font-medium text-gray-900 dark:text-white">
+        <div className="col-span-4 px-2 sm:px-6 py-2 sm:py-0 truncate block sm:text-sm text-md font-medium text-gray-900 dark:text-white">
           <div className="flex justify-between">
             <div className="pl-1 py-2">{apikey.name}</div>
             <div className="sm:hidden">
@@ -172,11 +168,7 @@ function APIListItem({ apikey }: ApiKeyItemProps) {
             </div>
           </div>
         </div>
-        <div className="col-span-5 flex items-center text-sm font-medium text-gray-900 dark:text-white">
-          <KeyField value={apikey.key} />
-        </div>
-
-        <div className="col-span-3 flex flex-wrap gap-1 px-2 sm:px-0 py-2 sm:py-0">
+        <div className="col-span-7 flex flex-wrap gap-1 px-2 sm:px-0 py-2 sm:py-0">
           <APIKeyScopes scopes={apikey.scopes} />
         </div>
 

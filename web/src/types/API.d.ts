@@ -4,8 +4,9 @@
  */
 
 interface APIKey {
+  id: number;
   name: string;
-  key: string;
+  key?: string;
   scopes: string[];
   created_at: Date;
 }

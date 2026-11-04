@@ -1127,7 +1127,7 @@ export const API_KEY_RESOURCES: APIKeyResource[] = [
   { name: "webhooks", access: ["write"] },
   { name: "notifications", access: ["read", "write"] },
   { name: "proxies", access: ["read", "write"] },
-  { name: "config", access: ["read", "write"] },
+  { name: "config", access: ["read"] },
   { name: "logs", access: ["read"] },
   { name: "updates", access: ["read"] }
 ];

@@ -16,6 +16,8 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+const createdKey: APIKey = { id: 4, name: "sonarr", key: "mock-created-key", scopes: ["*"], created_at: new Date() };
+
 // Headless UI decides outside clicks from the mousedown target, which a bare fireEvent.click never sends.
 const press = (element: HTMLElement) => {
   fireEvent.pointerDown(element);
@@ -37,7 +39,7 @@ const renderAddForm = async () => {
 };
 
 test("new key requires full access or at least one permission", async () => {
-  const create = vi.spyOn(APIClient.apikeys, "create").mockResolvedValue(undefined);
+  const create = vi.spyOn(APIClient.apikeys, "create").mockResolvedValue(createdKey);
   await renderAddForm();
 
   fireEvent.change(document.querySelector("input#name") as HTMLInputElement, { target: { value: "sonarr" } });
@@ -48,7 +50,7 @@ test("new key requires full access or at least one permission", async () => {
 });
 
 test("added permissions default to the lowest access level and can be raised", async () => {
-  const create = vi.spyOn(APIClient.apikeys, "create").mockResolvedValue(undefined);
+  const create = vi.spyOn(APIClient.apikeys, "create").mockResolvedValue(createdKey);
   await renderAddForm();
 
   fireEvent.change(document.querySelector("input#name") as HTMLInputElement, { target: { value: "sonarr" } });
@@ -70,7 +72,7 @@ test("added permissions default to the lowest access level and can be raised", a
 
 test("switching to full access replaces custom permissions", async () => {
   const update = vi.spyOn(APIClient.apikeys, "update").mockResolvedValue(undefined);
-  const apikey: APIKey = { name: "omegabrr", key: "mock-key", scopes: ["filters:read"], created_at: new Date() };
+  const apikey: APIKey = { id: 3, name: "omegabrr", scopes: ["filters:read"], created_at: new Date() };
   render(
     <QueryClientProvider client={new QueryClient()}>
       <APIKeyUpdateForm isOpen={true} toggle={() => {}} data={apikey} />
@@ -86,5 +88,27 @@ test("switching to full access replaces custom permissions", async () => {
   fireEvent.click(screen.getByText("Save"));
 
   await waitFor(() => expect(update).toHaveBeenCalled());
-  expect(update.mock.calls[0][0]).toMatchObject({ key: "mock-key", scopes: ["*"] });
+  expect(update.mock.calls[0][0]).toMatchObject({ id: 3, scopes: ["*"] });
+});
+
+test("a created key is shown once until the drawer is closed", async () => {
+  const toggle = vi.fn();
+  vi.spyOn(APIClient.apikeys, "create").mockResolvedValue(createdKey);
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <APIKeyAddForm isOpen={true} toggle={toggle} />
+    </QueryClientProvider>
+  );
+
+  fireEvent.change(document.querySelector("input#name") as HTMLInputElement, { target: { value: "sonarr" } });
+  fireEvent.click(screen.getByLabelText(/Full access/));
+  fireEvent.click(screen.getByText("Create"));
+
+  expect(await screen.findByText("API key created")).toBeTruthy();
+  expect((document.querySelector("input#keyfield") as HTMLInputElement).value).toBe("mock-created-key");
+  expect(toggle).not.toHaveBeenCalled();
+
+  fireEvent.click(screen.getByText("Done"));
+
+  expect(toggle).toHaveBeenCalled();
 });

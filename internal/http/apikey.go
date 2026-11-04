@@ -18,7 +18,7 @@ type apikeyService interface {
 	List(ctx context.Context) ([]domain.APIKey, error)
 	Store(ctx context.Context, key *domain.APIKey) error
 	Update(ctx context.Context, key *domain.APIKey) error
-	Delete(ctx context.Context, key string) error
+	Delete(ctx context.Context, id int) error
 	ValidateAPIKey(ctx context.Context, token string) (*domain.APIKey, bool)
 }
 
@@ -41,7 +41,7 @@ func (h apikeyHandler) Routes(r chi.Router) {
 	r.Get("/", h.list)
 	r.Post("/", h.store)
 
-	r.Route("/{apikey}", func(r chi.Router) {
+	r.Route("/{apiKeyID}", func(r chi.Router) {
 		r.Put("/", h.update)
 		r.Delete("/", h.delete)
 	})
@@ -77,6 +77,11 @@ func (h apikeyHandler) store(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if data == nil {
+		h.encoder.BadRequestErr(w, errors.New("api key is required"))
+		return
+	}
+
 	if err := h.service.Store(r.Context(), data); err != nil {
 		if errors.Is(err, domain.ErrInvalidAPIKeyScopes) {
 			h.encoder.BadRequestErr(w, err)
@@ -91,7 +96,11 @@ func (h apikeyHandler) store(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h apikeyHandler) update(w http.ResponseWriter, r *http.Request) {
-	apiKey := chi.URLParam(r, "apikey")
+	apiKeyID, err := parseURLParamInt(r, "apiKeyID")
+	if err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
 
 	var data *domain.APIKey
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
@@ -99,11 +108,17 @@ func (h apikeyHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data.Key = apiKey
+	if data == nil {
+		h.encoder.BadRequestErr(w, errors.New("api key is required"))
+		return
+	}
+
+	data.ID = apiKeyID
+	data.Key = ""
 
 	if err := h.service.Update(r.Context(), data); err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
-			h.encoder.NotFoundErr(w, errors.New("api key %s not found", apiKey))
+			h.encoder.NotFoundErr(w, errors.New("api key %d not found", apiKeyID))
 			return
 		}
 		if errors.Is(err, domain.ErrInvalidAPIKeyScopes) {
@@ -119,11 +134,15 @@ func (h apikeyHandler) update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h apikeyHandler) delete(w http.ResponseWriter, r *http.Request) {
-	apiKey := chi.URLParam(r, "apikey")
+	apiKeyID, err := parseURLParamInt(r, "apiKeyID")
+	if err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
 
-	if err := h.service.Delete(r.Context(), apiKey); err != nil {
+	if err := h.service.Delete(r.Context(), apiKeyID); err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
-			h.encoder.NotFoundErr(w, errors.New("api key %s not found", apiKey))
+			h.encoder.NotFoundErr(w, errors.New("api key %d not found", apiKeyID))
 			return
 		}
 

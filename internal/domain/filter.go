@@ -355,6 +355,24 @@ type FilterUpdate struct {
 	Notifications             []FilterNotification          `json:"notifications,omitempty"`
 }
 
+// RunsCommands reports whether the filter has an external filter or action that runs a command on the host.
+func (f *Filter) RunsCommands() bool {
+	return runsCommands(f.External, f.Actions)
+}
+
+// RunsCommands reports whether the update sets an external filter or action that runs a command on the host.
+func (f *FilterUpdate) RunsCommands() bool {
+	return runsCommands(f.External, f.Actions)
+}
+
+func runsCommands(external []FilterExternal, actions []*Action) bool {
+	if slices.ContainsFunc(external, func(e FilterExternal) bool { return e.Type == ExternalFilterTypeExec }) {
+		return true
+	}
+
+	return slices.ContainsFunc(actions, func(a *Action) bool { return a != nil && a.Type == ActionTypeExec })
+}
+
 func (f *Filter) Validate() error {
 	if f.Name == "" {
 		return errors.New("validation: name can't be empty")

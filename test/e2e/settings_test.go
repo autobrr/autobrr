@@ -65,6 +65,9 @@ func TestAddAPIKey(t *testing.T) {
 	page.ClickMenuItem("Read and write")
 	page.Submit()
 
+	page.ExpectText("API key created")
+	page.ClickButton("Done")
+
 	page.ExpectRow("e2e-key")
 	page.ExpectText("Filters: Write")
 }

@@ -590,8 +590,9 @@ CREATE INDEX feed_cache_feed_id_key_index
 
 CREATE TABLE api_key
 (
+    id         SERIAL PRIMARY KEY,
     name       TEXT,
-    key        TEXT PRIMARY KEY,
+    key_hash   TEXT NOT NULL UNIQUE,
     scopes     TEXT[]    DEFAULT '{}' NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
