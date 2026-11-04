@@ -99,21 +99,8 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - name: Create Profile environment
-        run:
-          |
-          printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list -tags=integration,irc_integration_test "$@"); do\n\tgo test -json -cpuprofile="profile/$(echo $pkg | tr / -).pprof" -tags=integration,irc_integration_test "$pkg"\ndone' | tee -a profile.sh;
-          chmod +x profile.sh;
-          mkdir profile;
-
       - name: Test
-        run: go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname --raw-command ./profile.sh -- ./...
-
-      - name: Upload pprof
-        uses: actions/upload-artifact@v7
-        with:
-          name: pprof-test-ubuntu-latest
-          path: profile
+        run: go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname -- -tags=integration,irc_integration_test ./...
 
       - name: Test Summary
         uses: test-summary/action@v2
@@ -146,106 +133,18 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - name: Create Profile environment
+      - name: Test
         shell: bash
-        run:
-          |
-          printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list "$@"); do\n\tgo test -json -cpuprofile="profile/$(echo $pkg | tr / -).pprof" "$pkg"\ndone' | tee -a profile.sh;
-          chmod +x profile.sh;
-          mkdir profile;
-
-      - name: Profile
-        shell: bash
-        run: ${{ startsWith(matrix.os, 'windows') && './profile.sh ./...' || 'go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname --raw-command ./profile.sh -- ./...' }}
-
-      - name: Upload pprof
-        uses: actions/upload-artifact@v7
-        with:
-          name: pprof-test-${{ matrix.os }}
-          path: profile
+        run: go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname -- ./...
 
       - name: Test Summary
         uses: test-summary/action@v2
         with:
           paths: "unit-tests.xml"
-        if: always() && startsWith(matrix.os, 'windows') == false
-
-  pgo:
-    strategy:
-      fail-fast: true
-      matrix:
-        os: [ ubuntu-latest, macos-latest, windows-latest ]
-    name: Automatic PGO run ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    needs: [ web ]
-    env:
-      GOPATH: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\go' || '' }}
-      GOCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\cache' || '' }}
-      GOMODCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\modcache' || '' }}
-      USERPROFILE: ${{ startsWith(matrix.os, 'windows') && 'D:\homedir' || '' }}
-      CGO_ENABLED: 0
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Download web production build
-        uses: actions/download-artifact@v8
-        with:
-          name: web-dist
-          path: web/dist
-
-      - name: Set up Go
-        uses: actions/setup-go@v7
-        with:
-          go-version-file: go.mod
-          cache: true
-
-      - name: Generate Profile
-        run: go run cmd/autobrr/main.go --pgo cpu-${{ matrix.os }}.pprof
-
-      - name: Upload pprof
-        uses: actions/upload-artifact@v7
-        with:
-          name: pprof-pgo-${{ matrix.os }}
-          path: cpu-${{ matrix.os }}.pprof
-
-  goprofilecombine:
-    name: Combine pprof profiles
-    runs-on: ubuntu-latest
-    needs: [ pgo, test, testother ]
-    steps:
-      - name: Download pprof profiles
-        uses: actions/download-artifact@v8
-        with:
-          pattern: pprof-*
-          merge-multiple: true
-          path: profile
-
-      - name: List contents
-        run: ls -la profile
-
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Set up Go
-        uses: actions/setup-go@v7
-        with:
-          go-version-file: go.mod
-          cache: false
-
-      - name: Merge Profiles
-        run: go tool pprof -proto profile/*.pprof | tee -a cpu.pprof
-
-      - name: Upload pprof
-        uses: actions/upload-artifact@v7
-        with:
-          name: pprof
-          path: cpu.pprof
+        if: always()
 
   prepare:
-    needs: [ web, goprofilecombine ]
+    needs: [ web ]
     strategy:
       matrix:
         include:
@@ -273,11 +172,6 @@ jobs:
         with:
           name: web-dist
           path: web/dist
-
-      - name: Download pprof profile
-        uses: actions/download-artifact@v8
-        with:
-          name: pprof
 
       - name: Set up Go
         uses: actions/setup-go@v7
@@ -348,7 +242,7 @@ jobs:
     name: Merge and publish distribution binaries
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
-    needs: prepare
+    needs: [ prepare, test, testother ]
     env:
       flags: ""
     steps:
@@ -430,7 +324,7 @@ jobs:
 
   docker:
     name: Build Docker images
-    needs: [ web, goprofilecombine ]
+    needs: [ web ]
     strategy:
       fail-fast: true
       matrix:
@@ -524,11 +418,6 @@ jobs:
           name: web-dist
           path: web/dist
 
-      - name: Download pprof profile
-        uses: actions/download-artifact@v8
-        with:
-          name: pprof
-
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v4
         with:
@@ -596,7 +485,7 @@ jobs:
     name: Publish Docker multi-arch manifest
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
-    needs: [ docker ]
+    needs: [ docker, test, testother ]
     steps:
       - name: Download image digests
         uses: actions/download-artifact@v8
