@@ -160,7 +160,8 @@ func (s *Service) transmissionReannounce(ctx context.Context, action *domain.Act
 
 	attempts := 0
 
-	for attempts < maxAttempts {
+	// check trackers before every re-announce and once more after the last one
+	for attempts <= maxAttempts {
 		l.Debug().Int64("client_torrent_id", torrentId).Int("attempt", attempts).Int("max_attempts", maxAttempts).Msg("re-announce attempt")
 
 		// add delay for next run
@@ -191,6 +192,10 @@ func (s *Service) transmissionReannounce(ctx context.Context, action *domain.Act
 			} else if tracker.LeecherCount > 0 {
 				return nil
 			}
+		}
+
+		if attempts == maxAttempts {
+			break
 		}
 
 		l.Debug().Int64("client_torrent_id", torrentId).Int("attempt", attempts).Int("max_attempts", maxAttempts).Msg("transmission re-announce not working yet, re-announce again attempt")

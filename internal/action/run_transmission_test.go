@@ -22,24 +22,37 @@ import (
 )
 
 // newTransmissionServer answers the Transmission RPC calls used by runTransmission
-// with a single tracker reporting the given seeder count, and records every method it receives.
-func newTransmissionServer(t *testing.T, seeders int64) (*httptest.Server, func() []string) {
+// with a single tracker reporting seeders[n] on the n-th torrent-get (the last value repeats),
+// and records every method it receives and the ids passed to torrent-remove.
+func newTransmissionServer(t *testing.T, seeders []int64) (*httptest.Server, func() []string, func() []int64) {
 	t.Helper()
 
 	var (
-		m       sync.Mutex
-		methods []string
+		m          sync.Mutex
+		methods    []string
+		removedIDs []int64
+		gets       int
 	)
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
-			Method string `json:"method"`
-			Tag    int    `json:"tag"`
+			Method    string `json:"method"`
+			Tag       int    `json:"tag"`
+			Arguments struct {
+				IDs []int64 `json:"ids"`
+			} `json:"arguments"`
 		}
 		require.NoError(t, json.NewDecoder(r.Body).Decode(&req))
 
 		m.Lock()
 		methods = append(methods, req.Method)
+		if req.Method == "torrent-remove" {
+			removedIDs = append(removedIDs, req.Arguments.IDs...)
+		}
+		seederCount := seeders[min(gets, len(seeders)-1)]
+		if req.Method == "torrent-get" {
+			gets++
+		}
 		m.Unlock()
 
 		var args any = map[string]any{}
@@ -48,7 +61,7 @@ func newTransmissionServer(t *testing.T, seeders int64) (*httptest.Server, func(
 		case "torrent-add":
 			args = map[string]any{"torrent-added": map[string]any{"id": 1, "hashString": "0123456789abcdef0123456789abcdef01234567", "name": "test"}}
 		case "torrent-get":
-			args = map[string]any{"torrents": []any{map[string]any{"trackerStats": []any{map[string]any{"seederCount": seeders, "leecherCount": 0}}}}}
+			args = map[string]any{"torrents": []any{map[string]any{"trackerStats": []any{map[string]any{"seederCount": seederCount, "leecherCount": 0}}}}}
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -56,12 +69,20 @@ func newTransmissionServer(t *testing.T, seeders int64) (*httptest.Server, func(
 	}))
 	t.Cleanup(ts.Close)
 
-	return ts, func() []string {
+	calls := func() []string {
 		m.Lock()
 		defer m.Unlock()
 
 		return methods
 	}
+	removed := func() []int64 {
+		m.Lock()
+		defer m.Unlock()
+
+		return removedIDs
+	}
+
+	return ts, calls, removed
 }
 
 func newTransmissionTestService(t *testing.T, host string) *Service {
@@ -95,20 +116,24 @@ func countMethod(methods []string, method string) int {
 func TestService_runTransmission_reannounce(t *testing.T) {
 	tests := []struct {
 		name            string
-		seeders         int64
+		seeders         []int64 // seeder count per torrent-get
 		deleteStalled   bool
 		wantRejected    bool
 		wantReannounces int
-		wantRemoved     bool
+		wantRemovals    int
 	}{
-		{name: "stalled_delete", seeders: 0, deleteStalled: true, wantRejected: true, wantReannounces: 2, wantRemoved: true},
-		{name: "stalled_keep", seeders: 0, deleteStalled: false, wantRejected: false, wantReannounces: 2, wantRemoved: false},
-		{name: "working_tracker", seeders: 5, deleteStalled: true, wantRejected: false, wantReannounces: 0, wantRemoved: false},
+		{name: "stalled_delete", seeders: []int64{0}, deleteStalled: true, wantRejected: true, wantReannounces: 2, wantRemovals: 1},
+		{name: "stalled_keep", seeders: []int64{0}, deleteStalled: false, wantRejected: false, wantReannounces: 2, wantRemovals: 0},
+		{name: "working_tracker", seeders: []int64{5}, deleteStalled: true, wantRejected: false, wantReannounces: 0, wantRemovals: 0},
+		// the tracker only reports seeders on the check that follows the last re-announce
+		{name: "seeders_after_last_reannounce", seeders: []int64{0, 0, 5}, deleteStalled: true, wantRejected: false, wantReannounces: 2, wantRemovals: 0},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ts, methods := newTransmissionServer(t, tt.seeders)
+			t.Parallel()
+
+			ts, methods, removedIDs := newTransmissionServer(t, tt.seeders)
 			svc := newTransmissionTestService(t, ts.URL)
 
 			action := &domain.Action{
@@ -134,7 +159,10 @@ func TestService_runTransmission_reannounce(t *testing.T) {
 
 			got := methods()
 			assert.Equal(t, tt.wantReannounces, countMethod(got, "torrent-reannounce"), "torrent-reannounce calls: %v", got)
-			assert.Equal(t, tt.wantRemoved, countMethod(got, "torrent-remove") == 1, "torrent-remove calls: %v", got)
+			assert.Equal(t, tt.wantRemovals, countMethod(got, "torrent-remove"), "torrent-remove calls: %v", got)
+			if tt.wantRemovals > 0 {
+				assert.Equal(t, []int64{1}, removedIDs(), "torrent-remove ids")
+			}
 		})
 	}
 }
