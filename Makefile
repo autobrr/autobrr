@@ -1,4 +1,4 @@
-.PHONY: all deps test build build/app build/ctl build/web build/docker clean install install-man dev
+.PHONY: all deps test test/simulation build build/app build/ctl build/web build/docker clean install install-man dev
 .POSIX:
 .SUFFIXES:
 
@@ -22,6 +22,9 @@ deps:
 
 test:
 	go test $$(go list ./... | grep -v test/integration)
+
+test/simulation:
+	go test -tags=simulation -count=1 -timeout 0 -v ./test/simulation/ $(SIMFLAGS)
 
 build: deps build/web build/app
 
