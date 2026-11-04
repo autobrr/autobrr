@@ -229,7 +229,7 @@ func validateBuiltinNotificationNotDuplicated(db *sql.DB, t *testing.T) {
 func setupPlaintextAPIKeys(db *sql.DB) error {
 	_, err := db.Exec(`INSERT INTO api_key (name, key, scopes, created_at) VALUES
 		('sonarr', 'plain-key-one', '{"releases:read"}', '2025-01-01 00:00:00'),
-		('radarr', 'plain-key-two', '{"filters:read"}', '2025-02-01 00:00:00'),
+		('radarr', 'plain-key-two', '{"read","write"}', '2025-02-01 00:00:00'),
 		('lidarr', 'plain-key-three', '{}', '2025-03-01 00:00:00')`)
 
 	return err
@@ -256,9 +256,10 @@ func validateAPIKeysHashed(db *sql.DB, t *testing.T) {
 	require.NoError(t, rows.Err())
 
 	require.Len(t, got, 3)
-	assert.Equal(t, row{id: 1, name: "sonarr", keyHash: domain.HashAPIKey("plain-key-one"), scopes: []string{"releases:read"}}, got[0])
-	assert.Equal(t, row{id: 2, name: "radarr", keyHash: domain.HashAPIKey("plain-key-two"), scopes: []string{"filters:read"}}, got[1])
-	assert.Equal(t, row{id: 3, name: "lidarr", keyHash: domain.HashAPIKey("plain-key-three"), scopes: []string{"filters:write", "lists:write", "webhooks:write"}}, got[2], "keys from before scopes get the common integration scopes")
+	integrationScopes := []string{"filters:write", "lists:write", "webhooks:write"}
+	assert.Equal(t, row{id: 1, name: "sonarr", keyHash: domain.HashAPIKey("plain-key-one"), scopes: integrationScopes}, got[0])
+	assert.Equal(t, row{id: 2, name: "radarr", keyHash: domain.HashAPIKey("plain-key-two"), scopes: integrationScopes}, got[1])
+	assert.Equal(t, row{id: 3, name: "lidarr", keyHash: domain.HashAPIKey("plain-key-three"), scopes: integrationScopes}, got[2])
 
 	_, err = db.Exec(`SELECT key FROM api_key`)
 	assert.Error(t, err, "the plaintext key column must be gone")

@@ -91,6 +91,22 @@ test("removing a permission from an existing key keeps the rest", async () => {
   expect(update.mock.calls[0][0]).toMatchObject({ id: 3, scopes: ["lists:write"] });
 });
 
+test("updating a key submits the edited name", async () => {
+  const update = vi.spyOn(APIClient.apikeys, "update").mockResolvedValue(undefined);
+  const apikey: APIKey = { id: 3, name: "omegabrr", scopes: ["filters:write"], created_at: new Date() };
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <APIKeyUpdateForm isOpen={true} toggle={() => {}} data={apikey} />
+    </QueryClientProvider>
+  );
+
+  fireEvent.change(document.querySelector("input#name") as HTMLInputElement, { target: { value: "omegabrr-renamed" } });
+  fireEvent.click(screen.getByText("Save"));
+
+  await waitFor(() => expect(update).toHaveBeenCalled());
+  expect(update.mock.calls[0][0]).toMatchObject({ id: 3, name: "omegabrr-renamed", scopes: ["filters:write"] });
+});
+
 test("a created key is shown once until the drawer is closed", async () => {
   const toggle = vi.fn();
   vi.spyOn(APIClient.apikeys, "create").mockResolvedValue(createdKey);

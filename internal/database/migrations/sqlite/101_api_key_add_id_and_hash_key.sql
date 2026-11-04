@@ -10,12 +10,12 @@ CREATE TABLE api_key
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- keys created before scopes were enforced have no scopes; give them the access the common integrations
--- (filter updates, list edits and list refresh webhooks) rely on
+-- scopes were never enforced before, so whatever a key had stored, it had full access; give every key the access
+-- the common integrations (filter updates, list edits and list refresh webhooks) rely on
 INSERT INTO api_key (name, key_hash, scopes, created_at)
 SELECT name,
        sha256_hex(key),
-       CASE WHEN scopes = '{}' THEN '{"filters:write","lists:write","webhooks:write"}' ELSE scopes END,
+       '{"filters:write","lists:write","webhooks:write"}',
        created_at
 FROM api_key_old
 ORDER BY created_at;

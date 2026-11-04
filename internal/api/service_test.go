@@ -131,14 +131,18 @@ func TestService_ValidateAPIKey(t *testing.T) {
 	repo := newAPIRepoMock("valid-key")
 	s := NewService(zerolog.Nop(), repo)
 
-	_, ok := s.ValidateAPIKey(context.Background(), "valid-key")
+	apiKey, ok := s.ValidateAPIKey(context.Background(), "valid-key")
 	assert.True(t, ok)
+	assert.Equal(t, 1, apiKey.ID)
+	assert.Equal(t, []string{"filters:write"}, apiKey.Scopes)
 	_, ok = s.ValidateAPIKey(context.Background(), "invalid-key")
 	assert.False(t, ok)
 
 	// second validation must come from the cache, not the repo
-	_, ok = s.ValidateAPIKey(context.Background(), "valid-key")
+	apiKey, ok = s.ValidateAPIKey(context.Background(), "valid-key")
 	assert.True(t, ok)
+	assert.Equal(t, 1, apiKey.ID)
+	assert.Equal(t, []string{"filters:write"}, apiKey.Scopes)
 	assert.Equal(t, 2, repo.getKeyCalls)
 }
 

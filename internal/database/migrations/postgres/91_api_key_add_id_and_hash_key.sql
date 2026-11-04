@@ -1,8 +1,7 @@
--- keys created before scopes were enforced have no scopes; give them the access the common integrations
--- (filter updates, list edits and list refresh webhooks) rely on
+-- scopes were never enforced before, so whatever a key had stored, it had full access; give every key the access
+-- the common integrations (filter updates, list edits and list refresh webhooks) rely on
 UPDATE api_key
-SET scopes = ARRAY ['filters:write', 'lists:write', 'webhooks:write']
-WHERE cardinality(scopes) = 0;
+SET scopes = ARRAY ['filters:write', 'lists:write', 'webhooks:write'];
 
 ALTER TABLE api_key
     ADD COLUMN id SERIAL;
