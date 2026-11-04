@@ -624,7 +624,7 @@ func (f *Filter) CheckFilter(r *Release) (*RejectionReasons, bool) {
 		if r.Category != "" {
 			categories = append(categories, r.Category)
 		}
-		if contains(r.Category, f.ExceptCategories) && containsAny(categories, f.ExceptCategories) {
+		if containsAny(categories, f.ExceptCategories) {
 			f.RejectReasons.Add("except category", strings.Join(categories, ","), f.ExceptCategories)
 		}
 	}
