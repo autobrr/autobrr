@@ -31,7 +31,7 @@ func newAPIRepoMock(tokens ...string) *apiRepoMock {
 	r := &apiRepoMock{keys: map[int]domain.APIKey{}}
 	for _, token := range tokens {
 		r.nextID++
-		r.keys[r.nextID] = domain.APIKey{ID: r.nextID, Name: token, KeyHash: domain.HashAPIKey(token), Scopes: []string{domain.APIScopeAll}}
+		r.keys[r.nextID] = domain.APIKey{ID: r.nextID, Name: token, KeyHash: domain.HashAPIKey(token), Scopes: []string{"filters:write"}}
 	}
 	return r
 }
@@ -146,7 +146,7 @@ func TestService_StoreKeepsOnlyHash(t *testing.T) {
 	repo := newAPIRepoMock()
 	s := NewService(zerolog.Nop(), repo)
 
-	apiKey := &domain.APIKey{Name: "test", Scopes: []string{domain.APIScopeAll}}
+	apiKey := &domain.APIKey{Name: "test", Scopes: []string{"filters:write"}}
 	require.NoError(t, s.Store(context.Background(), apiKey))
 
 	assert.NotEmpty(t, apiKey.Key)
@@ -176,7 +176,7 @@ func TestService_DeleteEvictsCache(t *testing.T) {
 	repo := newAPIRepoMock()
 	s := NewService(zerolog.Nop(), repo)
 
-	apiKey := &domain.APIKey{Name: "test", Scopes: []string{domain.APIScopeAll}}
+	apiKey := &domain.APIKey{Name: "test", Scopes: []string{"filters:write"}}
 	assert.NoError(t, s.Store(context.Background(), apiKey))
 	_, ok := s.ValidateAPIKey(context.Background(), apiKey.Key)
 	assert.True(t, ok)

@@ -16,7 +16,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const createdKey: APIKey = { id: 4, name: "sonarr", key: "mock-created-key", scopes: ["*"], created_at: new Date() };
+const createdKey: APIKey = { id: 4, name: "sonarr", key: "mock-created-key", scopes: ["filters:read"], created_at: new Date() };
 
 // Headless UI decides outside clicks from the mousedown target, which a bare fireEvent.click never sends.
 const press = (element: HTMLElement) => {
@@ -38,14 +38,14 @@ const renderAddForm = async () => {
   await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("dialog")));
 };
 
-test("new key requires full access or at least one permission", async () => {
+test("new key requires at least one permission", async () => {
   const create = vi.spyOn(APIClient.apikeys, "create").mockResolvedValue(createdKey);
   await renderAddForm();
 
   fireEvent.change(document.querySelector("input#name") as HTMLInputElement, { target: { value: "sonarr" } });
   fireEvent.click(screen.getByText("Create"));
 
-  expect(await screen.findByText("Choose full access or add at least one permission")).toBeTruthy();
+  expect(await screen.findByText("Add at least one permission")).toBeTruthy();
   expect(create).not.toHaveBeenCalled();
 });
 
@@ -70,9 +70,9 @@ test("added permissions default to the lowest access level and can be raised", a
   expect(create.mock.calls[0][0]).toEqual({ name: "sonarr", scopes: ["filters:write", "webhooks:write"] });
 });
 
-test("switching to full access replaces custom permissions", async () => {
+test("removing a permission from an existing key keeps the rest", async () => {
   const update = vi.spyOn(APIClient.apikeys, "update").mockResolvedValue(undefined);
-  const apikey: APIKey = { id: 3, name: "omegabrr", scopes: ["filters:read"], created_at: new Date() };
+  const apikey: APIKey = { id: 3, name: "omegabrr", scopes: ["filters:write", "lists:write"], created_at: new Date() };
   render(
     <QueryClientProvider client={new QueryClient()}>
       <APIKeyUpdateForm isOpen={true} toggle={() => {}} data={apikey} />
@@ -81,14 +81,14 @@ test("switching to full access replaces custom permissions", async () => {
 
   expect(screen.getByText("Filters and their actions.")).toBeTruthy();
 
-  fireEvent.click(screen.getByLabelText(/Full access/));
+  fireEvent.click(screen.getByTitle("Remove Filters permission"));
 
   expect(screen.queryByText("Filters and their actions.")).toBeNull();
 
   fireEvent.click(screen.getByText("Save"));
 
   await waitFor(() => expect(update).toHaveBeenCalled());
-  expect(update.mock.calls[0][0]).toMatchObject({ id: 3, scopes: ["*"] });
+  expect(update.mock.calls[0][0]).toMatchObject({ id: 3, scopes: ["lists:write"] });
 });
 
 test("a created key is shown once until the drawer is closed", async () => {
@@ -99,9 +99,11 @@ test("a created key is shown once until the drawer is closed", async () => {
       <APIKeyAddForm isOpen={true} toggle={toggle} />
     </QueryClientProvider>
   );
+  await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("dialog")));
 
   fireEvent.change(document.querySelector("input#name") as HTMLInputElement, { target: { value: "sonarr" } });
-  fireEvent.click(screen.getByLabelText(/Full access/));
+  fireEvent.click(screen.getByText("Add permissions"));
+  press(await screen.findByLabelText("Filters"));
   fireEvent.click(screen.getByText("Create"));
 
   expect(await screen.findByText("API key created")).toBeTruthy();

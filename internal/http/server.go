@@ -385,7 +385,7 @@ func (s *Server) Handler() http.Handler {
 			r.Use(s.IsAuthenticated)
 
 			r.With(requireScope(domain.APIResourceFilters)).Route("/actions", newActionHandler(encoder, s.actionService).Routes)
-			r.With(requireFullAccess).Route("/alerts", newAlertHandler(encoder, s.alertService).Routes)
+			r.With(requireSession).Route("/alerts", newAlertHandler(encoder, s.alertService).Routes)
 			r.With(requireScope(domain.APIResourceConfig)).Route("/config", newConfigHandler(encoder, s.buildInfo, s.config).Routes)
 			r.With(requireScope(domain.APIResourceDownloaders)).Route("/downloaders", newDownloaderHandler(encoder, s.downloaderService).Routes)
 			r.With(requireScope(domain.APIResourceFilters)).Route("/filters", newFilterHandler(encoder, s.filterService).Routes)
@@ -393,7 +393,7 @@ func (s *Server) Handler() http.Handler {
 			r.With(requireScope(domain.APIResourceIRC)).Route("/irc", newIrcHandler(encoder, s.sse, s.ircService).Routes)
 			r.With(requireScope(domain.APIResourceIndexers)).Route("/indexer", newIndexerHandler(encoder, s.indexerService, s.ircService).Routes)
 			r.With(requireScope(domain.APIResourceLists)).Route("/lists", newListHandler(encoder, s.listService).Routes)
-			r.With(requireFullAccess).Route("/keys", newAPIKeyHandler(encoder, s.apiService, s.config.Config).Routes)
+			r.With(requireSession).Route("/keys", newAPIKeyHandler(encoder, s.apiService, s.config.Config).Routes)
 			r.With(requireScope(domain.APIResourceLogs)).Route("/logs", newLogsHandler(s.config).Routes)
 			r.With(requireScope(domain.APIResourceNotifications)).Route("/notification", newNotificationHandler(encoder, s.notificationService).Routes)
 			r.With(requireScope(domain.APIResourceProxies)).Route("/proxy", newProxyHandler(encoder, s.proxyService).Routes)

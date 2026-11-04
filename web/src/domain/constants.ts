@@ -1114,8 +1114,6 @@ export const ListsAniListOptions: OptionBasic[] = [
   },
 ];
 
-export const API_KEY_FULL_ACCESS = "*";
-
 export const API_KEY_RESOURCES: APIKeyResource[] = [
   { name: "filters", access: ["read", "write"] },
   { name: "releases", access: ["read", "write"] },

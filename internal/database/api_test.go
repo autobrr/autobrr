@@ -54,7 +54,7 @@ func TestAPIRepo_Update(t *testing.T) {
 		repo := NewAPIRepo(log, db)
 
 		t.Run(fmt.Sprintf("Update_Succeeds_With_Existing_Key [%s]", dbType), func(t *testing.T) {
-			key := &domain.APIKey{Name: "TestKey", KeyHash: domain.HashAPIKey("123"), Scopes: []string{"*"}}
+			key := &domain.APIKey{Name: "TestKey", KeyHash: domain.HashAPIKey("123"), Scopes: []string{"filters:write"}}
 			require.NoError(t, repo.Store(ctx, key))
 
 			update := &domain.APIKey{ID: key.ID, Name: "Renamed", Scopes: []string{"filters:read", "webhooks:write"}}
@@ -72,7 +72,7 @@ func TestAPIRepo_Update(t *testing.T) {
 		})
 
 		t.Run(fmt.Sprintf("Update_Fails_If_Key_Does_Not_Exist [%s]", dbType), func(t *testing.T) {
-			err := repo.Update(ctx, &domain.APIKey{ID: 9999, Name: "TestKey", Scopes: []string{"*"}})
+			err := repo.Update(ctx, &domain.APIKey{ID: 9999, Name: "TestKey", Scopes: []string{"filters:write"}})
 			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
 		})
 	}

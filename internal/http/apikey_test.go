@@ -63,7 +63,7 @@ func (s *apikeyServiceStub) Update(_ context.Context, key *domain.APIKey) error 
 
 func newScopedTestServer() *Server {
 	service := &apikeyServiceStub{tokens: map[string]*domain.APIKey{
-		"full":               {Scopes: []string{domain.APIScopeAll}},
+		"integrations":       {Scopes: []string{"filters:write", "lists:write", "webhooks:write"}},
 		"config-read":        {Scopes: []string{"config:read"}},
 		"filters-read":       {Scopes: []string{"filters:read"}},
 		"filters-write":      {Scopes: []string{"filters:write"}},
@@ -107,7 +107,7 @@ func TestAPIKeyScopeMiddleware(t *testing.T) {
 		r.With(requireAccess(domain.APIResourceWebhooks, domain.APIAccessWrite)).Route("/webhook", func(r chi.Router) {
 			r.Get("/trigger", ok)
 		})
-		r.With(requireFullAccess).Route("/keys", func(r chi.Router) {
+		r.With(requireSession).Route("/keys", func(r chi.Router) {
 			r.Get("/", ok)
 		})
 		r.With(requireStreamAccess).Get("/events", ok)
@@ -121,8 +121,8 @@ func TestAPIKeyScopeMiddleware(t *testing.T) {
 		want   int
 	}{
 		{name: "invalid_key", method: http.MethodGet, target: "/filters/", token: "nope", want: http.StatusUnauthorized},
-		{name: "full_access_read", method: http.MethodGet, target: "/filters/", token: "full", want: http.StatusOK},
-		{name: "full_access_keys", method: http.MethodGet, target: "/keys/", token: "full", want: http.StatusOK},
+		{name: "integrations_read", method: http.MethodGet, target: "/filters/", token: "integrations", want: http.StatusOK},
+		{name: "integrations_keys", method: http.MethodGet, target: "/keys/", token: "integrations", want: http.StatusForbidden},
 		{name: "read_get", method: http.MethodGet, target: "/filters/", token: "filters-read", want: http.StatusOK},
 		{name: "read_post", method: http.MethodPost, target: "/filters/", token: "filters-read", want: http.StatusForbidden},
 		{name: "read_mutating_get", method: http.MethodGet, target: "/filters/duplicate", token: "filters-read", want: http.StatusForbidden},
@@ -138,8 +138,7 @@ func TestAPIKeyScopeMiddleware(t *testing.T) {
 		{name: "events_notifications", method: http.MethodGet, target: "/events?stream=notifications", token: "notifications-read", want: http.StatusOK},
 		{name: "events_notifications_cannot_read_logs", method: http.MethodGet, target: "/events?stream=logs", token: "notifications-read", want: http.StatusForbidden},
 		{name: "events_irc", method: http.MethodGet, target: "/events?stream=irc", token: "irc-read", want: http.StatusOK},
-		{name: "events_unknown_stream", method: http.MethodGet, target: "/events?stream=mock", token: "full", want: http.StatusBadRequest},
-		{name: "events_full_access", method: http.MethodGet, target: "/events?stream=logs", token: "full", want: http.StatusOK},
+		{name: "events_unknown_stream", method: http.MethodGet, target: "/events?stream=mock", token: "logs-read", want: http.StatusBadRequest},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -208,18 +207,23 @@ func (s *actionCommandServiceStub) Update(_ context.Context, action *domain.Acti
 	return action, nil
 }
 
-func TestCommandsRequireFullAccess(t *testing.T) {
+func TestCommandsRequireSession(t *testing.T) {
 	s := newScopedTestServer()
 	filters := &commandServiceStub{}
 	actions := &actionCommandServiceStub{}
 
-	router := chi.NewRouter()
-	router.Group(func(r chi.Router) {
+	keyRouter := chi.NewRouter()
+	keyRouter.Group(func(r chi.Router) {
 		r.Use(s.IsAuthenticated)
 
 		r.With(requireScope(domain.APIResourceFilters)).Route("/actions", newActionHandler(encoder{}, actions).Routes)
 		r.With(requireScope(domain.APIResourceFilters)).Route("/filters", newFilterHandler(encoder{}, filters).Routes)
 	})
+
+	// what a session request looks like once IsAuthenticated let it through: no API key in the context
+	sessionRouter := chi.NewRouter()
+	sessionRouter.Route("/actions", newActionHandler(encoder{}, actions).Routes)
+	sessionRouter.Route("/filters", newFilterHandler(encoder{}, filters).Routes)
 
 	const (
 		execFilter   = `{"name":"mock","external":[{"name":"mock","type":"EXEC","exec_cmd":"/bin/sh"}]}`
@@ -239,21 +243,27 @@ func TestCommandsRequireFullAccess(t *testing.T) {
 		{name: "store_exec_filter", method: http.MethodPost, target: "/filters/", body: execFilter, token: "filters-write", want: http.StatusForbidden},
 		{name: "store_exec_action_in_filter", method: http.MethodPost, target: "/filters/", body: execAction, token: "filters-write", want: http.StatusForbidden},
 		{name: "store_without_commands", method: http.MethodPost, target: "/filters/", body: webhookOnly, token: "filters-write", want: http.StatusCreated},
-		{name: "store_exec_full_access", method: http.MethodPost, target: "/filters/", body: execFilter, token: "full", want: http.StatusCreated},
+		{name: "store_exec_integrations", method: http.MethodPost, target: "/filters/", body: execFilter, token: "integrations", want: http.StatusForbidden},
+		{name: "store_exec_session", method: http.MethodPost, target: "/filters/", body: execFilter, want: http.StatusCreated},
 		{name: "update_exec_filter", method: http.MethodPut, target: "/filters/1", body: execFilter, token: "filters-write", want: http.StatusForbidden},
 		{name: "update_partial_exec", method: http.MethodPatch, target: "/filters/1", body: execAction, token: "filters-write", want: http.StatusForbidden},
 		{name: "update_partial_without_commands", method: http.MethodPatch, target: "/filters/1", body: `{"enabled":true}`, token: "filters-write", want: http.StatusNoContent},
 		{name: "test_exec_external", method: http.MethodPost, target: "/filters/external/test", body: execExternal, token: "filters-write", want: http.StatusForbidden},
-		{name: "test_exec_external_full_access", method: http.MethodPost, target: "/filters/external/test", body: execExternal, token: "full", want: http.StatusOK},
+		{name: "test_exec_external_session", method: http.MethodPost, target: "/filters/external/test", body: execExternal, want: http.StatusOK},
 		{name: "store_exec_action", method: http.MethodPost, target: "/actions/", body: `{"name":"mock","type":"EXEC","exec_cmd":"/bin/sh"}`, token: "filters-write", want: http.StatusForbidden},
 		{name: "update_exec_action", method: http.MethodPut, target: "/actions/1", body: `{"name":"mock","type":"EXEC","exec_cmd":"/bin/sh"}`, token: "filters-write", want: http.StatusForbidden},
 		{name: "store_other_action", method: http.MethodPost, target: "/actions/", body: `{"name":"mock","type":"QBITTORRENT"}`, token: "filters-write", want: http.StatusCreated},
-		{name: "store_exec_action_full_access", method: http.MethodPost, target: "/actions/", body: `{"name":"mock","type":"EXEC","exec_cmd":"/bin/sh"}`, token: "full", want: http.StatusCreated},
+		{name: "store_exec_action_session", method: http.MethodPost, target: "/actions/", body: `{"name":"mock","type":"EXEC","exec_cmd":"/bin/sh"}`, want: http.StatusCreated},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			filters.called = false
 			actions.called = false
+
+			router := keyRouter
+			if tt.token == "" {
+				router = sessionRouter
+			}
 
 			recorder := serveWithToken(router, tt.method, tt.target, tt.token, tt.body)
 
@@ -263,7 +273,7 @@ func TestCommandsRequireFullAccess(t *testing.T) {
 	}
 }
 
-func TestConfigWriteRequiresFullAccess(t *testing.T) {
+func TestConfigWriteRequiresSession(t *testing.T) {
 	s := newScopedTestServer()
 
 	router := chi.NewRouter()
@@ -317,12 +327,18 @@ func TestAPIKeyHandlerStore(t *testing.T) {
 	newAPIKeyHandler(encoder{}, service, &domain.Config{}).Routes(router)
 
 	t.Run("returns the key once", func(t *testing.T) {
-		recorder := serveWithToken(router, http.MethodPost, "/", "", `{"name":"sonarr","scopes":["*"]}`)
+		recorder := serveWithToken(router, http.MethodPost, "/", "", `{"name":"sonarr","scopes":["filters:write"]}`)
 
 		assert.Equal(t, http.StatusCreated, recorder.Code)
 		assert.Contains(t, recorder.Body.String(), `"key":"generated-key"`)
 		assert.Contains(t, recorder.Body.String(), `"id":1`)
 		assert.NotContains(t, recorder.Body.String(), service.stored.KeyHash)
+	})
+
+	t.Run("rejects the wildcard scope", func(t *testing.T) {
+		recorder := serveWithToken(router, http.MethodPost, "/", "", `{"name":"sonarr","scopes":["*"]}`)
+
+		assert.Equal(t, http.StatusBadRequest, recorder.Code)
 	})
 
 	t.Run("rejects null body", func(t *testing.T) {
@@ -345,8 +361,8 @@ func TestAPIKeyHandlerUpdate(t *testing.T) {
 	}{
 		{name: "ok", target: "/1", body: `{"id":9,"name":"sonarr","key":"ignored","scopes":["webhooks:write"]}`, want: http.StatusOK},
 		{name: "invalid_scopes", target: "/1", body: `{"name":"sonarr","scopes":["logs:write"]}`, want: http.StatusBadRequest},
-		{name: "not_found", target: "/2", body: `{"name":"sonarr","scopes":["*"]}`, want: http.StatusNotFound},
-		{name: "invalid_id", target: "/mock-key", body: `{"name":"sonarr","scopes":["*"]}`, want: http.StatusBadRequest},
+		{name: "not_found", target: "/2", body: `{"name":"sonarr","scopes":["filters:write"]}`, want: http.StatusNotFound},
+		{name: "invalid_id", target: "/mock-key", body: `{"name":"sonarr","scopes":["filters:write"]}`, want: http.StatusBadRequest},
 		{name: "null_body", target: "/1", body: `null`, want: http.StatusBadRequest},
 	}
 	for _, tt := range tests {

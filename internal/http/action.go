@@ -67,8 +67,8 @@ func (h actionHandler) storeAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !hasFullAccess(r) && data.Type == domain.ActionTypeExec {
-		h.encoder.StatusError(w, http.StatusForbidden, errCommandsRequireFullAccess)
+	if isAPIKeyRequest(r) && data.Type == domain.ActionTypeExec {
+		h.encoder.StatusError(w, http.StatusForbidden, errCommandsRequireSession)
 		return
 	}
 
@@ -99,8 +99,8 @@ func (h actionHandler) updateAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !hasFullAccess(r) && data.Type == domain.ActionTypeExec {
-		h.encoder.StatusError(w, http.StatusForbidden, errCommandsRequireFullAccess)
+	if isAPIKeyRequest(r) && data.Type == domain.ActionTypeExec {
+		h.encoder.StatusError(w, http.StatusForbidden, errCommandsRequireSession)
 		return
 	}
 

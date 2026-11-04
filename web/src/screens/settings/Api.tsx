@@ -20,7 +20,6 @@ import { useToggle } from "@hooks/hooks";
 import { classNames } from "@utils";
 import { AuthContext } from "@utils/Context";
 import { EmptySimple } from "@components/emptystates";
-import { API_KEY_FULL_ACCESS } from "@domain/constants";
 import { Section } from "./_components";
 import { PlusIcon } from "@heroicons/react/24/solid";
 
@@ -207,14 +206,6 @@ interface APIKeyScopesProps {
 
 const APIKeyScopes = ({ scopes }: APIKeyScopesProps) => {
   const { t } = useTranslation("settings");
-
-  if (scopes.includes(API_KEY_FULL_ACCESS)) {
-    return (
-      <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-yellow-100 dark:bg-yellow-400/10 text-yellow-600 dark:text-yellow-400">
-        {t("forms.apiKey.fullAccess")}
-      </span>
-    );
-  }
 
   return scopes.map((scope) => {
     const [resource, access] = scope.split(":");

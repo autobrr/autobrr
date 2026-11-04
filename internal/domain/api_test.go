@@ -17,11 +17,11 @@ func TestAPIKey_Validate(t *testing.T) {
 		scopes  []string
 		wantErr bool
 	}{
-		{name: "full_access", scopes: []string{"*"}},
 		{name: "scoped", scopes: []string{"filters:read", "releases:write", "webhooks:write"}},
 		{name: "empty", scopes: []string{}, wantErr: true},
 		{name: "nil", scopes: nil, wantErr: true},
-		{name: "full_access_combined", scopes: []string{"*", "filters:read"}, wantErr: true},
+		{name: "wildcard", scopes: []string{"*"}, wantErr: true},
+		{name: "wildcard_combined", scopes: []string{"*", "filters:read"}, wantErr: true},
 		{name: "missing_access", scopes: []string{"filters"}, wantErr: true},
 		{name: "unknown_resource", scopes: []string{"users:read"}, wantErr: true},
 		{name: "unknown_access", scopes: []string{"filters:admin"}, wantErr: true},
@@ -57,8 +57,7 @@ func TestAPIKey_HasAccess(t *testing.T) {
 		args   args
 		want   bool
 	}{
-		{name: "full_access_read", scopes: []string{"*"}, args: args{APIResourceFilters, APIAccessRead}, want: true},
-		{name: "full_access_write", scopes: []string{"*"}, args: args{APIResourceConfig, APIAccessWrite}, want: true},
+		{name: "wildcard_grants_nothing", scopes: []string{"*"}, args: args{APIResourceFilters, APIAccessRead}, want: false},
 		{name: "read_grants_read", scopes: []string{"filters:read"}, args: args{APIResourceFilters, APIAccessRead}, want: true},
 		{name: "read_denies_write", scopes: []string{"filters:read"}, args: args{APIResourceFilters, APIAccessWrite}, want: false},
 		{name: "write_implies_read", scopes: []string{"filters:write"}, args: args{APIResourceFilters, APIAccessRead}, want: true},

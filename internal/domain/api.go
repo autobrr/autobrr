@@ -30,9 +30,6 @@ func HashAPIKey(key string) string {
 	return hex.EncodeToString(sum[:])
 }
 
-// APIScopeAll grants full access, including the endpoints that manage API keys and users.
-const APIScopeAll = "*"
-
 // APIResource is the part of the API a scope grants access to.
 type APIResource string
 
@@ -86,18 +83,10 @@ var apiResourceAccess = map[APIResource][]APIAccess{
 	APIResourceWebhooks:      {APIAccessWrite},
 }
 
-// Validate requires either the lone full access scope or one resource:access scope per resource.
+// Validate requires at least one resource:access scope and at most one per resource.
 func (k *APIKey) Validate() error {
 	if len(k.Scopes) == 0 {
 		return errors.Wrap(ErrInvalidAPIKeyScopes, "at least one scope is required")
-	}
-
-	if slices.Contains(k.Scopes, APIScopeAll) {
-		if len(k.Scopes) > 1 {
-			return errors.Wrap(ErrInvalidAPIKeyScopes, "scope '%s' can not be combined with other scopes", APIScopeAll)
-		}
-
-		return nil
 	}
 
 	seen := make(map[APIResource]struct{}, len(k.Scopes))
@@ -123,18 +112,9 @@ func (k *APIKey) Validate() error {
 	return nil
 }
 
-// HasFullAccess reports whether the key carries the full access scope.
-func (k *APIKey) HasFullAccess() bool {
-	return slices.Contains(k.Scopes, APIScopeAll)
-}
-
 // HasAccess reports whether the key grants access to resource. Write access implies read access.
 func (k *APIKey) HasAccess(resource APIResource, access APIAccess) bool {
 	for _, scope := range k.Scopes {
-		if scope == APIScopeAll {
-			return true
-		}
-
 		r, a, ok := parseAPIScope(scope)
 		if !ok || r != resource {
 			continue

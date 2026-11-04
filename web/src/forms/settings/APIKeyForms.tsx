@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useId, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Menu, MenuButton, MenuItem, MenuItems, Popover, PopoverButton, PopoverPanel } from "@headlessui/react";
 import { ChevronDownIcon, MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/solid";
@@ -22,7 +22,7 @@ import { ErrorField } from "@components/inputs/common";
 import { KeyField } from "@components/fields/text";
 import { WarningAlert } from "@components/alerts";
 import { SlideOverShell, SlideOverTitle } from "@components/panels";
-import { API_KEY_FULL_ACCESS, API_KEY_RESOURCES } from "@domain/constants";
+import { API_KEY_RESOURCES } from "@domain/constants";
 import { classNames } from "@utils";
 
 interface InitialValues {
@@ -279,9 +279,6 @@ interface APIKeyPermissionsProps {
 function APIKeyPermissions({ scopes, setScopes, meta }: APIKeyPermissionsProps) {
   const { t } = useTranslation("settings");
 
-  const accessModeName = useId();
-  const fullAccess = scopes.includes(API_KEY_FULL_ACCESS);
-
   const selected = useMemo(() => {
     const access = new Map(scopes.map((scope) => scope.split(":") as [string, APIKeyAccess]));
 
@@ -313,98 +310,54 @@ function APIKeyPermissions({ scopes, setScopes, meta }: APIKeyPermissionsProps) 
       <h2 className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.apiKey.permissions")}</h2>
       <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{t("forms.apiKey.permissionsDescription")}</p>
 
-      <fieldset className="mt-4 space-y-3">
-        <legend className="sr-only">{t("forms.apiKey.permissions")}</legend>
-        <AccessModeOption
-          name={accessModeName}
-          checked={fullAccess}
-          onChange={() => setScopes([API_KEY_FULL_ACCESS])}
-          label={t("forms.apiKey.fullAccess")}
-          description={t("forms.apiKey.fullAccessDescription")}
-        />
-        <AccessModeOption
-          name={accessModeName}
-          checked={!fullAccess}
-          onChange={() => setScopes([])}
-          label={t("forms.apiKey.customAccess")}
-          description={t("forms.apiKey.customAccessDescription")}
-        />
-      </fieldset>
-
-      {!fullAccess && (
-        <div className="mt-4 rounded-md border border-gray-250 dark:border-gray-750">
-          <div className="flex items-center justify-between px-4 py-2 border-b border-gray-250 dark:border-gray-750">
-            <div className="flex items-center text-sm font-medium text-gray-900 dark:text-white">
-              {t("forms.apiKey.permissions")}
-              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400">
-                {selected.length}
-              </span>
-            </div>
-            <AddPermissionsPopover selected={selected.map((s) => s.resource.name)} toggleResource={toggleResource} />
+      <div className="mt-4 rounded-md border border-gray-250 dark:border-gray-750">
+        <div className="flex items-center justify-between px-4 py-2 border-b border-gray-250 dark:border-gray-750">
+          <div className="flex items-center text-sm font-medium text-gray-900 dark:text-white">
+            {t("forms.apiKey.permissions")}
+            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-400">
+              {selected.length}
+            </span>
           </div>
-
-          {selected.length ? (
-            <ul className="divide-y divide-gray-250 dark:divide-gray-750">
-              {selected.map(({ resource, access }) => (
-                <li key={resource.name} className="flex items-center justify-between gap-4 px-4 py-3">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      {t(`forms.apiKey.resources.${resource.name}.label`)}
-                    </p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {t(`forms.apiKey.resources.${resource.name}.description`)}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <AccessMenu resource={resource} access={access} setAccess={(value) => setAccess(resource.name, value)} />
-                    <button
-                      type="button"
-                      className="rounded-md p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                      onClick={() => removeResource(resource.name)}
-                      title={t("forms.apiKey.removePermission", { name: t(`forms.apiKey.resources.${resource.name}.label`) })}
-                    >
-                      <XMarkIcon className="h-4 w-4" aria-hidden="true" />
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
-              {t("forms.apiKey.noPermissions")}
-            </p>
-          )}
+          <AddPermissionsPopover selected={selected.map((s) => s.resource.name)} toggleResource={toggleResource} />
         </div>
-      )}
+
+        {selected.length ? (
+          <ul className="divide-y divide-gray-250 dark:divide-gray-750">
+            {selected.map(({ resource, access }) => (
+              <li key={resource.name} className="flex items-center justify-between gap-4 px-4 py-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    {t(`forms.apiKey.resources.${resource.name}.label`)}
+                  </p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {t(`forms.apiKey.resources.${resource.name}.description`)}
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <AccessMenu resource={resource} access={access} setAccess={(value) => setAccess(resource.name, value)} />
+                  <button
+                    type="button"
+                    className="rounded-md p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                    onClick={() => removeResource(resource.name)}
+                    title={t("forms.apiKey.removePermission", { name: t(`forms.apiKey.resources.${resource.name}.label`) })}
+                  >
+                    <XMarkIcon className="h-4 w-4" aria-hidden="true" />
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+            {t("forms.apiKey.noPermissions")}
+          </p>
+        )}
+      </div>
 
       <ErrorField meta={meta} classNames="block mt-2 text-red-500" />
     </div>
   );
 }
-
-interface AccessModeOptionProps {
-  name: string;
-  checked: boolean;
-  onChange: () => void;
-  label: string;
-  description: string;
-}
-
-const AccessModeOption = ({ name, checked, onChange, label, description }: AccessModeOptionProps) => (
-  <label className="flex items-start gap-3 cursor-pointer">
-    <input
-      type="radio"
-      name={name}
-      checked={checked}
-      onChange={onChange}
-      className="mt-0.5 h-4 w-4 border-gray-300 dark:border-gray-600 text-blue-600 bg-white dark:bg-gray-700 checked:bg-blue-600 dark:checked:bg-blue-600 focus:ring-blue-500 cursor-pointer"
-    />
-    <span>
-      <span className="block text-sm font-medium text-gray-900 dark:text-white">{label}</span>
-      <span className="block text-sm text-gray-500 dark:text-gray-400">{description}</span>
-    </span>
-  </label>
-);
 
 interface AddPermissionsPopoverProps {
   selected: string[];

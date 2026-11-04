@@ -175,8 +175,8 @@ func (h filterHandler) testExternal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !hasFullAccess(r) && data.Type == domain.ExternalFilterTypeExec {
-		h.encoder.StatusError(w, http.StatusForbidden, errCommandsRequireFullAccess)
+	if isAPIKeyRequest(r) && data.Type == domain.ExternalFilterTypeExec {
+		h.encoder.StatusError(w, http.StatusForbidden, errCommandsRequireSession)
 		return
 	}
 
@@ -206,8 +206,8 @@ func (h filterHandler) store(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !hasFullAccess(r) && data.RunsCommands() {
-		h.encoder.StatusError(w, http.StatusForbidden, errCommandsRequireFullAccess)
+	if isAPIKeyRequest(r) && data.RunsCommands() {
+		h.encoder.StatusError(w, http.StatusForbidden, errCommandsRequireSession)
 		return
 	}
 
@@ -235,8 +235,8 @@ func (h filterHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !hasFullAccess(r) && data.RunsCommands() {
-		h.encoder.StatusError(w, http.StatusForbidden, errCommandsRequireFullAccess)
+	if isAPIKeyRequest(r) && data.RunsCommands() {
+		h.encoder.StatusError(w, http.StatusForbidden, errCommandsRequireSession)
 		return
 	}
 
@@ -272,8 +272,8 @@ func (h filterHandler) updatePartial(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !hasFullAccess(r) && data.RunsCommands() {
-		h.encoder.StatusError(w, http.StatusForbidden, errCommandsRequireFullAccess)
+	if isAPIKeyRequest(r) && data.RunsCommands() {
+		h.encoder.StatusError(w, http.StatusForbidden, errCommandsRequireSession)
 		return
 	}
 

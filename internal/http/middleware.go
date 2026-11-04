@@ -178,10 +178,11 @@ func requireAccess(resource domain.APIResource, access domain.APIAccess) func(ne
 	}
 }
 
-// requireFullAccess keeps scoped API keys away from routes that could escalate their own access.
-func requireFullAccess(next http.Handler) http.Handler {
+// requireSession keeps API keys away from routes that could widen a key's own access, such as managing keys,
+// users or the config file.
+func requireSession(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !hasFullAccess(r) {
+		if isAPIKeyRequest(r) {
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return
 		}
@@ -216,13 +217,13 @@ func requireStreamAccess(next http.Handler) http.Handler {
 	})
 }
 
-var errCommandsRequireFullAccess = errors.New("running commands requires a full access api key")
+var errCommandsRequireSession = errors.New("commands can not be set or run with an api key")
 
-// hasFullAccess reports whether the request comes from a session or from a full access API key. Handlers use it
-// for request bodies that could escalate a scoped key, such as commands run on the host.
-func hasFullAccess(r *http.Request) bool {
-	apiKey, ok := r.Context().Value(apiKeyContextKey{}).(*domain.APIKey)
-	return !ok || apiKey.HasFullAccess()
+// isAPIKeyRequest reports whether r was authenticated with an API key instead of a session. Handlers use it to
+// refuse request bodies that would let a key widen its own access, such as commands run on the host.
+func isAPIKeyRequest(r *http.Request) bool {
+	_, ok := r.Context().Value(apiKeyContextKey{}).(*domain.APIKey)
+	return ok
 }
 
 // isHealthCheckRequest reports whether r is a GET/HEAD to one of the built-in
