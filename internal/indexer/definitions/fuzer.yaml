@@ -5,7 +5,7 @@ identifier: fuzer
 description: Fuzer is a private Israeli tracker
 language: he-il
 urls:
-  - https://fuzer.xyz/
+  - https://tracker.fuzer.xyz/
 privacy: private
 protocol: torrent
 supports:
@@ -16,13 +16,13 @@ settings:
     type: secret
     required: true
     label: User ID
-    help: Create rss link at https://www.fuzer.me/getrss.php and find at &u=11111
+    help: Create rss link at https://tracker.fuzer.xyz/getrss.php and find at &u=11111
 
   - name: passkey
     type: secret
     required: true
     label: PassKey
-    help: Create rss link at https://www.fuzer.me/getrss.php and find at &torrent_pass=...
+    help: Create rss link at https://tracker.fuzer.xyz/getrss.php and find at &torrent_pass=...
 
 irc:
   network: Fuzer
