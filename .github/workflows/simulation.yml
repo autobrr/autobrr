@@ -1,0 +1,59 @@
+name: Simulation
+
+on:
+  workflow_dispatch:
+    inputs:
+      releases:
+        description: Number of releases to deliver
+        default: "100"
+        required: true
+      seed:
+        description: Release generator seed, 0 picks one from the clock
+        default: "0"
+        required: true
+      interval:
+        description: Pause between delivered releases (Go duration, 0 for a burst)
+        default: "25ms"
+        required: true
+      feed_batch:
+        description: Feed items published per forced feed run
+        default: "5"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  simulation:
+    name: Simulation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # the harness builds autobrr and runs every mock in-process, the report also lands in the job summary
+      - name: Run simulation
+        env:
+          RELEASES: ${{ inputs.releases }}
+          SEED: ${{ inputs.seed }}
+          INTERVAL: ${{ inputs.interval }}
+          FEED_BATCH: ${{ inputs.feed_batch }}
+        run: >-
+          go test -tags=simulation -count=1 -timeout 15m -v ./test/simulation/
+          -releases="$RELEASES" -seed="$SEED" -interval="$INTERVAL" -feed-batch="$FEED_BATCH"
+          -out="$RUNNER_TEMP/simulation"
+
+      - name: Upload report and logs
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: simulation
+          path: ${{ runner.temp }}/simulation
+          if-no-files-found: ignore
+          retention-days: 14
