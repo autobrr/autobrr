@@ -96,6 +96,17 @@ func GenerateReleases(seed uint64, n int, indexers []*Indexer) []*Release {
 			Size:      uint64(rng.IntN(40_000)+500) * 1024 * 1024,
 		}
 
+		// random picks reach Freeleech FLAC in about 1 of 80 releases, so the first
+		// release always does, keeping the filter covered in every run
+		if id == 1 {
+			for _, idx := range indexers {
+				if idx.Key == "alpha" {
+					kind = KindMusic
+					rls.Kind, rls.Indexer, rls.Freeleech = kind, idx, true
+				}
+			}
+		}
+
 		group := groups[rng.IntN(len(groups))]
 
 		if kind == KindTVHD || kind == KindMovieUHD {

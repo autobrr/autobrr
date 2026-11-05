@@ -315,6 +315,8 @@ func (s *Scenario) configureIndexer(app *App, idx *Indexer) {
 			"base_url":       idx.Tracker.URL(),
 		}, &created)
 
+		// left disabled so the feed schedule can not fetch items ahead of the forced
+		// batches Inject runs, forcerun does not check enabled
 		app.Post("/api/feeds", map[string]any{
 			"name":       idx.Name,
 			"type":       feedType,
@@ -338,8 +340,6 @@ func (s *Scenario) configureIndexer(app *App, idx *Indexer) {
 		if idx.FeedID == 0 {
 			app.t.Fatalf("simulation: could not find feed for indexer %s", idx.Name)
 		}
-
-		app.Patch(fmt.Sprintf("/api/feeds/%d/enabled", idx.FeedID), map[string]bool{"enabled": true}, nil)
 	}
 
 	idx.ID = created.ID
@@ -398,11 +398,11 @@ func (s *Scenario) configureFilter(app *App, spec *FilterSpec) {
 	filter["indexers"] = indexers
 	filter["actions"] = []*domain.Action{
 		{
-			Name:     spec.ActionName(),
-			Type:     domain.ActionType(strings.ToUpper(string(spec.Client))),
-			Enabled:  true,
-			ClientID: s.clientIDs[spec.Client],
-			Category: spec.Category,
+			Name:           spec.ActionName(),
+			Type:           domain.ActionType(strings.ToUpper(string(spec.Client))),
+			Enabled:        true,
+			ClientID:       s.clientIDs[spec.Client],
+			Category:       spec.Category,
 			ReAnnounceSkip: true,
 		},
 	}

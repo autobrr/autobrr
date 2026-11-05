@@ -30,7 +30,7 @@ files and autobrr log are uploaded as an artifact.
 | `-feed-batch`  | 5          | feed items published per forced feed run                      |
 | `-wait`        | 2m         | how long to wait for the expected outcomes                    |
 | `-settle`      | 3s         | extra wait afterwards, to catch duplicate pushes              |
-| `-out`         | temp dir   | where `autobrr.log`, `report.md` and `report.json` go         |
+| `-out`         | temp dir   | where `autobrr.log`, `report.md` and `report.json` go; the temp dir is kept when the run fails |
 | `-autobrr-bin` | build      | test a prebuilt binary instead of building `./cmd/autobrr`    |
 | `-keep`        | false      | leave autobrr and the mocks up after the run, to poke at them |
 | `-log-level`   | DEBUG      | autobrr's log level                                           |

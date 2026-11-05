@@ -206,6 +206,7 @@ type Report struct {
 	Duration   time.Duration `json:"duration_ns"`
 	Injection  time.Duration `json:"injection_ns"`
 	Settled    bool          `json:"settled"`
+	AppExit    string        `json:"app_exit,omitempty"`
 	Expected   int           `json:"expected_outcomes"`
 	Observed   int           `json:"observed_outcomes"`
 	Missing    []Outcome     `json:"missing"`
@@ -239,7 +240,7 @@ type ReleaseResult struct {
 
 // Failed reports whether autobrr's behaviour deviated from the expectation.
 func (r *Report) Failed() bool {
-	return len(r.Missing) > 0 || len(r.Unexpected) > 0 || !r.Settled
+	return len(r.Missing) > 0 || len(r.Unexpected) > 0 || !r.Settled || r.AppExit != ""
 }
 
 // Verify waits until the mocks have seen at least the expected outcomes or the
@@ -317,11 +318,17 @@ func (s *Scenario) Verify(releases []*Release, injected map[int]time.Time, timeo
 			continue
 		}
 
+		// a release rejected by an arr falls through to another client, only its first push counts
+		var first time.Time
 		for _, channel := range []string{"qbittorrent", "sonarr", "radarr"} {
-			if at, ok := firstSeen[rls.Name+"|"+channel]; ok {
-				source := string(rls.Indexer.Kind)
-				latencies[source] = append(latencies[source], at.Sub(start))
+			if at, ok := firstSeen[rls.Name+"|"+channel]; ok && (first.IsZero() || at.Before(first)) {
+				first = at
 			}
+		}
+
+		if !first.IsZero() {
+			source := string(rls.Indexer.Kind)
+			latencies[source] = append(latencies[source], first.Sub(start))
 		}
 	}
 
@@ -372,7 +379,13 @@ func (r *Report) Markdown() string {
 	fmt.Fprintf(&b, "## autobrr simulation: %s\n\n", status)
 	fmt.Fprintf(&b, "- seed: `%d` (rerun with `-seed=%d`)\n", r.Seed, r.Seed)
 	fmt.Fprintf(&b, "- releases: %d, injected in %s, total %s\n", r.Releases, r.Injection.Round(time.Millisecond), r.Duration.Round(time.Millisecond))
-	fmt.Fprintf(&b, "- outcomes: %d expected, %d observed, settled: %t\n\n", r.Expected, r.Observed, r.Settled)
+	fmt.Fprintf(&b, "- outcomes: %d expected, %d observed, settled: %t\n", r.Expected, r.Observed, r.Settled)
+
+	if r.AppExit != "" {
+		fmt.Fprintf(&b, "- autobrr exited before the harness stopped it: `%s`\n", r.AppExit)
+	}
+
+	b.WriteString("\n")
 
 	b.WriteString("| channel | expected | observed |\n|---|---:|---:|\n")
 	for _, channel := range slices.Sorted(maps.Keys(r.ByChannel)) {

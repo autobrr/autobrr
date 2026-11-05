@@ -19,6 +19,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -40,6 +41,10 @@ type App struct {
 	logFile *os.File
 	logPath string
 	client  *http.Client
+
+	exited   chan struct{}
+	exitErr  error
+	stopping atomic.Bool
 }
 
 // BuildAutobrr compiles ./cmd/autobrr into dir. The binary is built rather than
@@ -135,6 +140,12 @@ sessionSecret = "simulation-session-secret"
 	if err := app.cmd.Start(); err != nil {
 		t.Fatalf("simulation: could not start autobrr: %v", err)
 	}
+
+	app.exited = make(chan struct{})
+	go func() {
+		app.exitErr = app.cmd.Wait()
+		close(app.exited)
+	}()
 
 	t.Cleanup(app.stop)
 
@@ -242,30 +253,46 @@ func (a *App) do(method, path string, in, out any) {
 // Wait blocks until autobrr exits on its own, which with -keep means until the
 // developer interrupts the test.
 func (a *App) Wait() {
-	_ = a.cmd.Wait()
+	<-a.exited
+}
+
+// UnexpectedExit describes how autobrr exited if it did so before the harness
+// stopped it, and is empty while it is still running.
+func (a *App) UnexpectedExit() string {
+	select {
+	case <-a.exited:
+	default:
+		return ""
+	}
+
+	if a.stopping.Load() {
+		return ""
+	}
+
+	if a.exitErr != nil {
+		return a.exitErr.Error()
+	}
+
+	return "exit status 0"
 }
 
 func (a *App) stop() {
 	defer a.logFile.Close()
 
-	if a.cmd.Process == nil || a.cmd.ProcessState != nil {
-		return
-	}
-
-	// a plain Kill would leave the SQLite WAL behind, autobrr shuts down cleanly on interrupt
-	_ = a.cmd.Process.Signal(os.Interrupt)
-
-	done := make(chan struct{})
-	go func() {
-		_ = a.cmd.Wait()
-		close(done)
-	}()
+	a.stopping.Store(true)
 
 	select {
-	case <-done:
-	case <-time.After(10 * time.Second):
-		_ = a.cmd.Process.Kill()
-		<-done
+	case <-a.exited:
+	default:
+		// a plain Kill would leave the SQLite WAL behind, autobrr shuts down cleanly on interrupt
+		_ = a.cmd.Process.Signal(os.Interrupt)
+
+		select {
+		case <-a.exited:
+		case <-time.After(10 * time.Second):
+			_ = a.cmd.Process.Kill()
+			<-a.exited
+		}
 	}
 
 	if state := a.cmd.ProcessState; state != nil {

@@ -20,7 +20,7 @@ var (
 	flagFeedBatch  = flag.Int("feed-batch", 5, "feed items published per forced feed run")
 	flagTimeout    = flag.Duration("wait", 2*time.Minute, "how long to wait for expected outcomes")
 	flagSettle     = flag.Duration("settle", 3*time.Second, "extra wait after outcomes converge, to catch duplicates")
-	flagOut        = flag.String("out", "", "directory for autobrr.log and report files, defaults to a temp dir")
+	flagOut        = flag.String("out", "", "directory for autobrr.log and report files, defaults to a temp dir kept only when the run fails")
 	flagAutobrrBin = flag.String("autobrr-bin", "", "prebuilt autobrr binary, defaults to building ./cmd/autobrr")
 	flagKeep       = flag.Bool("keep", false, "keep autobrr and the mocks running after the run until interrupted")
 	flagPGOProfile = flag.String("pgo-profile", "", "write autobrr's CPU profile from delivery to verification here, usable with go build -pgo")
@@ -37,7 +37,19 @@ func TestSimulation(t *testing.T) {
 
 	out := *flagOut
 	if out == "" {
-		out = t.TempDir()
+		// not t.TempDir, which would delete the log and report of a failed run
+		dir, err := os.MkdirTemp("", "autobrr-simulation-")
+		if err != nil {
+			t.Fatalf("could not create out dir: %v", err)
+		}
+
+		t.Cleanup(func() {
+			if !t.Failed() {
+				_ = os.RemoveAll(dir)
+			}
+		})
+
+		out = dir
 	} else if err := os.MkdirAll(out, 0o755); err != nil {
 		t.Fatalf("could not create out dir: %v", err)
 	}
@@ -85,6 +97,7 @@ func TestSimulation(t *testing.T) {
 		}
 	}
 
+	report.AppExit = app.UnexpectedExit()
 	report.Seed = seed
 	report.Injection = injection
 	report.Duration = time.Since(start)
@@ -97,7 +110,7 @@ func TestSimulation(t *testing.T) {
 	t.Logf("report written to %s", out)
 
 	if report.Failed() {
-		t.Errorf("simulation outcomes did not match the expectation, see the report above and %s", app.LogPath())
+		t.Errorf("simulation failed, see the report above and %s", app.LogPath())
 	}
 
 	if *flagKeep {
