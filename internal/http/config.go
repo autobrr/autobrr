@@ -30,6 +30,7 @@ type configJson struct {
 	CheckForUpdates  bool                    `json:"check_for_updates"`
 	AuthMode         domain.AuthMode         `json:"auth_mode"`
 	AuthCapabilities domain.AuthCapabilities `json:"auth_capabilities"`
+	AuthLogoutURL    string                  `json:"auth_logout_url,omitempty"`
 	Version          string                  `json:"version"`
 	Commit           string                  `json:"commit"`
 	Date             string                  `json:"date"`
@@ -79,6 +80,11 @@ func (h configHandler) getConfig(w http.ResponseWriter, r *http.Request) {
 		Version:          h.versionInfo.version,
 		Commit:           h.versionInfo.commit,
 		Date:             h.versionInfo.date,
+	}
+
+	// only validated in forward mode, so never handed to the UI in another
+	if conf.AuthMode == domain.AuthModeForward {
+		conf.AuthLogoutURL = h.cfg.Config.AuthLogoutURL
 	}
 
 	ex, err := os.Executable()

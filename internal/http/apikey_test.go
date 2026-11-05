@@ -314,7 +314,7 @@ func TestIrcEventsOnlyServeIrcStream(t *testing.T) {
 }
 
 func newAPIKeyTestRouter(cfg *domain.Config) chi.Router {
-	h := newAPIKeyHandler(newEncoder(zerolog.Nop()), &apikeyServiceStub{}, cfg)
+	h := newAPIKeyHandler(newEncoder(zerolog.Nop()), zerolog.Nop(), &apikeyServiceStub{}, cfg)
 	r := chi.NewRouter()
 	r.Use(asCaller(testUser))
 	r.Route("/keys", h.Routes)
@@ -351,7 +351,7 @@ func TestAPIKeyHandlerStore(t *testing.T) {
 	service := &apikeyServiceStub{}
 	router := chi.NewRouter()
 	router.Use(asCaller(testUser))
-	newAPIKeyHandler(encoder{}, service, &domain.Config{}).Routes(router)
+	newAPIKeyHandler(encoder{}, zerolog.Nop(), service, &domain.Config{}).Routes(router)
 
 	t.Run("returns the key once", func(t *testing.T) {
 		recorder := serveWithToken(router, http.MethodPost, "/", "", `{"name":"sonarr","scopes":["filters:write"]}`)
@@ -379,7 +379,7 @@ func TestAPIKeyHandlerUpdate(t *testing.T) {
 	service := &apikeyServiceStub{ids: map[int]bool{1: true}}
 	router := chi.NewRouter()
 	router.Use(asCaller(testUser))
-	newAPIKeyHandler(encoder{}, service, &domain.Config{}).Routes(router)
+	newAPIKeyHandler(encoder{}, zerolog.Nop(), service, &domain.Config{}).Routes(router)
 
 	tests := []struct {
 		name   string

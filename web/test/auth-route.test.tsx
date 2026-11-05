@@ -21,6 +21,7 @@ afterEach(() => {
 const capabilities: Record<AuthMode, AuthCapabilities> = {
   builtin: { password_login: true, oidc_login: false, onboarding: true, account_management: true, api_key_management: true, proxy_guards: false },
   oidc: { password_login: true, oidc_login: true, onboarding: false, account_management: true, api_key_management: true, proxy_guards: false },
+  forward: { password_login: false, oidc_login: false, onboarding: false, account_management: false, api_key_management: true, proxy_guards: true },
   disabled: { password_login: false, oidc_login: false, onboarding: false, account_management: false, api_key_management: false, proxy_guards: true }
 };
 
@@ -173,4 +174,26 @@ test("fresh cached config is reused without a request", async () => {
   expect(thrown).toBeUndefined();
   expect(getConfig).not.toHaveBeenCalled();
   expect(AuthContext.get().authMethod).toBe("disabled");
+});
+
+test("forward mode resolves the proxy user and logout url", async () => {
+  vi.spyOn(APIClient.auth, "validate").mockResolvedValue({ username: "ze0s", auth_method: "forward" });
+  vi.spyOn(APIClient.config, "get").mockResolvedValue({ ...config("forward"), auth_logout_url: "https://auth.example.com/logout" });
+
+  const thrown = await beforeLoad();
+
+  expect(thrown).toBeUndefined();
+  expect(AuthContext.get()).toMatchObject({ username: "ze0s", authMethod: "forward", authMode: "forward", logoutUrl: "https://auth.example.com/logout" });
+});
+
+test("a changed logout url updates the context without validating", async () => {
+  AuthContext.set({ isLoggedIn: true, username: "ze0s", authMethod: "forward", authMode: "forward", capabilities: capabilities.forward });
+
+  queryClient.setQueryData(SettingsKeys.config(), { ...config("forward"), auth_logout_url: "https://auth.example.com/logout" });
+  const validate = vi.spyOn(APIClient.auth, "validate");
+
+  expect(await beforeLoad()).toBeUndefined();
+
+  expect(validate).not.toHaveBeenCalled();
+  expect(AuthContext.get().logoutUrl).toBe("https://auth.example.com/logout");
 });

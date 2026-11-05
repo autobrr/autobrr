@@ -12,6 +12,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/rs/zerolog"
 )
 
 type apikeyService interface {
@@ -23,13 +24,15 @@ type apikeyService interface {
 }
 
 type apikeyHandler struct {
+	log     zerolog.Logger
 	encoder encoder
 	service apikeyService
 	config  *domain.Config
 }
 
-func newAPIKeyHandler(encoder encoder, service apikeyService, config *domain.Config) *apikeyHandler {
+func newAPIKeyHandler(encoder encoder, log zerolog.Logger, service apikeyService, config *domain.Config) *apikeyHandler {
 	return &apikeyHandler{
+		log:     log,
 		encoder: encoder,
 		service: service,
 		config:  config,
@@ -94,6 +97,13 @@ func (h apikeyHandler) store(w http.ResponseWriter, r *http.Request) {
 		h.encoder.Error(w, err)
 		return
 	}
+
+	// keys have no owner column, so the log is the only record of who minted one
+	var username string
+	if caller, ok := callerFromContext(r.Context()); ok {
+		username = caller.Username
+	}
+	h.log.Info().Int("api_key_id", data.ID).Str("api_key_name", data.Name).Strs("scopes", data.Scopes).Str("username", username).Msg("api key created")
 
 	h.encoder.StatusCreatedData(w, data)
 }

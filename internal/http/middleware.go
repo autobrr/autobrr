@@ -140,7 +140,8 @@ func callerFromContext(ctx context.Context) (*Caller, bool) {
 }
 
 // IsAuthenticated resolves the caller of the request and rejects requests it cannot
-// resolve: an API key if one is sent, otherwise the login method of the auth mode.
+// resolve: an API key if one is sent, otherwise the login method of the auth mode,
+// a session or the forward auth header.
 func (s *Server) IsAuthenticated(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		caller, ok := s.resolveCaller(w, r)
@@ -168,7 +169,40 @@ func (s *Server) resolveCaller(w http.ResponseWriter, r *http.Request) (*Caller,
 		return &Caller{Method: domain.AuthMethodAPIKey, APIKey: apiKey}, true
 	}
 
+	if s.config.Config.AuthMode() == domain.AuthModeForward {
+		return s.forwardCaller(w, r)
+	}
+
 	return s.sessionCaller(w, r)
+}
+
+// forwardCaller resolves the user the reverse proxy vouches for in the trusted user
+// header. RequireAuthDisabledIPAllowlist has already limited the request to the
+// proxy's own address, which is what makes the header trustworthy. A missing header
+// means the proxy stopped authenticating, so it fails closed.
+func (s *Server) forwardCaller(w http.ResponseWriter, r *http.Request) (*Caller, bool) {
+	header := strings.TrimSpace(s.config.Config.AuthTrustedUserHeader)
+
+	// The last value is the one the proxy closest to us set; earlier ones may have
+	// come from the client if the proxy appends instead of overwriting.
+	var username string
+	if values := r.Header.Values(header); len(values) > 0 {
+		username = strings.TrimSpace(values[len(values)-1])
+	}
+
+	if username == "" {
+		s.log.Warn().Str("header", header).Str("url", r.URL.Path).Str("remote_addr", r.RemoteAddr).Msg("forward auth: rejected request without trusted user header")
+		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+		return nil, false
+	}
+
+	if !s.config.Config.IsTrustedUserAllowed(username) {
+		s.log.Warn().Str("username", username).Str("url", r.URL.Path).Msg("forward auth: rejected user other than authTrustedUser")
+		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+		return nil, false
+	}
+
+	return &Caller{Method: domain.AuthMethodForward, Username: username}, true
 }
 
 // sessionCaller resolves a password or OIDC login session. Failures answer 403 on
@@ -328,7 +362,7 @@ func parsePeerAddr(remoteAddr string) (netip.Addr, bool) {
 }
 
 // RequireAuthDisabledIPAllowlist restricts access to authAllowedPeerCIDRs
-// when authentication is disabled. It runs before middleware.RealIP so that
+// in disabled and forward authentication modes. It runs before middleware.RealIP so that
 // X-Forwarded-For/X-Real-IP headers cannot be used to spoof past the restriction -
 // it always checks the real TCP peer that opened the connection.
 func (s *Server) RequireAuthDisabledIPAllowlist(next http.Handler) http.Handler {
@@ -340,7 +374,7 @@ func (s *Server) RequireAuthDisabledIPAllowlist(next http.Handler) http.Handler 
 
 		addr, ok := parsePeerAddr(r.RemoteAddr)
 		if !ok {
-			s.log.Error().Str("remote_addr", r.RemoteAddr).Msg("auth disabled: could not parse remote address")
+			s.log.Error().Str("remote_addr", r.RemoteAddr).Msg("proxy guard: could not parse remote address")
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return
 		}
@@ -357,13 +391,14 @@ func (s *Server) RequireAuthDisabledIPAllowlist(next http.Handler) http.Handler 
 			}
 		}
 
-		s.log.Warn().Str("peer_ip", addr.String()).Msg("auth disabled: rejected request, peer not in authAllowedPeerCIDRs")
+		s.log.Warn().Str("peer_ip", addr.String()).Msg("proxy guard: rejected request, peer not in authAllowedPeerCIDRs")
 		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 	})
 }
 
 // RejectUntrustedBrowserRequests blocks cross-site and same-site browser requests
-// to the API while authentication is disabled. CORS cannot do that: it only
+// to the API in disabled and forward authentication modes, where the reverse
+// proxy's session authenticates whatever the browser sends. CORS cannot do that: it only
 // controls whether the browser may read the response, and rs/cors invokes the
 // handler regardless of origin, so a cross-site request still executes
 // server-side. Same-site is rejected too because a sibling subdomain under the
@@ -383,7 +418,7 @@ func (s *Server) RejectUntrustedBrowserRequests(next http.Handler) http.Handler 
 		if origin := r.Header.Get("Origin"); origin != "" {
 			_, originAllowed = s.authAllowedOrigins[strings.ToLower(origin)]
 			if !originAllowed && !isSameOrigin(origin, r) {
-				s.log.Warn().Str("origin", origin).Str("url", r.URL.Path).Msg("auth disabled: rejected request, origin not in corsAllowedOrigins")
+				s.log.Warn().Str("origin", origin).Str("url", r.URL.Path).Msg("proxy guard: rejected request, origin not in corsAllowedOrigins")
 				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 				return
 			}
@@ -397,7 +432,7 @@ func (s *Server) RejectUntrustedBrowserRequests(next http.Handler) http.Handler 
 		// corsAllowedOrigins.
 		secFetchSite := r.Header.Get("Sec-Fetch-Site")
 		if (secFetchSite == "cross-site" || secFetchSite == "same-site") && !originAllowed {
-			s.log.Warn().Str("sec_fetch_site", secFetchSite).Str("url", r.URL.Path).Msg("auth disabled: rejected browser request from another site")
+			s.log.Warn().Str("sec_fetch_site", secFetchSite).Str("url", r.URL.Path).Msg("proxy guard: rejected browser request from another site")
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return
 		}
@@ -409,7 +444,7 @@ func (s *Server) RejectUntrustedBrowserRequests(next http.Handler) http.Handler 
 			// for browsers that predate Origin and Sec-Fetch.
 			if r.ContentLength != 0 {
 				if mt, _, err := mime.ParseMediaType(r.Header.Get("Content-Type")); err != nil || mt != "application/json" {
-					s.log.Warn().Str("content_type", r.Header.Get("Content-Type")).Str("url", r.URL.Path).Msg("auth disabled: rejected mutation, content type must be application/json")
+					s.log.Warn().Str("content_type", r.Header.Get("Content-Type")).Str("url", r.URL.Path).Msg("proxy guard: rejected mutation, content type must be application/json")
 					http.Error(w, http.StatusText(http.StatusUnsupportedMediaType), http.StatusUnsupportedMediaType)
 					return
 				}
@@ -445,7 +480,7 @@ func isSameOrigin(origin string, r *http.Request) bool {
 }
 
 // RequireAuthDisabledAllowedHost rejects requests whose Host is not allowed
-// while authentication is disabled. A DNS-rebound browser is an allowlisted peer
+// in disabled and forward authentication modes. A DNS-rebound browser is an allowlisted peer
 // sending a same-origin request; only the Host header gives it away, and over
 // plain HTTP it carries neither Origin nor Sec-Fetch-Site, so every request is
 // checked regardless of browser markers.
@@ -457,11 +492,11 @@ func (s *Server) RequireAuthDisabledAllowedHost(next http.Handler) http.Handler 
 		}
 
 		if !s.isAllowedHost(r.Host) {
-			s.log.Error().Str("host", r.Host).Str("url", r.URL.Path).Msg("auth disabled: rejected request, host not in authAllowedHosts or corsAllowedOrigins")
+			s.log.Error().Str("host", r.Host).Str("url", r.URL.Path).Msg("proxy guard: rejected request, host not in authAllowedHosts or corsAllowedOrigins")
 			// The peer already passed the IP allowlist, so this is almost always a
 			// trusted client on an unlisted hostname; naming the fix beats a bare
 			// Forbidden page, and a rebinding attacker learns nothing new from it.
-			http.Error(w, "Forbidden: this hostname is not allowed while authentication is disabled, add it to authAllowedHosts in config.toml", http.StatusForbidden)
+			http.Error(w, "Forbidden: this hostname is not allowed, add it to authAllowedHosts in config.toml", http.StatusForbidden)
 			return
 		}
 
@@ -491,10 +526,10 @@ func (s *Server) isAllowedHost(host string) bool {
 	return ok
 }
 
-// RestrictAuthDisabledFraming limits which sites may frame autobrr while
-// authentication is disabled. With auth on, the SameSite=Lax session cookie
-// keeps a cross-site frame logged out; with auth off, any framing site would get
-// a fully working UI to clickjack.
+// RestrictAuthDisabledFraming limits which sites may frame autobrr in disabled and
+// forward authentication modes. With a login, the SameSite=Lax session cookie
+// keeps a cross-site frame logged out; when the proxy authenticates, any framing
+// site would get a fully working UI to clickjack.
 func (s *Server) RestrictAuthDisabledFraming(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !s.config.Config.AuthCapabilities().ProxyGuards {

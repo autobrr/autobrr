@@ -99,3 +99,40 @@ test("modes without sessions or accounts hide account and logout", async () => {
   expect(screen.queryByText("Account")).toBeNull();
   expect(screen.queryByText("Log out")).toBeNull();
 });
+
+test("forward mode logs out through the proxy logout url", async () => {
+  AuthContext.set({
+    isLoggedIn: true,
+    username: "ze0s",
+    authMethod: "forward",
+    authMode: "forward",
+    logoutUrl: "https://auth.example.com/logout",
+    capabilities: { password_login: false, oidc_login: false, onboarding: false, account_management: false, api_key_management: true, proxy_guards: true }
+  });
+  const logout = vi.spyOn(APIClient.auth, "logout");
+
+  await renderApp();
+  fireEvent.click(screen.getByRole("button", { name: /open user menu/i }));
+
+  const link = await screen.findByRole("menuitem", { name: /log out/i });
+  expect(link.getAttribute("href")).toBe("https://auth.example.com/logout");
+  expect(fireEvent.click(link)).toBe(true);
+  expect(screen.queryByText("Account")).toBeNull();
+  expect(logout).not.toHaveBeenCalled();
+});
+
+test("forward mode without a logout url hides log out", async () => {
+  AuthContext.set({
+    isLoggedIn: true,
+    username: "ze0s",
+    authMethod: "forward",
+    authMode: "forward",
+    capabilities: { password_login: false, oidc_login: false, onboarding: false, account_management: false, api_key_management: true, proxy_guards: true }
+  });
+
+  await renderApp();
+  fireEvent.click(screen.getByRole("button", { name: /open user menu/i }));
+
+  expect(await screen.findByText("Settings")).toBeTruthy();
+  expect(screen.queryByText("Log out")).toBeNull();
+});

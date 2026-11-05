@@ -160,3 +160,16 @@ test("a session in a mode with a login form renders the login form", async () =>
   expect(thrown).toBeUndefined();
   expect(AuthContext.get().isLoggedIn).toBe(false);
 });
+
+test("forward mode continues into the app", async () => {
+  vi.spyOn(APIClient.auth, "validate").mockResolvedValue({ username: "ze0s", auth_method: "forward" });
+  vi.spyOn(APIClient.config, "get").mockResolvedValue(config("forward", { password_login: false, oidc_login: false, onboarding: false, account_management: false, api_key_management: true, proxy_guards: true }));
+
+  const { thrown } = await beforeLoad({ redirect: "/filters" });
+
+  expect(isRedirect(thrown)).toBe(true);
+  if (isRedirect(thrown)) {
+    expect(thrown.options.href).toBe("/filters");
+  }
+  expect(AuthContext.get()).toMatchObject({ isLoggedIn: true, username: "ze0s", authMethod: "forward", authMode: "forward" });
+});
