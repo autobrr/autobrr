@@ -423,6 +423,33 @@ export const APIClient = {
       { withCredentials: true }
     )
   },
+  matrix: {
+    list: () => appClient.Get<MatrixNetwork[]>("api/matrix"),
+    getByID: (id: number) => appClient.Get<MatrixNetwork>(`api/matrix/network/${id}`),
+    store: (network: MatrixNetworkCreate) => appClient.Post<MatrixNetwork>("api/matrix", {
+      body: network
+    }),
+    update: (network: MatrixNetwork) => appClient.Put(`api/matrix/network/${network.id}`, {
+      body: network
+    }),
+    delete: (id: number) => appClient.Delete(`api/matrix/network/${id}`),
+    restart: (id: number) => appClient.Post(`api/matrix/network/${id}/restart`),
+    login: (id: number) => appClient.Post<MatrixLogin>(`api/matrix/network/${id}/login`),
+    setAccessToken: (id: number, accessToken: string) => appClient.Post(`api/matrix/network/${id}/token`, {
+      body: { access_token: accessToken }
+    }),
+    logout: (id: number) => appClient.Post(`api/matrix/network/${id}/logout`),
+    getRoomHistory: (networkId: number, room: string) => appClient.Get<MatrixMessage[]>(`api/matrix/network/${networkId}/room/history`, {
+      queryString: { room }
+    }),
+    reprocessAnnounce: (networkId: number, room: string, msg: string) => appClient.Post(`api/matrix/network/${networkId}/announce/process`, {
+      body: { room, msg }
+    }),
+    events: () => new EventSource(
+      `${sseBaseUrl()}api/matrix/events?stream=matrix`,
+      { withCredentials: true }
+    )
+  },
   logs: {
     files: () => appClient.Get<LogFileResponse>("api/logs/files"),
     download: (filename: string) => appClient.Get<Response>(`api/logs/files/${encodeURIComponent(filename)}`)

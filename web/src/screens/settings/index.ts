@@ -11,6 +11,7 @@ export { default as Indexer } from "./Indexer";
 export { default as Irc } from "./Irc";
 export { default as Lists } from "./Lists";
 export { default as Logs } from "./Logs";
+export { default as Matrix } from "./Matrix";
 export { default as Notification } from "./Notifications";
 export { default as Proxy } from "./Proxy";
 export { default as Release } from "./Releases";

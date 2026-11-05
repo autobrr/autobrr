@@ -90,6 +90,7 @@ func newScopedTestServer() *Server {
 		"filters-write":      {Scopes: []string{"filters:write"}},
 		"irc-read":           {Scopes: []string{"irc:read"}},
 		"irc-invoke":         {Scopes: []string{"irc:invoke"}},
+		"matrix-read":        {Scopes: []string{"matrix:read"}},
 		"lists-read":         {Scopes: []string{"lists:read"}},
 		"lists-invoke":       {Scopes: []string{"lists:invoke"}},
 		"lists-write":        {Scopes: []string{"lists:write"}},
@@ -243,6 +244,8 @@ func TestAPIKeyScopeMiddleware(t *testing.T) {
 		{name: "events_notifications", target: "/events?stream=notifications", token: "notifications-read", want: http.StatusOK},
 		{name: "events_notifications_cannot_read_logs", target: "/events?stream=logs", token: "notifications-read", want: http.StatusForbidden},
 		{name: "events_irc", target: "/events?stream=irc", token: "irc-read", want: http.StatusOK},
+		{name: "events_matrix", target: "/events?stream=matrix", token: "matrix-read", want: http.StatusOK},
+		{name: "events_irc_cannot_read_matrix", target: "/events?stream=matrix", token: "irc-read", want: http.StatusForbidden},
 		{name: "events_unknown_stream", target: "/events?stream=mock", token: "logs-read", want: http.StatusBadRequest},
 	}
 	for _, tt := range tests {

@@ -63,19 +63,22 @@ type Service struct {
 	mappedDefinitions map[string]*domain.IndexerDefinition
 	// map server:channel:announce to indexer.Identifier
 	lookupIRCServerDefinition map[string]map[string]*domain.IndexerDefinition
+	// map homeserver to indexer.Identifier to definition
+	lookupMatrixHomeserverDefinition map[string]map[string]*domain.IndexerDefinition
 }
 
 func NewService(log zerolog.Logger, bus eventBus, config *domain.Config, repo indexerRepo, releaseRepo releaseRepo, apiService apiService) *Service {
 	s := &Service{
-		log:                       log.With().Str("module", "indexer").Logger(),
-		eventBus:                  bus,
-		config:                    config,
-		repo:                      repo,
-		releaseRepo:               releaseRepo,
-		ApiService:                apiService,
-		lookupIRCServerDefinition: make(map[string]map[string]*domain.IndexerDefinition),
-		definitions:               make(map[string]domain.IndexerDefinition),
-		mappedDefinitions:         make(map[string]*domain.IndexerDefinition),
+		log:                              log.With().Str("module", "indexer").Logger(),
+		eventBus:                         bus,
+		config:                           config,
+		repo:                             repo,
+		releaseRepo:                      releaseRepo,
+		ApiService:                       apiService,
+		lookupIRCServerDefinition:        make(map[string]map[string]*domain.IndexerDefinition),
+		lookupMatrixHomeserverDefinition: make(map[string]map[string]*domain.IndexerDefinition),
+		definitions:                      make(map[string]domain.IndexerDefinition),
+		mappedDefinitions:                make(map[string]*domain.IndexerDefinition),
 	}
 
 	s.setupEventListeners()
@@ -192,8 +195,8 @@ func (s *Service) Update(ctx context.Context, indexer *domain.Indexer) error {
 		}
 	}
 
-	// only IRC indexers have baseURL set
-	if indexer.Implementation == domain.IndexerImplementationIRC {
+	// only IRC and Matrix indexers have baseURL set
+	if indexer.Implementation == domain.IndexerImplementationIRC || indexer.Implementation == domain.IndexerImplementationMatrix {
 		if indexer.BaseURL == "" {
 			return errors.New("indexer baseURL must not be empty")
 		}
@@ -568,6 +571,15 @@ func (s *Service) Start() error {
 					s.log.Error().Stack().Err(err).Str("indexer", indexer.Identifier).Msg("indexer.start: could not init indexer api client")
 				}
 			}
+
+		case domain.IndexerImplementationMatrix:
+			s.mapMatrixHomeserverDefinitionLookup(indexer)
+
+			if indexer.Enabled && indexer.HasApi() {
+				if err := s.ApiService.AddClient(indexer.Identifier, indexer.SettingsMap, indexer.ProxyID, indexer.UseProxy); err != nil {
+					s.log.Error().Stack().Err(err).Str("indexer", indexer.Identifier).Msg("indexer.start: could not init indexer api client")
+				}
+			}
 		}
 	}
 
@@ -579,6 +591,9 @@ func (s *Service) Start() error {
 func (s *Service) removeIndexer(indexer domain.Indexer) {
 	s.m.Lock()
 	delete(s.mappedDefinitions, indexer.Identifier)
+	for _, definitions := range s.lookupMatrixHomeserverDefinition {
+		delete(definitions, indexer.Identifier)
+	}
 	s.m.Unlock()
 }
 
@@ -598,6 +613,15 @@ func (s *Service) addIndexer(indexer domain.Indexer) error {
 		s.mapIRCServerDefinitionLookup(indexerDefinition.IRC.Server, indexerDefinition)
 
 		// check if it has api and add to api service
+		if indexerDefinition.HasApi() {
+			if err := s.ApiService.AddClient(indexerDefinition.Identifier, indexerDefinition.SettingsMap, indexerDefinition.ProxyID, indexerDefinition.UseProxy); err != nil {
+				s.log.Error().Stack().Err(err).Str("indexer", indexer.Identifier).Msg("indexer.addIndexer: could not init indexer api client")
+			}
+		}
+
+	case domain.IndexerImplementationMatrix:
+		s.mapMatrixHomeserverDefinitionLookup(indexerDefinition)
+
 		if indexerDefinition.HasApi() {
 			if err := s.ApiService.AddClient(indexerDefinition.Identifier, indexerDefinition.SettingsMap, indexerDefinition.ProxyID, indexerDefinition.UseProxy); err != nil {
 				s.log.Error().Stack().Err(err).Str("indexer", indexer.Identifier).Msg("indexer.addIndexer: could not init indexer api client")
@@ -633,6 +657,15 @@ func (s *Service) updateIndexer(indexer *domain.Indexer) error {
 				s.log.Error().Stack().Err(err).Str("indexer", indexer.Identifier).Msg("indexer.updateIndexer: could not init indexer api client")
 			}
 		}
+
+	case domain.IndexerImplementationMatrix:
+		s.mapMatrixHomeserverDefinitionLookup(indexerDefinition)
+
+		if indexerDefinition.HasApi() {
+			if err := s.ApiService.AddClient(indexerDefinition.Identifier, indexerDefinition.SettingsMap, indexerDefinition.ProxyID, indexerDefinition.UseProxy); err != nil {
+				s.log.Error().Stack().Err(err).Str("indexer", indexer.Identifier).Msg("indexer.updateIndexer: could not init indexer api client")
+			}
+		}
 	}
 
 	s.m.Lock()
@@ -657,6 +690,31 @@ func (s *Service) mapIRCServerDefinitionLookup(ircServer string, indexerDefiniti
 
 		s.lookupIRCServerDefinition[ircServer][indexerDefinition.Identifier] = indexerDefinition
 	}
+}
+
+// mapMatrixHomeserverDefinitionLookup indexes a Matrix definition by its homeserver.
+func (s *Service) mapMatrixHomeserverDefinitionLookup(indexerDefinition *domain.IndexerDefinition) {
+	if indexerDefinition.Matrix == nil {
+		return
+	}
+
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	homeserver := indexerDefinition.Matrix.Homeserver
+	if _, ok := s.lookupMatrixHomeserverDefinition[homeserver]; !ok {
+		s.lookupMatrixHomeserverDefinition[homeserver] = map[string]*domain.IndexerDefinition{}
+	}
+
+	s.lookupMatrixHomeserverDefinition[homeserver][indexerDefinition.Identifier] = indexerDefinition
+}
+
+// GetIndexersByMatrixHomeserver returns the indexer definitions announcing on a normalized homeserver URL.
+func (s *Service) GetIndexersByMatrixHomeserver(homeserver string) []*domain.IndexerDefinition {
+	s.m.RLock()
+	defer s.m.RUnlock()
+
+	return slices.Collect(maps.Values(s.lookupMatrixHomeserverDefinition[homeserver]))
 }
 
 // LoadIndexerDefinitions load definitions from golang embed fs
@@ -693,6 +751,9 @@ func (s *Service) LoadIndexerDefinitions() error {
 			return errors.Wrap(err, "could not unmarshal indexer definition file: %s", file)
 		}
 		if err = d.ValidateIRC(); err != nil {
+			return errors.Wrap(err, "invalid indexer definition file: %s", file)
+		}
+		if err = d.ValidateMatrix(); err != nil {
 			return errors.Wrap(err, "invalid indexer definition file: %s", file)
 		}
 
@@ -743,6 +804,9 @@ func OpenAndProcessDefinition(file string) (*domain.IndexerDefinition, error) {
 			return nil, errors.Wrap(err, "could not decode definition file: %s", file)
 		}
 		if err := d.ValidateIRC(); err != nil {
+			return nil, errors.Wrap(err, "invalid definition file: %s", file)
+		}
+		if err := d.ValidateMatrix(); err != nil {
 			return nil, errors.Wrap(err, "invalid definition file: %s", file)
 		}
 

@@ -68,6 +68,7 @@ type Server struct {
 	indexerService      indexerService
 	ircService          ircService
 	listService         listService
+	matrixService       matrixService
 	notificationService notificationService
 	oidcService         oidcService
 	proxyService        proxyService
@@ -97,6 +98,7 @@ type Deps struct {
 	IndexerService      indexerService
 	IrcService          ircService
 	ListService         listService
+	MatrixService       matrixService
 	NotificationService notificationService
 	OIDCService         oidcService
 	ProxyService        proxyService
@@ -144,6 +146,7 @@ func NewServer(deps Deps) *Server {
 		indexerService:      deps.IndexerService,
 		ircService:          deps.IrcService,
 		listService:         deps.ListService,
+		matrixService:       deps.MatrixService,
 		notificationService: deps.NotificationService,
 		oidcService:         deps.OIDCService,
 		proxyService:        deps.ProxyService,
@@ -441,6 +444,7 @@ func (s *Server) apiRoutes() chi.Router {
 			r.Route("/irc", newIrcHandler(encoder, s.sse, s.ircService).Routes)
 			r.Route("/indexer", newIndexerHandler(encoder, s.indexerService, s.ircService).Routes)
 			r.Route("/lists", newListHandler(encoder, s.listService).Routes)
+			r.Route("/matrix", newMatrixHandler(encoder, s.sse, s.matrixService).Routes)
 			r.Route("/keys", newAPIKeyHandler(encoder, s.log, s.apiService, s.config.Config).Routes)
 			r.Route("/logs", newLogsHandler(s.config).Routes)
 			r.Route("/notification", newNotificationHandler(encoder, s.notificationService).Routes)

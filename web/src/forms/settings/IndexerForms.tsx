@@ -15,7 +15,7 @@ import { extractCategoryTreeFromCaps, flattenCategoryIds, parseCapabilitiesPaylo
 import { useAppForm, useFormContext, useFormValue } from "@hooks/form";
 import { FormDebug } from "@components/debug";
 import { APIClient } from "@api/APIClient";
-import { FeedKeys, IndexerKeys, ReleaseKeys } from "@api/query_keys";
+import { FeedKeys, IndexerKeys, MatrixKeys, ReleaseKeys } from "@api/query_keys";
 import { IndexersSchemaQueryOptions, ProxiesQueryOptions } from "@api/queries";
 import { SlideOver, SlideOverShell, SlideOverTitle } from "@components/panels";
 import { toast } from "@components/hot-toast";
@@ -523,6 +523,15 @@ function IndexerAddFormPanel({ toggle }: IndexerAddFormPanelProps) {
     mutationFn: (network: IrcNetworkCreate) => APIClient.irc.createNetwork(network)
   });
 
+  const matrixMutation = useMutation({
+    mutationFn: (network: MatrixNetworkCreate) => APIClient.matrix.store(network),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: MatrixKeys.lists() });
+
+      toast.custom((toastInstance) => <Toast type="success" body={t("forms.indexer.matrixLoginRequired")} t={toastInstance} />);
+    }
+  });
+
   const feedMutation = useMutation({
     mutationFn: (feed: FeedCreate) => APIClient.feeds.create(feed),
     onSuccess: () => {
@@ -657,6 +666,27 @@ function IndexerAddFormPanel({ toggle }: IndexerAddFormPanelProps) {
         });
         return;
       }
+
+      case "matrix": {
+        if (!ind.matrix) {
+          return;
+        }
+
+        const network: MatrixNetworkCreate = {
+          name: ind.matrix.network,
+          enabled: true,
+          homeserver: ind.matrix.homeserver,
+          access_token: "",
+          rooms: ind.matrix.rooms.map((room) => ({ id: 0, enabled: true, name: room.name, room_id: "" }))
+        };
+
+        mutation.mutate(formData, {
+          onSuccess: () => {
+            matrixMutation.mutate(network);
+          }
+        });
+        return;
+      }
       default: {
         console.error("unknown implementation: ", formData.implementation);
       }
@@ -742,7 +772,7 @@ function IndexerAddFormPanel({ toggle }: IndexerAddFormPanelProps) {
 
             <SwitchGroupWide name="enabled" label={t("forms.indexer.enabled")} />
 
-            {indexer.implementation == "irc" && (
+            {(indexer.implementation == "irc" || indexer.implementation == "matrix") && (
               <SelectFieldCreatable
                 name="base_url"
                 label={t("forms.indexer.baseUrl")}
@@ -756,6 +786,14 @@ function IndexerAddFormPanel({ toggle }: IndexerAddFormPanelProps) {
           </div>
 
           {IrcSettingFields(indexer, identifier)}
+          {indexer.implementation === "matrix" && (
+            <div className="border-t border-gray-200 dark:border-gray-700 px-4 py-5">
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.indexer.settingsMatrixTitle")}</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-200">
+                {t("forms.indexer.settingsMatrixDesc")}
+              </p>
+            </div>
+          )}
           {TorznabFeedSettingFields(indexer, identifier)}
           {NewznabFeedSettingFields(indexer, identifier)}
           {RSSFeedSettingFields(indexer, identifier)}
@@ -830,6 +868,10 @@ function IndexerIdentifierField({ data, setIndexer }: IndexerIdentifierFieldProp
               if (ind) {
                 setIndexer(ind);
                 form.setFieldValue("implementation", ind.implementation);
+
+                if (ind.matrix) {
+                  form.setFieldValue("base_url", ind.urls[0]);
+                }
 
                 if (ind.irc && ind.irc.settings) {
                   form.setFieldValue("base_url", ind.urls[0]);
@@ -1124,7 +1166,7 @@ export function IndexerUpdateForm({ isOpen, toggle, data: indexer }: UpdateFormP
           <IndexerExternalIdentifierField fallbackName={indexer.name} />
           <SwitchGroupWide name="enabled" label={t("forms.indexer.enabled")}/>
 
-          {indexer.implementation == "irc" && (
+          {(indexer.implementation == "irc" || indexer.implementation == "matrix") && (
             <SelectFieldCreatable
               name="base_url"
               label={t("forms.indexer.baseUrl")}

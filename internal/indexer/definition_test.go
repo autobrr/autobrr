@@ -40,12 +40,19 @@ func TestIndexerYamlExpectations(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, d := range s.definitions {
-		if d.IRC == nil {
+		var channels map[string]*domain.IndexerIRCV2Channel
+
+		switch {
+		case d.IRC != nil:
+			channels = d.IRC.ChannelsMap
+		case d.Matrix != nil:
+			channels = d.Matrix.RoomsMap
+		default:
 			continue
 		}
 
 		t.Run(d.Name, func(t *testing.T) {
-			for channelName, channel := range d.IRC.ChannelsMap {
+			for channelName, channel := range channels {
 				for _, parseLine := range channel.Parse.Lines {
 					for _, test := range parseLine.Tests {
 						parseOutput := map[string]string{}

@@ -112,6 +112,14 @@ export const IrcKeys = {
   channelHistory: (networkId: number, channel: string) => [...IrcKeys.all, "channel-history", networkId, channel] as const
 };
 
+export const MatrixKeys = {
+  all: ["matrix_networks"] as const,
+  lists: () => [...MatrixKeys.all, "list"] as const,
+  details: () => [...MatrixKeys.all, "detail"] as const,
+  detail: (id: number) => [...MatrixKeys.details(), id] as const,
+  roomHistory: (networkId: number, room: string) => [...MatrixKeys.all, "room-history", networkId, room] as const
+};
+
 export const NotificationKeys = {
   all: ["notifications"] as const,
   lists: () => [...NotificationKeys.all, "list"] as const,

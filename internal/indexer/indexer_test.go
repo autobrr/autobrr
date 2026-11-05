@@ -661,7 +661,7 @@ func TestIndexersParseAndFilter(t *testing.T) {
 						}
 
 						// on lines matched
-						parseErr := channel.Parse.Parse(def, channel.Name, tmpVars, rls)
+						parseErr := channel.Parse.Parse(def, tmpVars, rls)
 						require.NoError(t, parseErr)
 					}
 
