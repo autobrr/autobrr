@@ -64,10 +64,6 @@ jobs:
         working-directory: web
         run: pnpm install --frozen-lockfile
 
-      - name: Run web tests
-        working-directory: web
-        run: pnpm run test
-
       - name: Build web frontend
         working-directory: web
         run: CI= pnpm run build
@@ -77,6 +73,38 @@ jobs:
         with:
           name: web-dist
           path: web/dist
+
+  web-test:
+    name: Test web
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6.1.0
+        with:
+          package_json_file: web/package.json
+
+      # It can not be done before installing pnpm
+      - name: Set up cache
+        uses: actions/setup-node@v7
+        with:
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: Fetch web dependencies
+        working-directory: web
+        run: pnpm install --frozen-lockfile
+
+      - name: Run web tests
+        working-directory: web
+        run: pnpm run test
 
   test:
     name: Test ubuntu-latest
@@ -97,28 +125,81 @@ jobs:
         uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-          cache: true
+          cache: false
 
-      - name: Create Profile environment
-        run:
-          |
-          printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list -tags=integration,irc_integration_test "$@"); do\n\tgo test -json -cpuprofile="profile/$(echo $pkg | tr / -).pprof" -tags=integration,irc_integration_test "$pkg"\ndone' | tee -a profile.sh;
-          chmod +x profile.sh;
-          mkdir profile;
+      - name: Restore Go cache
+        id: go-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: go-test-unit-${{ hashFiles('go.sum') }}-${{ github.sha }}
+          restore-keys: |
+            go-test-unit-${{ hashFiles('go.sum') }}-
+            go-test-unit-
 
       - name: Test
-        run: go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname --raw-command ./profile.sh -- ./...
+        run: go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname -- -tags=integration ./...
 
-      - name: Upload pprof
-        uses: actions/upload-artifact@v7
+      - name: Save Go cache
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        uses: actions/cache/save@v6
         with:
-          name: pprof-test-ubuntu-latest
-          path: profile
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ steps.go-cache.outputs.cache-primary-key }}
 
       - name: Test Summary
         uses: test-summary/action@v2
         with:
           paths: "unit-tests.xml"
+        if: always()
+
+  test-irc:
+    name: Test IRC integration
+    runs-on: ubuntu-latest
+    env:
+      CGO_ENABLED: 0
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - name: Restore Go cache
+        id: go-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: go-test-irc-${{ hashFiles('go.sum') }}-${{ github.sha }}
+          restore-keys: |
+            go-test-irc-${{ hashFiles('go.sum') }}-
+            go-test-irc-
+
+      - name: Test
+        run: go run gotest.tools/gotestsum@latest --junitfile irc-tests.xml --format pkgname -- -tags=irc_integration_test ./internal/irc/... ./test/irc/...
+
+      - name: Save Go cache
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ steps.go-cache.outputs.cache-primary-key }}
+
+      - name: Test Summary
+        uses: test-summary/action@v2
+        with:
+          paths: "irc-tests.xml"
         if: always()
 
   testother:
@@ -146,119 +227,23 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - name: Create Profile environment
+      - name: Test
         shell: bash
-        run:
-          |
-          printf '#!/usr/bin/env bash\nset -eu\nfor pkg in $(go list "$@"); do\n\tgo test -json -cpuprofile="profile/$(echo $pkg | tr / -).pprof" "$pkg"\ndone' | tee -a profile.sh;
-          chmod +x profile.sh;
-          mkdir profile;
-
-      - name: Profile
-        shell: bash
-        run: ${{ startsWith(matrix.os, 'windows') && './profile.sh ./...' || 'go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname --raw-command ./profile.sh -- ./...' }}
-
-      - name: Upload pprof
-        uses: actions/upload-artifact@v7
-        with:
-          name: pprof-test-${{ matrix.os }}
-          path: profile
+        run: go run gotest.tools/gotestsum@latest --junitfile unit-tests.xml --format pkgname -- ./...
 
       - name: Test Summary
         uses: test-summary/action@v2
         with:
           paths: "unit-tests.xml"
-        if: always() && startsWith(matrix.os, 'windows') == false
-
-  pgo:
-    strategy:
-      fail-fast: true
-      matrix:
-        os: [ ubuntu-latest, macos-latest, windows-latest ]
-    name: Automatic PGO run ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    needs: [ web ]
-    env:
-      GOPATH: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\go' || '' }}
-      GOCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\cache' || '' }}
-      GOMODCACHE: ${{ startsWith(matrix.os, 'windows') && 'D:\golang\modcache' || '' }}
-      USERPROFILE: ${{ startsWith(matrix.os, 'windows') && 'D:\homedir' || '' }}
-      CGO_ENABLED: 0
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Download web production build
-        uses: actions/download-artifact@v8
-        with:
-          name: web-dist
-          path: web/dist
-
-      - name: Set up Go
-        uses: actions/setup-go@v7
-        with:
-          go-version-file: go.mod
-          cache: true
-
-      - name: Generate Profile
-        run: go run cmd/autobrr/main.go --pgo cpu-${{ matrix.os }}.pprof
-
-      - name: Upload pprof
-        uses: actions/upload-artifact@v7
-        with:
-          name: pprof-pgo-${{ matrix.os }}
-          path: cpu-${{ matrix.os }}.pprof
-
-  goprofilecombine:
-    name: Combine pprof profiles
-    runs-on: ubuntu-latest
-    needs: [ pgo, test, testother ]
-    steps:
-      - name: Download pprof profiles
-        uses: actions/download-artifact@v8
-        with:
-          pattern: pprof-*
-          merge-multiple: true
-          path: profile
-
-      - name: List contents
-        run: ls -la profile
-
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Set up Go
-        uses: actions/setup-go@v7
-        with:
-          go-version-file: go.mod
-          cache: false
-
-      - name: Merge Profiles
-        run: go tool pprof -proto profile/*.pprof | tee -a cpu.pprof
-
-      - name: Upload pprof
-        uses: actions/upload-artifact@v7
-        with:
-          name: pprof
-          path: cpu.pprof
+        if: always()
 
   prepare:
-    needs: [ web, goprofilecombine ]
+    needs: [ web ]
     strategy:
       matrix:
-        include:
-          - runner: ubuntu-latest
-            goos: linux
-          - runner: ubuntu-latest
-            goos: freebsd
-          - runner: macos-latest
-            goos: darwin
-          - runner: windows-latest
-            goos: windows
-    runs-on: ${{ matrix.runner }}
-    name: Build distribution binaries ${{ matrix.goos }} ${{ matrix.runner }}
+        goos: [ linux, freebsd, darwin, windows ]
+    runs-on: ubuntu-latest
+    name: Build distribution binaries ${{ matrix.goos }}
     env:
       flags: ""
       GOOS: ${{ matrix.goos }}
@@ -274,16 +259,25 @@ jobs:
           name: web-dist
           path: web/dist
 
-      - name: Download pprof profile
-        uses: actions/download-artifact@v8
-        with:
-          name: pprof
-
       - name: Set up Go
         uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-          cache: true
+          cache: false
+
+      # setup-go's cache key only changes with go.sum, so it is never re-saved
+      # and the build cache goes stale; key on the commit and restore by prefix.
+      - name: Restore Go cache
+        id: go-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: go-release-${{ matrix.goos }}-${{ hashFiles('go.sum') }}-${{ github.sha }}
+          restore-keys: |
+            go-release-${{ matrix.goos }}-${{ hashFiles('go.sum') }}-
+            go-release-${{ matrix.goos }}-
 
       - if: ${{ github.event_name == 'workflow_dispatch' }}
         shell: bash
@@ -309,7 +303,6 @@ jobs:
         with:
           path: dist/${{ matrix.goos }}
           key: ${{ env.cache_prefix }}-${{ matrix.goos}}-${{ env.sha_short }}${{ env.flags }}
-          enableCrossOsArchive: ${{ matrix.runner == 'windows-latest' && 'true' || 'false'}}
 
       - name: Run GoReleaser snapshot build
         if: ${{ ! startsWith(github.ref, 'refs/tags/') }}
@@ -333,6 +326,15 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GORELEASER_KEY: ${{ secrets.GORELEASER_KEY }}
 
+      - name: Save Go cache
+        if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ steps.go-cache.outputs.cache-primary-key }}
+
       - name: Upload assets
         uses: actions/upload-artifact@v7
         with:
@@ -348,7 +350,7 @@ jobs:
     name: Merge and publish distribution binaries
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
-    needs: prepare
+    needs: [ prepare, test, test-irc, testother, web-test ]
     env:
       flags: ""
     steps:
@@ -361,7 +363,7 @@ jobs:
         uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-          cache: true
+          cache: false
 
       # copy the caches from prepare
       - if: ${{ github.event_name == 'workflow_dispatch' }}
@@ -406,7 +408,6 @@ jobs:
         with:
           path: dist/windows
           key: ${{ env.cache_prefix }}-windows-${{ env.sha_short }}${{ env.flags }}
-          enableCrossOsArchive: true
 
       - name: Download web production build
         uses: actions/download-artifact@v8
@@ -430,7 +431,7 @@ jobs:
 
   docker:
     name: Build Docker images
-    needs: [ web, goprofilecombine ]
+    needs: [ web ]
     strategy:
       fail-fast: true
       matrix:
@@ -524,11 +525,6 @@ jobs:
           name: web-dist
           path: web/dist
 
-      - name: Download pprof profile
-        uses: actions/download-artifact@v8
-        with:
-          name: pprof
-
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v4
         with:
@@ -572,8 +568,6 @@ jobs:
             BUILDTIME=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
             VERSION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.version'] }}
             REVISION=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.revision'] }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
           provenance: false
 
       - name: Export image digest
@@ -596,7 +590,7 @@ jobs:
     name: Publish Docker multi-arch manifest
     if: ${{ github.event.pull_request.head.repo.full_name == github.repository || github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
-    needs: [ docker ]
+    needs: [ docker, test, test-irc, testother, web-test ]
     steps:
       - name: Download image digests
         uses: actions/download-artifact@v8

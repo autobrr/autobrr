@@ -465,26 +465,34 @@ func TestIndexersParseAndFilter(t *testing.T) {
 			},
 		},
 		{
-			name: "sharewood",
+			name: "superbits",
 			fields: fields{
-				identifier:         "sharewood",
-				identifierExternal: "Sharewood",
+				identifier:         "superbits",
+				identifierExternal: "SuperBits",
 				settings: map[string]string{
 					"passkey": "key",
 				},
 			},
 			subTests: []subTest{
 				{
-					name: "announce_resolution_differs_from_name",
+					name: "announce_binary_size",
 					args: args{
-						announceLines: []string{"Vidéos | La Brea S02E08 MULTi 1080p WEB x264-FW | 1.27 GiB | 1080p/i <https://sharewood.tv/torrents/la-brea-s02e08-multi-1080p-web-x264-fw.66870>"},
+						announceLines: []string{"-[new TV NO]2[Synthetic.Show.S01E01.NORWEGIAN.1080p.WEB.H264-GROUP]3[123]4[Size: 2.71 GB]5[FL: yes]6[Scene: yes]7[Pred 3m 39s ago]"},
 						filters: []filterTest{
 							{
 								filter: &domain.Filter{
-									Name:        "filter_1",
-									Resolutions: []string{"1080p"},
+									Name:    "filter_1",
+									MinSize: "2.8GB",
 								},
 								match: true,
+							},
+							{
+								filter: &domain.Filter{
+									Name:    "filter_2",
+									MaxSize: "2.8GB",
+								},
+								match:      false,
+								rejections: []string{"release size 2909840343 bytes is larger than filter max size 2800000000 bytes", "[max size] not matching: got 2909840343 want: 2.8GB"},
 							},
 						},
 					},
@@ -538,6 +546,80 @@ func TestIndexersParseAndFilter(t *testing.T) {
 									MinSize: "750MB",
 								},
 								match: true,
+							},
+						},
+					},
+					match: false,
+				},
+			},
+			match: true,
+		},
+		{
+			name: "czteam",
+			fields: fields{
+				identifier:         "czteam",
+				identifierExternal: "CZTeam",
+				settings: map[string]string{
+					"passkey": "key",
+				},
+			},
+			subTests: []subTest{
+				{
+					name: "announce_binary_size",
+					args: args{
+						announceLines: []string{"New Torrent: Synthetic.Movie.1988.2160p.UHD.BluRay.Remux.DV.HDR.HEVC-GROUP -- [FreeLeech!] -- [Movies/HD] [58,82 GB] -- https://czteam.me/details.php?id=123"},
+						filters: []filterTest{
+							{
+								filter: &domain.Filter{
+									Name:    "filter_1",
+									MinSize: "60GB",
+								},
+								match: true,
+							},
+							{
+								filter: &domain.Filter{
+									Name:    "filter_2",
+									MaxSize: "60GB",
+								},
+								match:      false,
+								rejections: []string{"release size 63157494087 bytes is larger than filter max size 60000000000 bytes", "[max size] not matching: got 63157494087 want: 60GB"},
+							},
+						},
+					},
+					match: false,
+				},
+			},
+			match: true,
+		},
+		{
+			name: "norbits",
+			fields: fields{
+				identifier:         "norbits",
+				identifierExternal: "Norbits",
+				settings: map[string]string{
+					"passkey": "key",
+				},
+			},
+			subTests: []subTest{
+				{
+					name: "announce_binary_size",
+					args: args{
+						announceLines: []string{"Ny torrent: Synthetic.Show.S01E01.NORWEGIAN.1080p.WEB-DL.H.264-GROUP :: Kategori: TV/H.264/HD-1080p/i/WEB-DL :: Scene: Nei :: Størrelse: 1.81 GB :: https://norbits.net/details.php?id=123"},
+						filters: []filterTest{
+							{
+								filter: &domain.Filter{
+									Name:    "filter_1",
+									MinSize: "1.9GB",
+								},
+								match: true,
+							},
+							{
+								filter: &domain.Filter{
+									Name:    "filter_2",
+									MaxSize: "1.9GB",
+								},
+								match:      false,
+								rejections: []string{"release size 1943472701 bytes is larger than filter max size 1900000000 bytes", "[max size] not matching: got 1943472701 want: 1.9GB"},
 							},
 						},
 					},

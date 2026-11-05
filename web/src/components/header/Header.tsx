@@ -4,7 +4,6 @@
  */
 
 import { useMutation } from "@tanstack/react-query";
-import { getRouteApi, redirect } from "@tanstack/react-router";
 import { Disclosure, DisclosureButton } from "@headlessui/react";
 import { Bars3Icon, XMarkIcon  } from "@heroicons/react/24/outline";
 import { useTranslation } from "react-i18next";
@@ -18,12 +17,12 @@ import { RightNav } from "./RightNav";
 import { MobileNav } from "./MobileNav";
 import { useInboxEvents } from "@hooks/useInbox";
 import { AuthContext } from "@utils/Context";
+import { markLoggedOut } from "@utils/autoLogin";
 import { InboxMenu } from "./InboxMenu";
 import { AlertBanner } from "./AlertBanner";
 
 export const Header = () => {
   const { t } = useTranslation("common");
-  const loginRoute = getRouteApi("/login");
 
   useInboxEvents();
 
@@ -33,12 +32,22 @@ export const Header = () => {
       toast.custom((toastInstance) => (
         <Toast type="success" body={t("header.logoutSuccess")} t={toastInstance} />
       ));
+      markLoggedOut();
       AuthContext.reset();
-      redirect({
-        to: loginRoute.id,
-      })
     },
-    onError: () => {}
+    onError: (error) => {
+      // An expired session is already logged out. Any other failure may have left
+      // the session alive, so keep the user signed in to retry.
+      if (error.message === "Cookie expired or invalid.") {
+        markLoggedOut();
+        AuthContext.reset();
+        return;
+      }
+
+      toast.custom((toastInstance) => (
+        <Toast type="error" body={error.message} t={toastInstance} />
+      ));
+    }
   });
 
   return (

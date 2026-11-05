@@ -392,6 +392,12 @@
       "maxAgeHelp": "Antigüedad máxima del contenido del feed en segundos. Usa 0 para deshabilitar el filtro de antigüedad y procesar todos los elementos.",
       "cacheTTL": "TTL de caché",
       "cacheTTLHelp": "Días que se recuerdan los elementos del feed procesados. Los elementos que sigan presentes en el feed tras la expiración se procesarán y descargarán de nuevo. El valor predeterminado es 31 días.",
+      "maxPages": "Páginas máximas",
+      "maxPagesHelp": "Número máximo de páginas a obtener por actualización al recuperar elementos perdidos. La paginación se detiene en el primer elemento ya procesado. El valor predeterminado es 1 (solo la primera página), el máximo es 10.",
+      "processOrder": "Orden de procesamiento",
+      "processOrderHelp": "Orden en que los nuevos elementos del feed se envían a los filtros. Más antiguos primero coincide con el orden de publicación. Más recientes primero procesa el último lanzamiento antes que los elementos más antiguos recuperados en la misma actualización.",
+      "processOrderOldestFirst": "Más antiguos primero",
+      "processOrderNewestFirst": "Más recientes primero",
       "cookie": "Cookie",
       "cookieHelp": "No se usa comúnmente",
       "userAgent": "User-Agent",
@@ -507,6 +513,9 @@
       "createTitle": "Crear clave API",
       "description": "Agregar nueva clave API.",
       "created": "Se agregó la clave API {{name}}",
+      "createdTitle": "Clave API creada",
+      "createdDescription": "Copia la clave ahora. Solo se guarda su hash, así que no se volverá a mostrar.",
+      "done": "Listo",
       "deleted": "Se eliminó la clave API {{name}}",
       "name": "Nombre",
       "key": "Clave",
@@ -521,7 +530,82 @@
       "createCta": "Crear clave API",
       "removeTitle": "Eliminar clave API: {{name}}",
       "removeText": "¿Estás seguro de que quieres eliminar esta clave API? Esta acción no se puede deshacer.",
-      "deleteKey": "Eliminar clave"
+      "deleteKey": "Eliminar clave",
+      "updated": "La clave API {{name}} se ha actualizado",
+      "updateTitle": "Editar clave API",
+      "updateDescription": "Actualiza el nombre y los permisos de esta clave API.",
+      "save": "Guardar",
+      "editKey": "Editar clave",
+      "permissions": "Permisos",
+      "permissionsDescription": "Elige los permisos mínimos necesarios para tu caso. Gestionar claves API, usuarios y configuración no está disponible para las claves API.",
+      "permissionsRequired": "Añade al menos un permiso",
+      "addPermissions": "Añadir permisos",
+      "selectPermissions": "Seleccionar permisos",
+      "searchPermissions": "Buscar",
+      "noPermissions": "Aún no se han añadido permisos.",
+      "noPermissionsFound": "No se encontraron permisos",
+      "removePermission": "Quitar el permiso {{name}}",
+      "accessLabel": "Acceso:",
+      "access": {
+        "read": "Solo lectura",
+        "invoke": "Solo activar",
+        "write": "Lectura y escritura"
+      },
+      "accessShort": {
+        "read": "Lectura",
+        "invoke": "Activar",
+        "write": "Escritura"
+      },
+      "resources": {
+        "filters": {
+          "label": "Filtros",
+          "description": "Filtros y sus acciones."
+        },
+        "releases": {
+          "label": "Releases",
+          "description": "Historial de releases, estadísticas, tareas de limpieza y reintentos de acciones."
+        },
+        "indexers": {
+          "label": "Indexadores",
+          "description": "Indexadores y su configuración."
+        },
+        "irc": {
+          "label": "IRC",
+          "description": "Redes IRC, canales y procesamiento de anuncios."
+        },
+        "feeds": {
+          "label": "Feeds",
+          "description": "Feeds RSS, Torznab y Newznab."
+        },
+        "downloaders": {
+          "label": "Clientes de descarga",
+          "description": "Clientes de descarga y pruebas de conexión."
+        },
+        "lists": {
+          "label": "Listas",
+          "description": "Listas, actualizaciones de listas y sus webhooks, p. ej. desde Sonarr o Radarr."
+        },
+        "notifications": {
+          "label": "Notificaciones",
+          "description": "Agentes de notificación."
+        },
+        "proxies": {
+          "label": "Proxies",
+          "description": "Proxies y pruebas de proxy."
+        },
+        "config": {
+          "label": "Configuración de la aplicación",
+          "description": "Ajustes de la aplicación como el nivel de log y la comprobación de actualizaciones."
+        },
+        "logs": {
+          "label": "Logs",
+          "description": "Archivos de log y el flujo de logs en vivo."
+        },
+        "updates": {
+          "label": "Actualizaciones",
+          "description": "Buscar nuevas versiones de autobrr."
+        }
+      }
     },
     "notification": {
       "settings": "Configuración",
@@ -615,6 +699,24 @@
       "ntfyTagsHelp": "Etiquetas/iconos separados por comas para notificaciones de ntfy",
       "ntfyTagsPlaceholder": "download,arr,white_check_mark",
       "ntfyPriorityHelp": "Máx 5, 4, 3 (predeterminado), 2, 1 Mín",
+      "barkServerUrl": "URL del servidor",
+      "barkServerUrlHelp": "URL del servidor Bark. Usa https://api.day.app para el servidor oficial",
+      "barkServerUrlPlaceholder": "https://api.day.app",
+      "barkServerUrlInvalid": "Debe ser una URL http:// o https:// sin parámetros de consulta",
+      "deviceKey": "Clave del dispositivo",
+      "barkDeviceKeyHelp": "La clave que sigue a la URL del servidor en tu URL de envío de Bark",
+      "barkLevel": "Nivel de interrupción",
+      "barkLevelHelp": "Pasivo solo añade a la lista de notificaciones, Urgente se muestra en modo Concentración, Crítico suena incluso en modo silencio (permite las alertas críticas en la app Bark)",
+      "barkLevelPassive": "Pasivo",
+      "barkLevelActive": "Activo (predeterminado)",
+      "barkLevelTimeSensitive": "Urgente",
+      "barkLevelCritical": "Crítico",
+      "sound": "Sonido",
+      "barkSoundHelp": "Nombre del sonido de Bark; déjalo vacío para usar el predeterminado de la app",
+      "barkSoundPlaceholder": "minuet",
+      "group": "Grupo",
+      "barkGroupHelp": "Agrupa las notificaciones en el Centro de notificaciones y en el historial de Bark",
+      "barkGroupPlaceholder": "autobrr",
       "url": "URL",
       "urlHelp": "URL",
       "shoutrrrDocsPrefix": "Ver documentación completa ",

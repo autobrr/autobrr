@@ -53,6 +53,7 @@ irc:
         - SuperBits
       parse:
         type: single
+        sizeunits: binary
         lines:
           - pattern: '\-\[(?P<category>.*)\]2\[(?P<releaseName>.*)\]3\[(?P<torrentId>\d+)\]4\[Size\:\s(?P<torrentSize>.*)\]5\[FL\:\s(?P<freeleech>no|yes)\]6\[Scene\:\s(?P<scene>no|yes)\](?:7\[Pred\s(?P<preTime>.*)\sago\])?'
             tests:

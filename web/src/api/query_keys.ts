@@ -72,7 +72,7 @@ export const ApiKeys = {
   all: ["api_keys"] as const,
   lists: () => [...ApiKeys.all, "list"] as const,
   details: () => [...ApiKeys.all, "detail"] as const,
-  detail: (id: string) => [...ApiKeys.details(), id] as const
+  detail: (id: number) => [...ApiKeys.details(), id] as const
 };
 
 export const DownloaderKeys = {

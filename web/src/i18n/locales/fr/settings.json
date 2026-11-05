@@ -392,6 +392,12 @@
       "maxAgeHelp": "Âge maximum du contenu du feed en secondes. Utiliser 0 pour désactiver le filtre d'âge et traiter tous les éléments.",
       "cacheTTL": "TTL du cache",
       "cacheTTLHelp": "Nombre de jours pendant lesquels les éléments du feed traités sont mémorisés. Les éléments encore présents dans le feed après expiration seront traités et téléchargés à nouveau. La valeur par défaut est de 31 jours.",
+      "maxPages": "Pages max.",
+      "maxPagesHelp": "Nombre maximal de pages à récupérer par actualisation pour rattraper les éléments manqués. La pagination s'arrête au premier élément déjà traité. La valeur par défaut est 1 (première page uniquement), le maximum est 10.",
+      "processOrder": "Ordre de traitement",
+      "processOrderHelp": "Ordre dans lequel les nouveaux éléments du flux sont envoyés aux filtres. Plus anciens d'abord suit l'ordre de publication. Plus récents d'abord traite la dernière release avant les éléments plus anciens récupérés lors de la même actualisation.",
+      "processOrderOldestFirst": "Plus anciens d'abord",
+      "processOrderNewestFirst": "Plus récents d'abord",
       "cookie": "Cookie",
       "cookieHelp": "Rarement utilisé",
       "userAgent": "User-Agent",
@@ -507,6 +513,9 @@
       "createTitle": "Créer une clé API",
       "description": "Ajouter une nouvelle clé API.",
       "created": "La clé API {{name}} a été ajoutée",
+      "createdTitle": "Clé API créée",
+      "createdDescription": "Copiez la clé maintenant. Seule son empreinte est enregistrée, elle ne sera donc plus affichée.",
+      "done": "Terminé",
       "deleted": "La clé API {{name}} a été supprimée",
       "name": "Nom",
       "key": "Clé",
@@ -521,7 +530,82 @@
       "createCta": "Créer une clé API",
       "removeTitle": "Supprimer la clé API : {{name}}",
       "removeText": "Es-tu sûr de vouloir supprimer cette clé API ? Cette action est irréversible.",
-      "deleteKey": "Supprimer la clé"
+      "deleteKey": "Supprimer la clé",
+      "updated": "La clé API {{name}} a été mise à jour",
+      "updateTitle": "Modifier la clé API",
+      "updateDescription": "Modifiez le nom et les permissions de cette clé API.",
+      "save": "Enregistrer",
+      "editKey": "Modifier la clé",
+      "permissions": "Permissions",
+      "permissionsDescription": "Choisissez les permissions minimales nécessaires à votre usage. La gestion des clés API, des utilisateurs et de la configuration n'est pas disponible pour les clés API.",
+      "permissionsRequired": "Ajoutez au moins une permission",
+      "addPermissions": "Ajouter des permissions",
+      "selectPermissions": "Sélectionner des permissions",
+      "searchPermissions": "Rechercher",
+      "noPermissions": "Aucune permission ajoutée pour le moment.",
+      "noPermissionsFound": "Aucune permission trouvée",
+      "removePermission": "Retirer la permission {{name}}",
+      "accessLabel": "Accès :",
+      "access": {
+        "read": "Lecture seule",
+        "invoke": "Déclenchement uniquement",
+        "write": "Lecture et écriture"
+      },
+      "accessShort": {
+        "read": "Lecture",
+        "invoke": "Déclencher",
+        "write": "Écriture"
+      },
+      "resources": {
+        "filters": {
+          "label": "Filtres",
+          "description": "Les filtres et leurs actions."
+        },
+        "releases": {
+          "label": "Releases",
+          "description": "Historique des releases, statistiques, tâches de nettoyage et relances d'actions."
+        },
+        "indexers": {
+          "label": "Indexeurs",
+          "description": "Les indexeurs et leurs paramètres."
+        },
+        "irc": {
+          "label": "IRC",
+          "description": "Réseaux IRC, canaux et traitement des annonces."
+        },
+        "feeds": {
+          "label": "Flux",
+          "description": "Flux RSS, Torznab et Newznab."
+        },
+        "downloaders": {
+          "label": "Clients de téléchargement",
+          "description": "Clients de téléchargement et tests de connexion."
+        },
+        "lists": {
+          "label": "Listes",
+          "description": "Listes, actualisation des listes et ses webhooks, par ex. depuis Sonarr ou Radarr."
+        },
+        "notifications": {
+          "label": "Notifications",
+          "description": "Agents de notification."
+        },
+        "proxies": {
+          "label": "Proxys",
+          "description": "Proxys et tests de proxy."
+        },
+        "config": {
+          "label": "Configuration de l'application",
+          "description": "Paramètres de l'application comme le niveau de log et la vérification des mises à jour."
+        },
+        "logs": {
+          "label": "Logs",
+          "description": "Fichiers de log et flux de logs en direct."
+        },
+        "updates": {
+          "label": "Mises à jour",
+          "description": "Rechercher de nouvelles versions d'autobrr."
+        }
+      }
     },
     "notification": {
       "settings": "Paramètres",
@@ -615,6 +699,24 @@
       "ntfyTagsHelp": "Tags/icônes separés par des virgules pour les notifications ntfy",
       "ntfyTagsPlaceholder": "download,arr,white_check_mark",
       "ntfyPriorityHelp": "Max 5, 4, 3 (par défaut), 2, 1 Min",
+      "barkServerUrl": "URL du serveur",
+      "barkServerUrlHelp": "URL du serveur Bark. Utilisez https://api.day.app pour le serveur officiel",
+      "barkServerUrlPlaceholder": "https://api.day.app",
+      "barkServerUrlInvalid": "Doit être une URL http:// ou https:// sans paramètres de requête",
+      "deviceKey": "Clé de l'appareil",
+      "barkDeviceKeyHelp": "La clé qui suit l'URL du serveur dans votre URL de push Bark",
+      "barkLevel": "Niveau d'interruption",
+      "barkLevelHelp": "Passif ajoute seulement à la liste des notifications, Urgent s'affiche en mode Concentration, Critique sonne même en mode silencieux (autorisez les alertes critiques dans l'app Bark)",
+      "barkLevelPassive": "Passif",
+      "barkLevelActive": "Actif (par défaut)",
+      "barkLevelTimeSensitive": "Urgent",
+      "barkLevelCritical": "Critique",
+      "sound": "Son",
+      "barkSoundHelp": "Nom du son Bark, laissez vide pour utiliser le son par défaut de l'app",
+      "barkSoundPlaceholder": "minuet",
+      "group": "Groupe",
+      "barkGroupHelp": "Regroupe les notifications dans le Centre de notifications et l'historique Bark",
+      "barkGroupPlaceholder": "autobrr",
       "url": "URL",
       "urlHelp": "URL",
       "shoutrrrDocsPrefix": "Consulter la documentation complète ",

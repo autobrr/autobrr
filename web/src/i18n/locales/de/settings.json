@@ -392,6 +392,12 @@
       "maxAgeHelp": "Maximales Alter des Feedinhalts in Sekunden. 0 verwenden, um den Altersfilter zu deaktivieren und alle Einträge zu verarbeiten.",
       "cacheTTL": "Cache-TTL",
       "cacheTTLHelp": "Anzahl der Tage, die verarbeitete Feed-Einträge gemerkt werden. Einträge, die nach Ablauf noch im Feed vorhanden sind, werden erneut verarbeitet und heruntergeladen. Standard ist 31 Tage.",
+      "maxPages": "Max. Seiten",
+      "maxPagesHelp": "Maximale Anzahl an Seiten, die pro Aktualisierung abgerufen werden, um verpasste Einträge nachzuholen. Die Paginierung stoppt beim ersten bereits verarbeiteten Eintrag. Standard ist 1 (nur erste Seite), Maximum ist 10.",
+      "processOrder": "Verarbeitungsreihenfolge",
+      "processOrderHelp": "Reihenfolge, in der neue Feed-Einträge an Filter übergeben werden. Älteste zuerst entspricht der Reihenfolge der Veröffentlichung. Neueste zuerst verarbeitet das neueste Release vor älteren Einträgen aus derselben Aktualisierung.",
+      "processOrderOldestFirst": "Älteste zuerst",
+      "processOrderNewestFirst": "Neueste zuerst",
       "cookie": "Cookie",
       "cookieHelp": "Nicht häufig verwendet",
       "userAgent": "User-Agent",
@@ -507,6 +513,9 @@
       "createTitle": "API-Schlüssel erstellen",
       "description": "Neuen API-Schlüssel hinzufügen.",
       "created": "API-Schlüssel {{name}} wurde hinzugefügt",
+      "createdTitle": "API-Schlüssel erstellt",
+      "createdDescription": "Kopiere den Schlüssel jetzt. Gespeichert wird nur sein Hash, er wird also nicht noch einmal angezeigt.",
+      "done": "Fertig",
       "deleted": "API-Schlüssel {{name}} wurde gelöscht",
       "name": "Name",
       "key": "Schlüssel",
@@ -521,7 +530,82 @@
       "createCta": "API-Schlüssel erstellen",
       "removeTitle": "API-Schlüssel entfernen: {{name}}",
       "removeText": "Bist du sicher, dass du diesen API-Schlüssel entfernen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.",
-      "deleteKey": "Schlüssel löschen"
+      "deleteKey": "Schlüssel löschen",
+      "updated": "API-Schlüssel {{name}} wurde aktualisiert",
+      "updateTitle": "API-Schlüssel bearbeiten",
+      "updateDescription": "Name und Berechtigungen dieses API-Schlüssels ändern.",
+      "save": "Speichern",
+      "editKey": "Schlüssel bearbeiten",
+      "permissions": "Berechtigungen",
+      "permissionsDescription": "Wähle nur die Berechtigungen, die du wirklich brauchst. API-Schlüssel, Benutzer und Konfiguration verwalten ist mit API-Schlüsseln nicht möglich.",
+      "permissionsRequired": "Füge mindestens eine Berechtigung hinzu",
+      "addPermissions": "Berechtigungen hinzufügen",
+      "selectPermissions": "Berechtigungen auswählen",
+      "searchPermissions": "Suchen",
+      "noPermissions": "Noch keine Berechtigungen hinzugefügt.",
+      "noPermissionsFound": "Keine Berechtigungen gefunden",
+      "removePermission": "Berechtigung {{name}} entfernen",
+      "accessLabel": "Zugriff:",
+      "access": {
+        "read": "Nur lesen",
+        "invoke": "Nur auslösen",
+        "write": "Lesen und schreiben"
+      },
+      "accessShort": {
+        "read": "Lesen",
+        "invoke": "Auslösen",
+        "write": "Schreiben"
+      },
+      "resources": {
+        "filters": {
+          "label": "Filter",
+          "description": "Filter und ihre Aktionen."
+        },
+        "releases": {
+          "label": "Releases",
+          "description": "Release-Verlauf, Statistiken, Bereinigungsjobs und Aktionswiederholungen."
+        },
+        "indexers": {
+          "label": "Indexer",
+          "description": "Indexer und ihre Einstellungen."
+        },
+        "irc": {
+          "label": "IRC",
+          "description": "IRC-Netzwerke, Kanäle und Announce-Verarbeitung."
+        },
+        "feeds": {
+          "label": "Feeds",
+          "description": "RSS-, Torznab- und Newznab-Feeds."
+        },
+        "downloaders": {
+          "label": "Download-Clients",
+          "description": "Download-Clients und Verbindungstests."
+        },
+        "lists": {
+          "label": "Listen",
+          "description": "Listen, Listenaktualisierungen und die Webhooks dafür, z. B. aus Sonarr oder Radarr."
+        },
+        "notifications": {
+          "label": "Benachrichtigungen",
+          "description": "Benachrichtigungsdienste."
+        },
+        "proxies": {
+          "label": "Proxys",
+          "description": "Proxys und Proxy-Tests."
+        },
+        "config": {
+          "label": "Anwendungskonfiguration",
+          "description": "Anwendungseinstellungen wie Log-Level und Update-Prüfung."
+        },
+        "logs": {
+          "label": "Logs",
+          "description": "Logdateien und der Live-Log-Stream."
+        },
+        "updates": {
+          "label": "Updates",
+          "description": "Nach neuen autobrr-Versionen suchen."
+        }
+      }
     },
     "notification": {
       "settings": "Einstellungen",
@@ -615,6 +699,24 @@
       "ntfyTagsHelp": "Kommagetrennte Tags/Symbole fur ntfy-Benachrichtigungen",
       "ntfyTagsPlaceholder": "download,arr,white_check_mark",
       "ntfyPriorityHelp": "Max 5, 4, 3 (Standard), 2, 1 Min",
+      "barkServerUrl": "Server-URL",
+      "barkServerUrlHelp": "Bark-Server-URL. Für den offiziellen Server https://api.day.app verwenden",
+      "barkServerUrlPlaceholder": "https://api.day.app",
+      "barkServerUrlInvalid": "Muss eine http://- oder https://-URL ohne Query-Parameter sein",
+      "deviceKey": "Geräteschlüssel",
+      "barkDeviceKeyHelp": "Der Schlüssel nach der Server-URL in der Bark-Push-URL",
+      "barkLevel": "Unterbrechungsstufe",
+      "barkLevelHelp": "Passiv fügt nur zur Mitteilungsliste hinzu, Dringend wird auch im Fokus angezeigt, Kritisch klingelt auch im Stumm-Modus (kritische Hinweise in der Bark-App erlauben)",
+      "barkLevelPassive": "Passiv",
+      "barkLevelActive": "Aktiv (Standard)",
+      "barkLevelTimeSensitive": "Dringend",
+      "barkLevelCritical": "Kritisch",
+      "sound": "Ton",
+      "barkSoundHelp": "Name des Bark-Tons, leer lassen für den App-Standard",
+      "barkSoundPlaceholder": "minuet",
+      "group": "Gruppe",
+      "barkGroupHelp": "Gruppiert Benachrichtigungen in der Mitteilungszentrale und im Bark-Verlauf",
+      "barkGroupPlaceholder": "autobrr",
       "url": "URL",
       "urlHelp": "URL",
       "shoutrrrDocsPrefix": "Vollständige Dokumentation ",

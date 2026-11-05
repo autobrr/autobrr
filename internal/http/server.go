@@ -8,10 +8,13 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/netip"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/config"
+	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
 	"github.com/autobrr/autobrr/web"
 
@@ -35,6 +38,25 @@ type Server struct {
 	config         *config.AppConfig
 	allowedOrigins []string
 	sessionManager *scs.SessionManager
+
+	// authAllowedPeerPrefixes is parsed once at startup from
+	// config.AuthAllowedPeerCIDRs, rather than on every request.
+	authAllowedPeerPrefixes []netip.Prefix
+
+	// trustedProxyPrefixes is parsed once at startup from config.TrustedProxies
+	// and not used in modes with ProxyGuards.
+	trustedProxyPrefixes []netip.Prefix
+
+	// authAllowedOrigins, authAllowedHosts and authFrameAncestors are derived once
+	// at startup from config.CorsAllowedOrigins and config.AuthAllowedHosts, and
+	// only enforced in modes with ProxyGuards.
+	authAllowedOrigins map[string]struct{}
+	authAllowedHosts   map[string]struct{}
+	authFrameAncestors string
+
+	// healthCheckPaths holds the exact resolved paths (base URL included) that are
+	// reachable from loopback in modes with ProxyGuards.
+	healthCheckPaths []string
 
 	actionService       actionService
 	alertService        alertService
@@ -133,7 +155,117 @@ func NewServer(deps Deps) *Server {
 		srv.allowedOrigins = strings.Split(deps.Config.Config.CorsAllowedOrigins, ",")
 	}
 
+	if deps.Config.Config.AuthCapabilities().ProxyGuards {
+		prefixes, err := deps.Config.Config.ParseAuthAllowedPeerCIDRs()
+		if err != nil {
+			srv.log.Error().Err(err).Msg("proxy guard: invalid authAllowedPeerCIDRs, denying all requests")
+		} else {
+			srv.authAllowedPeerPrefixes = prefixes
+		}
+
+		if err := srv.buildAuthAllowlists(); err != nil {
+			srv.log.Error().Err(err).Msg("proxy guard: invalid corsAllowedOrigins or authAllowedHosts, denying requests by hostname")
+		}
+	} else if len(deps.Config.Config.TrustedProxies) > 0 {
+		prefixes, err := deps.Config.Config.ParseTrustedProxies()
+		if err != nil {
+			// an empty list trusts no peer, so forwarded headers are ignored rather
+			// than falling back to trusting everyone
+			srv.log.Error().Err(err).Msg("invalid trustedProxies, ignoring forwarded client IPs")
+			prefixes = []netip.Prefix{}
+		}
+
+		srv.trustedProxyPrefixes = prefixes
+	}
+
+	srv.healthCheckPaths = []string{
+		srv.routeBaseURL() + "api/healthz/liveness",
+		srv.routeBaseURL() + "api/healthz/readiness",
+	}
+
 	return srv
+}
+
+// limiterKey returns the address the login and OIDC limiters bucket on: the TCP
+// peer, or the client RealIPFromTrustedProxies resolved when that peer is a
+// trusted proxy, with IPv6 grouped by /64. The legacy RealIP rewrites r.RemoteAddr from headers any peer
+// may send, so a rewritten address is never trusted from an unknown peer.
+func (s *Server) limiterKey(r *http.Request) string {
+	peer, ok := peerAddrFromContext(r.Context())
+	if !ok {
+		// Only routers built without StorePeerAddr get here (unit tests), and
+		// those have no RealIP in front, so r.RemoteAddr is still the TCP peer.
+		if addr, ok := parsePeerAddr(r.RemoteAddr); ok {
+			return limiterBucket(addr)
+		}
+
+		return clientIP(r.RemoteAddr)
+	}
+
+	if isTrustedProxy(s.trustedProxyPrefixes, peer) {
+		if client, ok := parsePeerAddr(middleware.GetClientIP(r.Context())); ok {
+			return limiterBucket(client)
+		}
+	}
+
+	return limiterBucket(peer)
+}
+
+// buildAuthAllowlists derives the origin and host allowlists and the
+// frame-ancestors policy enforced in modes with ProxyGuards.
+func (s *Server) buildAuthAllowlists() error {
+	origins, err := s.config.Config.ParseAuthAllowedOrigins()
+	if err != nil {
+		return err
+	}
+
+	hosts, err := s.config.Config.ParseAuthAllowedHosts()
+	if err != nil {
+		return err
+	}
+
+	// The machine hostname is not attacker-controlled DNS, and admitting it
+	// keeps http://<hostname>:7474 working without configuration.
+	if name, err := os.Hostname(); err == nil {
+		if host, err := domain.NormalizeHost(name); err == nil {
+			hosts = append(hosts, host)
+		}
+	}
+
+	s.authAllowedOrigins = make(map[string]struct{}, len(origins))
+	s.authAllowedHosts = make(map[string]struct{}, len(origins)+len(hosts))
+	for _, origin := range origins {
+		s.authAllowedOrigins[origin] = struct{}{}
+		if _, host, ok := strings.Cut(origin, "://"); ok {
+			if host, err := domain.NormalizeHost(host); err == nil {
+				s.authAllowedHosts[host] = struct{}{}
+			}
+		}
+	}
+
+	for _, host := range hosts {
+		s.authAllowedHosts[host] = struct{}{}
+	}
+
+	// rs/cors matches origins verbatim, so hand it the normalized list the Origin
+	// check uses. An empty list would make rs/cors allow every origin.
+	if len(origins) > 0 {
+		s.allowedOrigins = origins
+	}
+
+	s.authFrameAncestors = strings.Join(append([]string{"frame-ancestors 'self'"}, origins...), " ")
+
+	return nil
+}
+
+// routeBaseURL returns the base path the routers are mounted under. It mirrors the
+// derivation in Handler(): legacy mode always mounts at "/", otherwise at the
+// configured base URL.
+func (s *Server) routeBaseURL() string {
+	if s.config.Config.BaseURLModeLegacy {
+		return "/"
+	}
+	return s.config.Config.BaseURL
 }
 
 // Listen binds the configured address. It returns before serving so a port
@@ -201,14 +333,35 @@ func (s *Server) Handler() http.Handler {
 
 	r.Use(hlog.NewHandler(s.log))
 	r.Use(hlog.RequestIDHandler("request_id", "X-Request-Id"))
-	r.Use(middleware.RealIP)
+	// Both must run before RealIP so forwarded headers can neither bypass the
+	// allowlist nor pick the address the login limiters bucket on.
+	r.Use(StorePeerAddr)
+	r.Use(s.RequireAuthDisabledIPAllowlist)
+	r.Use(s.RequireAuthDisabledAllowedHost)
+	r.Use(s.RestrictAuthDisabledFraming)
+	if s.config.Config.AuthCapabilities().ProxyGuards {
+		// RealIP rewrites r.RemoteAddr from forwarded headers it trusts from any
+		// peer, so it stays off in this mode. If the operator names the header their
+		// proxy overwrites, resolve the client IP from it into the request context
+		// for logging; r.RemoteAddr keeps the real TCP peer either way.
+		if header := strings.TrimSpace(s.config.Config.AuthClientIPHeader); header != "" {
+			r.Use(middleware.ClientIPFromHeader(header))
+		}
+	} else if s.trustedProxyPrefixes != nil {
+		r.Use(RealIPFromTrustedProxies(s.trustedProxyPrefixes))
+	} else {
+		r.Use(middleware.RealIP)
+	}
 	r.Use(middleware.Recoverer)
-	r.Use(LoggerMiddleware(&s.log))
+	r.Use(LoggerMiddleware(&s.log, s.healthCheckPaths))
 
 	c := cors.New(cors.Options{
-		AllowCredentials:   true,
-		AllowedMethods:     []string{http.MethodHead, http.MethodOptions, http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete},
-		AllowedHeaders:     []string{"Authorization"},
+		AllowCredentials: true,
+		AllowedMethods:   []string{http.MethodHead, http.MethodOptions, http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete},
+		// Content-Type must be approved for cross-origin JSON writes to pass
+		// preflight, X-API-Token so allowlisted browser tools can authenticate
+		// with a header instead of ?apikey= in the URL.
+		AllowedHeaders:     []string{"Authorization", "Content-Type", "X-API-Token", "X-Requested-With"},
 		AllowedOrigins:     s.allowedOrigins,
 		OptionsPassthrough: true,
 		// Enable Debugging for testing, consider disabling in production
@@ -218,47 +371,7 @@ func (s *Server) Handler() http.Handler {
 	r.Use(c.Handler)
 	r.Use(s.sessionMiddleware)
 
-	encoder := newEncoder(s.log)
-
-	// Create a separate router for API
-	apiRouter := chi.NewRouter()
-	apiRouter.Route("/auth", newAuthHandler(encoder, s.log, s, s.config.Config, s.sessionManager, s.authService, s.oidcService).Routes)
-	apiRouter.Route("/healthz", newHealthHandler(encoder, s.db).Routes)
-	apiRouter.Group(func(r chi.Router) {
-		r.Group(func(r chi.Router) {
-			r.Use(s.IsAuthenticated)
-
-			r.Route("/actions", newActionHandler(encoder, s.actionService).Routes)
-			r.Route("/alerts", newAlertHandler(encoder, s.alertService).Routes)
-			r.Route("/config", newConfigHandler(encoder, s.buildInfo, s.config).Routes)
-			r.Route("/downloaders", newDownloaderHandler(encoder, s.downloaderService).Routes)
-			r.Route("/filters", newFilterHandler(encoder, s.filterService).Routes)
-			r.Route("/feeds", newFeedHandler(encoder, s.feedService).Routes)
-			r.Route("/irc", newIrcHandler(encoder, s.sse, s.ircService).Routes)
-			r.Route("/indexer", newIndexerHandler(encoder, s.indexerService, s.ircService).Routes)
-			r.Route("/lists", newListHandler(encoder, s.listService).Routes)
-			r.Route("/keys", newAPIKeyHandler(encoder, s.apiService).Routes)
-			r.Route("/logs", newLogsHandler(s.config).Routes)
-			r.Route("/notification", newNotificationHandler(encoder, s.notificationService).Routes)
-			r.Route("/proxy", newProxyHandler(encoder, s.proxyService).Routes)
-			r.Route("/release", newReleaseHandler(encoder, s.releaseService).Routes)
-			r.Route("/updates", newUpdateHandler(encoder, s.updateService).Routes)
-			r.Route("/webhook", newWebhookHandler(encoder, s.listService).Routes)
-
-			r.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
-
-				// inject CORS headers to bypass checks
-				s.sse.Headers = map[string]string{
-					"Content-Type":      "text/event-stream",
-					"Cache-Control":     "no-cache",
-					"Connection":        "keep-alive",
-					"X-Accel-Buffering": "no",
-				}
-
-				s.sse.ServeHTTP(w, r)
-			})
-		})
-	})
+	apiRouter := s.apiRoutes()
 
 	routeBaseURL := "/"
 
@@ -302,4 +415,54 @@ func (s *Server) Handler() http.Handler {
 	r.Mount(routeBaseURL+"api", apiRouter)
 
 	return r
+}
+
+// apiRoutes builds the router mounted under /api. Every route behind IsAuthenticated declares the scope an API key
+// needs with requireScope, or requireUser for routes keys can never use.
+func (s *Server) apiRoutes() chi.Router {
+	encoder := newEncoder(s.log)
+
+	apiRouter := chi.NewRouter()
+	// API only, so cross-site navigations to the web shell keep working. Framing
+	// is limited separately by RestrictAuthDisabledFraming.
+	apiRouter.Use(s.RejectUntrustedBrowserRequests)
+	apiRouter.Route("/auth", newAuthHandler(encoder, s.log, s, s.config.Config, s.sessionManager, s.authService, s.oidcService).Routes)
+	apiRouter.Route("/healthz", newHealthHandler(encoder, s.db).Routes)
+	apiRouter.Group(func(r chi.Router) {
+		r.Group(func(r chi.Router) {
+			r.Use(s.IsAuthenticated)
+
+			r.Route("/actions", newActionHandler(encoder, s.actionService).Routes)
+			r.Route("/alerts", newAlertHandler(encoder, s.alertService).Routes)
+			r.Route("/config", newConfigHandler(encoder, s.buildInfo, s.config).Routes)
+			r.Route("/downloaders", newDownloaderHandler(encoder, s.downloaderService).Routes)
+			r.Route("/filters", newFilterHandler(encoder, s.filterService).Routes)
+			r.Route("/feeds", newFeedHandler(encoder, s.feedService).Routes)
+			r.Route("/irc", newIrcHandler(encoder, s.sse, s.ircService).Routes)
+			r.Route("/indexer", newIndexerHandler(encoder, s.indexerService, s.ircService).Routes)
+			r.Route("/lists", newListHandler(encoder, s.listService).Routes)
+			r.Route("/keys", newAPIKeyHandler(encoder, s.log, s.apiService, s.config.Config).Routes)
+			r.Route("/logs", newLogsHandler(s.config).Routes)
+			r.Route("/notification", newNotificationHandler(encoder, s.notificationService).Routes)
+			r.Route("/proxy", newProxyHandler(encoder, s.proxyService).Routes)
+			r.Route("/release", newReleaseHandler(encoder, s.releaseService).Routes)
+			r.Route("/updates", newUpdateHandler(encoder, s.updateService).Routes)
+			r.Route("/webhook", newWebhookHandler(encoder, s.listService).Routes)
+
+			r.With(requireStreamAccess).HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
+
+				// inject CORS headers to bypass checks
+				s.sse.Headers = map[string]string{
+					"Content-Type":      "text/event-stream",
+					"Cache-Control":     "no-cache",
+					"Connection":        "keep-alive",
+					"X-Accel-Buffering": "no",
+				}
+
+				s.sse.ServeHTTP(w, r)
+			})
+		})
+	})
+
+	return apiRouter
 }

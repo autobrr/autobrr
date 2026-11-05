@@ -36,14 +36,18 @@ func newListHandler(encoder encoder, service listService) *listHandler {
 }
 
 func (h listHandler) Routes(r chi.Router) {
-	r.Get("/", h.list)
-	r.Post("/", h.store)
-	r.Post("/refresh", h.refreshAll)
+	read := requireScope(domain.APIResourceLists, domain.APIAccessRead)
+	invoke := requireScope(domain.APIResourceLists, domain.APIAccessInvoke)
+	write := requireScope(domain.APIResourceLists, domain.APIAccessWrite)
+
+	r.With(read).Get("/", h.list)
+	r.With(write).Post("/", h.store)
+	r.With(invoke).Post("/refresh", h.refreshAll)
 
 	r.Route("/{listID}", func(r chi.Router) {
-		r.Post("/refresh", h.refreshList)
-		r.Put("/", h.update)
-		r.Delete("/", h.delete)
+		r.With(invoke).Post("/refresh", h.refreshList)
+		r.With(write).Put("/", h.update)
+		r.With(write).Delete("/", h.delete)
 	})
 }
 

@@ -7,6 +7,8 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/autobrr/autobrr/internal/domain"
+
 	"github.com/go-chi/chi/v5"
 )
 
@@ -20,16 +22,19 @@ func newWebhookHandler(encoder encoder, listSvc listService) *webhookHandler {
 }
 
 func (h *webhookHandler) Routes(r chi.Router) {
+	// the webhooks only trigger list refreshes, which is what lists:invoke grants
+	invoke := requireScope(domain.APIResourceLists, domain.APIAccessInvoke)
+
 	r.Route("/lists", func(r chi.Router) {
-		r.Post("/trigger", h.refreshAll)
-		r.Post("/trigger/arr", h.refreshArr)
-		r.Post("/trigger/lists", h.refreshLists)
+		r.With(invoke).Post("/trigger", h.refreshAll)
+		r.With(invoke).Post("/trigger/arr", h.refreshArr)
+		r.With(invoke).Post("/trigger/lists", h.refreshLists)
 
-		r.Get("/trigger", h.refreshAll)
-		r.Get("/trigger/arr", h.refreshArr)
-		r.Get("/trigger/lists", h.refreshLists)
+		r.With(invoke).Get("/trigger", h.refreshAll)
+		r.With(invoke).Get("/trigger/arr", h.refreshArr)
+		r.With(invoke).Get("/trigger/lists", h.refreshLists)
 
-		r.Post("/trigger/{listID}", h.refreshByID)
+		r.With(invoke).Post("/trigger/{listID}", h.refreshByID)
 	})
 }
 

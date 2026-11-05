@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/config"
+	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 
 	"github.com/dustin/go-humanize"
@@ -30,8 +31,10 @@ func newLogsHandler(cfg *config.AppConfig) *logsHandler {
 }
 
 func (h logsHandler) Routes(r chi.Router) {
-	r.Get("/files", h.files)
-	r.Get("/files/{logFile}", h.downloadFile)
+	read := requireScope(domain.APIResourceLogs, domain.APIAccessRead)
+
+	r.With(read).Get("/files", h.files)
+	r.With(read).Get("/files/{logFile}", h.downloadFile)
 }
 
 func (h logsHandler) files(w http.ResponseWriter, r *http.Request) {

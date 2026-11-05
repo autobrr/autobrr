@@ -37,16 +37,19 @@ func newDownloaderHandler(encoder encoder, service downloaderService) *downloade
 }
 
 func (h downloaderHandler) Routes(r chi.Router) {
-	r.Get("/", h.listDownloaders)
-	r.Post("/", h.store)
-	r.Put("/", h.update)
-	r.Post("/test", h.test)
+	read := requireScope(domain.APIResourceDownloaders, domain.APIAccessRead)
+	write := requireScope(domain.APIResourceDownloaders, domain.APIAccessWrite)
+
+	r.With(read).Get("/", h.listDownloaders)
+	r.With(write).Post("/", h.store)
+	r.With(write).Put("/", h.update)
+	r.With(write).Post("/test", h.test)
 
 	r.Route("/{clientID}", func(r chi.Router) {
-		r.Get("/", h.findByID)
-		r.Delete("/", h.delete)
+		r.With(read).Get("/", h.findByID)
+		r.With(write).Delete("/", h.delete)
 
-		r.Get("/arr/tags", h.findArrTagsByID)
+		r.With(read).Get("/arr/tags", h.findArrTagsByID)
 	})
 }
 

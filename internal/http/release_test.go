@@ -183,6 +183,7 @@ func setupReleaseHandler(service releaseService) chi.Router {
 	handler := newReleaseHandler(encoder, service)
 
 	r := chi.NewRouter()
+	r.Use(asCaller(testUser))
 	r.Route("/api/releases", handler.Routes)
 
 	return r

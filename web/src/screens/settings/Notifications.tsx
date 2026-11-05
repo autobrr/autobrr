@@ -17,6 +17,7 @@ import { componentMapType } from "@forms/settings/DownloaderForms";
 import toast from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import {
+  BarkIcon,
   DiscordIcon,
   GotifyIcon,
   LunaSeaIcon,
@@ -107,6 +108,7 @@ const iconComponentMap: componentMapType = {
   PUSHOVER: <span className={iconStyle}><PushoverIcon /> Pushover</span>,
   GOTIFY: <span className={iconStyle}><GotifyIcon /> Gotify</span>,
   NTFY: <span className={iconStyle}><NtfyIcon /> ntfy</span>,
+  BARK: <span className={iconStyle}><BarkIcon /> Bark</span>,
   SHOUTRRR: <span className={iconStyle}><NtfyIcon /> Shoutrrr</span>,
   LUNASEA: <span className={iconStyle}><LunaSeaIcon /> LunaSea</span>,
   WEBHOOK: <span className={iconStyle}><WebhookIcon /> Webhook</span>,

@@ -32,7 +32,9 @@ import {
   ProxiesQueryOptions
 } from "@api/queries";
 import { RingResizeSpinner } from "@components/Icons";
-import { AuthContext } from "@utils/Context";
+import { AuthContext, AuthInfo } from "@utils/Context";
+import { claimAutoRedirect, consumeLoggedOut } from "@utils/autoLogin";
+import { isSameOriginPath } from "@utils";
 import { queryClient } from "@api/QueryClient";
 
 import { ErrorPage } from "@components/alerts";
@@ -219,7 +221,14 @@ export const SettingsNotificationsRoute = createRoute({
 export const SettingsApiRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'api',
-  loader: (opts) => opts.context.queryClient.query({ ...ApikeysQueryOptions(), staleTime: "static" }),
+  loader: (opts) => {
+    // Skip the prefetch in modes without key management so the (403'd) endpoint
+    // isn't hit and the page can render its notice.
+    if (!AuthContext.get().capabilities?.api_key_management) {
+      return;
+    }
+    return opts.context.queryClient.query({ ...ApikeysQueryOptions(), staleTime: "static" });
+  },
   component: lazyRouteComponent(() => import("@screens/settings/Api"))
 });
 
@@ -239,6 +248,11 @@ export const SettingsReleasesRoute = createRoute({
 export const SettingsAccountRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'account',
+  beforeLoad: async () => {
+    if (!AuthContext.get().capabilities?.account_management) {
+      throw redirect({ to: SettingsRoute.to });
+    }
+  },
   component: lazyRouteComponent(() => import("@screens/settings/Account"))
 });
 
@@ -276,24 +290,103 @@ export const OnboardRoute = createRoute({
   component: lazyRouteComponent(() => import("@screens/auth/Onboarding"), "Onboarding")
 });
 
+type ValidateResponse = Awaited<ReturnType<typeof APIClient.auth.validate>>;
+
+const toAuthInfo = (validation: ValidateResponse, config?: Config, issuerUrl?: string): AuthInfo => ({
+  isLoggedIn: true,
+  username: validation.username || "unknown",
+  authMethod: validation.auth_method,
+  authMode: config?.auth_mode,
+  capabilities: config?.auth_capabilities,
+  logoutUrl: config?.auth_logout_url,
+  profilePicture: validation.profile_picture,
+  issuerUrl
+});
+
+const resolveAuth = async (client: QueryClient, config?: Config): Promise<AuthInfo> => {
+  const validation = await APIClient.auth.validate();
+
+  // Config and issuer errors must not log out a valid session. Without a mode, the
+  // next navigation's reconciliation fetches the config again; issuerUrl is optional.
+  const serverConfig = config ?? await client.query(ConfigQueryOptions()).catch(() => undefined);
+
+  let issuerUrl;
+  if (validation.auth_method === "oidc") {
+    const oidcConfig = await client.query({ ...OIDCConfigQueryOptions(), staleTime: "static" }).catch(() => undefined);
+    issuerUrl = oidcConfig?.issuerUrl;
+  }
+
+  return toAuthInfo(validation, serverConfig, issuerUrl);
+};
+
+const sameCapabilities = (a?: AuthCapabilities, b?: AuthCapabilities) => {
+  if (!a || !b) {
+    return false;
+  }
+
+  return (Object.keys(a) as (keyof AuthCapabilities)[]).every((key) => a[key] === b[key]);
+};
+
 export const LoginRoute = createRoute({
   getParentRoute: () => RootRoute,
   path: 'login',
   validateSearch: z.object({
     redirect: z.optional(z.string()),
+    autoRedirect: z.catch(z.optional(z.boolean()), undefined),
   }),
-  beforeLoad: async ({ context, navigate }) => {
-    // First check if OIDC is enabled
+  beforeLoad: async ({ context, navigate, preload, search }) => {
+    // Modes without a login method have nothing to log in to, so bookmarks and stale
+    // tabs on /login continue into the app instead of a form that always fails.
+    const validation = await APIClient.auth.validate().catch(() => undefined);
+    const config = validation && await context.queryClient.query({ ...ConfigQueryOptions(), staleTime: 0 }).catch(() => undefined);
+
+    // Without the config, a caller that is neither a password nor an OIDC session
+    // was authenticated by the mode itself, so there is no login form for it either.
+    const noLoginMethod = config
+      ? !config.auth_capabilities.password_login && !config.auth_capabilities.oidc_login
+      : validation?.auth_method !== "password" && validation?.auth_method !== "oidc";
+    if (validation && noLoginMethod) {
+      AuthContext.set(toAuthInfo(validation, config));
+
+      const target = search.redirect && isSameOriginPath(search.redirect) ? search.redirect : "/";
+      throw redirect({ href: target });
+    }
+
+    // A preload must not fetch the OIDC config: each fetch starts a login on the
+    // server that nobody completes. beforeLoad runs again on the real navigation.
+    if (preload) {
+      return;
+    }
+
+    if (consumeLoggedOut() && search.autoRedirect !== false) {
+      throw redirect({ to: LoginRoute.to, search: { ...search, autoRedirect: false }, replace: true });
+    }
+
+    let oidcConfig;
     try {
-      const oidcConfig = await context.queryClient.query({ ...OIDCConfigQueryOptions(), staleTime: "static" });
-      if (oidcConfig.enabled) {
-        return;
-      }
+      // Each login needs its own state, so a cached authorization URL is never reused.
+      const target = search.redirect && isSameOriginPath(search.redirect) ? search.redirect : undefined;
+      oidcConfig = await context.queryClient.query({
+        ...OIDCConfigQueryOptions(),
+        queryFn: () => APIClient.auth.getOIDCConfig(target),
+        staleTime: 0
+      });
     } catch (error) {
       console.debug("Failed to get OIDC config, proceeding with onboarding check:", error);
     }
 
-    // Only check onboarding if OIDC is not enabled
+    if (oidcConfig?.enabled) {
+      // autoRedirect=false keeps the login page reachable when the provider is down,
+      // and lets logout stay logged out while the provider session is still active.
+      if (oidcConfig.autoRedirect && search.autoRedirect !== false && oidcConfig.authorizationUrl) {
+        if (claimAutoRedirect()) {
+          throw redirect({ href: oidcConfig.authorizationUrl, reloadDocument: true });
+        }
+        return { autoLoginFailed: true };
+      }
+      return;
+    }
+
     const canOnboard = await context.queryClient.query({ ...CanOnboardQueryOptions(), staleTime: "static" });
     if (canOnboard) {
       console.info("onboarding available, redirecting");
@@ -313,29 +406,45 @@ export const AuthRoute = createRoute({
     // If the user is not logged in, check for item in localStorage
     if (!AuthContext.get().isLoggedIn) {
       try {
-        const response = await APIClient.auth.validate();
-        // Also get OIDC config if needed
-        let issuerUrl;
-        if (response.auth_method === 'oidc') {
-          const oidcConfig = await context.queryClient.query({ ...OIDCConfigQueryOptions(), staleTime: "static" });
-          issuerUrl = oidcConfig.issuerUrl;
-        }
-        
-        AuthContext.set({
-          isLoggedIn: true,
-          username: response.username || 'unknown',
-          authMethod: response.auth_method,
-          profilePicture: response.profile_picture,
-          issuerUrl: issuerUrl
-        });
+        AuthContext.set(await resolveAuth(context.queryClient));
       } catch (error) {
         console.debug("Authentication validation failed:", error);
         throw redirect({
           to: LoginRoute.to,
           search: {
-            redirect: location.href,
+            redirect: location.publicHref,
           },
         });
+      }
+    } else {
+      // Reconcile the persisted auth context with the server so switching auth
+      // modes can't leave stale UI behind for a session that was already marked
+      // logged in. The mode only changes across a restart, so an open tab must
+      // refetch once its cached config goes stale.
+      let config: Config | undefined;
+      try {
+        config = await context.queryClient.query(ConfigQueryOptions());
+      } catch (error) {
+        console.debug("auth mode reconciliation failed:", error);
+      }
+
+      const auth = AuthContext.get();
+      if (config && config.auth_mode !== auth.authMode) {
+        // The stored identity belongs to another mode; replace it with the server's,
+        // or fall back to login if no session survives the switch.
+        try {
+          AuthContext.set(await resolveAuth(context.queryClient, config));
+        } catch {
+          AuthContext.reset();
+          throw redirect({
+            to: LoginRoute.to,
+            search: {
+              redirect: location.publicHref,
+            },
+          });
+        }
+      } else if (config && (!sameCapabilities(config.auth_capabilities, auth.capabilities) || config.auth_logout_url !== auth.logoutUrl)) {
+        AuthContext.set({ ...auth, capabilities: config.auth_capabilities, logoutUrl: config.auth_logout_url });
       }
     }
 

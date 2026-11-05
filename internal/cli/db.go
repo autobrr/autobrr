@@ -84,9 +84,10 @@ func CommandDbReset() *cobra.Command {
 
 func CommandDbConvert() *cobra.Command {
 	var command = &cobra.Command{
-		Use:     "convert",
-		Short:   "Convert a SQLite database to PostgreSQL",
-		Example: "  autobrr db convert --sqlite-db /path/to/autobrr.db --postgres-url postgres://username:password@127.0.0.1:5432/autobrr",
+		Use:   "convert",
+		Short: "Convert a SQLite database to PostgreSQL, or back with --pg-to-sqlite",
+		Example: "  autobrr db convert --sqlite-db /path/to/autobrr.db --postgres-url postgres://username:password@127.0.0.1:5432/autobrr\n" +
+			"  autobrr db convert --pg-to-sqlite --postgres-url postgres://username:password@127.0.0.1:5432/autobrr --sqlite-db /path/to/new/autobrr.db",
 	}
 
 	var (
@@ -94,12 +95,14 @@ func CommandDbConvert() *cobra.Command {
 		postgresURL   string
 		excludeTables string
 		dryRun        bool
+		pgToSQLite    bool
 	)
 
 	command.Flags().StringVar(&sqlitePath, "sqlite-db", "", "path to SQLite database file")
 	command.Flags().StringVar(&postgresURL, "postgres-url", "", "DSN for PostgreSQL database: postgres://user:pass@host:port/db?sslmode=disable")
 	command.Flags().StringVar(&excludeTables, "exclude-tables", "", "comma separated list of tables to exclude from conversion")
 	command.Flags().BoolVar(&dryRun, "dry-run", false, "dry run")
+	command.Flags().BoolVar(&pgToSQLite, "pg-to-sqlite", false, "convert from PostgreSQL to SQLite instead")
 	_ = command.MarkFlagRequired("sqlite-db")
 	_ = command.MarkFlagRequired("postgres-url")
 
@@ -111,7 +114,14 @@ func CommandDbConvert() *cobra.Command {
 
 		l := logger.New(&domain.Config{LogLevel: "TRACE"}, nil)
 
-		if err := tools.NewConverter(l, sqlitePath, postgresURL).Convert(cmd.Context(), opts); err != nil {
+		converter := tools.NewConverter(l, sqlitePath, postgresURL)
+
+		convert := converter.Convert
+		if pgToSQLite {
+			convert = converter.ConvertToSQLite
+		}
+
+		if err := convert(cmd.Context(), opts); err != nil {
 			return errors.Wrap(err, "database conversion failed")
 		}
 

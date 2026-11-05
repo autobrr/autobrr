@@ -224,8 +224,8 @@ func (app *App) components(fail context.CancelCauseFunc) []component {
 
 				return nil
 			},
-			stop: func(context.Context) error {
-				app.ircService.StopHandlers()
+			stop: func(ctx context.Context) error {
+				app.ircService.StopHandlers(ctx)
 
 				return nil
 			},
@@ -343,6 +343,55 @@ func (app *App) setupResourceLimits() {
 	app.log.Debug().Int64("gomemlimit_bytes", memLimit).Msg("memory limit configured")
 }
 
+func (app *App) checkAuthConfig() error {
+	cfg := app.cfg.Config
+
+	if err := cfg.ValidateAuthConfig(); err != nil {
+		return errors.Wrap(err, "invalid configuration for %s authentication mode", cfg.AuthMode())
+	}
+
+	switch {
+	case cfg.AuthMode() == domain.AuthModeForward:
+		wildcardBind := cfg.Host == "" || cfg.Host == "0.0.0.0" || cfg.Host == "::"
+		app.log.Info().
+			Str("host", cfg.Host).
+			Int("port", cfg.Port).
+			Bool("wildcard_bind", wildcardBind).
+			Str("cors_allowed_origins", cfg.CorsAllowedOrigins).
+			Str("authTrustedUserHeader", cfg.AuthTrustedUserHeader).
+			Str("authTrustedUser", cfg.AuthTrustedUser).
+			Strs("authAllowedPeerCIDRs", cfg.AuthAllowedPeerCIDRs).
+			Strs("authAllowedHosts", cfg.AuthAllowedHosts).
+			Str("authClientIPHeader", cfg.AuthClientIPHeader).
+			Msg("forward authentication active: authTrustedUser is identified by authTrustedUserHeader, read only from peers in authAllowedPeerCIDRs. The reverse proxy must authenticate every request and overwrite that header.")
+	case cfg.AuthMode() == domain.AuthModeDisabled:
+		wildcardBind := cfg.Host == "" || cfg.Host == "0.0.0.0" || cfg.Host == "::"
+		app.log.Warn().
+			Str("host", cfg.Host).
+			Int("port", cfg.Port).
+			Bool("wildcard_bind", wildcardBind).
+			Str("cors_allowed_origins", cfg.CorsAllowedOrigins).
+			Strs("authAllowedPeerCIDRs", cfg.AuthAllowedPeerCIDRs).
+			Strs("authAllowedHosts", cfg.AuthAllowedHosts).
+			Str("authClientIPHeader", cfg.AuthClientIPHeader).
+			Msg("SECURITY: built-in authentication is DISABLED. Access is restricted only to the immediate network peer matching authAllowedPeerCIDRs. Ensure autobrr sits behind a reverse proxy that performs authentication.")
+
+		if prefixes, err := cfg.ParseAuthAllowedPeerCIDRs(); err == nil {
+			for _, p := range prefixes {
+				if p.Bits() < p.Addr().BitLen() {
+					app.log.Warn().Str("cidr", p.String()).Msg("authAllowedPeerCIDRs entry grants every address in the range full administrative access; prefer the exact reverse-proxy address as a /32 or /128")
+				}
+			}
+		}
+	case cfg.AuthDisabled:
+		app.log.Warn().
+			Str("acknowledgement_value", domain.AuthDisabledAcknowledgementValue).
+			Msg("authDisabled is set but the acknowledgement is missing or invalid; authentication remains enabled. Set AUTOBRR__AUTH_DISABLED_ACKNOWLEDGEMENT (or authDisabledAcknowledgement) to acknowledgement_value to disable authentication.")
+	}
+
+	return nil
+}
+
 func (app *App) setup(ctx context.Context) error {
 	app.setupResourceLimits()
 
@@ -369,6 +418,10 @@ func (app *App) setup(ctx context.Context) error {
 		Str("log_level", app.cfg.Config.LogLevel).
 		Str("database", db.Driver).
 		Msg("starting autobrr")
+
+	if err := app.checkAuthConfig(); err != nil {
+		return err
+	}
 
 	sessionManager := scs.New()
 	switch db.Driver {

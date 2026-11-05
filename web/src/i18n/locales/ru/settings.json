@@ -392,6 +392,12 @@
       "maxAgeHelp": "Максимальный возраст в секундах (0 = без фильтра).",
       "cacheTTL": "TTL кэша",
       "cacheTTLHelp": "Сколько дней хранятся обработанные элементы фида. Элементы, оставшиеся в фиде после истечения срока, будут обработаны и скачаны повторно. По умолчанию 31 день.",
+      "maxPages": "Макс. страниц",
+      "maxPagesHelp": "Максимальное количество страниц, загружаемых за одно обновление для догрузки пропущенных элементов. Постраничная загрузка останавливается на первом уже обработанном элементе. По умолчанию 1 (только первая страница), максимум 10.",
+      "processOrder": "Порядок обработки",
+      "processOrderHelp": "Порядок, в котором новые элементы ленты передаются в фильтры. «Сначала старые» соответствует порядку публикации. «Сначала новые» обрабатывает самый свежий релиз раньше более старых элементов, полученных за то же обновление.",
+      "processOrderOldestFirst": "Сначала старые",
+      "processOrderNewestFirst": "Сначала новые",
       "cookie": "Cookie",
       "cookieHelp": "Редко используется",
       "userAgent": "User-Agent",
@@ -507,6 +513,9 @@
       "createTitle": "Создать API-ключ",
       "description": "Добавить новый API-ключ.",
       "created": "API-ключ {{name}} добавлен",
+      "createdTitle": "API-ключ создан",
+      "createdDescription": "Скопируйте ключ сейчас. Сохраняется только его хеш, поэтому он больше не будет показан.",
+      "done": "Готово",
       "deleted": "API-ключ {{name}} удалён",
       "name": "Имя",
       "key": "Ключ",
@@ -521,7 +530,82 @@
       "createCta": "Создать API-ключ",
       "removeTitle": "Удалить API-ключ: {{name}}",
       "removeText": "Вы уверены, что хотите удалить этот API-ключ? Это действие нельзя отменить.",
-      "deleteKey": "Удалить ключ"
+      "deleteKey": "Удалить ключ",
+      "updated": "API-ключ {{name}} обновлён",
+      "updateTitle": "Изменить API-ключ",
+      "updateDescription": "Измените имя и права доступа этого API-ключа.",
+      "save": "Сохранить",
+      "editKey": "Изменить ключ",
+      "permissions": "Права доступа",
+      "permissionsDescription": "Выберите минимально необходимые права доступа. Управление API-ключами, пользователями и конфигурацией недоступно для API-ключей.",
+      "permissionsRequired": "Добавьте хотя бы одно право",
+      "addPermissions": "Добавить права",
+      "selectPermissions": "Выберите права",
+      "searchPermissions": "Поиск",
+      "noPermissions": "Права доступа ещё не добавлены.",
+      "noPermissionsFound": "Права не найдены",
+      "removePermission": "Удалить право {{name}}",
+      "accessLabel": "Доступ:",
+      "access": {
+        "read": "Только чтение",
+        "invoke": "Только запуск",
+        "write": "Чтение и запись"
+      },
+      "accessShort": {
+        "read": "Чтение",
+        "invoke": "Запуск",
+        "write": "Запись"
+      },
+      "resources": {
+        "filters": {
+          "label": "Фильтры",
+          "description": "Фильтры и их действия."
+        },
+        "releases": {
+          "label": "Релизы",
+          "description": "История релизов, статистика, задачи очистки и повтор действий."
+        },
+        "indexers": {
+          "label": "Индексаторы",
+          "description": "Индексаторы и их настройки."
+        },
+        "irc": {
+          "label": "IRC",
+          "description": "IRC-сети, каналы и обработка анонсов."
+        },
+        "feeds": {
+          "label": "Фиды",
+          "description": "RSS-, Torznab- и Newznab-фиды."
+        },
+        "downloaders": {
+          "label": "Клиенты загрузки",
+          "description": "Клиенты загрузки и проверка подключения."
+        },
+        "lists": {
+          "label": "Списки",
+          "description": "Списки, их обновление и вебхуки для него, например из Sonarr или Radarr."
+        },
+        "notifications": {
+          "label": "Уведомления",
+          "description": "Сервисы уведомлений."
+        },
+        "proxies": {
+          "label": "Прокси",
+          "description": "Прокси и их проверка."
+        },
+        "config": {
+          "label": "Конфигурация приложения",
+          "description": "Настройки приложения, например уровень логирования и проверка обновлений."
+        },
+        "logs": {
+          "label": "Логи",
+          "description": "Файлы логов и живой поток логов."
+        },
+        "updates": {
+          "label": "Обновления",
+          "description": "Проверка новых версий autobrr."
+        }
+      }
     },
     "notification": {
       "settings": "Настройки",
@@ -615,6 +699,24 @@
       "ntfyTagsHelp": "Tegi/ikonki dlya ntfy uvedomleniy cherez zapyatuyu",
       "ntfyTagsPlaceholder": "download,arr,white_check_mark",
       "ntfyPriorityHelp": "Макс 5, 4, 3 (по умолчанию), 2, 1 Мин",
+      "barkServerUrl": "URL сервера",
+      "barkServerUrlHelp": "URL сервера Bark. Для официального сервера используйте https://api.day.app",
+      "barkServerUrlPlaceholder": "https://api.day.app",
+      "barkServerUrlInvalid": "Должен быть URL с http:// или https:// без параметров запроса",
+      "deviceKey": "Ключ устройства",
+      "barkDeviceKeyHelp": "Ключ, идущий после адреса сервера в вашем push-URL Bark",
+      "barkLevel": "Уровень прерывания",
+      "barkLevelHelp": "Пассивный только добавляет в список уведомлений, Срочный показывается в режиме фокусирования, Критический звучит даже в беззвучном режиме (разрешите критические оповещения в приложении Bark)",
+      "barkLevelPassive": "Пассивный",
+      "barkLevelActive": "Активный (по умолчанию)",
+      "barkLevelTimeSensitive": "Срочный",
+      "barkLevelCritical": "Критический",
+      "sound": "Звук",
+      "barkSoundHelp": "Название звука Bark; оставьте пустым для звука приложения по умолчанию",
+      "barkSoundPlaceholder": "minuet",
+      "group": "Группа",
+      "barkGroupHelp": "Группирует уведомления в Центре уведомлений и истории Bark",
+      "barkGroupPlaceholder": "autobrr",
       "url": "URL",
       "urlHelp": "URL",
       "shoutrrrDocsPrefix": "Смотрите документацию ",

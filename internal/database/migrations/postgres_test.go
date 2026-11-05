@@ -551,6 +551,14 @@ func TestRunMigrationTest_Postgres(t *testing.T) {
 			SetupData:           setupBuiltinNotificationPresent,
 			ValidateResult:      validateBuiltinNotificationNotDuplicated,
 		},
+		{
+			Name:                "api key migration hashes existing keys and adds ids",
+			MigrationIndex:      90,
+			MigrationsUntilName: "90_add_action_ratio_group",
+			MigrationToRun:      "91_api_key_add_id_and_hash_key",
+			SetupData:           setupPlaintextAPIKeys,
+			ValidateResult:      validateAPIKeysHashed,
+		},
 	}
 
 	for _, tc := range tests {

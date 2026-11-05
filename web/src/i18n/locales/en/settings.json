@@ -393,6 +393,12 @@
       "maxAgeHelp": "Maximum age of feed content in seconds. Use 0 to disable the age filter and process all items.",
       "cacheTTL": "Cache TTL",
       "cacheTTLHelp": "Days to remember processed feed items. Items still present in the feed after expiry will be processed and downloaded again. Default is 31 days.",
+      "maxPages": "Max pages",
+      "maxPagesHelp": "Maximum number of pages to fetch per refresh when catching up on missed items. Pagination stops at the first item already processed. Default is 1 (first page only), max is 10.",
+      "processOrder": "Process order",
+      "processOrderHelp": "Order new feed items are sent to filters in. Oldest first matches the order they were published. Newest first handles the latest release before older ones caught up in the same refresh.",
+      "processOrderOldestFirst": "Oldest first",
+      "processOrderNewestFirst": "Newest first",
       "cookie": "Cookie",
       "cookieHelp": "Not commonly used",
       "userAgent": "User-Agent",
@@ -508,6 +514,9 @@
     "createTitle": "Create API key",
     "description": "Add new API key.",
     "created": "API key {{name}} was added",
+    "createdTitle": "API key created",
+    "createdDescription": "Copy this key now. Only its hash is stored, so it will not be shown again.",
+    "done": "Done",
     "deleted": "API key {{name}} was deleted",
     "name": "Name",
     "key": "Key",
@@ -517,12 +526,88 @@
     "create": "Create",
     "listTitle": "API keys",
     "listDescription": "Manage your autobrr API keys here.",
+    "authDisabledNotice": "API keys are unavailable while built-in authentication is disabled. Requests that pass your reverse proxy and CIDR allowlist can use the autobrr API directly.",
     "addNew": "Add new",
     "noItems": "No API keys",
     "createCta": "Create API key",
     "removeTitle": "Remove API key: {{name}}",
     "removeText": "Are you sure you want to remove this API key? This action cannot be undone.",
-    "deleteKey": "Delete key"
+    "deleteKey": "Delete key",
+    "updated": "API key {{name}} was updated",
+    "updateTitle": "Edit API key",
+    "updateDescription": "Update the name and permissions of this API key.",
+    "save": "Save",
+    "editKey": "Edit key",
+    "permissions": "Permissions",
+    "permissionsDescription": "Choose the minimal permissions necessary for your needs. Managing API keys, users and config is not available to API keys.",
+    "permissionsRequired": "Add at least one permission",
+    "addPermissions": "Add permissions",
+    "selectPermissions": "Select permissions",
+    "searchPermissions": "Search",
+    "noPermissions": "No permissions added yet.",
+    "noPermissionsFound": "No permissions found",
+    "removePermission": "Remove {{name}} permission",
+    "accessLabel": "Access:",
+    "access": {
+      "read": "Read-only",
+      "invoke": "Trigger only",
+      "write": "Read and write"
+    },
+    "accessShort": {
+      "read": "Read",
+      "invoke": "Trigger",
+      "write": "Write"
+    },
+    "resources": {
+      "filters": {
+        "label": "Filters",
+        "description": "Filters and their actions."
+      },
+      "releases": {
+        "label": "Releases",
+        "description": "Release history, stats, cleanup jobs and action retries."
+      },
+      "indexers": {
+        "label": "Indexers",
+        "description": "Indexers and their settings."
+      },
+      "irc": {
+        "label": "IRC",
+        "description": "IRC networks, channels and announce processing."
+      },
+      "feeds": {
+        "label": "Feeds",
+        "description": "RSS, Torznab and Newznab feeds."
+      },
+      "downloaders": {
+        "label": "Download clients",
+        "description": "Download clients and connection tests."
+      },
+      "lists": {
+        "label": "Lists",
+        "description": "Lists, list refreshes and the refresh webhooks, e.g. from Sonarr or Radarr."
+      },
+      "notifications": {
+        "label": "Notifications",
+        "description": "Notification agents."
+      },
+      "proxies": {
+        "label": "Proxies",
+        "description": "Proxies and proxy tests."
+      },
+      "config": {
+        "label": "Application config",
+        "description": "Application settings like log level and update checks."
+      },
+      "logs": {
+        "label": "Logs",
+        "description": "Log files and the live log stream."
+      },
+      "updates": {
+        "label": "Updates",
+        "description": "Check for new autobrr versions."
+      }
+    }
   },
     "notification": {
       "settings": "Settings",
@@ -616,6 +701,24 @@
       "ntfyTagsHelp": "Comma-separated tags/icons for ntfy notifications",
       "ntfyTagsPlaceholder": "download,arr,white_check_mark",
       "ntfyPriorityHelp": "Max 5, 4, 3 (default), 2, 1 Min",
+      "barkServerUrl": "Server URL",
+      "barkServerUrlHelp": "Bark server URL. Use https://api.day.app for the official server",
+      "barkServerUrlPlaceholder": "https://api.day.app",
+      "barkServerUrlInvalid": "Must be an http:// or https:// URL without query parameters",
+      "deviceKey": "Device Key",
+      "barkDeviceKeyHelp": "The key after the server URL in your Bark push URL",
+      "barkLevel": "Interruption Level",
+      "barkLevelHelp": "Passive only adds to the notification list, Time Sensitive shows during Focus, Critical rings even in silent mode (allow critical alerts in the Bark app)",
+      "barkLevelPassive": "Passive",
+      "barkLevelActive": "Active (default)",
+      "barkLevelTimeSensitive": "Time Sensitive",
+      "barkLevelCritical": "Critical",
+      "sound": "Sound",
+      "barkSoundHelp": "Bark sound name, leave empty to use the app default",
+      "barkSoundPlaceholder": "minuet",
+      "group": "Group",
+      "barkGroupHelp": "Groups notifications in Notification Center and the Bark history",
+      "barkGroupPlaceholder": "autobrr",
       "url": "URL",
       "urlHelp": "URL",
       "shoutrrrDocsPrefix": "See full documentation ",

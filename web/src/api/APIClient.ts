@@ -181,7 +181,9 @@ export async function HttpClient<T = unknown>(
     // It is most likely an error.
     switch (response.status) {
     case 403: {
-      if (AuthContext.get().isLoggedIn) {
+      // Plain-text 403s come from the auth middleware (session gone); JSON 403s
+      // are application errors and fall through to show the server's message.
+      if (!isJson && AuthContext.get().isLoggedIn) {
         return Promise.reject(new Error("Cookie expired or invalid."));
       }
       break;
@@ -261,12 +263,14 @@ export const APIClient = {
     canOnboard: () => appClient.Get("api/auth/onboard"),
     updateUser: (req: UserUpdate) => appClient.Patch(`api/auth/user/${req.username_current}`,
       { body: req }),
-    getOIDCConfig: async () => {
+    getOIDCConfig: async (redirect?: string) => {
       try {
-        return await appClient.Get<{ enabled: boolean; authorizationUrl: string; state: string; disableBuiltInLogin: boolean; issuerUrl: string }>("api/auth/oidc/config");
+        return await appClient.Get<{ enabled: boolean; autoRedirect: boolean; authorizationUrl: string; state: string; disableBuiltInLogin: boolean; issuerUrl: string }>("api/auth/oidc/config", {
+          queryString: redirect ? { redirect } : undefined
+        });
       } catch (error: unknown) {
         if (error instanceof Error && error.message?.includes('404')) {
-          return { enabled: false, authorizationUrl: '', state: '', disableBuiltInLogin: false, issuerUrl: '' };
+          return { enabled: false, autoRedirect: false, authorizationUrl: '', state: '', disableBuiltInLogin: false, issuerUrl: '' };
         }
         throw error;
       }
@@ -284,10 +288,13 @@ export const APIClient = {
   },
   apikeys: {
     getAll: () => appClient.Get<APIKey[]>("api/keys"),
-    create: (key: APIKey) => appClient.Post("api/keys", {
+    create: (key: APIKey) => appClient.Post<APIKey>("api/keys", {
       body: key
     }),
-    delete: (key: string) => appClient.Delete(`api/keys/${key}`)
+    update: (key: APIKey) => appClient.Put(`api/keys/${key.id}`, {
+      body: key
+    }),
+    delete: (id: number) => appClient.Delete(`api/keys/${id}`)
   },
   config: {
     get: () => appClient.Get<Config>("api/config"),
@@ -324,7 +331,7 @@ export const APIClient = {
     update: (filter: Filter) => appClient.Put<Filter>(`api/filters/${filter.id}`, {
       body: filter
     }),
-    duplicate: (id: number) => appClient.Get<Filter>(`api/filters/${id}/duplicate`),
+    duplicate: (id: number) => appClient.Post<Filter>(`api/filters/${id}/duplicate`),
     toggleEnable: (id: number, enabled: boolean) => appClient.Put(`api/filters/${id}/enabled`, {
       body: { enabled }
     }),
@@ -400,7 +407,7 @@ export const APIClient = {
       body: network
     }),
     deleteNetwork: (id: number) => appClient.Delete(`api/irc/network/${id}`),
-    restartNetwork: (id: number) => appClient.Get(`api/irc/network/${id}/restart`),
+    restartNetwork: (id: number) => appClient.Post(`api/irc/network/${id}/restart`),
     sendCmd: (cmd: SendIrcCmdRequest) => appClient.Post(`api/irc/network/${cmd.network_id}/cmd`, {
       body: cmd
     }),

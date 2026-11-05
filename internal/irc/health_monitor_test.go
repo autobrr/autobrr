@@ -4,6 +4,7 @@
 package irc
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -166,7 +167,7 @@ func TestCheckNetworkHealth_StartupProxyLookupFailure(t *testing.T) {
 	s := NewService(zerolog.Nop(), bus, &mockSSEServer{}, newStubIrcRepo(proxiedNetwork()), nil, stubIndexerService{}, stubProxyService{err: errors.New("database is locked")})
 
 	s.StartHandlers()
-	t.Cleanup(s.StopHandlers)
+	t.Cleanup(func() { s.StopHandlers(context.Background()) })
 
 	h, found := s.networkHandlers.Get(proxiedNetwork().ID)
 	require.True(t, found, "a network whose proxy lookup failed must still get a handler")

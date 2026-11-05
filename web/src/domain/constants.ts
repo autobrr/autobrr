@@ -711,6 +711,10 @@ export const ListTypeNameMap: Record<ListType, string> = {
 
 export const NotificationTypeOptions: OptionBasicTyped<NotificationType>[] = [
   {
+    label: "Bark",
+    value: "BARK"
+  },
+  {
     label: "Discord",
     value: "DISCORD"
   },
@@ -749,6 +753,7 @@ export const NotificationTypeOptions: OptionBasicTyped<NotificationType>[] = [
 ];
 
 export const getNotificationTypeOptions = (t: TFunction): OptionBasicTyped<NotificationType>[] => [
+  { label: t("options:notificationType.BARK"), value: "BARK" },
   { label: t("options:notificationType.DISCORD"), value: "DISCORD" },
   { label: t("options:notificationType.GOTIFY"), value: "GOTIFY" },
   { label: t("options:notificationType.LUNASEA"), value: "LUNASEA" },
@@ -1107,4 +1112,19 @@ export const ListsAniListOptions: OptionBasic[] = [
     label: "Next anime season",
     value: "https://api.autobrr.com/lists/anilist/upcoming"
   },
+];
+
+export const API_KEY_RESOURCES: APIKeyResource[] = [
+  { name: "filters", access: ["read", "write"] },
+  { name: "releases", access: ["read", "invoke", "write"] },
+  { name: "indexers", access: ["read", "write"] },
+  { name: "irc", access: ["read", "invoke", "write"] },
+  { name: "feeds", access: ["read", "invoke", "write"] },
+  { name: "downloaders", access: ["read", "write"] },
+  { name: "lists", access: ["read", "invoke", "write"] },
+  { name: "notifications", access: ["read", "write"] },
+  { name: "proxies", access: ["read", "write"] },
+  { name: "config", access: ["read"] },
+  { name: "logs", access: ["read"] },
+  { name: "updates", access: ["read"] }
 ];

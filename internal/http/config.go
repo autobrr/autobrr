@@ -17,20 +17,23 @@ import (
 )
 
 type configJson struct {
-	Application     string `json:"application"`
-	ConfigDir       string `json:"config_dir"`
-	Database        string `json:"database"`
-	Host            string `json:"host"`
-	Port            int    `json:"port"`
-	LogLevel        string `json:"log_level"`
-	LogPath         string `json:"log_path"`
-	LogMaxSize      int    `json:"log_max_size"`
-	LogMaxBackups   int    `json:"log_max_backups"`
-	BaseURL         string `json:"base_url"`
-	CheckForUpdates bool   `json:"check_for_updates"`
-	Version         string `json:"version"`
-	Commit          string `json:"commit"`
-	Date            string `json:"date"`
+	Application      string                  `json:"application"`
+	ConfigDir        string                  `json:"config_dir"`
+	Database         string                  `json:"database"`
+	Host             string                  `json:"host"`
+	Port             int                     `json:"port"`
+	LogLevel         string                  `json:"log_level"`
+	LogPath          string                  `json:"log_path"`
+	LogMaxSize       int                     `json:"log_max_size"`
+	LogMaxBackups    int                     `json:"log_max_backups"`
+	BaseURL          string                  `json:"base_url"`
+	CheckForUpdates  bool                    `json:"check_for_updates"`
+	AuthMode         domain.AuthMode         `json:"auth_mode"`
+	AuthCapabilities domain.AuthCapabilities `json:"auth_capabilities"`
+	AuthLogoutURL    string                  `json:"auth_logout_url,omitempty"`
+	Version          string                  `json:"version"`
+	Commit           string                  `json:"commit"`
+	Date             string                  `json:"date"`
 }
 
 type buildInfo struct {
@@ -55,25 +58,33 @@ func newConfigHandler(encoder encoder, versionInfo buildInfo, cfg *config.AppCon
 }
 
 func (h configHandler) Routes(r chi.Router) {
-	r.Get("/", h.getConfig)
-	r.Patch("/", h.updateConfig)
+	r.With(requireScope(domain.APIResourceConfig, domain.APIAccessRead)).Get("/", h.getConfig)
+	// the config file holds login settings, so writing it would let a key widen its own access
+	r.With(requireUser).Patch("/", h.updateConfig)
 }
 
 func (h configHandler) getConfig(w http.ResponseWriter, r *http.Request) {
 	conf := configJson{
-		ConfigDir:       h.cfg.Config.ConfigPath,
-		Host:            h.cfg.Config.Host,
-		Port:            h.cfg.Config.Port,
-		LogLevel:        h.cfg.Config.LogLevel,
-		LogPath:         h.cfg.Config.LogPath,
-		LogMaxSize:      h.cfg.Config.LogMaxSize,
-		LogMaxBackups:   h.cfg.Config.LogMaxBackups,
-		BaseURL:         h.cfg.Config.BaseURL,
-		Database:        h.cfg.Config.DatabaseType,
-		CheckForUpdates: h.cfg.Config.CheckForUpdates,
-		Version:         h.versionInfo.version,
-		Commit:          h.versionInfo.commit,
-		Date:            h.versionInfo.date,
+		ConfigDir:        h.cfg.Config.ConfigPath,
+		Host:             h.cfg.Config.Host,
+		Port:             h.cfg.Config.Port,
+		LogLevel:         h.cfg.Config.LogLevel,
+		LogPath:          h.cfg.Config.LogPath,
+		LogMaxSize:       h.cfg.Config.LogMaxSize,
+		LogMaxBackups:    h.cfg.Config.LogMaxBackups,
+		BaseURL:          h.cfg.Config.BaseURL,
+		Database:         h.cfg.Config.DatabaseType,
+		CheckForUpdates:  h.cfg.Config.CheckForUpdates,
+		AuthMode:         h.cfg.Config.AuthMode(),
+		AuthCapabilities: h.cfg.Config.AuthCapabilities(),
+		Version:          h.versionInfo.version,
+		Commit:           h.versionInfo.commit,
+		Date:             h.versionInfo.date,
+	}
+
+	// only validated in forward mode, so never handed to the UI in another
+	if conf.AuthMode == domain.AuthModeForward {
+		conf.AuthLogoutURL = h.cfg.Config.AuthLogoutURL
 	}
 
 	ex, err := os.Executable()

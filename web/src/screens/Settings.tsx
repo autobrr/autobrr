@@ -20,6 +20,7 @@ import { Link, Outlet } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 
 import { classNames } from "@utils";
+import { AuthContext } from "@utils/Context";
 
 interface NavTabType {
   labelKey: string;
@@ -104,6 +105,10 @@ function SidebarNav({ subNavigation }: SidebarNavProps) {
 
 export function Settings() {
   const { t } = useTranslation("settings");
+  const auth = AuthContext.get();
+  const visibleNavigation = auth.capabilities?.account_management
+    ? subNavigation
+    : subNavigation.filter((item) => item.href !== "/settings/account");
 
   return (
     <main>
@@ -114,7 +119,7 @@ export function Settings() {
       <div className="max-w-(--breakpoint-xl) mx-auto pb-6 px-2 sm:px-6 lg:pb-16 lg:px-8">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-table border border-gray-250 dark:border-gray-775">
           <div className="lg:grid lg:grid-cols-12">
-            <SidebarNav subNavigation={subNavigation}/>
+            <SidebarNav subNavigation={visibleNavigation}/>
               <Outlet />
           </div>
         </div>

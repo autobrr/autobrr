@@ -16,7 +16,7 @@ import (
 	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/pkg/errors"
 
-	"github.com/moistari/rls"
+	"github.com/autobrr/rls"
 	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog"
 	"golang.org/x/sync/errgroup"
@@ -657,6 +657,8 @@ func (s *Service) DeleteFilterNotifications(ctx context.Context, filterID int) e
 
 func (s *Service) newSender(notification *domain.Notification) Sender {
 	switch notification.Type {
+	case domain.NotificationTypeBark:
+		return NewBarkSender(s.log, notification)
 	case domain.NotificationTypeDiscord:
 		return NewDiscordSender(s.log, notification)
 	case domain.NotificationTypeGotify:

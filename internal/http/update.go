@@ -7,6 +7,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/version"
 
 	"github.com/go-chi/chi/v5"
@@ -31,8 +32,10 @@ func newUpdateHandler(encoder encoder, service updateService) *updateHandler {
 }
 
 func (h updateHandler) Routes(r chi.Router) {
-	r.Get("/latest", h.getLatest)
-	r.Get("/check", h.checkUpdates)
+	read := requireScope(domain.APIResourceUpdates, domain.APIAccessRead)
+
+	r.With(read).Get("/latest", h.getLatest)
+	r.With(read).Get("/check", h.checkUpdates)
 }
 
 func (h updateHandler) getLatest(w http.ResponseWriter, r *http.Request) {
