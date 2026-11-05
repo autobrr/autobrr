@@ -51,6 +51,8 @@ export interface AuthInfo {
   username: string;
   isLoggedIn: boolean;
   authMethod?: 'password' | 'oidc' | 'disabled';
+  authMode?: AuthMode;
+  capabilities?: AuthCapabilities;
   profilePicture?: string;
   issuerUrl?: string;
 }
@@ -60,6 +62,8 @@ const AuthContextDefaults: AuthInfo = {
   username: "",
   isLoggedIn: false,
   authMethod: undefined,
+  authMode: undefined,
+  capabilities: undefined,
   profilePicture: undefined,
   issuerUrl: undefined
 };

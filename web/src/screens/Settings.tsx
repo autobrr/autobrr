@@ -106,12 +106,9 @@ function SidebarNav({ subNavigation }: SidebarNavProps) {
 export function Settings() {
   const { t } = useTranslation("settings");
   const auth = AuthContext.get();
-  const authDisabled = auth.authMethod === 'disabled';
-
-  // Account settings (username/password) are meaningless when built-in auth is disabled.
-  const visibleNavigation = authDisabled
-    ? subNavigation.filter((item) => item.href !== "/settings/account")
-    : subNavigation;
+  const visibleNavigation = auth.capabilities?.account_management
+    ? subNavigation
+    : subNavigation.filter((item) => item.href !== "/settings/account");
 
   return (
     <main>

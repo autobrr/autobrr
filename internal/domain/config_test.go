@@ -167,10 +167,36 @@ func TestNormalizeHost(t *testing.T) {
 	}
 }
 
-func TestConfig_ValidateAuthDisabledConfig(t *testing.T) {
-	t.Run("auth not disabled is always valid", func(t *testing.T) {
+func TestConfig_ValidateAuthConfig(t *testing.T) {
+	t.Run("builtin mode without trusted proxies is valid", func(t *testing.T) {
 		c := &Config{}
-		assert.NoError(t, c.ValidateAuthDisabledConfig())
+		assert.NoError(t, c.ValidateAuthConfig())
+	})
+
+	t.Run("builtin mode with invalid trusted proxy is rejected", func(t *testing.T) {
+		c := &Config{TrustedProxies: []string{"0.0.0.0/0"}}
+		assert.ErrorContains(t, c.ValidateAuthConfig(), "invalid trustedProxies")
+	})
+
+	t.Run("oidc mode with invalid trusted proxy is rejected", func(t *testing.T) {
+		c := &Config{OIDCEnabled: true, TrustedProxies: []string{"not-a-cidr"}}
+		assert.ErrorContains(t, c.ValidateAuthConfig(), "invalid trustedProxies")
+	})
+
+	t.Run("unacknowledged auth disabled is validated as builtin", func(t *testing.T) {
+		c := &Config{AuthDisabled: true}
+		assert.NoError(t, c.ValidateAuthConfig())
+	})
+
+	t.Run("auth disabled ignores trusted proxies", func(t *testing.T) {
+		c := &Config{
+			AuthDisabled:                true,
+			AuthDisabledAcknowledgement: AuthDisabledAcknowledgementValue,
+			AuthAllowedPeerCIDRs:        []string{"127.0.0.1/32"},
+			CorsAllowedOrigins:          "https://autobrr.example.com",
+			TrustedProxies:              []string{"not-a-cidr"},
+		}
+		assert.NoError(t, c.ValidateAuthConfig())
 	})
 
 	t.Run("auth disabled requires allowlist", func(t *testing.T) {
@@ -178,7 +204,7 @@ func TestConfig_ValidateAuthDisabledConfig(t *testing.T) {
 			AuthDisabled:                true,
 			AuthDisabledAcknowledgement: AuthDisabledAcknowledgementValue,
 		}
-		assert.EqualError(t, c.ValidateAuthDisabledConfig(), "authAllowedPeerCIDRs is required when authentication is disabled")
+		assert.EqualError(t, c.ValidateAuthConfig(), "authAllowedPeerCIDRs is required when authentication is disabled")
 	})
 
 	t.Run("auth disabled with only whitespace entries is rejected", func(t *testing.T) {
@@ -188,7 +214,7 @@ func TestConfig_ValidateAuthDisabledConfig(t *testing.T) {
 			AuthAllowedPeerCIDRs:        []string{"   "},
 			CorsAllowedOrigins:          "https://autobrr.example.com",
 		}
-		assert.EqualError(t, c.ValidateAuthDisabledConfig(), "authAllowedPeerCIDRs contains no valid entries")
+		assert.EqualError(t, c.ValidateAuthConfig(), "authAllowedPeerCIDRs contains no valid entries")
 	})
 
 	t.Run("auth disabled with invalid CIDR entry", func(t *testing.T) {
@@ -197,7 +223,7 @@ func TestConfig_ValidateAuthDisabledConfig(t *testing.T) {
 			AuthDisabledAcknowledgement: AuthDisabledAcknowledgementValue,
 			AuthAllowedPeerCIDRs:        []string{"not-a-cidr"},
 		}
-		assert.ErrorContains(t, c.ValidateAuthDisabledConfig(), "invalid IP in authAllowedPeerCIDRs: not-a-cidr")
+		assert.ErrorContains(t, c.ValidateAuthConfig(), "invalid IP in authAllowedPeerCIDRs: not-a-cidr")
 	})
 
 	t.Run("auth disabled with universal CIDR is rejected", func(t *testing.T) {
@@ -207,7 +233,7 @@ func TestConfig_ValidateAuthDisabledConfig(t *testing.T) {
 			AuthAllowedPeerCIDRs:        []string{"0.0.0.0/0"},
 			CorsAllowedOrigins:          "https://autobrr.example.com",
 		}
-		assert.ErrorContains(t, c.ValidateAuthDisabledConfig(), "matches all addresses")
+		assert.ErrorContains(t, c.ValidateAuthConfig(), "matches all addresses")
 	})
 
 	t.Run("auth disabled with oidc enabled is rejected", func(t *testing.T) {
@@ -217,7 +243,7 @@ func TestConfig_ValidateAuthDisabledConfig(t *testing.T) {
 			AuthAllowedPeerCIDRs:        []string{"127.0.0.1/32"},
 			OIDCEnabled:                 true,
 		}
-		assert.EqualError(t, c.ValidateAuthDisabledConfig(), "authDisabled cannot be used together with oidcEnabled")
+		assert.EqualError(t, c.ValidateAuthConfig(), "authDisabled cannot be used together with oidcEnabled")
 	})
 
 	t.Run("auth disabled with wildcard cors is rejected", func(t *testing.T) {
@@ -227,7 +253,7 @@ func TestConfig_ValidateAuthDisabledConfig(t *testing.T) {
 			AuthAllowedPeerCIDRs:        []string{"127.0.0.1/32"},
 			CorsAllowedOrigins:          "*",
 		}
-		assert.EqualError(t, c.ValidateAuthDisabledConfig(), "wildcard origin in corsAllowedOrigins: * is not supported while authentication is disabled")
+		assert.EqualError(t, c.ValidateAuthConfig(), "wildcard origin in corsAllowedOrigins: * is not supported while authentication is disabled")
 	})
 
 	t.Run("auth disabled with wildcard hidden in a cors list is rejected", func(t *testing.T) {
@@ -237,7 +263,7 @@ func TestConfig_ValidateAuthDisabledConfig(t *testing.T) {
 			AuthAllowedPeerCIDRs:        []string{"127.0.0.1/32"},
 			CorsAllowedOrigins:          "https://autobrr.example.com,*",
 		}
-		assert.EqualError(t, c.ValidateAuthDisabledConfig(), "wildcard origin in corsAllowedOrigins: * is not supported while authentication is disabled")
+		assert.EqualError(t, c.ValidateAuthConfig(), "wildcard origin in corsAllowedOrigins: * is not supported while authentication is disabled")
 	})
 
 	t.Run("auth disabled with wildcard subdomain cors origin is rejected", func(t *testing.T) {
@@ -247,7 +273,7 @@ func TestConfig_ValidateAuthDisabledConfig(t *testing.T) {
 			AuthAllowedPeerCIDRs:        []string{"127.0.0.1/32"},
 			CorsAllowedOrigins:          "https://*.example.com",
 		}
-		assert.EqualError(t, c.ValidateAuthDisabledConfig(), "wildcard origin in corsAllowedOrigins: https://*.example.com is not supported while authentication is disabled")
+		assert.EqualError(t, c.ValidateAuthConfig(), "wildcard origin in corsAllowedOrigins: https://*.example.com is not supported while authentication is disabled")
 	})
 
 	t.Run("auth disabled with out-of-range cors origin port is rejected", func(t *testing.T) {
@@ -257,7 +283,7 @@ func TestConfig_ValidateAuthDisabledConfig(t *testing.T) {
 			AuthAllowedPeerCIDRs:        []string{"127.0.0.1/32"},
 			CorsAllowedOrigins:          "https://autobrr.example.com:99999",
 		}
-		assert.ErrorContains(t, c.ValidateAuthDisabledConfig(), "invalid host in corsAllowedOrigins origin: https://autobrr.example.com:99999")
+		assert.ErrorContains(t, c.ValidateAuthConfig(), "invalid host in corsAllowedOrigins origin: https://autobrr.example.com:99999")
 	})
 
 	t.Run("auth disabled with malformed cors origin is rejected", func(t *testing.T) {
@@ -267,7 +293,7 @@ func TestConfig_ValidateAuthDisabledConfig(t *testing.T) {
 			AuthAllowedPeerCIDRs:        []string{"127.0.0.1/32"},
 			CorsAllowedOrigins:          "autobrr.example.com",
 		}
-		assert.ErrorContains(t, c.ValidateAuthDisabledConfig(), "invalid origin in corsAllowedOrigins: autobrr.example.com")
+		assert.ErrorContains(t, c.ValidateAuthConfig(), "invalid origin in corsAllowedOrigins: autobrr.example.com")
 	})
 
 	t.Run("auth disabled with empty cors is rejected", func(t *testing.T) {
@@ -277,7 +303,7 @@ func TestConfig_ValidateAuthDisabledConfig(t *testing.T) {
 			AuthAllowedPeerCIDRs:        []string{"127.0.0.1/32"},
 			CorsAllowedOrigins:          "  ",
 		}
-		assert.EqualError(t, c.ValidateAuthDisabledConfig(), "corsAllowedOrigins must be set to explicit origins when authentication is disabled")
+		assert.EqualError(t, c.ValidateAuthConfig(), "corsAllowedOrigins must be set to explicit origins when authentication is disabled")
 	})
 
 	t.Run("auth disabled with invalid allowed host is rejected", func(t *testing.T) {
@@ -288,7 +314,7 @@ func TestConfig_ValidateAuthDisabledConfig(t *testing.T) {
 			CorsAllowedOrigins:          "https://autobrr.example.com",
 			AuthAllowedHosts:            []string{"https://autobrr.example.com"},
 		}
-		assert.ErrorContains(t, c.ValidateAuthDisabledConfig(), "invalid host in authAllowedHosts: https://autobrr.example.com")
+		assert.ErrorContains(t, c.ValidateAuthConfig(), "invalid host in authAllowedHosts: https://autobrr.example.com")
 	})
 
 	t.Run("auth disabled with invalid client ip header is rejected", func(t *testing.T) {
@@ -299,7 +325,7 @@ func TestConfig_ValidateAuthDisabledConfig(t *testing.T) {
 			CorsAllowedOrigins:          "https://autobrr.example.com",
 			AuthClientIPHeader:          "X Real IP",
 		}
-		assert.EqualError(t, c.ValidateAuthDisabledConfig(), "authClientIPHeader is not a valid header name: X Real IP")
+		assert.EqualError(t, c.ValidateAuthConfig(), "authClientIPHeader is not a valid header name: X Real IP")
 	})
 
 	t.Run("fully valid config", func(t *testing.T) {
@@ -311,8 +337,62 @@ func TestConfig_ValidateAuthDisabledConfig(t *testing.T) {
 			AuthAllowedHosts:            []string{"autobrr", "autobrr.lan"},
 			AuthClientIPHeader:          "X-Real-IP",
 		}
-		assert.NoError(t, c.ValidateAuthDisabledConfig())
+		assert.NoError(t, c.ValidateAuthConfig())
 	})
+}
+
+func TestConfig_AuthCapabilities(t *testing.T) {
+	disabled := Config{AuthDisabled: true, AuthDisabledAcknowledgement: AuthDisabledAcknowledgementValue}
+
+	tests := []struct {
+		name     string
+		config   Config
+		wantMode AuthMode
+		want     AuthCapabilities
+	}{
+		{
+			name:     "builtin",
+			config:   Config{},
+			wantMode: AuthModeBuiltin,
+			want:     AuthCapabilities{PasswordLogin: true, Onboarding: true, AccountManagement: true, APIKeyManagement: true},
+		},
+		{
+			name:     "builtin ignores oidc only setting",
+			config:   Config{OIDCDisableBuiltInLogin: true},
+			wantMode: AuthModeBuiltin,
+			want:     AuthCapabilities{PasswordLogin: true, Onboarding: true, AccountManagement: true, APIKeyManagement: true},
+		},
+		{
+			name:     "unacknowledged auth disabled",
+			config:   Config{AuthDisabled: true},
+			wantMode: AuthModeBuiltin,
+			want:     AuthCapabilities{PasswordLogin: true, Onboarding: true, AccountManagement: true, APIKeyManagement: true},
+		},
+		{
+			name:     "oidc",
+			config:   Config{OIDCEnabled: true},
+			wantMode: AuthModeOIDC,
+			want:     AuthCapabilities{PasswordLogin: true, OIDCLogin: true, AccountManagement: true, APIKeyManagement: true},
+		},
+		{
+			name:     "oidc only",
+			config:   Config{OIDCEnabled: true, OIDCDisableBuiltInLogin: true},
+			wantMode: AuthModeOIDC,
+			want:     AuthCapabilities{OIDCLogin: true, AccountManagement: true, APIKeyManagement: true},
+		},
+		{
+			name:     "disabled",
+			config:   disabled,
+			wantMode: AuthModeDisabled,
+			want:     AuthCapabilities{ProxyGuards: true},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.wantMode, tt.config.AuthMode())
+			assert.Equal(t, tt.want, tt.config.AuthCapabilities())
+		})
+	}
 }
 
 func TestConfig_IsOIDCUserAllowed(t *testing.T) {

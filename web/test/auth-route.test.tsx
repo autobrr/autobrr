@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
+import { isRedirect } from "@tanstack/react-router";
 import { afterEach, expect, test, vi } from "vitest";
 
 import { APIClient } from "@api/APIClient";
@@ -17,7 +18,13 @@ afterEach(() => {
   queryClient.clear();
 });
 
-const config = (auth_mode: AuthMode): Config => ({
+const capabilities: Record<AuthMode, AuthCapabilities> = {
+  builtin: { password_login: true, oidc_login: false, onboarding: true, account_management: true, api_key_management: true, proxy_guards: false },
+  oidc: { password_login: true, oidc_login: true, onboarding: false, account_management: true, api_key_management: true, proxy_guards: false },
+  disabled: { password_login: false, oidc_login: false, onboarding: false, account_management: false, api_key_management: false, proxy_guards: true }
+};
+
+const config = (auth_mode: AuthMode, auth_capabilities = capabilities[auth_mode]): Config => ({
   config_dir: "/config",
   application: "/usr/bin/autobrr",
   database: "sqlite",
@@ -30,6 +37,7 @@ const config = (auth_mode: AuthMode): Config => ({
   base_url: "/",
   check_for_updates: false,
   auth_mode,
+  auth_capabilities,
   version: "dev",
   commit: "",
   date: ""
@@ -47,8 +55,20 @@ const beforeLoad = async () => {
   return undefined;
 };
 
+const disabledAuth = { isLoggedIn: true, username: "admin", authMethod: "disabled", authMode: "disabled", capabilities: capabilities.disabled } as const;
+
+test("logging in resolves the mode and capabilities", async () => {
+  vi.spyOn(APIClient.auth, "validate").mockResolvedValue({ username: "ze0s", auth_method: "password" });
+  vi.spyOn(APIClient.config, "get").mockResolvedValue(config("builtin"));
+
+  const thrown = await beforeLoad();
+
+  expect(thrown).toBeUndefined();
+  expect(AuthContext.get()).toMatchObject({ isLoggedIn: true, username: "ze0s", authMethod: "password", authMode: "builtin", capabilities: capabilities.builtin });
+});
+
 test("stale cached disabled mode is revalidated after auth is restored", async () => {
-  AuthContext.set({ isLoggedIn: true, username: "admin", authMethod: "disabled" });
+  AuthContext.set(disabledAuth);
 
   queryClient.setQueryData(SettingsKeys.config(), config("disabled"), { updatedAt: Date.now() - 60 * 1000 });
 
@@ -59,11 +79,62 @@ test("stale cached disabled mode is revalidated after auth is restored", async (
 
   expect(thrown).toBeUndefined();
   expect(getConfig).toHaveBeenCalledOnce();
-  expect(AuthContext.get()).toMatchObject({ isLoggedIn: true, authMethod: "password" });
+  expect(AuthContext.get()).toMatchObject({ isLoggedIn: true, authMethod: "password", authMode: "builtin", capabilities: capabilities.builtin });
+});
+
+test("switching to disabled mode replaces the session identity", async () => {
+  AuthContext.set({ isLoggedIn: true, username: "ze0s", authMethod: "password", authMode: "builtin", capabilities: capabilities.builtin });
+
+  queryClient.setQueryData(SettingsKeys.config(), config("disabled"));
+  vi.spyOn(APIClient.auth, "validate").mockResolvedValue({ username: "admin", auth_method: "disabled" });
+
+  const thrown = await beforeLoad();
+
+  expect(thrown).toBeUndefined();
+  expect(AuthContext.get()).toMatchObject({ username: "admin", authMethod: "disabled", authMode: "disabled", capabilities: capabilities.disabled });
+});
+
+test("a context stored before modes were tracked is revalidated once", async () => {
+  AuthContext.set({ isLoggedIn: true, username: "ze0s", authMethod: "password" });
+
+  queryClient.setQueryData(SettingsKeys.config(), config("builtin"));
+  const validate = vi.spyOn(APIClient.auth, "validate").mockResolvedValue({ username: "ze0s", auth_method: "password" });
+
+  expect(await beforeLoad()).toBeUndefined();
+  expect(await beforeLoad()).toBeUndefined();
+
+  expect(validate).toHaveBeenCalledOnce();
+  expect(AuthContext.get()).toMatchObject({ authMode: "builtin", capabilities: capabilities.builtin });
+});
+
+test("a mode switch without a surviving session goes to login", async () => {
+  AuthContext.set(disabledAuth);
+
+  queryClient.setQueryData(SettingsKeys.config(), config("builtin"));
+  vi.spyOn(APIClient.auth, "validate").mockRejectedValue(new Error("Forbidden"));
+
+  const thrown = await beforeLoad();
+
+  expect(isRedirect(thrown)).toBe(true);
+  expect(AuthContext.get().isLoggedIn).toBe(false);
+});
+
+test("capability changes within a mode update the context without validating", async () => {
+  AuthContext.set({ isLoggedIn: true, username: "ze0s", authMethod: "oidc", authMode: "oidc", capabilities: capabilities.oidc });
+
+  const oidcOnly = { ...capabilities.oidc, password_login: false };
+  queryClient.setQueryData(SettingsKeys.config(), config("oidc", oidcOnly));
+  const validate = vi.spyOn(APIClient.auth, "validate");
+
+  const thrown = await beforeLoad();
+
+  expect(thrown).toBeUndefined();
+  expect(validate).not.toHaveBeenCalled();
+  expect(AuthContext.get()).toMatchObject({ authMethod: "oidc", capabilities: oidcOnly });
 });
 
 test("fresh cached config is reused without a request", async () => {
-  AuthContext.set({ isLoggedIn: true, username: "admin", authMethod: "disabled" });
+  AuthContext.set(disabledAuth);
 
   queryClient.setQueryData(SettingsKeys.config(), config("disabled"));
 

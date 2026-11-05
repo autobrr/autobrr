@@ -32,7 +32,7 @@ import {
   ProxiesQueryOptions
 } from "@api/queries";
 import { RingResizeSpinner } from "@components/Icons";
-import { AuthContext } from "@utils/Context";
+import { AuthContext, AuthInfo } from "@utils/Context";
 import { claimAutoRedirect, consumeLoggedOut } from "@utils/autoLogin";
 import { isSameOriginPath } from "@utils";
 import { queryClient } from "@api/QueryClient";
@@ -222,9 +222,9 @@ export const SettingsApiRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'api',
   loader: (opts) => {
-    // API key management is unavailable when built-in auth is disabled; skip the
-    // prefetch so the (403'd) endpoint isn't hit and the page can render its notice.
-    if (AuthContext.get().authMethod === 'disabled') {
+    // Skip the prefetch in modes without key management so the (403'd) endpoint
+    // isn't hit and the page can render its notice.
+    if (!AuthContext.get().capabilities?.api_key_management) {
       return;
     }
     return opts.context.queryClient.query({ ...ApikeysQueryOptions(), staleTime: "static" });
@@ -249,8 +249,7 @@ export const SettingsAccountRoute = createRoute({
   getParentRoute: () => SettingsRoute,
   path: 'account',
   beforeLoad: async () => {
-    // Account (username/password) management is unavailable when built-in auth is disabled.
-    if (AuthContext.get().authMethod === 'disabled') {
+    if (!AuthContext.get().capabilities?.account_management) {
       throw redirect({ to: SettingsRoute.to });
     }
   },
@@ -291,6 +290,39 @@ export const OnboardRoute = createRoute({
   component: lazyRouteComponent(() => import("@screens/auth/Onboarding"), "Onboarding")
 });
 
+type ValidateResponse = Awaited<ReturnType<typeof APIClient.auth.validate>>;
+
+const toAuthInfo = (validation: ValidateResponse, config: Config, issuerUrl?: string): AuthInfo => ({
+  isLoggedIn: true,
+  username: validation.username || "unknown",
+  authMethod: validation.auth_method,
+  authMode: config.auth_mode,
+  capabilities: config.auth_capabilities,
+  profilePicture: validation.profile_picture,
+  issuerUrl
+});
+
+const resolveAuth = async (client: QueryClient, config?: Config): Promise<AuthInfo> => {
+  const validation = await APIClient.auth.validate();
+  const serverConfig = config ?? await client.query(ConfigQueryOptions());
+
+  let issuerUrl;
+  if (validation.auth_method === "oidc") {
+    const oidcConfig = await client.query({ ...OIDCConfigQueryOptions(), staleTime: "static" });
+    issuerUrl = oidcConfig.issuerUrl;
+  }
+
+  return toAuthInfo(validation, serverConfig, issuerUrl);
+};
+
+const sameCapabilities = (a?: AuthCapabilities, b?: AuthCapabilities) => {
+  if (!a || !b) {
+    return false;
+  }
+
+  return (Object.keys(a) as (keyof AuthCapabilities)[]).every((key) => a[key] === b[key]);
+};
+
 export const LoginRoute = createRoute({
   getParentRoute: () => RootRoute,
   path: 'login',
@@ -299,15 +331,12 @@ export const LoginRoute = createRoute({
     autoRedirect: z.catch(z.optional(z.boolean()), undefined),
   }),
   beforeLoad: async ({ context, navigate, preload, search }) => {
-    // With built-in auth disabled there is nothing to log in to, so bookmarks and
-    // stale tabs on /login continue into the app instead of a form that always fails.
+    // Modes without a login method have nothing to log in to, so bookmarks and stale
+    // tabs on /login continue into the app instead of a form that always fails.
     const validation = await APIClient.auth.validate().catch(() => undefined);
-    if (validation?.auth_method === "disabled") {
-      AuthContext.set({
-        isLoggedIn: true,
-        username: validation.username || "unknown",
-        authMethod: validation.auth_method
-      });
+    const config = validation && await context.queryClient.query(ConfigQueryOptions()).catch(() => undefined);
+    if (validation && config && !config.auth_capabilities.password_login && !config.auth_capabilities.oidc_login) {
+      AuthContext.set(toAuthInfo(validation, config));
 
       const target = search.redirect && isSameOriginPath(search.redirect) ? search.redirect : "/";
       throw redirect({ href: target });
@@ -367,21 +396,7 @@ export const AuthRoute = createRoute({
     // If the user is not logged in, check for item in localStorage
     if (!AuthContext.get().isLoggedIn) {
       try {
-        const response = await APIClient.auth.validate();
-        // Also get OIDC config if needed
-        let issuerUrl;
-        if (response.auth_method === 'oidc') {
-          const oidcConfig = await context.queryClient.query({ ...OIDCConfigQueryOptions(), staleTime: "static" });
-          issuerUrl = oidcConfig.issuerUrl;
-        }
-        
-        AuthContext.set({
-          isLoggedIn: true,
-          username: response.username || 'unknown',
-          authMethod: response.auth_method,
-          profilePicture: response.profile_picture,
-          issuerUrl: issuerUrl
-        });
+        AuthContext.set(await resolveAuth(context.queryClient));
       } catch (error) {
         console.debug("Authentication validation failed:", error);
         throw redirect({
@@ -392,39 +407,23 @@ export const AuthRoute = createRoute({
         });
       }
     } else {
-      // Reconcile the persisted auth method with the server so switching auth
-      // modes in either direction can't leave stale UI behind for a session that
-      // was already marked logged in. The mode only changes across a restart, so
-      // an open tab must refetch once its cached config goes stale.
-      let authMode: string | undefined;
+      // Reconcile the persisted auth context with the server so switching auth
+      // modes can't leave stale UI behind for a session that was already marked
+      // logged in. The mode only changes across a restart, so an open tab must
+      // refetch once its cached config goes stale.
+      let config: Config | undefined;
       try {
-        const config = await context.queryClient.query(ConfigQueryOptions());
-        authMode = config.auth_mode;
+        config = await context.queryClient.query(ConfigQueryOptions());
       } catch (error) {
         console.debug("auth mode reconciliation failed:", error);
       }
 
-      const storedAuthMethod = AuthContext.get().authMethod;
-      if (authMode === 'disabled' && storedAuthMethod !== 'disabled') {
-        AuthContext.set({ ...AuthContext.get(), authMethod: 'disabled' });
-      } else if (authMode && authMode !== 'disabled' && storedAuthMethod === 'disabled') {
-        // Auth was switched back on; replace the synthetic disabled identity with
-        // the real session, or fall back to login if none survives.
+      const auth = AuthContext.get();
+      if (config && config.auth_mode !== auth.authMode) {
+        // The stored identity belongs to another mode; replace it with the server's,
+        // or fall back to login if no session survives the switch.
         try {
-          const response = await APIClient.auth.validate();
-          let issuerUrl;
-          if (response.auth_method === 'oidc') {
-            const oidcConfig = await APIClient.auth.getOIDCConfig();
-            issuerUrl = oidcConfig.issuerUrl;
-          }
-
-          AuthContext.set({
-            isLoggedIn: true,
-            username: response.username || 'unknown',
-            authMethod: response.auth_method,
-            profilePicture: response.profile_picture,
-            issuerUrl: issuerUrl
-          });
+          AuthContext.set(await resolveAuth(context.queryClient, config));
         } catch {
           AuthContext.reset();
           throw redirect({
@@ -434,6 +433,8 @@ export const AuthRoute = createRoute({
             },
           });
         }
+      } else if (config && !sameCapabilities(config.auth_capabilities, auth.capabilities)) {
+        AuthContext.set({ ...auth, capabilities: config.auth_capabilities });
       }
     }
 

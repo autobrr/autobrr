@@ -18,6 +18,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func newAuthDisabledTestServer(cidrs []string) *Server {
@@ -584,15 +585,122 @@ func TestRejectUntrustedBrowserRequests_AllowsBodylessMutationWithoutContentType
 	assert.Equal(t, http.StatusOK, rr.Code)
 }
 
-func TestIsAuthenticated_BypassedWhenAuthDisabled(t *testing.T) {
-	s := newAuthDisabledTestServer([]string{"127.0.0.1/32"})
+func TestIsAuthenticatedResolvesCaller(t *testing.T) {
+	disabled := domain.Config{AuthDisabled: true, AuthDisabledAcknowledgement: domain.AuthDisabledAcknowledgementValue}
+	apiKey := &domain.APIKey{Name: "sonarr", Scopes: []string{"filters:write"}}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/filters", nil)
-	rr := httptest.NewRecorder()
+	tests := []struct {
+		name       string
+		config     domain.Config
+		session    map[string]any
+		token      string
+		wantStatus int
+		want       *Caller
+	}{
+		{
+			name:       "builtin password session",
+			session:    map[string]any{"authenticated": true, "auth_method": "password", "username": "ze0s"},
+			wantStatus: http.StatusOK,
+			want:       &Caller{Method: domain.AuthMethodPassword, Username: "ze0s"},
+		},
+		{
+			name:       "oidc session",
+			config:     domain.Config{OIDCEnabled: true},
+			session:    map[string]any{"authenticated": true, "auth_method": "oidc", "username": "ze0s", "profile_picture": "https://idp.example.com/me.png"},
+			wantStatus: http.StatusOK,
+			want:       &Caller{Method: domain.AuthMethodOIDC, Username: "ze0s", ProfilePicture: "https://idp.example.com/me.png"},
+		},
+		{
+			name:       "no session",
+			wantStatus: http.StatusForbidden,
+		},
+		{
+			name:       "unauthenticated session",
+			session:    map[string]any{"username": "ze0s"},
+			wantStatus: http.StatusForbidden,
+		},
+		{
+			name:       "api key",
+			token:      "valid",
+			wantStatus: http.StatusOK,
+			want:       &Caller{Method: domain.AuthMethodAPIKey, APIKey: apiKey},
+		},
+		{
+			name:       "api key wins over session",
+			session:    map[string]any{"authenticated": true, "auth_method": "password", "username": "ze0s"},
+			token:      "valid",
+			wantStatus: http.StatusOK,
+			want:       &Caller{Method: domain.AuthMethodAPIKey, APIKey: apiKey},
+		},
+		{
+			name:       "invalid api key",
+			token:      "nope",
+			wantStatus: http.StatusUnauthorized,
+		},
+		{
+			name:       "disabled",
+			config:     disabled,
+			wantStatus: http.StatusOK,
+			want:       &Caller{Method: domain.AuthMethodDisabled, Username: "admin"},
+		},
+		{
+			name:       "disabled ignores api keys",
+			config:     disabled,
+			token:      "nope",
+			wantStatus: http.StatusOK,
+			want:       &Caller{Method: domain.AuthMethodDisabled, Username: "admin"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sm := scs.New()
+			s := &Server{
+				log:            zerolog.Nop(),
+				config:         &config.AppConfig{Config: &tt.config},
+				sessionManager: sm,
+				apiService:     &apikeyServiceStub{tokens: map[string]*domain.APIKey{"valid": apiKey}},
+			}
 
-	s.IsAuthenticated(okHandler()).ServeHTTP(rr, req)
+			req := httptest.NewRequest(http.MethodGet, "/api/filters", nil)
+			if tt.token != "" {
+				req.Header.Set("X-API-Token", tt.token)
+			}
 
-	assert.Equal(t, http.StatusOK, rr.Code)
+			if tt.session != nil {
+				ctx, err := sm.Load(t.Context(), "")
+				require.NoError(t, err)
+				for key, value := range tt.session {
+					sm.Put(ctx, key, value)
+				}
+				token, _, err := sm.Commit(ctx)
+				require.NoError(t, err)
+				req.AddCookie(&http.Cookie{Name: sm.Cookie.Name, Value: token})
+			}
+
+			var got *Caller
+			next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				got, _ = callerFromContext(r.Context())
+				w.WriteHeader(http.StatusOK)
+			})
+
+			rr := httptest.NewRecorder()
+			sm.LoadAndSave(s.IsAuthenticated(next)).ServeHTTP(rr, req)
+
+			assert.Equal(t, tt.wantStatus, rr.Code)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestLoggerMiddleware_LogsCallerUsername(t *testing.T) {
+	var buf bytes.Buffer
+	logger := zerolog.New(&buf).Level(zerolog.TraceLevel)
+
+	handler := LoggerMiddleware(&logger, nil)(asCaller(testUser)(okHandler()))
+
+	handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/api/filters", nil))
+
+	assert.Contains(t, buf.String(), `"username":"admin"`)
 }
 
 func TestRequireAuthDisabledAllowedHost_PassThroughWhenAuthEnabled(t *testing.T) {

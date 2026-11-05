@@ -155,7 +155,7 @@ func NewServer(deps Deps) *Server {
 		srv.allowedOrigins = strings.Split(deps.Config.Config.CorsAllowedOrigins, ",")
 	}
 
-	if deps.Config.Config.IsAuthDisabled() {
+	if deps.Config.Config.AuthCapabilities().ProxyGuards {
 		prefixes, err := deps.Config.Config.ParseAuthAllowedPeerCIDRs()
 		if err != nil {
 			srv.log.Error().Err(err).Msg("auth disabled: invalid authAllowedPeerCIDRs, denying all requests")
@@ -339,7 +339,7 @@ func (s *Server) Handler() http.Handler {
 	r.Use(s.RequireAuthDisabledIPAllowlist)
 	r.Use(s.RequireAuthDisabledAllowedHost)
 	r.Use(s.RestrictAuthDisabledFraming)
-	if s.config.Config.IsAuthDisabled() {
+	if s.config.Config.AuthCapabilities().ProxyGuards {
 		// RealIP rewrites r.RemoteAddr from forwarded headers it trusts from any
 		// peer, so it stays off in this mode. If the operator names the header their
 		// proxy overwrites, resolve the client IP from it into the request context
@@ -418,7 +418,7 @@ func (s *Server) Handler() http.Handler {
 }
 
 // apiRoutes builds the router mounted under /api. Every route behind IsAuthenticated declares the scope an API key
-// needs with requireScope, or requireSession for routes keys can never use.
+// needs with requireScope, or requireUser for routes keys can never use.
 func (s *Server) apiRoutes() chi.Router {
 	encoder := newEncoder(s.log)
 

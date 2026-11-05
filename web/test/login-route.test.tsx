@@ -16,6 +16,28 @@ afterEach(() => {
   AuthContext.reset();
 });
 
+const config = (auth_mode: AuthMode, auth_capabilities: AuthCapabilities): Config => ({
+  config_dir: "/config",
+  application: "/usr/bin/autobrr",
+  database: "sqlite",
+  host: "127.0.0.1",
+  port: 7474,
+  log_level: "INFO",
+  log_path: "",
+  log_max_size: 50,
+  log_max_backups: 3,
+  base_url: "/",
+  check_for_updates: false,
+  auth_mode,
+  auth_capabilities,
+  version: "dev",
+  commit: "",
+  date: ""
+});
+
+const disabledConfig = config("disabled", { password_login: false, oidc_login: false, onboarding: false, account_management: false, api_key_management: false, proxy_guards: true });
+const builtinConfig = config("builtin", { password_login: true, oidc_login: false, onboarding: true, account_management: true, api_key_management: true, proxy_guards: false });
+
 const beforeLoad = async (search: { redirect?: string }) => {
   const navigate = vi.fn();
   const opts = { context: { queryClient: new QueryClient() }, navigate, search };
@@ -40,6 +62,7 @@ test.each([
   ["//[", "/"]
 ])("auth disabled: redirect %s enters the app at %s", async (redirect, want) => {
   vi.spyOn(APIClient.auth, "validate").mockResolvedValue({ username: "admin", auth_method: "disabled" });
+  vi.spyOn(APIClient.config, "get").mockResolvedValue(disabledConfig);
 
   const { thrown } = await beforeLoad({ redirect });
 
@@ -47,11 +70,12 @@ test.each([
   if (isRedirect(thrown)) {
     expect(thrown.options.href).toBe(want);
   }
-  expect(AuthContext.get()).toMatchObject({ isLoggedIn: true, authMethod: "disabled" });
+  expect(AuthContext.get()).toMatchObject({ isLoggedIn: true, authMethod: "disabled", authMode: "disabled", capabilities: disabledConfig.auth_capabilities });
 });
 
 test("auth disabled: redirect check does not need URL.parse", async () => {
   vi.spyOn(APIClient.auth, "validate").mockResolvedValue({ username: "admin", auth_method: "disabled" });
+  vi.spyOn(APIClient.config, "get").mockResolvedValue(disabledConfig);
 
   // Browsers before Chrome 126, Firefox 126 and Safari 17.4 have no static URL.parse.
   const parse = URL.parse;
@@ -77,5 +101,17 @@ test("auth enabled without a session renders the login form", async () => {
 
   expect(thrown).toBeUndefined();
   expect(navigate).not.toHaveBeenCalled();
+  expect(AuthContext.get().isLoggedIn).toBe(false);
+});
+
+test("a session in a mode with a login form renders the login form", async () => {
+  vi.spyOn(APIClient.auth, "validate").mockResolvedValue({ username: "admin", auth_method: "password" });
+  vi.spyOn(APIClient.config, "get").mockResolvedValue(builtinConfig);
+  vi.spyOn(APIClient.auth, "getOIDCConfig").mockResolvedValue({ enabled: false, autoRedirect: false, authorizationUrl: "", state: "", disableBuiltInLogin: false, issuerUrl: "" });
+  vi.spyOn(APIClient.auth, "canOnboard").mockRejectedValue(new Error("Forbidden"));
+
+  const { thrown } = await beforeLoad({ redirect: "/filters" });
+
+  expect(thrown).toBeUndefined();
   expect(AuthContext.get().isLoggedIn).toBe(false);
 });

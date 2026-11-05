@@ -330,12 +330,12 @@ func (app *App) setupResourceLimits() {
 func (app *App) checkAuthConfig() error {
 	cfg := app.cfg.Config
 
-	switch {
-	case cfg.IsAuthDisabled():
-		if err := cfg.ValidateAuthDisabledConfig(); err != nil {
-			return errors.Wrap(err, "authentication is disabled but the configuration is invalid")
-		}
+	if err := cfg.ValidateAuthConfig(); err != nil {
+		return errors.Wrap(err, "invalid configuration for %s authentication mode", cfg.AuthMode())
+	}
 
+	switch {
+	case cfg.AuthMode() == domain.AuthModeDisabled:
 		wildcardBind := cfg.Host == "" || cfg.Host == "0.0.0.0" || cfg.Host == "::"
 		app.log.Warn().
 			Str("host", cfg.Host).
@@ -354,16 +354,10 @@ func (app *App) checkAuthConfig() error {
 				}
 			}
 		}
-	case cfg.AuthDisabled && cfg.AuthDisabledAcknowledgement != domain.AuthDisabledAcknowledgementValue:
+	case cfg.AuthDisabled:
 		app.log.Warn().
 			Str("acknowledgement_value", domain.AuthDisabledAcknowledgementValue).
 			Msg("authDisabled is set but the acknowledgement is missing or invalid; authentication remains enabled. Set AUTOBRR__AUTH_DISABLED_ACKNOWLEDGEMENT (or authDisabledAcknowledgement) to acknowledgement_value to disable authentication.")
-	}
-
-	if !cfg.IsAuthDisabled() {
-		if _, err := cfg.ParseTrustedProxies(); err != nil {
-			return errors.Wrap(err, "invalid trustedProxies")
-		}
 	}
 
 	return nil

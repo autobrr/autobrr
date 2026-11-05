@@ -301,17 +301,102 @@ func (c *Config) IsOIDCUserAllowed(subject, verifiedEmail string) bool {
 	}
 }
 
-// ValidateAuthDisabledConfig validates that disabling authentication is configured
-// safely. It is a no-op when auth is not disabled.
-func (c *Config) ValidateAuthDisabledConfig() error {
-	if !c.IsAuthDisabled() {
-		return nil
-	}
+// AuthMode is how autobrr authenticates browser users, derived from the config.
+type AuthMode string
 
-	if c.OIDCEnabled {
+const (
+	AuthModeBuiltin  AuthMode = "builtin"
+	AuthModeOIDC     AuthMode = "oidc"
+	AuthModeDisabled AuthMode = "disabled"
+)
+
+func (m AuthMode) String() string {
+	return string(m)
+}
+
+// AuthMode reports the active authentication mode. ValidateAuthConfig rejects
+// configs that enable more than one mode.
+func (c *Config) AuthMode() AuthMode {
+	switch {
+	case c.IsAuthDisabled():
+		return AuthModeDisabled
+	case c.OIDCEnabled:
+		return AuthModeOIDC
+	default:
+		return AuthModeBuiltin
+	}
+}
+
+// AuthCapabilities lists what the active authentication mode offers. Handlers and
+// the frontend check these instead of the mode itself.
+type AuthCapabilities struct {
+	PasswordLogin     bool `json:"password_login"`
+	OIDCLogin         bool `json:"oidc_login"`
+	Onboarding        bool `json:"onboarding"`
+	AccountManagement bool `json:"account_management"`
+	APIKeyManagement  bool `json:"api_key_management"`
+
+	// ProxyGuards enables the peer, Host, browser and framing checks for modes
+	// that rely on a reverse proxy to authenticate.
+	ProxyGuards bool `json:"proxy_guards"`
+}
+
+// AuthCapabilities returns the capabilities of the active authentication mode.
+func (c *Config) AuthCapabilities() AuthCapabilities {
+	switch c.AuthMode() {
+	case AuthModeDisabled:
+		return AuthCapabilities{ProxyGuards: true}
+	case AuthModeOIDC:
+		return AuthCapabilities{
+			PasswordLogin:     !c.OIDCDisableBuiltInLogin,
+			OIDCLogin:         true,
+			AccountManagement: true,
+			APIKeyManagement:  true,
+		}
+	default:
+		return AuthCapabilities{
+			PasswordLogin:     true,
+			Onboarding:        true,
+			AccountManagement: true,
+			APIKeyManagement:  true,
+		}
+	}
+}
+
+// AuthMethod is how a request's caller was authenticated.
+type AuthMethod string
+
+const (
+	AuthMethodPassword AuthMethod = "password"
+	AuthMethodOIDC     AuthMethod = "oidc"
+	AuthMethodDisabled AuthMethod = "disabled"
+	AuthMethodAPIKey   AuthMethod = "apikey"
+)
+
+func (m AuthMethod) String() string {
+	return string(m)
+}
+
+// ValidateAuthConfig validates the settings of the active authentication mode
+// and rejects settings that belong to conflicting modes.
+func (c *Config) ValidateAuthConfig() error {
+	if c.IsAuthDisabled() && c.OIDCEnabled {
 		return errors.New("authDisabled cannot be used together with oidcEnabled")
 	}
 
+	switch c.AuthMode() {
+	case AuthModeDisabled:
+		return c.validateAuthDisabledConfig()
+	default:
+		if _, err := c.ParseTrustedProxies(); err != nil {
+			return errors.Wrap(err, "invalid trustedProxies")
+		}
+	}
+
+	return nil
+}
+
+func (c *Config) validateAuthDisabledConfig() error {
 	if len(c.AuthAllowedPeerCIDRs) == 0 {
 		return errors.New("authAllowedPeerCIDRs is required when authentication is disabled")
 	}

@@ -413,6 +413,10 @@ func TestAuthHandlerValidateOK(t *testing.T) {
 	defer resp.Body.Close()
 
 	assert.Equalf(t, http.StatusOK, resp.StatusCode, "validate handler: unexpected http status")
+
+	var caller Caller
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&caller))
+	assert.Equal(t, Caller{Method: domain.AuthMethodPassword, Username: "test"}, caller)
 }
 
 func TestAuthHandlerValidateBad(t *testing.T) {
