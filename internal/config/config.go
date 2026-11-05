@@ -191,7 +191,8 @@ checkForUpdates = true
 # Authentik, or any forward_auth/auth_request setup) and passes the username on in
 # a header. Unlike disabled authentication, every request must carry the header,
 # and API keys and their management keep working. Cannot be combined with
-# authDisabled or any OIDC setting.
+# authDisabled, oidcEnabled, oidcDisableBuiltInLogin, oidcAutoRedirect,
+# oidcAllowedSubject or oidcAllowedEmail.
 #
 # The proxy MUST overwrite this header on every request, never pass a client's
 # value through. Authelia: Remote-User, Authentik: X-authentik-username.
@@ -203,8 +204,8 @@ checkForUpdates = true
 # Environment variable: AUTOBRR__AUTH_TRUSTED_USER_HEADER
 #authTrustedUserHeader = "Remote-User"
 #
-# Required. The only username accepted (case-insensitive), exactly as the proxy
-# sends it. Other users your proxy authenticates get 403.
+# Required. The only username accepted, exactly as the proxy sends it, including
+# case. Other users your proxy authenticates get 403.
 # Environment variable: AUTOBRR__AUTH_TRUSTED_USER
 #authTrustedUser = "ze0s"
 #

@@ -432,7 +432,7 @@ authTrustedUserHeader = "Remote-User"
 authAllowedPeerCIDRs = ["127.0.0.1/32"]
 # Every URL you access autobrr at, as in disabled mode.
 corsAllowedOrigins = "https://autobrr.example.com"
-# The only user accepted (case-insensitive), exactly as the proxy sends it. Other
+# The only user accepted, exactly as the proxy sends it, including case. Other
 # users your proxy authenticates get 403.
 authTrustedUser = "ze0s"
 # Optional: the proxy's logout URL, used by the log out button. Unset hides it.
@@ -477,18 +477,21 @@ http:
 
 Use `authResponseHeaders` with Traefik, not `authResponseHeadersRegex`: the regex is matched case-sensitively against the name as Traefik writes it (`X-Authentik-Username`), so `^X-authentik-` matches nothing and the client's header reaches autobrr unchanged.
 
-To check your proxy, send a forged header with your own `authTrustedUser` to a path the identity provider does not protect, if you have one:
+To check your proxy, send a forged header to a path the identity provider does not protect, if you have one. Use your own `authTrustedUserHeader` and `authTrustedUser`; a forged header with any other name proves nothing, because autobrr ignores it:
 
 ```sh
+# Authelia (authTrustedUserHeader = "Remote-User")
 curl -i -H 'Remote-User: ze0s' https://autobrr.example.com/api/auth/validate
+# Authentik (authTrustedUserHeader = "X-authentik-username")
+curl -i -H 'X-authentik-username: ze0s' https://autobrr.example.com/api/auth/validate
 ```
 
 `403` means the proxy removed the header, which is what you want. A redirect or `401` from the identity provider means the path is protected. `200` with your username means the proxy passes on client headers: fix it before relying on forward authentication.
 
 Things to be aware of:
 
-- Cannot be combined with `authDisabled` or any OIDC setting; autobrr refuses to start.
-- autobrr has one admin account, so it accepts one username. Requests without the header, with an empty header, or from any other user get 403, and the rejected username is logged. If the proxy sends an email or display name instead of the username, set `authTrustedUser` to that. If the header appears more than once, the last value is used.
+- Cannot be combined with `authDisabled`, `oidcEnabled`, `oidcDisableBuiltInLogin`, `oidcAutoRedirect`, `oidcAllowedSubject` or `oidcAllowedEmail`; autobrr refuses to start. The other `oidc*` settings are ignored. `X-API-Token` cannot be the user header, since it carries API keys.
+- autobrr has one admin account, so it accepts one username. Requests without the header, with an empty header, or from any other user get 403, and the rejected username is logged. The match is exact, including case, because identity providers can hold accounts that differ only by case. If the proxy sends an email or display name instead of the username, set `authTrustedUser` to that. If the header appears more than once, the last value is used.
 - An API key sent with `X-API-Token` or `?apikey=` takes precedence over the header, so integrations work through proxy bypass rules for API paths.
 - Groups headers such as `Remote-Groups` are not read: the one accepted user has full access.
 - The `Host` allowlist, browser request checks, `Content-Type` rule and framing policy described under [Disabling built-in authentication](#disabling-built-in-authentication) apply in this mode too, and the same advice about `host = "127.0.0.1"` holds.

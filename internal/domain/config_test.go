@@ -372,7 +372,11 @@ func TestConfig_ValidateAuthConfigForward(t *testing.T) {
 		{name: "ipv6 peer range", modify: func(c *Config) { c.AuthAllowedPeerCIDRs = []string{"fd00::/64"} }, wantErr: "authAllowedPeerCIDRs entry fd00::/64 is a range"},
 		{name: "missing origins", modify: func(c *Config) { c.CorsAllowedOrigins = "" }, wantErr: "corsAllowedOrigins must be set to explicit origins in forward authentication mode"},
 		{name: "wildcard origin", modify: func(c *Config) { c.CorsAllowedOrigins = "*" }, wantErr: "wildcard origin in corsAllowedOrigins is not supported: *"},
+		{name: "api key header", modify: func(c *Config) { c.AuthTrustedUserHeader = "x-api-token" }, wantErr: "authTrustedUserHeader cannot be X-API-Token, which carries API keys"},
 		{name: "relative logout url", modify: func(c *Config) { c.AuthLogoutURL = "/logout" }, wantErr: "authLogoutURL must be an absolute http(s) URL: /logout"},
+		{name: "logout url without host", modify: func(c *Config) { c.AuthLogoutURL = "https://:443/logout" }, wantErr: "invalid host in authLogoutURL: https://:443/logout"},
+		{name: "logout url with out of range port", modify: func(c *Config) { c.AuthLogoutURL = "https://auth.example.com:99999/logout" }, wantErr: "invalid host in authLogoutURL: https://auth.example.com:99999/logout"},
+		{name: "logout url with port", modify: func(c *Config) { c.AuthLogoutURL = "https://auth.example.com:8443/logout" }},
 		{name: "javascript logout url", modify: func(c *Config) { c.AuthLogoutURL = "javascript:alert(1)" }, wantErr: "authLogoutURL must be an absolute http(s) URL: javascript:alert(1)"},
 	}
 	for _, tt := range tests {
@@ -401,7 +405,8 @@ func TestConfig_IsTrustedUserAllowed(t *testing.T) {
 		{name: "empty allows nobody", username: "someone", want: false},
 		{name: "blank allows nobody", user: "  ", username: "", want: false},
 		{name: "match", user: "ze0s", username: "ze0s", want: true},
-		{name: "case insensitive", user: " Ze0s ", username: "ZE0S", want: true},
+		{name: "configured value is trimmed", user: " ze0s ", username: "ze0s", want: true},
+		{name: "case variant is another account", user: "ze0s", username: "Ze0s", want: false},
 		{name: "other user", user: "ze0s", username: "admin", want: false},
 		{name: "no partial match", user: "ze0s", username: "ze0s2", want: false},
 		{name: "a list is not split", user: "ze0s,admin", username: "admin", want: false},

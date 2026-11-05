@@ -398,11 +398,13 @@ func (m AuthMethod) String() string {
 }
 
 // IsTrustedUserAllowed reports whether username, as sent by the proxy in forward
-// authentication mode, is AuthTrustedUser. No user is allowed when it is empty.
+// authentication mode, is exactly AuthTrustedUser. Identity providers can hold
+// accounts that differ only by case, so a case-insensitive match could let another
+// account in. No user is allowed when AuthTrustedUser is empty.
 func (c *Config) IsTrustedUserAllowed(username string) bool {
 	user := strings.TrimSpace(c.AuthTrustedUser)
 
-	return user != "" && strings.EqualFold(user, username)
+	return user != "" && user == username
 }
 
 // ValidateAuthConfig validates the settings of the active authentication mode
@@ -429,8 +431,15 @@ func (c *Config) ValidateAuthConfig() error {
 // validateForwardAuthConfig adds the forward mode rules on top of the proxy guard
 // settings it shares with disabled mode.
 func (c *Config) validateForwardAuthConfig() error {
-	if header := strings.TrimSpace(c.AuthTrustedUserHeader); !httpguts.ValidHeaderFieldName(header) {
+	header := strings.TrimSpace(c.AuthTrustedUserHeader)
+	if !httpguts.ValidHeaderFieldName(header) {
 		return errors.New("authTrustedUserHeader is not a valid header name: %s", header)
+	}
+
+	// API keys are read from X-API-Token before the user header, so a username
+	// sent there would be looked up as a key and rejected.
+	if strings.EqualFold(header, "X-API-Token") {
+		return errors.New("authTrustedUserHeader cannot be X-API-Token, which carries API keys")
 	}
 
 	conflicts := []struct {
@@ -473,8 +482,12 @@ func (c *Config) validateForwardAuthConfig() error {
 
 	if c.AuthLogoutURL != "" {
 		u, err := url.Parse(c.AuthLogoutURL)
-		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
 			return errors.New("authLogoutURL must be an absolute http(s) URL: %s", c.AuthLogoutURL)
+		}
+
+		if _, err := NormalizeHost(u.Host); err != nil {
+			return errors.Wrap(err, "invalid host in authLogoutURL: %s", c.AuthLogoutURL)
 		}
 	}
 

@@ -116,6 +116,7 @@ test("forward mode logs out through the proxy logout url", async () => {
 
   const link = await screen.findByRole("menuitem", { name: /log out/i });
   expect(link.getAttribute("href")).toBe("https://auth.example.com/logout");
+  expect(fireEvent.click(link)).toBe(true);
   expect(screen.queryByText("Account")).toBeNull();
   expect(logout).not.toHaveBeenCalled();
 });

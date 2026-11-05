@@ -168,5 +168,8 @@ test("forward mode continues into the app", async () => {
   const { thrown } = await beforeLoad({ redirect: "/filters" });
 
   expect(isRedirect(thrown)).toBe(true);
+  if (isRedirect(thrown)) {
+    expect(thrown.options.href).toBe("/filters");
+  }
   expect(AuthContext.get()).toMatchObject({ isLoggedIn: true, username: "ze0s", authMethod: "forward", authMode: "forward" });
 });
