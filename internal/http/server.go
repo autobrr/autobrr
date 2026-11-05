@@ -371,50 +371,7 @@ func (s *Server) Handler() http.Handler {
 	r.Use(c.Handler)
 	r.Use(s.sessionMiddleware)
 
-	encoder := newEncoder(s.log)
-
-	// Create a separate router for API
-	apiRouter := chi.NewRouter()
-	// API only, so cross-site navigations to the web shell keep working. Framing
-	// is limited separately by RestrictAuthDisabledFraming.
-	apiRouter.Use(s.RejectUntrustedBrowserRequests)
-	apiRouter.Route("/auth", newAuthHandler(encoder, s.log, s, s.config.Config, s.sessionManager, s.authService, s.oidcService).Routes)
-	apiRouter.Route("/healthz", newHealthHandler(encoder, s.db).Routes)
-	apiRouter.Group(func(r chi.Router) {
-		r.Group(func(r chi.Router) {
-			r.Use(s.IsAuthenticated)
-
-			r.Route("/actions", newActionHandler(encoder, s.actionService).Routes)
-			r.Route("/alerts", newAlertHandler(encoder, s.alertService).Routes)
-			r.Route("/config", newConfigHandler(encoder, s.buildInfo, s.config).Routes)
-			r.Route("/downloaders", newDownloaderHandler(encoder, s.downloaderService).Routes)
-			r.Route("/filters", newFilterHandler(encoder, s.filterService).Routes)
-			r.Route("/feeds", newFeedHandler(encoder, s.feedService).Routes)
-			r.Route("/irc", newIrcHandler(encoder, s.sse, s.ircService).Routes)
-			r.Route("/indexer", newIndexerHandler(encoder, s.indexerService, s.ircService).Routes)
-			r.Route("/lists", newListHandler(encoder, s.listService).Routes)
-			r.Route("/keys", newAPIKeyHandler(encoder, s.apiService, s.config.Config).Routes)
-			r.Route("/logs", newLogsHandler(s.config).Routes)
-			r.Route("/notification", newNotificationHandler(encoder, s.notificationService).Routes)
-			r.Route("/proxy", newProxyHandler(encoder, s.proxyService).Routes)
-			r.Route("/release", newReleaseHandler(encoder, s.releaseService).Routes)
-			r.Route("/updates", newUpdateHandler(encoder, s.updateService).Routes)
-			r.Route("/webhook", newWebhookHandler(encoder, s.listService).Routes)
-
-			r.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
-
-				// inject CORS headers to bypass checks
-				s.sse.Headers = map[string]string{
-					"Content-Type":      "text/event-stream",
-					"Cache-Control":     "no-cache",
-					"Connection":        "keep-alive",
-					"X-Accel-Buffering": "no",
-				}
-
-				s.sse.ServeHTTP(w, r)
-			})
-		})
-	})
+	apiRouter := s.apiRoutes()
 
 	routeBaseURL := "/"
 
@@ -458,4 +415,54 @@ func (s *Server) Handler() http.Handler {
 	r.Mount(routeBaseURL+"api", apiRouter)
 
 	return r
+}
+
+// apiRoutes builds the router mounted under /api. Every route behind IsAuthenticated declares the scope an API key
+// needs with requireScope, or requireSession for routes keys can never use.
+func (s *Server) apiRoutes() chi.Router {
+	encoder := newEncoder(s.log)
+
+	apiRouter := chi.NewRouter()
+	// API only, so cross-site navigations to the web shell keep working. Framing
+	// is limited separately by RestrictAuthDisabledFraming.
+	apiRouter.Use(s.RejectUntrustedBrowserRequests)
+	apiRouter.Route("/auth", newAuthHandler(encoder, s.log, s, s.config.Config, s.sessionManager, s.authService, s.oidcService).Routes)
+	apiRouter.Route("/healthz", newHealthHandler(encoder, s.db).Routes)
+	apiRouter.Group(func(r chi.Router) {
+		r.Group(func(r chi.Router) {
+			r.Use(s.IsAuthenticated)
+
+			r.Route("/actions", newActionHandler(encoder, s.actionService).Routes)
+			r.Route("/alerts", newAlertHandler(encoder, s.alertService).Routes)
+			r.Route("/config", newConfigHandler(encoder, s.buildInfo, s.config).Routes)
+			r.Route("/downloaders", newDownloaderHandler(encoder, s.downloaderService).Routes)
+			r.Route("/filters", newFilterHandler(encoder, s.filterService).Routes)
+			r.Route("/feeds", newFeedHandler(encoder, s.feedService).Routes)
+			r.Route("/irc", newIrcHandler(encoder, s.sse, s.ircService).Routes)
+			r.Route("/indexer", newIndexerHandler(encoder, s.indexerService, s.ircService).Routes)
+			r.Route("/lists", newListHandler(encoder, s.listService).Routes)
+			r.Route("/keys", newAPIKeyHandler(encoder, s.apiService, s.config.Config).Routes)
+			r.Route("/logs", newLogsHandler(s.config).Routes)
+			r.Route("/notification", newNotificationHandler(encoder, s.notificationService).Routes)
+			r.Route("/proxy", newProxyHandler(encoder, s.proxyService).Routes)
+			r.Route("/release", newReleaseHandler(encoder, s.releaseService).Routes)
+			r.Route("/updates", newUpdateHandler(encoder, s.updateService).Routes)
+			r.Route("/webhook", newWebhookHandler(encoder, s.listService).Routes)
+
+			r.With(requireStreamAccess).HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
+
+				// inject CORS headers to bypass checks
+				s.sse.Headers = map[string]string{
+					"Content-Type":      "text/event-stream",
+					"Cache-Control":     "no-cache",
+					"Connection":        "keep-alive",
+					"X-Accel-Buffering": "no",
+				}
+
+				s.sse.ServeHTTP(w, r)
+			})
+		})
+	})
+
+	return apiRouter
 }

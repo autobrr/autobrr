@@ -513,6 +513,9 @@
       "createTitle": "API-Schlüssel erstellen",
       "description": "Neuen API-Schlüssel hinzufügen.",
       "created": "API-Schlüssel {{name}} wurde hinzugefügt",
+      "createdTitle": "API-Schlüssel erstellt",
+      "createdDescription": "Kopiere den Schlüssel jetzt. Gespeichert wird nur sein Hash, er wird also nicht noch einmal angezeigt.",
+      "done": "Fertig",
       "deleted": "API-Schlüssel {{name}} wurde gelöscht",
       "name": "Name",
       "key": "Schlüssel",
@@ -527,7 +530,82 @@
       "createCta": "API-Schlüssel erstellen",
       "removeTitle": "API-Schlüssel entfernen: {{name}}",
       "removeText": "Bist du sicher, dass du diesen API-Schlüssel entfernen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.",
-      "deleteKey": "Schlüssel löschen"
+      "deleteKey": "Schlüssel löschen",
+      "updated": "API-Schlüssel {{name}} wurde aktualisiert",
+      "updateTitle": "API-Schlüssel bearbeiten",
+      "updateDescription": "Name und Berechtigungen dieses API-Schlüssels ändern.",
+      "save": "Speichern",
+      "editKey": "Schlüssel bearbeiten",
+      "permissions": "Berechtigungen",
+      "permissionsDescription": "Wähle nur die Berechtigungen, die du wirklich brauchst. API-Schlüssel, Benutzer und Konfiguration verwalten ist mit API-Schlüsseln nicht möglich.",
+      "permissionsRequired": "Füge mindestens eine Berechtigung hinzu",
+      "addPermissions": "Berechtigungen hinzufügen",
+      "selectPermissions": "Berechtigungen auswählen",
+      "searchPermissions": "Suchen",
+      "noPermissions": "Noch keine Berechtigungen hinzugefügt.",
+      "noPermissionsFound": "Keine Berechtigungen gefunden",
+      "removePermission": "Berechtigung {{name}} entfernen",
+      "accessLabel": "Zugriff:",
+      "access": {
+        "read": "Nur lesen",
+        "invoke": "Nur auslösen",
+        "write": "Lesen und schreiben"
+      },
+      "accessShort": {
+        "read": "Lesen",
+        "invoke": "Auslösen",
+        "write": "Schreiben"
+      },
+      "resources": {
+        "filters": {
+          "label": "Filter",
+          "description": "Filter und ihre Aktionen."
+        },
+        "releases": {
+          "label": "Releases",
+          "description": "Release-Verlauf, Statistiken, Bereinigungsjobs und Aktionswiederholungen."
+        },
+        "indexers": {
+          "label": "Indexer",
+          "description": "Indexer und ihre Einstellungen."
+        },
+        "irc": {
+          "label": "IRC",
+          "description": "IRC-Netzwerke, Kanäle und Announce-Verarbeitung."
+        },
+        "feeds": {
+          "label": "Feeds",
+          "description": "RSS-, Torznab- und Newznab-Feeds."
+        },
+        "downloaders": {
+          "label": "Download-Clients",
+          "description": "Download-Clients und Verbindungstests."
+        },
+        "lists": {
+          "label": "Listen",
+          "description": "Listen, Listenaktualisierungen und die Webhooks dafür, z. B. aus Sonarr oder Radarr."
+        },
+        "notifications": {
+          "label": "Benachrichtigungen",
+          "description": "Benachrichtigungsdienste."
+        },
+        "proxies": {
+          "label": "Proxys",
+          "description": "Proxys und Proxy-Tests."
+        },
+        "config": {
+          "label": "Anwendungskonfiguration",
+          "description": "Anwendungseinstellungen wie Log-Level und Update-Prüfung."
+        },
+        "logs": {
+          "label": "Logs",
+          "description": "Logdateien und der Live-Log-Stream."
+        },
+        "updates": {
+          "label": "Updates",
+          "description": "Nach neuen autobrr-Versionen suchen."
+        }
+      }
     },
     "notification": {
       "settings": "Einstellungen",

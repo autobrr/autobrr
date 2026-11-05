@@ -4,6 +4,7 @@
 package http
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"mime"
@@ -17,6 +18,9 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/irc"
+	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/internal/notification"
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog"
@@ -83,62 +87,118 @@ func (s *Server) IsAuthenticated(next http.Handler) http.Handler {
 			return
 		}
 
-		if token := r.Header.Get("X-API-Token"); token != "" {
-			// check header
-			if !s.apiService.ValidateAPIKey(r.Context(), token) {
+		if token := cmp.Or(r.Header.Get("X-API-Token"), r.URL.Query().Get("apikey")); token != "" {
+			apiKey, ok := s.apiService.ValidateAPIKey(r.Context(), token)
+			if !ok {
 				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 				return
 			}
 
-		} else if key := r.URL.Query().Get("apikey"); key != "" {
-			// check query param like ?apikey=TOKEN
-			if !s.apiService.ValidateAPIKey(r.Context(), key) {
-				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
-				return
+			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), apiKeyContextKey{}, apiKey)))
+			return
+		}
+
+		authenticated := s.sessionManager.GetBool(r.Context(), "authenticated")
+		if !authenticated {
+			s.log.Debug().Msg("session not authenticated")
+			if err := s.sessionManager.Destroy(r.Context()); err != nil {
+				s.log.Error().Err(err).Msg("failed to destroy session")
 			}
-		} else {
-			// check session
-			authenticated := s.sessionManager.GetBool(r.Context(), "authenticated")
-			if !authenticated {
-				s.log.Debug().Msg("session not authenticated")
+			// 403 on purpose, never 401: a 401 makes browsers holding cached
+			// reverse-proxy Basic Auth credentials treat them as invalid and
+			// re-prompt, breaking those setups
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+			return
+		}
+
+		// sessions outlive restarts, so one created before the allowed OIDC user
+		// was set or changed must not keep a now-disallowed user logged in
+		if s.sessionManager.GetString(r.Context(), "auth_method") == "oidc" {
+			subject := s.sessionManager.GetString(r.Context(), "oidc_subject")
+			if !s.config.Config.IsOIDCUserAllowed(subject, s.sessionManager.GetString(r.Context(), "oidc_verified_email")) {
+				s.log.Warn().Str("sub", subject).Str("remote_addr", r.RemoteAddr).Msg("OIDC session user is no longer allowed, destroying session")
 				if err := s.sessionManager.Destroy(r.Context()); err != nil {
 					s.log.Error().Err(err).Msg("failed to destroy session")
 				}
-				// 403 on purpose, never 401: a 401 makes browsers holding cached
-				// reverse-proxy Basic Auth credentials treat them as invalid and
-				// re-prompt, breaking those setups
 				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 				return
 			}
+		}
 
-			// sessions outlive restarts, so one created before the allowed OIDC user
-			// was set or changed must not keep a now-disallowed user logged in
-			if s.sessionManager.GetString(r.Context(), "auth_method") == "oidc" {
-				subject := s.sessionManager.GetString(r.Context(), "oidc_subject")
-				if !s.config.Config.IsOIDCUserAllowed(subject, s.sessionManager.GetString(r.Context(), "oidc_verified_email")) {
-					s.log.Warn().Str("sub", subject).Str("remote_addr", r.RemoteAddr).Msg("OIDC session user is no longer allowed, destroying session")
-					if err := s.sessionManager.Destroy(r.Context()); err != nil {
-						s.log.Error().Err(err).Msg("failed to destroy session")
-					}
-					http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
-					return
-				}
-			}
+		deadline := s.sessionManager.Deadline(r.Context())
+		if time.Until(deadline) <= 7*24*time.Hour {
+			s.log.Trace().Time("deadline", deadline).Msg("session expiring in less than 7 days, extending")
 
-			deadline := s.sessionManager.Deadline(r.Context())
-			if time.Until(deadline) <= 7*24*time.Hour {
-				s.log.Trace().Time("deadline", deadline).Msg("session expiring in less than 7 days, extending")
-
-				if err := s.sessionManager.RenewToken(r.Context()); err != nil {
-					s.log.Error().Err(err).Str("username", s.sessionManager.GetString(r.Context(), "username")).Str("remote_addr", r.RemoteAddr).Msg("failed to renew session token")
-					http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-					return
-				}
+			if err := s.sessionManager.RenewToken(r.Context()); err != nil {
+				s.log.Error().Err(err).Str("username", s.sessionManager.GetString(r.Context(), "username")).Str("remote_addr", r.RemoteAddr).Msg("failed to renew session token")
+				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+				return
 			}
 		}
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+type apiKeyContextKey struct{}
+
+// requireScope limits API key requests to keys with access to resource. Session requests are not scoped.
+func requireScope(resource domain.APIResource, access domain.APIAccess) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if apiKey, ok := r.Context().Value(apiKeyContextKey{}).(*domain.APIKey); ok && !apiKey.HasAccess(resource, access) {
+				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// requireSession keeps API keys away from routes that could widen a key's own access, such as managing keys,
+// users or the config file.
+func requireSession(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if isAPIKeyRequest(r) {
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+// eventStreamResources maps each server-sent event stream to the resource an API key needs read access to.
+var eventStreamResources = map[string]domain.APIResource{
+	logger.StreamLogs:           domain.APIResourceLogs,
+	irc.EventStreamKey:          domain.APIResourceIRC,
+	notification.InboxStreamKey: domain.APIResourceNotifications,
+}
+
+// requireStreamAccess scopes the stream picked by the stream query param. Every stream is served by the same
+// SSE server, so the route alone does not say what is being read.
+func requireStreamAccess(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resource, ok := eventStreamResources[r.URL.Query().Get("stream")]
+		if !ok {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+
+		if apiKey, ok := r.Context().Value(apiKeyContextKey{}).(*domain.APIKey); ok && !apiKey.HasAccess(resource, domain.APIAccessRead) {
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+// isAPIKeyRequest reports whether r was authenticated with an API key instead of a session.
+func isAPIKeyRequest(r *http.Request) bool {
+	_, ok := r.Context().Value(apiKeyContextKey{}).(*domain.APIKey)
+	return ok
 }
 
 // isHealthCheckRequest reports whether r is a GET/HEAD to one of the built-in

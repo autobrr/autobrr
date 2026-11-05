@@ -69,8 +69,9 @@ func authMode(cfg *domain.Config) string {
 }
 
 func (h configHandler) Routes(r chi.Router) {
-	r.Get("/", h.getConfig)
-	r.Patch("/", h.updateConfig)
+	r.With(requireScope(domain.APIResourceConfig, domain.APIAccessRead)).Get("/", h.getConfig)
+	// the config file holds login settings, so writing it would let a key widen its own access
+	r.With(requireSession).Patch("/", h.updateConfig)
 }
 
 func (h configHandler) getConfig(w http.ResponseWriter, r *http.Request) {

@@ -96,6 +96,26 @@ func (u *UI) Toggle(name string) {
 	}
 }
 
+// Check ticks the checkbox with the given label.
+func (u *UI) Check(label string) {
+	u.t.Helper()
+
+	if err := u.GetByLabel(label, playwright.PageGetByLabelOptions{Exact: new(true)}).Check(); err != nil {
+		u.t.Fatalf("could not check %q: %v", label, err)
+	}
+}
+
+// ClickMenuItem picks an item from the open headlessui Menu.
+func (u *UI) ClickMenuItem(name string) {
+	u.t.Helper()
+
+	item := u.GetByRole("menuitem", playwright.PageGetByRoleOptions{Name: name, Exact: new(true)})
+
+	if err := item.Click(); err != nil {
+		u.t.Fatalf("could not click menu item %q: %v", name, err)
+	}
+}
+
 // Select picks an option from the react-select dropdown in the open form. The
 // forms only ever have one, so it does not need identifying further.
 func (u *UI) Select(option string) {

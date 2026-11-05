@@ -288,10 +288,13 @@ export const APIClient = {
   },
   apikeys: {
     getAll: () => appClient.Get<APIKey[]>("api/keys"),
-    create: (key: APIKey) => appClient.Post("api/keys", {
+    create: (key: APIKey) => appClient.Post<APIKey>("api/keys", {
       body: key
     }),
-    delete: (key: string) => appClient.Delete(`api/keys/${key}`)
+    update: (key: APIKey) => appClient.Put(`api/keys/${key.id}`, {
+      body: key
+    }),
+    delete: (id: number) => appClient.Delete(`api/keys/${id}`)
   },
   config: {
     get: () => appClient.Get<Config>("api/config"),

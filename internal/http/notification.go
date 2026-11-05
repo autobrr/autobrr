@@ -43,22 +43,25 @@ func newNotificationHandler(encoder encoder, service notificationService) *notif
 }
 
 func (h notificationHandler) Routes(r chi.Router) {
-	r.Get("/", h.list)
-	r.Post("/", h.store)
-	r.Post("/test", h.test)
-	r.Get("/pushover/sounds", h.pushoverSounds)
+	read := requireScope(domain.APIResourceNotifications, domain.APIAccessRead)
+	write := requireScope(domain.APIResourceNotifications, domain.APIAccessWrite)
+
+	r.With(read).Get("/", h.list)
+	r.With(write).Post("/", h.store)
+	r.With(write).Post("/test", h.test)
+	r.With(read).Get("/pushover/sounds", h.pushoverSounds)
 
 	r.Route("/inbox", func(r chi.Router) {
-		r.Get("/", h.findInbox)
-		r.Delete("/", h.deleteInbox)
-		r.Post("/read", h.markInboxRead)
-		r.Post("/delete", h.deleteInboxMessages)
+		r.With(read).Get("/", h.findInbox)
+		r.With(write).Delete("/", h.deleteInbox)
+		r.With(write).Post("/read", h.markInboxRead)
+		r.With(write).Post("/delete", h.deleteInboxMessages)
 	})
 
 	r.Route("/{notificationID}", func(r chi.Router) {
-		r.Get("/", h.findByID)
-		r.Put("/", h.update)
-		r.Delete("/", h.delete)
+		r.With(read).Get("/", h.findByID)
+		r.With(write).Put("/", h.update)
+		r.With(write).Delete("/", h.delete)
 	})
 }
 

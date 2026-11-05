@@ -513,6 +513,9 @@
       "createTitle": "Crear clave API",
       "description": "Agregar nueva clave API.",
       "created": "Se agregó la clave API {{name}}",
+      "createdTitle": "Clave API creada",
+      "createdDescription": "Copia la clave ahora. Solo se guarda su hash, así que no se volverá a mostrar.",
+      "done": "Listo",
       "deleted": "Se eliminó la clave API {{name}}",
       "name": "Nombre",
       "key": "Clave",
@@ -527,7 +530,82 @@
       "createCta": "Crear clave API",
       "removeTitle": "Eliminar clave API: {{name}}",
       "removeText": "¿Estás seguro de que quieres eliminar esta clave API? Esta acción no se puede deshacer.",
-      "deleteKey": "Eliminar clave"
+      "deleteKey": "Eliminar clave",
+      "updated": "La clave API {{name}} se ha actualizado",
+      "updateTitle": "Editar clave API",
+      "updateDescription": "Actualiza el nombre y los permisos de esta clave API.",
+      "save": "Guardar",
+      "editKey": "Editar clave",
+      "permissions": "Permisos",
+      "permissionsDescription": "Elige los permisos mínimos necesarios para tu caso. Gestionar claves API, usuarios y configuración no está disponible para las claves API.",
+      "permissionsRequired": "Añade al menos un permiso",
+      "addPermissions": "Añadir permisos",
+      "selectPermissions": "Seleccionar permisos",
+      "searchPermissions": "Buscar",
+      "noPermissions": "Aún no se han añadido permisos.",
+      "noPermissionsFound": "No se encontraron permisos",
+      "removePermission": "Quitar el permiso {{name}}",
+      "accessLabel": "Acceso:",
+      "access": {
+        "read": "Solo lectura",
+        "invoke": "Solo activar",
+        "write": "Lectura y escritura"
+      },
+      "accessShort": {
+        "read": "Lectura",
+        "invoke": "Activar",
+        "write": "Escritura"
+      },
+      "resources": {
+        "filters": {
+          "label": "Filtros",
+          "description": "Filtros y sus acciones."
+        },
+        "releases": {
+          "label": "Releases",
+          "description": "Historial de releases, estadísticas, tareas de limpieza y reintentos de acciones."
+        },
+        "indexers": {
+          "label": "Indexadores",
+          "description": "Indexadores y su configuración."
+        },
+        "irc": {
+          "label": "IRC",
+          "description": "Redes IRC, canales y procesamiento de anuncios."
+        },
+        "feeds": {
+          "label": "Feeds",
+          "description": "Feeds RSS, Torznab y Newznab."
+        },
+        "downloaders": {
+          "label": "Clientes de descarga",
+          "description": "Clientes de descarga y pruebas de conexión."
+        },
+        "lists": {
+          "label": "Listas",
+          "description": "Listas, actualizaciones de listas y sus webhooks, p. ej. desde Sonarr o Radarr."
+        },
+        "notifications": {
+          "label": "Notificaciones",
+          "description": "Agentes de notificación."
+        },
+        "proxies": {
+          "label": "Proxies",
+          "description": "Proxies y pruebas de proxy."
+        },
+        "config": {
+          "label": "Configuración de la aplicación",
+          "description": "Ajustes de la aplicación como el nivel de log y la comprobación de actualizaciones."
+        },
+        "logs": {
+          "label": "Logs",
+          "description": "Archivos de log y el flujo de logs en vivo."
+        },
+        "updates": {
+          "label": "Actualizaciones",
+          "description": "Buscar nuevas versiones de autobrr."
+        }
+      }
     },
     "notification": {
       "settings": "Configuración",

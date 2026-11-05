@@ -4,10 +4,18 @@
  */
 
 interface APIKey {
+  id: number;
   name: string;
-  key: string;
+  key?: string;
   scopes: string[];
   created_at: Date;
+}
+
+type APIKeyAccess = "read" | "invoke" | "write";
+
+interface APIKeyResource {
+  name: string;
+  access: APIKeyAccess[];
 }
 
 interface UserUpdate {

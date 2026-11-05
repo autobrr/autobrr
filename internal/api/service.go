@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"sync"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -17,15 +18,20 @@ import (
 
 type repo interface {
 	Store(ctx context.Context, key *domain.APIKey) error
-	Delete(ctx context.Context, key string) error
-	GetAllAPIKeys(ctx context.Context) ([]domain.APIKey, error)
-	GetKey(ctx context.Context, key string) (*domain.APIKey, error)
+	Update(ctx context.Context, key *domain.APIKey) error
+	Delete(ctx context.Context, id int) error
+	List(ctx context.Context) ([]domain.APIKey, error)
+	FindByID(ctx context.Context, id int) (*domain.APIKey, error)
+	FindByKeyHash(ctx context.Context, keyHash string) (*domain.APIKey, error)
 }
 
 type Service struct {
 	log  zerolog.Logger
 	repo repo
 
+	// m serializes cache fills with key changes. Without it a fill that read a key before an update could cache
+	// the old scopes after the update evicted them, and cache hits never go back to the database.
+	m        sync.RWMutex
 	keyCache *haxmap.Map[string, domain.APIKey]
 }
 
@@ -38,51 +44,77 @@ func NewService(log zerolog.Logger, repo repo) *Service {
 }
 
 func (s *Service) List(ctx context.Context) ([]domain.APIKey, error) {
-	return s.repo.GetAllAPIKeys(ctx)
+	return s.repo.List(ctx)
 }
 
+// Store generates a new key and saves its hash. The plain key is set on apiKey for the caller to show once.
 func (s *Service) Store(ctx context.Context, apiKey *domain.APIKey) error {
+	if err := apiKey.Validate(); err != nil {
+		return err
+	}
+
 	apiKey.Key = GenerateSecureToken(16)
+	apiKey.KeyHash = domain.HashAPIKey(apiKey.Key)
 
-	if err := s.repo.Store(ctx, apiKey); err != nil {
+	return s.repo.Store(ctx, apiKey)
+}
+
+// Update changes the name and scopes of the key with apiKey.ID.
+func (s *Service) Update(ctx context.Context, apiKey *domain.APIKey) error {
+	if err := apiKey.Validate(); err != nil {
 		return err
 	}
 
-	s.keyCache.Set(apiKey.Key, *apiKey)
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	if err := s.repo.Update(ctx, apiKey); err != nil {
+		return err
+	}
+
+	s.keyCache.Del(apiKey.KeyHash)
 
 	return nil
 }
 
-func (s *Service) Delete(ctx context.Context, key string) error {
-	_, err := s.repo.GetKey(ctx, key)
+func (s *Service) Delete(ctx context.Context, id int) error {
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	apiKey, err := s.repo.FindByID(ctx, id)
 	if err != nil {
 		return err
 	}
 
-	err = s.repo.Delete(ctx, key)
-	if err != nil {
-		return errors.Wrap(err, "could not delete api key: %s", key)
+	if err := s.repo.Delete(ctx, id); err != nil {
+		return errors.Wrap(err, "could not delete api key: %d", id)
 	}
 
-	s.keyCache.Del(key)
+	s.keyCache.Del(apiKey.KeyHash)
 
 	return nil
 }
 
-func (s *Service) ValidateAPIKey(ctx context.Context, key string) bool {
-	if _, ok := s.keyCache.Get(key); ok {
-		return true
+// ValidateAPIKey returns the stored key matching token, or false when no such key exists.
+func (s *Service) ValidateAPIKey(ctx context.Context, token string) (*domain.APIKey, bool) {
+	keyHash := domain.HashAPIKey(token)
+
+	if apiKey, ok := s.keyCache.Get(keyHash); ok {
+		return &apiKey, true
 	}
 
-	apiKey, err := s.repo.GetKey(ctx, key)
+	s.m.RLock()
+	defer s.m.RUnlock()
+
+	found, err := s.repo.FindByKeyHash(ctx, keyHash)
 	if err != nil {
 		s.log.Trace().Msg("invalid api key")
-		return false
+		return nil, false
 	}
 
-	s.keyCache.Set(key, *apiKey)
+	s.keyCache.Set(keyHash, *found)
 
-	return true
+	return found, true
 }
 
 func GenerateSecureToken(length int) string {

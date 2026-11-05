@@ -42,20 +42,24 @@ func newFeedHandler(encoder encoder, service feedService) *feedHandler {
 }
 
 func (h feedHandler) Routes(r chi.Router) {
-	r.Get("/", h.find)
-	r.Post("/", h.store)
-	r.Post("/test", h.test)
-	r.Post("/caps", h.caps)
+	read := requireScope(domain.APIResourceFeeds, domain.APIAccessRead)
+	invoke := requireScope(domain.APIResourceFeeds, domain.APIAccessInvoke)
+	write := requireScope(domain.APIResourceFeeds, domain.APIAccessWrite)
+
+	r.With(read).Get("/", h.find)
+	r.With(write).Post("/", h.store)
+	r.With(write).Post("/test", h.test)
+	r.With(write).Post("/caps", h.caps)
 
 	r.Route("/{feedID}", func(r chi.Router) {
-		r.Get("/", h.findByID)
-		r.Put("/", h.update)
-		r.Delete("/", h.delete)
-		r.Delete("/cache", h.deleteCache)
-		r.Patch("/enabled", h.toggleEnabled)
-		r.Get("/latest", h.latestRun)
-		r.Post("/forcerun", h.forceRun)
-		r.Get("/caps", h.capsByID)
+		r.With(read).Get("/", h.findByID)
+		r.With(write).Put("/", h.update)
+		r.With(write).Delete("/", h.delete)
+		r.With(write).Delete("/cache", h.deleteCache)
+		r.With(write).Patch("/enabled", h.toggleEnabled)
+		r.With(read).Get("/latest", h.latestRun)
+		r.With(invoke).Post("/forcerun", h.forceRun)
+		r.With(read).Get("/caps", h.capsByID)
 	})
 }
 
