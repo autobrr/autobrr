@@ -305,14 +305,14 @@ const toAuthInfo = (validation: ValidateResponse, config?: Config, issuerUrl?: s
 const resolveAuth = async (client: QueryClient, config?: Config): Promise<AuthInfo> => {
   const validation = await APIClient.auth.validate();
 
-  // A config error must not log out a valid session. Without a mode, the next
-  // navigation's reconciliation fetches the config again.
+  // Config and issuer errors must not log out a valid session. Without a mode, the
+  // next navigation's reconciliation fetches the config again; issuerUrl is optional.
   const serverConfig = config ?? await client.query(ConfigQueryOptions()).catch(() => undefined);
 
   let issuerUrl;
   if (validation.auth_method === "oidc") {
-    const oidcConfig = await client.query({ ...OIDCConfigQueryOptions(), staleTime: "static" });
-    issuerUrl = oidcConfig.issuerUrl;
+    const oidcConfig = await client.query({ ...OIDCConfigQueryOptions(), staleTime: "static" }).catch(() => undefined);
+    issuerUrl = oidcConfig?.issuerUrl;
   }
 
   return toAuthInfo(validation, serverConfig, issuerUrl);
@@ -338,7 +338,13 @@ export const LoginRoute = createRoute({
     // tabs on /login continue into the app instead of a form that always fails.
     const validation = await APIClient.auth.validate().catch(() => undefined);
     const config = validation && await context.queryClient.query({ ...ConfigQueryOptions(), staleTime: 0 }).catch(() => undefined);
-    if (validation && config && !config.auth_capabilities.password_login && !config.auth_capabilities.oidc_login) {
+
+    // Without the config, a caller that is neither a password nor an OIDC session
+    // was authenticated by the mode itself, so there is no login form for it either.
+    const noLoginMethod = config
+      ? !config.auth_capabilities.password_login && !config.auth_capabilities.oidc_login
+      : validation?.auth_method !== "password" && validation?.auth_method !== "oidc";
+    if (validation && noLoginMethod) {
       AuthContext.set(toAuthInfo(validation, config));
 
       const target = search.redirect && isSameOriginPath(search.redirect) ? search.redirect : "/";

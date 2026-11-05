@@ -105,6 +105,31 @@ test("auth enabled without a session renders the login form", async () => {
   expect(AuthContext.get().isLoggedIn).toBe(false);
 });
 
+test("auth disabled: a config error still enters the app", async () => {
+  vi.spyOn(APIClient.auth, "validate").mockResolvedValue({ username: "admin", auth_method: "disabled" });
+  vi.spyOn(APIClient.config, "get").mockRejectedValue(new Error("Service Unavailable"));
+
+  const { thrown } = await beforeLoad({ redirect: "/filters" });
+
+  expect(isRedirect(thrown)).toBe(true);
+  if (isRedirect(thrown)) {
+    expect(thrown.options.href).toBe("/filters");
+  }
+  expect(AuthContext.get()).toMatchObject({ isLoggedIn: true, authMethod: "disabled", authMode: undefined });
+});
+
+test("a password session with a config error renders the login form", async () => {
+  vi.spyOn(APIClient.auth, "validate").mockResolvedValue({ username: "admin", auth_method: "password" });
+  vi.spyOn(APIClient.config, "get").mockRejectedValue(new Error("Service Unavailable"));
+  vi.spyOn(APIClient.auth, "getOIDCConfig").mockResolvedValue({ enabled: false, autoRedirect: false, authorizationUrl: "", state: "", disableBuiltInLogin: false, issuerUrl: "" });
+  vi.spyOn(APIClient.auth, "canOnboard").mockRejectedValue(new Error("Forbidden"));
+
+  const { thrown } = await beforeLoad({ redirect: "/filters" });
+
+  expect(thrown).toBeUndefined();
+  expect(AuthContext.get().isLoggedIn).toBe(false);
+});
+
 test("the login redirect does not trust a cached config from before a restart", async () => {
   vi.spyOn(APIClient.auth, "validate").mockResolvedValue({ username: "admin", auth_method: "disabled" });
   vi.spyOn(APIClient.config, "get").mockResolvedValue(disabledConfig);

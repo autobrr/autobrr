@@ -8,7 +8,7 @@ import { afterEach, expect, test, vi } from "vitest";
 
 import { APIClient } from "@api/APIClient";
 import { queryClient } from "@api/QueryClient";
-import { SettingsKeys } from "@api/query_keys";
+import { AuthKeys, SettingsKeys } from "@api/query_keys";
 import { AuthRoute } from "@app/routes";
 import { AuthContext } from "@utils/Context";
 
@@ -121,6 +121,17 @@ test("a mode switch without a surviving session goes to login", async () => {
     expect(thrown.options.search).toEqual({ redirect: "/settings" });
   }
   expect(AuthContext.get().isLoggedIn).toBe(false);
+});
+
+test("an issuer lookup error keeps the valid oidc session", async () => {
+  vi.spyOn(APIClient.auth, "validate").mockResolvedValue({ username: "ze0s", auth_method: "oidc" });
+  vi.spyOn(APIClient.config, "get").mockResolvedValue(config("oidc"));
+  vi.spyOn(APIClient.auth, "getOIDCConfig").mockRejectedValue(new Error("Service Unavailable"));
+  // The app client retries with backoff before giving up; skip that wait here.
+  queryClient.setQueryDefaults(AuthKeys.oidcConfig(), { retry: false });
+
+  expect(await beforeLoad()).toBeUndefined();
+  expect(AuthContext.get()).toMatchObject({ isLoggedIn: true, authMethod: "oidc", authMode: "oidc", issuerUrl: undefined });
 });
 
 test("a config error at login keeps the valid session", async () => {
