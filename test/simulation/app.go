@@ -284,12 +284,16 @@ func (a *App) stop() {
 	select {
 	case <-a.exited:
 	default:
-		// a plain Kill would leave the SQLite WAL behind, autobrr shuts down cleanly on interrupt
-		_ = a.cmd.Process.Signal(os.Interrupt)
+		// a plain Kill would leave the SQLite WAL behind, autobrr shuts down cleanly on interrupt.
+		// Windows can not deliver one, and the config dir is thrown away anyway
+		timeout := 10 * time.Second
+		if err := a.cmd.Process.Signal(os.Interrupt); err != nil {
+			timeout = 0
+		}
 
 		select {
 		case <-a.exited:
-		case <-time.After(10 * time.Second):
+		case <-time.After(timeout):
 			_ = a.cmd.Process.Kill()
 			<-a.exited
 		}
