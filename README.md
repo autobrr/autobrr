@@ -421,7 +421,7 @@ volumes:
 
 If a reverse proxy in front of autobrr authenticates every request (Authelia, Authentik, or any `forward_auth`/`auth_request` setup), autobrr can take the username from a header the proxy sets instead of using its own login. Every request must carry that header, so a proxy that stops authenticating gets 403 instead of silent admin access, the logs show who did what, and API keys and their management keep working. Prefer this over [disabling authentication](#disabling-built-in-authentication) when your proxy can pass the username on.
 
-**The proxy must overwrite the header on every request.** If it passes a client's value through, anyone who reaches the proxy can claim any username.
+**The proxy must overwrite the header on every request.** If it passes a client's value through, anyone who reaches the proxy can claim to be `authTrustedUser`. This matters most on paths the identity provider lets through without a login (an Authelia `bypass` rule for `/api`, for example): the auth server returns no username there, and the proxy must remove the client's header instead of forwarding it. The examples below do both; they were checked with a forged header on nginx 1.30.6, Caddy 2.11.8 and Traefik 3.7.17.
 
 ```toml
 # Header the proxy sets with the authenticated username.
@@ -451,7 +451,19 @@ location / {
 }
 ```
 
-Example with Traefik and Authentik (`authResponseHeaders` replaces headers of the same name on the forwarded request):
+Example with Caddy and Authelia (`copy_headers` replaces any `Remote-User` the client sent, and removes it when Authelia returns none):
+
+```caddy
+autobrr.example.com {
+	forward_auth authelia:9091 {
+		uri /api/authz/forward-auth
+		copy_headers Remote-User
+	}
+	reverse_proxy localhost:7474
+}
+```
+
+Example with Traefik and Authentik (`authResponseHeaders` replaces any `X-authentik-username` the client sent, and removes it when Authentik returns none):
 
 ```yaml
 http:
@@ -463,12 +475,22 @@ http:
           - X-authentik-username
 ```
 
+Use `authResponseHeaders` with Traefik, not `authResponseHeadersRegex`: the regex is matched case-sensitively against the name as Traefik writes it (`X-Authentik-Username`), so `^X-authentik-` matches nothing and the client's header reaches autobrr unchanged.
+
+To check your proxy, send a forged header with your own `authTrustedUser` to a path the identity provider does not protect, if you have one:
+
+```sh
+curl -i -H 'Remote-User: ze0s' https://autobrr.example.com/api/auth/validate
+```
+
+`403` means the proxy removed the header, which is what you want. A redirect or `401` from the identity provider means the path is protected. `200` with your username means the proxy passes on client headers: fix it before relying on forward authentication.
+
 Things to be aware of:
 
 - Cannot be combined with `authDisabled` or any OIDC setting; autobrr refuses to start.
 - autobrr has one admin account, so it accepts one username. Requests without the header, with an empty header, or from any other user get 403, and the rejected username is logged. If the proxy sends an email or display name instead of the username, set `authTrustedUser` to that. If the header appears more than once, the last value is used.
 - An API key sent with `X-API-Token` or `?apikey=` takes precedence over the header, so integrations work through proxy bypass rules for API paths.
-- Groups headers such as `Remote-Groups` are not read: every authenticated user has full access.
+- Groups headers such as `Remote-Groups` are not read: the one accepted user has full access.
 - The `Host` allowlist, browser request checks, `Content-Type` rule and framing policy described under [Disabling built-in authentication](#disabling-built-in-authentication) apply in this mode too, and the same advice about `host = "127.0.0.1"` holds.
 
 ### Disabling built-in authentication
