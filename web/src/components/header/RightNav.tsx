@@ -23,7 +23,8 @@ export const RightNav = (props: RightNavProps) => {
   const { t } = useTranslation("common");
   const [settings, setSettings] = SettingsContext.use();
   const auth = AuthContext.get();
-  const authDisabled = auth.authMethod === 'disabled';
+  const showAccount = auth.capabilities?.account_management ?? false;
+  const showLogout = (auth.capabilities?.password_login || auth.capabilities?.oidc_login) ?? false;
 
   const nextTheme: Record<Theme, Theme> = {
     light: "dark",
@@ -119,7 +120,7 @@ export const RightNav = (props: RightNavProps) => {
                   static
                   className="origin-top-right absolute right-0 mt-2 w-48 z-10 divide-y divide-gray-100 dark:divide-gray-750 rounded-md shadow-lg bg-white dark:bg-gray-800 border border-gray-250 dark:border-gray-775 focus:outline-hidden"
                 >
-                  {!authDisabled && (
+                  {showAccount && (
                     <MenuItem>
                       {({ active }) => (
                         <Link
@@ -149,7 +150,8 @@ export const RightNav = (props: RightNavProps) => {
                             ? "bg-gray-100 dark:bg-gray-600"
                             : "",
                           "flex items-center transition px-2 py-2 text-sm text-gray-900 dark:text-gray-200",
-                          authDisabled ? "rounded-t-md rounded-b-md" : ""
+                          showAccount ? "" : "rounded-t-md",
+                          showLogout ? "" : "rounded-b-md"
                         )}
                       >
                         <Cog6ToothIcon
@@ -160,7 +162,7 @@ export const RightNav = (props: RightNavProps) => {
                       </Link>
                     )}
                   </MenuItem>
-                  {!authDisabled && (
+                  {showLogout && (
                     <MenuItem>
                       {({ active }) => (
                         <button

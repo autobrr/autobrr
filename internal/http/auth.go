@@ -82,7 +82,7 @@ func (h *authHandler) Routes(r chi.Router) {
 	r.Post("/onboard", h.onboard)
 	r.Get("/onboard", h.canOnboard)
 
-	if h.config.OIDCEnabled && h.oidcHandler != nil {
+	if h.config.AuthCapabilities().OIDCLogin && h.oidcHandler != nil {
 		r.Route("/oidc", h.oidcHandler.Routes)
 	}
 
@@ -92,18 +92,8 @@ func (h *authHandler) Routes(r chi.Router) {
 
 		r.Post("/logout", h.logout)
 		r.Get("/validate", h.validate)
-		r.With(requireSession).Patch("/user/{username}", h.updateUser)
+		r.With(requireUser).Patch("/user/{username}", h.updateUser)
 	})
-}
-
-// rejectIfAuthDisabled returns true and writes a 403 if authentication is
-// disabled, since password/session management is meaningless in that mode.
-func (h *authHandler) rejectIfAuthDisabled(w http.ResponseWriter) bool {
-	if h.config.IsAuthDisabled() {
-		h.encoder.StatusError(w, http.StatusForbidden, errors.New("authentication is disabled"))
-		return true
-	}
-	return false
 }
 
 // bufferLoginBody reads the whole request body into memory under a size and
@@ -131,7 +121,8 @@ func (h *authHandler) bufferLoginBody(next http.Handler) http.Handler {
 }
 
 func (h *authHandler) login(w http.ResponseWriter, r *http.Request) {
-	if h.rejectIfAuthDisabled(w) {
+	if !h.config.AuthCapabilities().PasswordLogin {
+		h.encoder.StatusError(w, http.StatusForbidden, errors.New("password login is unavailable in %s authentication mode", h.config.AuthMode()))
 		return
 	}
 
@@ -183,7 +174,8 @@ func (h *authHandler) login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *authHandler) logout(w http.ResponseWriter, r *http.Request) {
-	if h.rejectIfAuthDisabled(w) {
+	if caps := h.config.AuthCapabilities(); !caps.PasswordLogin && !caps.OIDCLogin {
+		h.encoder.StatusError(w, http.StatusForbidden, errors.New("logout is unavailable in %s authentication mode", h.config.AuthMode()))
 		return
 	}
 
@@ -234,12 +226,8 @@ func (h *authHandler) canOnboard(w http.ResponseWriter, r *http.Request) {
 
 // onboardEligible checks if the onboarding process is eligible.
 func (h *authHandler) onboardEligible(ctx context.Context) (int, error) {
-	if h.config.OIDCEnabled {
-		return http.StatusServiceUnavailable, errors.New("onboarding unavailable: using oidc provider")
-	}
-
-	if h.config.IsAuthDisabled() {
-		return http.StatusServiceUnavailable, errors.New("onboarding unavailable: authentication is disabled")
+	if !h.config.AuthCapabilities().Onboarding {
+		return http.StatusServiceUnavailable, errors.New("onboarding unavailable in %s authentication mode", h.config.AuthMode())
 	}
 
 	userCount, err := h.service.GetUserCount(ctx)
@@ -255,36 +243,20 @@ func (h *authHandler) onboardEligible(ctx context.Context) (int, error) {
 	return http.StatusOK, nil
 }
 
-// validate sits behind the IsAuthenticated middleware which takes care of checking for a valid session
-// If there is a valid session return OK, otherwise the middleware returns early with a 401
+// validate returns the caller IsAuthenticated resolved; requests it rejects never get here.
 func (h *authHandler) validate(w http.ResponseWriter, r *http.Request) {
-	if h.config.IsAuthDisabled() {
-		h.encoder.StatusResponse(w, http.StatusOK, map[string]interface{}{
-			"username":    "admin",
-			"auth_method": "disabled",
-		})
+	caller, ok := callerFromContext(r.Context())
+	if !ok {
+		h.encoder.StatusError(w, http.StatusForbidden, errors.New("no authenticated caller"))
 		return
 	}
 
-	ctx := r.Context()
-	username := h.sessionManager.GetString(ctx, "username")
-	authMethod := h.sessionManager.GetString(ctx, "auth_method")
-	profilePicture := h.sessionManager.GetString(ctx, "profile_picture")
-
-	response := map[string]any{
-		"username":    username,
-		"auth_method": authMethod,
-	}
-
-	if profilePicture != "" {
-		response["profile_picture"] = profilePicture
-	}
-
-	h.encoder.StatusResponse(w, http.StatusOK, response)
+	h.encoder.StatusResponse(w, http.StatusOK, caller)
 }
 
 func (h *authHandler) updateUser(w http.ResponseWriter, r *http.Request) {
-	if h.rejectIfAuthDisabled(w) {
+	if !h.config.AuthCapabilities().AccountManagement {
+		h.encoder.StatusError(w, http.StatusForbidden, errors.New("account management is unavailable in %s authentication mode", h.config.AuthMode()))
 		return
 	}
 

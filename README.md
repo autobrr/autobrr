@@ -343,7 +343,7 @@ The following environment variables can be used:
 | `AUTOBRR__OIDC_CLIENT_ID`                | OIDC client ID                                                                                                | -           |
 | `AUTOBRR__OIDC_CLIENT_SECRET`            | OIDC client secret                                                                                            | -           |
 | `AUTOBRR__OIDC_REDIRECT_URL`             | OIDC callback URL                                                                                             | -           |
-| `AUTOBRR__OIDC_DISABLE_BUILT_IN_LOGIN`   | Disable login form (only works when using external auth)                                                      | `false`     |
+| `AUTOBRR__OIDC_DISABLE_BUILT_IN_LOGIN`   | Disable password login, both the form and the API (requires OIDC)                                             | `false`     |
 | `AUTOBRR__OIDC_AUTO_REDIRECT`            | Redirect unauthenticated visitors to the OIDC provider                                                        | `false`     |
 | `AUTOBRR__CORS_ALLOWED_ORIGINS`          | Allowed CORS origins, comma separated. Required when auth is disabled                                         | -           |
 | `AUTOBRR__AUTH_DISABLED`                 | Disable built-in authentication (see [Disabling built-in authentication](#disabling-built-in-authentication)) | `false`     |

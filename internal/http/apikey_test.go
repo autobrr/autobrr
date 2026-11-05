@@ -69,6 +69,17 @@ type oidcServiceStub struct {
 
 func (oidcServiceStub) IsEnabled() bool { return false }
 
+// asCaller stands in for IsAuthenticated in tests that mount handlers directly.
+func asCaller(caller *Caller) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			next.ServeHTTP(w, withCaller(r, caller))
+		})
+	}
+}
+
+var testUser = &Caller{Method: domain.AuthMethodPassword, Username: "admin"}
+
 func newScopedTestServer() *Server {
 	service := &apikeyServiceStub{tokens: map[string]*domain.APIKey{
 		"no-access":          {Scopes: []string{"mock:read"}},
@@ -243,12 +254,45 @@ func TestAPIKeyScopeMiddleware(t *testing.T) {
 	}
 }
 
-func TestRequireScopeAllowsSessions(t *testing.T) {
-	handler := requireScope(domain.APIResourceFilters, domain.APIAccessWrite)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+func TestCallerMiddlewares(t *testing.T) {
+	ok := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
-	}))
+	})
 
-	assert.Equal(t, http.StatusOK, serveWithToken(handler, http.MethodPost, "/", "", "").Code)
+	middlewares := []struct {
+		name       string
+		middleware func(http.Handler) http.Handler
+	}{
+		{name: "requireScope", middleware: requireScope(domain.APIResourceLogs, domain.APIAccessRead)},
+		{name: "requireUser", middleware: requireUser},
+		{name: "requireStreamAccess", middleware: requireStreamAccess},
+	}
+
+	callers := []struct {
+		name   string
+		caller *Caller
+		want   map[string]int
+	}{
+		{name: "no caller", want: map[string]int{"requireScope": http.StatusForbidden, "requireUser": http.StatusForbidden, "requireStreamAccess": http.StatusForbidden}},
+		{name: "password", caller: testUser, want: map[string]int{"requireScope": http.StatusOK, "requireUser": http.StatusOK, "requireStreamAccess": http.StatusOK}},
+		{name: "oidc", caller: &Caller{Method: domain.AuthMethodOIDC}, want: map[string]int{"requireScope": http.StatusOK, "requireUser": http.StatusOK, "requireStreamAccess": http.StatusOK}},
+		{name: "disabled", caller: &Caller{Method: domain.AuthMethodDisabled}, want: map[string]int{"requireScope": http.StatusOK, "requireUser": http.StatusOK, "requireStreamAccess": http.StatusOK}},
+		{name: "scoped key", caller: &Caller{Method: domain.AuthMethodAPIKey, APIKey: &domain.APIKey{Scopes: []string{"logs:read"}}}, want: map[string]int{"requireScope": http.StatusOK, "requireUser": http.StatusForbidden, "requireStreamAccess": http.StatusOK}},
+		{name: "unscoped key", caller: &Caller{Method: domain.AuthMethodAPIKey, APIKey: &domain.APIKey{Scopes: []string{"filters:read"}}}, want: map[string]int{"requireScope": http.StatusForbidden, "requireUser": http.StatusForbidden, "requireStreamAccess": http.StatusForbidden}},
+		{name: "key method without key", caller: &Caller{Method: domain.AuthMethodAPIKey}, want: map[string]int{"requireScope": http.StatusForbidden, "requireUser": http.StatusForbidden, "requireStreamAccess": http.StatusForbidden}},
+	}
+	for _, c := range callers {
+		for _, m := range middlewares {
+			t.Run(c.name+" "+m.name, func(t *testing.T) {
+				handler := m.middleware(ok)
+				if c.caller != nil {
+					handler = asCaller(c.caller)(handler)
+				}
+
+				assert.Equal(t, c.want[m.name], serveWithToken(handler, http.MethodGet, "/?stream=logs", "", "").Code)
+			})
+		}
+	}
 }
 
 func TestIrcEventsOnlyServeIrcStream(t *testing.T) {
@@ -272,6 +316,7 @@ func TestIrcEventsOnlyServeIrcStream(t *testing.T) {
 func newAPIKeyTestRouter(cfg *domain.Config) chi.Router {
 	h := newAPIKeyHandler(newEncoder(zerolog.Nop()), &apikeyServiceStub{}, cfg)
 	r := chi.NewRouter()
+	r.Use(asCaller(testUser))
 	r.Route("/keys", h.Routes)
 	return r
 }
@@ -305,6 +350,7 @@ func TestAPIKeyHandler_BlockedWhenAuthDisabled(t *testing.T) {
 func TestAPIKeyHandlerStore(t *testing.T) {
 	service := &apikeyServiceStub{}
 	router := chi.NewRouter()
+	router.Use(asCaller(testUser))
 	newAPIKeyHandler(encoder{}, service, &domain.Config{}).Routes(router)
 
 	t.Run("returns the key once", func(t *testing.T) {
@@ -332,6 +378,7 @@ func TestAPIKeyHandlerStore(t *testing.T) {
 func TestAPIKeyHandlerUpdate(t *testing.T) {
 	service := &apikeyServiceStub{ids: map[int]bool{1: true}}
 	router := chi.NewRouter()
+	router.Use(asCaller(testUser))
 	newAPIKeyHandler(encoder{}, service, &domain.Config{}).Routes(router)
 
 	tests := []struct {

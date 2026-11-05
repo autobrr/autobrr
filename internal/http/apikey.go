@@ -37,8 +37,8 @@ func newAPIKeyHandler(encoder encoder, service apikeyService, config *domain.Con
 }
 
 func (h apikeyHandler) Routes(r chi.Router) {
-	r.Use(requireSession)
-	r.Use(h.rejectIfAuthDisabled)
+	r.Use(requireUser)
+	r.Use(h.requireKeyManagement)
 
 	r.Get("/", h.list)
 	r.Post("/", h.store)
@@ -49,15 +49,16 @@ func (h apikeyHandler) Routes(r chi.Router) {
 	})
 }
 
-// rejectIfAuthDisabled blocks API key management while built-in authentication is
-// disabled. Otherwise an authless caller could mint a persistent credential that
-// stays valid after authentication is re-enabled.
-func (h apikeyHandler) rejectIfAuthDisabled(next http.Handler) http.Handler {
+// requireKeyManagement blocks API key management in auth modes without it, such as
+// disabled authentication. Otherwise an authless caller could mint a persistent
+// credential that stays valid after authentication is re-enabled.
+func (h apikeyHandler) requireKeyManagement(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if h.config.IsAuthDisabled() {
-			h.encoder.StatusError(w, http.StatusForbidden, errors.New("API key management is unavailable while authentication is disabled"))
+		if !h.config.AuthCapabilities().APIKeyManagement {
+			h.encoder.StatusError(w, http.StatusForbidden, errors.New("API key management is unavailable in %s authentication mode", h.config.AuthMode()))
 			return
 		}
+
 		next.ServeHTTP(w, r)
 	})
 }

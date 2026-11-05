@@ -28,13 +28,13 @@ function APISettings() {
   const { t } = useTranslation("settings");
   const [addFormIsOpen, toggleAddForm] = useToggle(false);
 
-  // Backend blocks API key management while auth is disabled; skip the fetch so
-  // the (403'd) endpoint isn't hit and the notice below can render.
-  const authDisabled = AuthContext.useSelector((s) => s.authMethod) === "disabled";
+  // Skip the fetch in modes without key management so the (403'd) endpoint isn't
+  // hit and the notice below can render.
+  const keyManagement = AuthContext.useSelector((s) => s.capabilities?.api_key_management) ?? false;
 
-  const apikeysQuery = useQuery({ ...ApikeysQueryOptions(), enabled: !authDisabled });
+  const apikeysQuery = useQuery({ ...ApikeysQueryOptions(), enabled: keyManagement });
 
-  if (authDisabled) {
+  if (!keyManagement) {
     return (
       <Section
         title={t("forms.apiKey.listTitle")}

@@ -26,7 +26,7 @@ func newAlertHandler(encoder encoder, service alertService) *alertHandler {
 }
 
 func (h alertHandler) Routes(r chi.Router) {
-	r.Use(requireSession)
+	r.Use(requireUser)
 
 	r.Get("/", h.list)
 }

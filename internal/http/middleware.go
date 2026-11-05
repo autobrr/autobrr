@@ -80,73 +80,153 @@ func (s *secureSessionResponseWriter) Unwrap() http.ResponseWriter {
 	return s.ResponseWriter
 }
 
+// Caller is who a request was authenticated as. IsAuthenticated sets it on every
+// request it lets through.
+type Caller struct {
+	Method         domain.AuthMethod `json:"auth_method"`
+	Username       string            `json:"username"`
+	ProfilePicture string            `json:"profile_picture,omitempty"`
+
+	// APIKey is set only when Method is domain.AuthMethodAPIKey.
+	APIKey *domain.APIKey `json:"-"`
+}
+
+// IsUser reports whether the caller is a person rather than an API key.
+func (c *Caller) IsUser() bool {
+	return c.Method != domain.AuthMethodAPIKey
+}
+
+// HasAccess reports whether the caller may use resource with access. Users have
+// full access; API keys are limited to their scopes.
+func (c *Caller) HasAccess(resource domain.APIResource, access domain.APIAccess) bool {
+	if c.IsUser() {
+		return true
+	}
+
+	return c.APIKey != nil && c.APIKey.HasAccess(resource, access)
+}
+
+type callerContextKey struct{}
+
+// callerSlot is shared by pointer so middlewares that run before IsAuthenticated,
+// such as LoggerMiddleware, can read the caller it resolves further down the chain.
+type callerSlot struct {
+	caller *Caller
+}
+
+// withCallerSlot gives the request an empty caller slot unless it already has one.
+func withCallerSlot(r *http.Request) *http.Request {
+	if _, ok := r.Context().Value(callerContextKey{}).(*callerSlot); ok {
+		return r
+	}
+
+	return r.WithContext(context.WithValue(r.Context(), callerContextKey{}, &callerSlot{}))
+}
+
+func withCaller(r *http.Request, caller *Caller) *http.Request {
+	r = withCallerSlot(r)
+	r.Context().Value(callerContextKey{}).(*callerSlot).caller = caller
+
+	return r
+}
+
+func callerFromContext(ctx context.Context) (*Caller, bool) {
+	slot, ok := ctx.Value(callerContextKey{}).(*callerSlot)
+	if !ok || slot.caller == nil {
+		return nil, false
+	}
+
+	return slot.caller, true
+}
+
+// IsAuthenticated resolves the caller of the request and rejects requests it cannot
+// resolve: an API key if one is sent, otherwise the login method of the auth mode.
 func (s *Server) IsAuthenticated(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if s.config.Config.IsAuthDisabled() {
-			next.ServeHTTP(w, r)
+		caller, ok := s.resolveCaller(w, r)
+		if !ok {
 			return
 		}
 
-		if token := cmp.Or(r.Header.Get("X-API-Token"), r.URL.Query().Get("apikey")); token != "" {
-			apiKey, ok := s.apiService.ValidateAPIKey(r.Context(), token)
-			if !ok {
-				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
-				return
-			}
-
-			next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), apiKeyContextKey{}, apiKey)))
-			return
-		}
-
-		authenticated := s.sessionManager.GetBool(r.Context(), "authenticated")
-		if !authenticated {
-			s.log.Debug().Msg("session not authenticated")
-			if err := s.sessionManager.Destroy(r.Context()); err != nil {
-				s.log.Error().Err(err).Msg("failed to destroy session")
-			}
-			// 403 on purpose, never 401: a 401 makes browsers holding cached
-			// reverse-proxy Basic Auth credentials treat them as invalid and
-			// re-prompt, breaking those setups
-			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
-			return
-		}
-
-		// sessions outlive restarts, so one created before the allowed OIDC user
-		// was set or changed must not keep a now-disallowed user logged in
-		if s.sessionManager.GetString(r.Context(), "auth_method") == "oidc" {
-			subject := s.sessionManager.GetString(r.Context(), "oidc_subject")
-			if !s.config.Config.IsOIDCUserAllowed(subject, s.sessionManager.GetString(r.Context(), "oidc_verified_email")) {
-				s.log.Warn().Str("sub", subject).Str("remote_addr", r.RemoteAddr).Msg("OIDC session user is no longer allowed, destroying session")
-				if err := s.sessionManager.Destroy(r.Context()); err != nil {
-					s.log.Error().Err(err).Msg("failed to destroy session")
-				}
-				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
-				return
-			}
-		}
-
-		deadline := s.sessionManager.Deadline(r.Context())
-		if time.Until(deadline) <= 7*24*time.Hour {
-			s.log.Trace().Time("deadline", deadline).Msg("session expiring in less than 7 days, extending")
-
-			if err := s.sessionManager.RenewToken(r.Context()); err != nil {
-				s.log.Error().Err(err).Str("username", s.sessionManager.GetString(r.Context(), "username")).Str("remote_addr", r.RemoteAddr).Msg("failed to renew session token")
-				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-				return
-			}
-		}
-
-		next.ServeHTTP(w, r)
+		next.ServeHTTP(w, withCaller(r, caller))
 	})
 }
 
-type apiKeyContextKey struct{}
+// resolveCaller writes the error response itself when it returns false.
+func (s *Server) resolveCaller(w http.ResponseWriter, r *http.Request) (*Caller, bool) {
+	if s.config.Config.AuthMode() == domain.AuthModeDisabled {
+		return &Caller{Method: domain.AuthMethodDisabled, Username: "admin"}, true
+	}
 
-// requireScope limits API key requests to keys with access to resource. Session requests are not scoped.
+	if token := cmp.Or(r.Header.Get("X-API-Token"), r.URL.Query().Get("apikey")); token != "" {
+		apiKey, ok := s.apiService.ValidateAPIKey(r.Context(), token)
+		if !ok {
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			return nil, false
+		}
+
+		return &Caller{Method: domain.AuthMethodAPIKey, APIKey: apiKey}, true
+	}
+
+	return s.sessionCaller(w, r)
+}
+
+// sessionCaller resolves a password or OIDC login session. Failures answer 403 on
+// purpose, never 401: a 401 makes browsers holding cached reverse-proxy Basic Auth
+// credentials treat them as invalid and re-prompt, breaking those setups.
+func (s *Server) sessionCaller(w http.ResponseWriter, r *http.Request) (*Caller, bool) {
+	ctx := r.Context()
+
+	if !s.sessionManager.GetBool(ctx, "authenticated") {
+		s.log.Debug().Msg("session not authenticated")
+		if err := s.sessionManager.Destroy(ctx); err != nil {
+			s.log.Error().Err(err).Msg("failed to destroy session")
+		}
+		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+		return nil, false
+	}
+
+	caller := &Caller{
+		Method:         domain.AuthMethod(s.sessionManager.GetString(ctx, "auth_method")),
+		Username:       s.sessionManager.GetString(ctx, "username"),
+		ProfilePicture: s.sessionManager.GetString(ctx, "profile_picture"),
+	}
+
+	// sessions outlive restarts, so one created before the allowed OIDC user
+	// was set or changed must not keep a now-disallowed user logged in
+	if caller.Method == domain.AuthMethodOIDC {
+		subject := s.sessionManager.GetString(ctx, "oidc_subject")
+		if !s.config.Config.IsOIDCUserAllowed(subject, s.sessionManager.GetString(ctx, "oidc_verified_email")) {
+			s.log.Warn().Str("sub", subject).Str("remote_addr", r.RemoteAddr).Msg("OIDC session user is no longer allowed, destroying session")
+			if err := s.sessionManager.Destroy(ctx); err != nil {
+				s.log.Error().Err(err).Msg("failed to destroy session")
+			}
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+			return nil, false
+		}
+	}
+
+	deadline := s.sessionManager.Deadline(ctx)
+	if time.Until(deadline) <= 7*24*time.Hour {
+		s.log.Trace().Time("deadline", deadline).Msg("session expiring in less than 7 days, extending")
+
+		if err := s.sessionManager.RenewToken(ctx); err != nil {
+			s.log.Error().Err(err).Str("username", caller.Username).Str("remote_addr", r.RemoteAddr).Msg("failed to renew session token")
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return nil, false
+		}
+	}
+
+	return caller, true
+}
+
+// requireScope limits the route to callers with access to resource. Requests without
+// a caller are rejected, so a route mounted outside IsAuthenticated stays closed.
 func requireScope(resource domain.APIResource, access domain.APIAccess) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if apiKey, ok := r.Context().Value(apiKeyContextKey{}).(*domain.APIKey); ok && !apiKey.HasAccess(resource, access) {
+			caller, ok := callerFromContext(r.Context())
+			if !ok || !caller.HasAccess(resource, access) {
 				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 				return
 			}
@@ -156,11 +236,12 @@ func requireScope(resource domain.APIResource, access domain.APIAccess) func(nex
 	}
 }
 
-// requireSession keeps API keys away from routes that could widen a key's own access, such as managing keys,
+// requireUser keeps API keys away from routes that could widen a key's own access, such as managing keys,
 // users or the config file.
-func requireSession(next http.Handler) http.Handler {
+func requireUser(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if isAPIKeyRequest(r) {
+		caller, ok := callerFromContext(r.Context())
+		if !ok || !caller.IsUser() {
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return
 		}
@@ -186,19 +267,14 @@ func requireStreamAccess(next http.Handler) http.Handler {
 			return
 		}
 
-		if apiKey, ok := r.Context().Value(apiKeyContextKey{}).(*domain.APIKey); ok && !apiKey.HasAccess(resource, domain.APIAccessRead) {
+		caller, ok := callerFromContext(r.Context())
+		if !ok || !caller.HasAccess(resource, domain.APIAccessRead) {
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return
 		}
 
 		next.ServeHTTP(w, r)
 	})
-}
-
-// isAPIKeyRequest reports whether r was authenticated with an API key instead of a session.
-func isAPIKeyRequest(r *http.Request) bool {
-	_, ok := r.Context().Value(apiKeyContextKey{}).(*domain.APIKey)
-	return ok
 }
 
 // isHealthCheckRequest reports whether r is a GET/HEAD to one of the built-in
@@ -257,7 +333,7 @@ func parsePeerAddr(remoteAddr string) (netip.Addr, bool) {
 // it always checks the real TCP peer that opened the connection.
 func (s *Server) RequireAuthDisabledIPAllowlist(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !s.config.Config.IsAuthDisabled() {
+		if !s.config.Config.AuthCapabilities().ProxyGuards {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -298,7 +374,7 @@ func (s *Server) RequireAuthDisabledIPAllowlist(next http.Handler) http.Handler 
 // handled by RequireAuthDisabledAllowedHost.
 func (s *Server) RejectUntrustedBrowserRequests(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !s.config.Config.IsAuthDisabled() {
+		if !s.config.Config.AuthCapabilities().ProxyGuards {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -375,7 +451,7 @@ func isSameOrigin(origin string, r *http.Request) bool {
 // checked regardless of browser markers.
 func (s *Server) RequireAuthDisabledAllowedHost(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !s.config.Config.IsAuthDisabled() {
+		if !s.config.Config.AuthCapabilities().ProxyGuards {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -421,7 +497,7 @@ func (s *Server) isAllowedHost(host string) bool {
 // a fully working UI to clickjack.
 func (s *Server) RestrictAuthDisabledFraming(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !s.config.Config.IsAuthDisabled() {
+		if !s.config.Config.AuthCapabilities().ProxyGuards {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -486,6 +562,7 @@ func LoggerMiddleware(logger *zerolog.Logger, skipPaths []string) func(next http
 				log = logger.With().Logger()
 			}
 
+			r = withCallerSlot(r)
 			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 
 			t1 := time.Now()
@@ -511,7 +588,11 @@ func LoggerMiddleware(logger *zerolog.Logger, skipPaths []string) func(next http
 						remoteIP = ip
 					}
 
-					// log end request
+					var username string
+					if caller, ok := callerFromContext(r.Context()); ok {
+						username = caller.Username
+					}
+
 					log.Trace().
 						Str("type", "access").
 						Timestamp().
@@ -525,6 +606,7 @@ func LoggerMiddleware(logger *zerolog.Logger, skipPaths []string) func(next http
 							"latency_ms": float64(t2.Sub(t1).Nanoseconds()) / 1000000.0,
 							"bytes_in":   r.Header.Get("Content-Length"),
 							"bytes_out":  ww.BytesWritten(),
+							"username":   username,
 						}).
 						Msg("incoming_request")
 				}
