@@ -24,6 +24,7 @@ func forwardConfig() *domain.Config {
 		BaseURL:               "/",
 		BaseURLModeLegacy:     true,
 		AuthTrustedUserHeader: "Remote-User",
+		AuthTrustedUser:       "ze0s",
 		AuthAllowedPeerCIDRs:  []string{"127.0.0.1"},
 		CorsAllowedOrigins:    "https://autobrr.example.com",
 		AuthLogoutURL:         "https://auth.example.com/logout",
@@ -35,7 +36,8 @@ func TestForwardCaller(t *testing.T) {
 
 	tests := []struct {
 		name       string
-		users      []string
+		user       string
+		noUser     bool
 		values     []string
 		token      string
 		session    bool
@@ -48,9 +50,10 @@ func TestForwardCaller(t *testing.T) {
 		{name: "empty header", values: []string{"   "}, wantStatus: http.StatusForbidden},
 		{name: "last value wins", values: []string{"admin", "ze0s"}, wantStatus: http.StatusOK, want: &Caller{Method: domain.AuthMethodForward, Username: "ze0s"}},
 		{name: "empty last value is not skipped", values: []string{"ze0s", ""}, wantStatus: http.StatusForbidden},
-		{name: "allowlisted user", users: []string{"ZE0S"}, values: []string{"ze0s"}, wantStatus: http.StatusOK, want: &Caller{Method: domain.AuthMethodForward, Username: "ze0s"}},
-		{name: "rejected user", users: []string{"ze0s"}, values: []string{"admin"}, wantStatus: http.StatusForbidden},
-		{name: "allowlist checks the last value", users: []string{"ze0s"}, values: []string{"ze0s", "admin"}, wantStatus: http.StatusForbidden},
+		{name: "trusted user", user: "ZE0S", values: []string{"ze0s"}, wantStatus: http.StatusOK, want: &Caller{Method: domain.AuthMethodForward, Username: "ze0s"}},
+		{name: "other user", user: "ze0s", values: []string{"admin"}, wantStatus: http.StatusForbidden},
+		{name: "no trusted user configured", noUser: true, values: []string{"ze0s"}, wantStatus: http.StatusForbidden},
+		{name: "trusted user check uses the last value", user: "ze0s", values: []string{"ze0s", "admin"}, wantStatus: http.StatusForbidden},
 		{name: "api key without header", token: "valid", wantStatus: http.StatusOK, want: &Caller{Method: domain.AuthMethodAPIKey, APIKey: apiKey}},
 		{name: "api key wins over header", token: "valid", values: []string{"ze0s"}, wantStatus: http.StatusOK, want: &Caller{Method: domain.AuthMethodAPIKey, APIKey: apiKey}},
 		{name: "invalid api key with header", token: "nope", values: []string{"ze0s"}, wantStatus: http.StatusUnauthorized},
@@ -59,7 +62,12 @@ func TestForwardCaller(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := forwardConfig()
-			cfg.AuthTrustedUsers = tt.users
+			if tt.user != "" {
+				cfg.AuthTrustedUser = tt.user
+			}
+			if tt.noUser {
+				cfg.AuthTrustedUser = ""
+			}
 
 			sm := scs.New()
 			s := &Server{

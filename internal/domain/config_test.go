@@ -345,6 +345,7 @@ func TestConfig_ValidateAuthConfigForward(t *testing.T) {
 	valid := func() Config {
 		return Config{
 			AuthTrustedUserHeader: "Remote-User",
+			AuthTrustedUser:       "ze0s",
 			AuthAllowedPeerCIDRs:  []string{"127.0.0.1/32", "::1"},
 			CorsAllowedOrigins:    "https://autobrr.example.com",
 		}
@@ -356,10 +357,9 @@ func TestConfig_ValidateAuthConfigForward(t *testing.T) {
 		wantErr string
 	}{
 		{name: "valid", modify: func(c *Config) {}},
-		{name: "valid with users and logout url", modify: func(c *Config) {
-			c.AuthTrustedUsers = []string{"ze0s"}
-			c.AuthLogoutURL = "https://auth.example.com/logout"
-		}},
+		{name: "valid with logout url", modify: func(c *Config) { c.AuthLogoutURL = "https://auth.example.com/logout" }},
+		{name: "missing trusted user", modify: func(c *Config) { c.AuthTrustedUser = "" }, wantErr: "authTrustedUser is required in forward authentication mode"},
+		{name: "blank trusted user", modify: func(c *Config) { c.AuthTrustedUser = "  " }, wantErr: "authTrustedUser is required in forward authentication mode"},
 		{name: "invalid header name", modify: func(c *Config) { c.AuthTrustedUserHeader = "Remote User" }, wantErr: "authTrustedUserHeader is not a valid header name: Remote User"},
 		{name: "with auth disabled", modify: func(c *Config) { c.AuthDisabled = true }, wantErr: "authTrustedUserHeader cannot be used together with authDisabled"},
 		{name: "with oidc", modify: func(c *Config) { c.OIDCEnabled = true }, wantErr: "authTrustedUserHeader cannot be used together with oidcEnabled"},
@@ -394,20 +394,21 @@ func TestConfig_ValidateAuthConfigForward(t *testing.T) {
 func TestConfig_IsTrustedUserAllowed(t *testing.T) {
 	tests := []struct {
 		name     string
-		users    []string
+		user     string
 		username string
 		want     bool
 	}{
-		{name: "empty allows anyone", username: "someone", want: true},
-		{name: "blank entries allow anyone", users: []string{" ", ""}, username: "someone", want: true},
-		{name: "listed", users: []string{"ze0s"}, username: "ze0s", want: true},
-		{name: "case insensitive", users: []string{" Ze0s "}, username: "ZE0S", want: true},
-		{name: "not listed", users: []string{"ze0s"}, username: "admin", want: false},
-		{name: "no partial match", users: []string{"ze0s"}, username: "ze0s2", want: false},
+		{name: "empty allows nobody", username: "someone", want: false},
+		{name: "blank allows nobody", user: "  ", username: "", want: false},
+		{name: "match", user: "ze0s", username: "ze0s", want: true},
+		{name: "case insensitive", user: " Ze0s ", username: "ZE0S", want: true},
+		{name: "other user", user: "ze0s", username: "admin", want: false},
+		{name: "no partial match", user: "ze0s", username: "ze0s2", want: false},
+		{name: "a list is not split", user: "ze0s,admin", username: "admin", want: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := Config{AuthTrustedUsers: tt.users}
+			c := Config{AuthTrustedUser: tt.user}
 			assert.Equal(t, tt.want, c.IsTrustedUserAllowed(tt.username))
 		})
 	}

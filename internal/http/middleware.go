@@ -197,7 +197,7 @@ func (s *Server) forwardCaller(w http.ResponseWriter, r *http.Request) (*Caller,
 	}
 
 	if !s.config.Config.IsTrustedUserAllowed(username) {
-		s.log.Warn().Str("username", username).Str("url", r.URL.Path).Msg("forward auth: rejected user not in authTrustedUsers")
+		s.log.Warn().Str("username", username).Str("url", r.URL.Path).Msg("forward auth: rejected user other than authTrustedUser")
 		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 		return nil, false
 	}

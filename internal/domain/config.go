@@ -93,9 +93,10 @@ type Config struct {
 	// the username, and is only read from peers in AuthAllowedPeerCIDRs.
 	AuthTrustedUserHeader string `toml:"authTrustedUserHeader"`
 
-	// AuthTrustedUsers optionally limits forward authentication mode to these
-	// usernames. Empty accepts any user the proxy vouches for.
-	AuthTrustedUsers []string `toml:"authTrustedUsers"`
+	// AuthTrustedUser is the only username accepted in forward authentication
+	// mode. Required there, since autobrr has a single admin account and a shared
+	// identity provider would otherwise make every one of its users an admin.
+	AuthTrustedUser string `toml:"authTrustedUser"`
 
 	// AuthLogoutURL is where log out points in forward authentication mode,
 	// normally the proxy's logout endpoint. Empty hides log out.
@@ -397,22 +398,11 @@ func (m AuthMethod) String() string {
 }
 
 // IsTrustedUserAllowed reports whether username, as sent by the proxy in forward
-// authentication mode, is allowed. Every user is allowed when AuthTrustedUsers is empty.
+// authentication mode, is AuthTrustedUser. No user is allowed when it is empty.
 func (c *Config) IsTrustedUserAllowed(username string) bool {
-	restricted := false
-	for _, user := range c.AuthTrustedUsers {
-		user = strings.TrimSpace(user)
-		if user == "" {
-			continue
-		}
+	user := strings.TrimSpace(c.AuthTrustedUser)
 
-		if strings.EqualFold(user, username) {
-			return true
-		}
-		restricted = true
-	}
-
-	return !restricted
+	return user != "" && strings.EqualFold(user, username)
 }
 
 // ValidateAuthConfig validates the settings of the active authentication mode
@@ -458,6 +448,10 @@ func (c *Config) validateForwardAuthConfig() error {
 		if conflict.set {
 			return errors.New("authTrustedUserHeader cannot be used together with %s", conflict.setting)
 		}
+	}
+
+	if strings.TrimSpace(c.AuthTrustedUser) == "" {
+		return errors.New("authTrustedUser is required in forward authentication mode")
 	}
 
 	if err := c.validateProxyGuardConfig(); err != nil {

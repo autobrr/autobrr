@@ -343,11 +343,11 @@ func (app *App) checkAuthConfig() error {
 			Bool("wildcard_bind", wildcardBind).
 			Str("cors_allowed_origins", cfg.CorsAllowedOrigins).
 			Str("authTrustedUserHeader", cfg.AuthTrustedUserHeader).
-			Strs("authTrustedUsers", cfg.AuthTrustedUsers).
+			Str("authTrustedUser", cfg.AuthTrustedUser).
 			Strs("authAllowedPeerCIDRs", cfg.AuthAllowedPeerCIDRs).
 			Strs("authAllowedHosts", cfg.AuthAllowedHosts).
 			Str("authClientIPHeader", cfg.AuthClientIPHeader).
-			Msg("forward authentication active: users are identified by authTrustedUserHeader, read only from peers in authAllowedPeerCIDRs. The reverse proxy must authenticate every request and overwrite that header.")
+			Msg("forward authentication active: authTrustedUser is identified by authTrustedUserHeader, read only from peers in authAllowedPeerCIDRs. The reverse proxy must authenticate every request and overwrite that header.")
 	case cfg.AuthMode() == domain.AuthModeDisabled:
 		wildcardBind := cfg.Host == "" || cfg.Host == "0.0.0.0" || cfg.Host == "::"
 		app.log.Warn().

@@ -203,10 +203,10 @@ checkForUpdates = true
 # Environment variable: AUTOBRR__AUTH_TRUSTED_USER_HEADER
 #authTrustedUserHeader = "Remote-User"
 #
-# Optional. Only these usernames are accepted (case-insensitive); empty accepts
-# any user the proxy authenticated.
-# Environment variable: AUTOBRR__AUTH_TRUSTED_USERS (comma separated)
-#authTrustedUsers = []
+# Required. The only username accepted (case-insensitive), exactly as the proxy
+# sends it. Other users your proxy authenticates get 403.
+# Environment variable: AUTOBRR__AUTH_TRUSTED_USER
+#authTrustedUser = "ze0s"
 #
 # Optional. The proxy's logout URL, used by the log out button. Empty hides it.
 # Environment variable: AUTOBRR__AUTH_LOGOUT_URL
@@ -390,7 +390,7 @@ func (c *AppConfig) defaults() {
 		AuthClientIPHeader:          "",
 		TrustedProxies:              []string{},
 		AuthTrustedUserHeader:       "",
-		AuthTrustedUsers:            []string{},
+		AuthTrustedUser:             "",
 		AuthLogoutURL:               "",
 	}
 }
@@ -592,8 +592,8 @@ func (c *AppConfig) loadFromEnv() {
 		c.Config.AuthTrustedUserHeader = v
 	}
 
-	if v := GetEnvStr("AUTH_TRUSTED_USERS"); v != "" {
-		c.Config.AuthTrustedUsers = splitEnvList(v)
+	if v := GetEnvStr("AUTH_TRUSTED_USER"); v != "" {
+		c.Config.AuthTrustedUser = v
 	}
 
 	if v := GetEnvStr("AUTH_LOGOUT_URL"); v != "" {

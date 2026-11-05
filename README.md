@@ -346,7 +346,7 @@ The following environment variables can be used:
 | `AUTOBRR__OIDC_DISABLE_BUILT_IN_LOGIN`   | Disable password login, both the form and the API (requires OIDC)                                             | `false`     |
 | `AUTOBRR__OIDC_AUTO_REDIRECT`            | Redirect unauthenticated visitors to the OIDC provider                                                        | `false`     |
 | `AUTOBRR__AUTH_TRUSTED_USER_HEADER`    | Enable forward auth with this proxy username header (see [Forward authentication](#forward-authentication))   | -           |
-| `AUTOBRR__AUTH_TRUSTED_USERS`          | Usernames allowed in forward auth, comma separated. Unset allows any                                          | -           |
+| `AUTOBRR__AUTH_TRUSTED_USER`           | The only username allowed in forward auth. Required in that mode                                              | -           |
 | `AUTOBRR__AUTH_LOGOUT_URL`             | Proxy logout URL for the log out button in forward auth                                                       | -           |
 | `AUTOBRR__CORS_ALLOWED_ORIGINS`        | Allowed CORS origins, comma separated. Required when auth is disabled or forwarded                            | -           |
 | `AUTOBRR__AUTH_DISABLED`                 | Disable built-in authentication (see [Disabling built-in authentication](#disabling-built-in-authentication)) | `false`     |
@@ -432,8 +432,9 @@ authTrustedUserHeader = "Remote-User"
 authAllowedPeerCIDRs = ["127.0.0.1/32"]
 # Every URL you access autobrr at, as in disabled mode.
 corsAllowedOrigins = "https://autobrr.example.com"
-# Optional: only these users (case-insensitive). Unset accepts any user the proxy authenticated.
-#authTrustedUsers = ["ze0s"]
+# The only user accepted (case-insensitive), exactly as the proxy sends it. Other
+# users your proxy authenticates get 403.
+authTrustedUser = "ze0s"
 # Optional: the proxy's logout URL, used by the log out button. Unset hides it.
 #authLogoutURL = "https://auth.example.com/logout"
 ```
@@ -465,7 +466,7 @@ http:
 Things to be aware of:
 
 - Cannot be combined with `authDisabled` or any OIDC setting; autobrr refuses to start.
-- Requests without the header, with an empty header, or from a user not in `authTrustedUsers` get 403. If the header appears more than once, the last value is used.
+- autobrr has one admin account, so it accepts one username. Requests without the header, with an empty header, or from any other user get 403, and the rejected username is logged. If the proxy sends an email or display name instead of the username, set `authTrustedUser` to that. If the header appears more than once, the last value is used.
 - An API key sent with `X-API-Token` or `?apikey=` takes precedence over the header, so integrations work through proxy bypass rules for API paths.
 - Groups headers such as `Remote-Groups` are not read: every authenticated user has full access.
 - The `Host` allowlist, browser request checks, `Content-Type` rule and framing policy described under [Disabling built-in authentication](#disabling-built-in-authentication) apply in this mode too, and the same advice about `host = "127.0.0.1"` holds.
