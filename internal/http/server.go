@@ -44,18 +44,18 @@ type Server struct {
 	authAllowedPeerPrefixes []netip.Prefix
 
 	// trustedProxyPrefixes is parsed once at startup from config.TrustedProxies
-	// and only used while auth is enabled.
+	// and not used in modes with ProxyGuards.
 	trustedProxyPrefixes []netip.Prefix
 
 	// authAllowedOrigins, authAllowedHosts and authFrameAncestors are derived once
 	// at startup from config.CorsAllowedOrigins and config.AuthAllowedHosts, and
-	// only enforced while auth is disabled.
+	// only enforced in modes with ProxyGuards.
 	authAllowedOrigins map[string]struct{}
 	authAllowedHosts   map[string]struct{}
 	authFrameAncestors string
 
 	// healthCheckPaths holds the exact resolved paths (base URL included) that are
-	// reachable from loopback while auth is disabled.
+	// reachable from loopback in modes with ProxyGuards.
 	healthCheckPaths []string
 
 	actionService       actionService
@@ -158,13 +158,13 @@ func NewServer(deps Deps) *Server {
 	if deps.Config.Config.AuthCapabilities().ProxyGuards {
 		prefixes, err := deps.Config.Config.ParseAuthAllowedPeerCIDRs()
 		if err != nil {
-			srv.log.Error().Err(err).Msg("auth disabled: invalid authAllowedPeerCIDRs, denying all requests")
+			srv.log.Error().Err(err).Msg("proxy guard: invalid authAllowedPeerCIDRs, denying all requests")
 		} else {
 			srv.authAllowedPeerPrefixes = prefixes
 		}
 
 		if err := srv.buildAuthAllowlists(); err != nil {
-			srv.log.Error().Err(err).Msg("auth disabled: invalid corsAllowedOrigins or authAllowedHosts, denying requests by hostname")
+			srv.log.Error().Err(err).Msg("proxy guard: invalid corsAllowedOrigins or authAllowedHosts, denying requests by hostname")
 		}
 	} else if len(deps.Config.Config.TrustedProxies) > 0 {
 		prefixes, err := deps.Config.Config.ParseTrustedProxies()
@@ -212,7 +212,7 @@ func (s *Server) limiterKey(r *http.Request) string {
 }
 
 // buildAuthAllowlists derives the origin and host allowlists and the
-// frame-ancestors policy enforced while auth is disabled.
+// frame-ancestors policy enforced in modes with ProxyGuards.
 func (s *Server) buildAuthAllowlists() error {
 	origins, err := s.config.Config.ParseAuthAllowedOrigins()
 	if err != nil {
@@ -441,7 +441,7 @@ func (s *Server) apiRoutes() chi.Router {
 			r.Route("/irc", newIrcHandler(encoder, s.sse, s.ircService).Routes)
 			r.Route("/indexer", newIndexerHandler(encoder, s.indexerService, s.ircService).Routes)
 			r.Route("/lists", newListHandler(encoder, s.listService).Routes)
-			r.Route("/keys", newAPIKeyHandler(encoder, s.apiService, s.config.Config).Routes)
+			r.Route("/keys", newAPIKeyHandler(encoder, s.log, s.apiService, s.config.Config).Routes)
 			r.Route("/logs", newLogsHandler(s.config).Routes)
 			r.Route("/notification", newNotificationHandler(encoder, s.notificationService).Routes)
 			r.Route("/proxy", newProxyHandler(encoder, s.proxyService).Routes)

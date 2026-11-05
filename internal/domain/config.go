@@ -66,27 +66,40 @@ type Config struct {
 	AuthDisabled                bool   `toml:"authDisabled"`
 	AuthDisabledAcknowledgement string `toml:"authDisabledAcknowledgement"`
 
-	// AuthAllowedPeerCIDRs is the allowlist consulted while authentication
-	// is disabled. Entries match the immediate TCP peer autobrr sees (normally the
+	// AuthAllowedPeerCIDRs is the allowlist consulted in disabled and forward
+	// authentication modes. Entries match the immediate TCP peer autobrr sees (normally the
 	// reverse proxy or loopback), never a forwarded header or the end user's browser.
 	AuthAllowedPeerCIDRs []string `toml:"authAllowedPeerCIDRs"`
 
-	// AuthAllowedHosts lists extra hostnames a request's Host header may name while
-	// authentication is disabled, on top of IP literals, localhost, the machine
+	// AuthAllowedHosts lists extra hostnames a request's Host header may name in
+	// disabled and forward authentication modes, on top of IP literals, localhost, the machine
 	// hostname and the hosts of CorsAllowedOrigins. It blocks DNS rebinding.
 	AuthAllowedHosts []string `toml:"authAllowedHosts"`
 
 	// AuthClientIPHeader optionally names a header the reverse proxy overwrites on
-	// every request with the end user's IP (e.g. X-Real-IP). While authentication is
-	// disabled it is resolved into the request context for access logs; it never
+	// every request with the end user's IP (e.g. X-Real-IP). In disabled and forward
+	// authentication modes it is resolved into the request context for access logs; it never
 	// affects the peer allowlist, which always checks the TCP peer.
 	AuthClientIPHeader string `toml:"authClientIPHeader"`
 
 	// TrustedProxies lists the reverse proxies allowed to report the client IP in
 	// X-Forwarded-For while authentication is enabled. Empty keeps the legacy
-	// behavior of trusting forwarded headers from any peer. Ignored while
-	// authentication is disabled, where the TCP peer is always used.
+	// behavior of trusting forwarded headers from any peer. Ignored in disabled
+	// and forward authentication modes, where the TCP peer is always used.
 	TrustedProxies []string `toml:"trustedProxies"`
+
+	// AuthTrustedUserHeader enables forward authentication mode when set. It names
+	// the header the authenticating reverse proxy overwrites on every request with
+	// the username, and is only read from peers in AuthAllowedPeerCIDRs.
+	AuthTrustedUserHeader string `toml:"authTrustedUserHeader"`
+
+	// AuthTrustedUsers optionally limits forward authentication mode to these
+	// usernames. Empty accepts any user the proxy vouches for.
+	AuthTrustedUsers []string `toml:"authTrustedUsers"`
+
+	// AuthLogoutURL is where log out points in forward authentication mode,
+	// normally the proxy's logout endpoint. Empty hides log out.
+	AuthLogoutURL string `toml:"authLogoutURL"`
 }
 
 // AuthDisabledAcknowledgementValue is the exact value AuthDisabledAcknowledgement
@@ -172,7 +185,7 @@ func parsePeerPrefixes(entries []string, field string) ([]netip.Prefix, error) {
 
 // ParseAuthAllowedOrigins parses CorsAllowedOrigins into normalized
 // scheme://host[:port] origin values, dropping the scheme's default port. While
-// authentication is disabled the configured origins are enforced server-side
+// authentication is disabled or forwarded the configured origins are enforced server-side
 // against the Origin and Host of browser requests, so every entry must be a real
 // origin: no wildcard, no bare hostname, no path, and a host that passes
 // NormalizeHost so it can feed the Host allowlist.
@@ -188,7 +201,7 @@ func (c *Config) ParseAuthAllowedOrigins() ([]string, error) {
 		// rs/cors accepts https://*.example.com, but the same list is matched
 		// literally against Origin and Host here, so a wildcard can never match.
 		if strings.Contains(entry, "*") {
-			return nil, errors.New("wildcard origin in corsAllowedOrigins: %s is not supported while authentication is disabled", entry)
+			return nil, errors.New("wildcard origin in corsAllowedOrigins is not supported: %s", entry)
 		}
 
 		u, err := url.Parse(entry)
@@ -307,6 +320,7 @@ type AuthMode string
 const (
 	AuthModeBuiltin  AuthMode = "builtin"
 	AuthModeOIDC     AuthMode = "oidc"
+	AuthModeForward  AuthMode = "forward"
 	AuthModeDisabled AuthMode = "disabled"
 )
 
@@ -318,6 +332,8 @@ func (m AuthMode) String() string {
 // configs that enable more than one mode.
 func (c *Config) AuthMode() AuthMode {
 	switch {
+	case strings.TrimSpace(c.AuthTrustedUserHeader) != "":
+		return AuthModeForward
 	case c.IsAuthDisabled():
 		return AuthModeDisabled
 	case c.OIDCEnabled:
@@ -344,6 +360,8 @@ type AuthCapabilities struct {
 // AuthCapabilities returns the capabilities of the active authentication mode.
 func (c *Config) AuthCapabilities() AuthCapabilities {
 	switch c.AuthMode() {
+	case AuthModeForward:
+		return AuthCapabilities{APIKeyManagement: true, ProxyGuards: true}
 	case AuthModeDisabled:
 		return AuthCapabilities{ProxyGuards: true}
 	case AuthModeOIDC:
@@ -369,12 +387,32 @@ type AuthMethod string
 const (
 	AuthMethodPassword AuthMethod = "password"
 	AuthMethodOIDC     AuthMethod = "oidc"
+	AuthMethodForward  AuthMethod = "forward"
 	AuthMethodDisabled AuthMethod = "disabled"
 	AuthMethodAPIKey   AuthMethod = "apikey"
 )
 
 func (m AuthMethod) String() string {
 	return string(m)
+}
+
+// IsTrustedUserAllowed reports whether username, as sent by the proxy in forward
+// authentication mode, is allowed. Every user is allowed when AuthTrustedUsers is empty.
+func (c *Config) IsTrustedUserAllowed(username string) bool {
+	restricted := false
+	for _, user := range c.AuthTrustedUsers {
+		user = strings.TrimSpace(user)
+		if user == "" {
+			continue
+		}
+
+		if strings.EqualFold(user, username) {
+			return true
+		}
+		restricted = true
+	}
+
+	return !restricted
 }
 
 // ValidateAuthConfig validates the settings of the active authentication mode
@@ -385,8 +423,10 @@ func (c *Config) ValidateAuthConfig() error {
 	}
 
 	switch c.AuthMode() {
+	case AuthModeForward:
+		return c.validateForwardAuthConfig()
 	case AuthModeDisabled:
-		return c.validateAuthDisabledConfig()
+		return c.validateProxyGuardConfig()
 	default:
 		if _, err := c.ParseTrustedProxies(); err != nil {
 			return errors.Wrap(err, "invalid trustedProxies")
@@ -396,9 +436,62 @@ func (c *Config) ValidateAuthConfig() error {
 	return nil
 }
 
-func (c *Config) validateAuthDisabledConfig() error {
+// validateForwardAuthConfig adds the forward mode rules on top of the proxy guard
+// settings it shares with disabled mode.
+func (c *Config) validateForwardAuthConfig() error {
+	if header := strings.TrimSpace(c.AuthTrustedUserHeader); !httpguts.ValidHeaderFieldName(header) {
+		return errors.New("authTrustedUserHeader is not a valid header name: %s", header)
+	}
+
+	conflicts := []struct {
+		setting string
+		set     bool
+	}{
+		{setting: "authDisabled", set: c.AuthDisabled},
+		{setting: "oidcEnabled", set: c.OIDCEnabled},
+		{setting: "oidcDisableBuiltInLogin", set: c.OIDCDisableBuiltInLogin},
+		{setting: "oidcAutoRedirect", set: c.OIDCAutoRedirect},
+		{setting: "oidcAllowedSubject", set: c.OIDCAllowedSubject != ""},
+		{setting: "oidcAllowedEmail", set: c.OIDCAllowedEmail != ""},
+	}
+	for _, conflict := range conflicts {
+		if conflict.set {
+			return errors.New("authTrustedUserHeader cannot be used together with %s", conflict.setting)
+		}
+	}
+
+	if err := c.validateProxyGuardConfig(); err != nil {
+		return err
+	}
+
+	// Any allowlisted peer can send the user header itself, so a range would let
+	// every address in it log in as any user, past API key scopes.
+	prefixes, err := c.ParseAuthAllowedPeerCIDRs()
+	if err != nil {
+		return err
+	}
+
+	for _, prefix := range prefixes {
+		if prefix.Bits() != prefix.Addr().BitLen() {
+			return errors.New("authAllowedPeerCIDRs entry %s is a range: forward authentication mode only accepts single proxy addresses (/32 or /128)", prefix)
+		}
+	}
+
+	if c.AuthLogoutURL != "" {
+		u, err := url.Parse(c.AuthLogoutURL)
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+			return errors.New("authLogoutURL must be an absolute http(s) URL: %s", c.AuthLogoutURL)
+		}
+	}
+
+	return nil
+}
+
+// validateProxyGuardConfig validates the peer, origin and host allowlists that
+// disabled and forward modes rely on in place of a login.
+func (c *Config) validateProxyGuardConfig() error {
 	if len(c.AuthAllowedPeerCIDRs) == 0 {
-		return errors.New("authAllowedPeerCIDRs is required when authentication is disabled")
+		return errors.New("authAllowedPeerCIDRs is required in %s authentication mode", c.AuthMode())
 	}
 
 	prefixes, err := c.ParseAuthAllowedPeerCIDRs()
@@ -420,7 +513,7 @@ func (c *Config) validateAuthDisabledConfig() error {
 	}
 
 	if len(origins) == 0 {
-		return errors.New("corsAllowedOrigins must be set to explicit origins when authentication is disabled")
+		return errors.New("corsAllowedOrigins must be set to explicit origins in %s authentication mode", c.AuthMode())
 	}
 
 	if _, err := c.ParseAuthAllowedHosts(); err != nil {

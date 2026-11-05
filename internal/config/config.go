@@ -180,10 +180,37 @@ checkForUpdates = true
 #authAllowedHosts = ["autobrr"]
 #
 # Header the reverse proxy overwrites on EVERY request with the end user's IP,
-# used for access logs while authentication is disabled. Only safe with a header
+# used for access logs in disabled and forward authentication modes. Only safe with a header
 # your proxy sets unconditionally (e.g. X-Real-IP with nginx real_ip, or
 # CF-Connecting-IP with Cloudflare); leave empty to log the proxy address instead.
 #authClientIPHeader = ""
+
+# Forward authentication
+#
+# For deployments where a reverse proxy authenticates every request (Authelia,
+# Authentik, or any forward_auth/auth_request setup) and passes the username on in
+# a header. Unlike disabled authentication, every request must carry the header,
+# and API keys and their management keep working. Cannot be combined with
+# authDisabled or any OIDC setting.
+#
+# The proxy MUST overwrite this header on every request, never pass a client's
+# value through. Authelia: Remote-User, Authentik: X-authentik-username.
+#
+# Also requires authAllowedPeerCIDRs and corsAllowedOrigins as described above,
+# and every authAllowedPeerCIDRs entry must be a single proxy address (/32 or
+# /128): any allowlisted peer can send the header itself and log in as any user.
+#
+# Environment variable: AUTOBRR__AUTH_TRUSTED_USER_HEADER
+#authTrustedUserHeader = "Remote-User"
+#
+# Optional. Only these usernames are accepted (case-insensitive); empty accepts
+# any user the proxy authenticated.
+# Environment variable: AUTOBRR__AUTH_TRUSTED_USERS (comma separated)
+#authTrustedUsers = []
+#
+# Optional. The proxy's logout URL, used by the log out button. Empty hides it.
+# Environment variable: AUTOBRR__AUTH_LOGOUT_URL
+#authLogoutURL = "https://auth.example.com/logout"
 
 # Trusted reverse proxies
 #
@@ -191,7 +218,7 @@ checkForUpdates = true
 # set, X-Forwarded-For is only believed from these peers and is read right to
 # left past them, so clients cannot spoof their IP to dodge login rate limits
 # or fill the logs with fake addresses. When unset, forwarded headers are
-# trusted from any peer. Only used while authentication is enabled.
+# trusted from any peer. Not used in disabled or forward authentication modes.
 #trustedProxies = ["127.0.0.1", "::1"]
 
 # Metrics
@@ -362,6 +389,9 @@ func (c *AppConfig) defaults() {
 		AuthAllowedHosts:            []string{},
 		AuthClientIPHeader:          "",
 		TrustedProxies:              []string{},
+		AuthTrustedUserHeader:       "",
+		AuthTrustedUsers:            []string{},
+		AuthLogoutURL:               "",
 	}
 }
 
@@ -556,6 +586,18 @@ func (c *AppConfig) loadFromEnv() {
 
 	if v := GetEnvStr("TRUSTED_PROXIES"); v != "" {
 		c.Config.TrustedProxies = splitEnvList(v)
+	}
+
+	if v := GetEnvStr("AUTH_TRUSTED_USER_HEADER"); v != "" {
+		c.Config.AuthTrustedUserHeader = v
+	}
+
+	if v := GetEnvStr("AUTH_TRUSTED_USERS"); v != "" {
+		c.Config.AuthTrustedUsers = splitEnvList(v)
+	}
+
+	if v := GetEnvStr("AUTH_LOGOUT_URL"); v != "" {
+		c.Config.AuthLogoutURL = v
 	}
 }
 

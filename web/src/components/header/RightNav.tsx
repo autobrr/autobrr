@@ -24,7 +24,7 @@ export const RightNav = (props: RightNavProps) => {
   const [settings, setSettings] = SettingsContext.use();
   const auth = AuthContext.get();
   const showAccount = auth.capabilities?.account_management ?? false;
-  const showLogout = (auth.capabilities?.password_login || auth.capabilities?.oidc_login) ?? false;
+  const showLogout = !!(auth.capabilities?.password_login || auth.capabilities?.oidc_login || auth.logoutUrl);
 
   const nextTheme: Record<Theme, Theme> = {
     light: "dark",
@@ -162,7 +162,28 @@ export const RightNav = (props: RightNavProps) => {
                       </Link>
                     )}
                   </MenuItem>
-                  {showLogout && (
+                  {auth.logoutUrl && (
+                    <MenuItem>
+                      {({ active }) => (
+                        <a
+                          href={auth.logoutUrl}
+                          className={classNames(
+                            active
+                              ? "bg-gray-100 dark:bg-gray-600"
+                              : "",
+                            "flex items-center transition rounded-b-md w-full px-2 py-2 text-sm text-gray-900 dark:text-gray-200 cursor-pointer"
+                          )}
+                        >
+                          <ArrowLeftOnRectangleIcon
+                            className="w-5 h-5 mr-1 text-gray-700 dark:text-gray-400"
+                            aria-hidden="true"
+                          />
+                          {t("userMenu.logout")}
+                        </a>
+                      )}
+                    </MenuItem>
+                  )}
+                  {showLogout && !auth.logoutUrl && (
                     <MenuItem>
                       {({ active }) => (
                         <button

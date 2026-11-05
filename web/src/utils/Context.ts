@@ -50,9 +50,10 @@ export interface DashboardConfigType {
 export interface AuthInfo {
   username: string;
   isLoggedIn: boolean;
-  authMethod?: 'password' | 'oidc' | 'disabled';
+  authMethod?: 'password' | 'oidc' | 'forward' | 'disabled';
   authMode?: AuthMode;
   capabilities?: AuthCapabilities;
+  logoutUrl?: string;
   profilePicture?: string;
   issuerUrl?: string;
 }
@@ -64,6 +65,7 @@ const AuthContextDefaults: AuthInfo = {
   authMethod: undefined,
   authMode: undefined,
   capabilities: undefined,
+  logoutUrl: undefined,
   profilePicture: undefined,
   issuerUrl: undefined
 };

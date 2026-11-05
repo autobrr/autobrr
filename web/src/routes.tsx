@@ -298,6 +298,7 @@ const toAuthInfo = (validation: ValidateResponse, config?: Config, issuerUrl?: s
   authMethod: validation.auth_method,
   authMode: config?.auth_mode,
   capabilities: config?.auth_capabilities,
+  logoutUrl: config?.auth_logout_url,
   profilePicture: validation.profile_picture,
   issuerUrl
 });
@@ -442,8 +443,8 @@ export const AuthRoute = createRoute({
             },
           });
         }
-      } else if (config && !sameCapabilities(config.auth_capabilities, auth.capabilities)) {
-        AuthContext.set({ ...auth, capabilities: config.auth_capabilities });
+      } else if (config && (!sameCapabilities(config.auth_capabilities, auth.capabilities) || config.auth_logout_url !== auth.logoutUrl)) {
+        AuthContext.set({ ...auth, capabilities: config.auth_capabilities, logoutUrl: config.auth_logout_url });
       }
     }
 
