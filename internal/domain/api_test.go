@@ -17,7 +17,7 @@ func TestAPIKey_Validate(t *testing.T) {
 		scopes  []string
 		wantErr bool
 	}{
-		{name: "scoped", scopes: []string{"filters:read", "releases:write", "webhooks:write"}},
+		{name: "scoped", scopes: []string{"filters:read", "releases:write", "lists:invoke"}},
 		{name: "empty", scopes: []string{}, wantErr: true},
 		{name: "nil", scopes: nil, wantErr: true},
 		{name: "wildcard", scopes: []string{"*"}, wantErr: true},
@@ -27,7 +27,8 @@ func TestAPIKey_Validate(t *testing.T) {
 		{name: "unknown_access", scopes: []string{"filters:admin"}, wantErr: true},
 		{name: "unsupported_access", scopes: []string{"logs:write"}, wantErr: true},
 		{name: "config_write", scopes: []string{"config:write"}, wantErr: true},
-		{name: "webhooks_read", scopes: []string{"webhooks:read"}, wantErr: true},
+		{name: "webhooks_removed", scopes: []string{"webhooks:write"}, wantErr: true},
+		{name: "invoke_unsupported", scopes: []string{"filters:invoke"}, wantErr: true},
 		{name: "duplicate_resource", scopes: []string{"filters:read", "filters:write"}, wantErr: true},
 	}
 	for _, tt := range tests {
@@ -61,6 +62,11 @@ func TestAPIKey_HasAccess(t *testing.T) {
 		{name: "read_grants_read", scopes: []string{"filters:read"}, args: args{APIResourceFilters, APIAccessRead}, want: true},
 		{name: "read_denies_write", scopes: []string{"filters:read"}, args: args{APIResourceFilters, APIAccessWrite}, want: false},
 		{name: "write_implies_read", scopes: []string{"filters:write"}, args: args{APIResourceFilters, APIAccessRead}, want: true},
+		{name: "write_implies_invoke", scopes: []string{"lists:write"}, args: args{APIResourceLists, APIAccessInvoke}, want: true},
+		{name: "invoke_grants_invoke", scopes: []string{"lists:invoke"}, args: args{APIResourceLists, APIAccessInvoke}, want: true},
+		{name: "invoke_denies_read", scopes: []string{"lists:invoke"}, args: args{APIResourceLists, APIAccessRead}, want: false},
+		{name: "invoke_denies_write", scopes: []string{"lists:invoke"}, args: args{APIResourceLists, APIAccessWrite}, want: false},
+		{name: "read_denies_invoke", scopes: []string{"lists:read"}, args: args{APIResourceLists, APIAccessInvoke}, want: false},
 		{name: "other_resource", scopes: []string{"filters:write"}, args: args{APIResourceReleases, APIAccessRead}, want: false},
 		{name: "empty", scopes: []string{}, args: args{APIResourceFilters, APIAccessRead}, want: false},
 		{name: "malformed", scopes: []string{"filters"}, args: args{APIResourceFilters, APIAccessRead}, want: false},

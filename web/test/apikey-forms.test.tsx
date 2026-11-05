@@ -57,17 +57,20 @@ test("added permissions default to the lowest access level and can be raised", a
 
   fireEvent.click(screen.getByText("Add permissions"));
   press(await screen.findByLabelText("Filters"));
-  press(screen.getByLabelText("Webhooks"));
+  press(screen.getByLabelText("Lists"));
 
   expect(screen.getByText("Filters and their actions.")).toBeTruthy();
 
-  press(screen.getByRole("button", { name: /Read-only/ }));
+  press(screen.getAllByRole("button", { name: /Read-only/ })[0]);
   press(await screen.findByRole("menuitem", { name: "Read and write" }));
+
+  press(screen.getByRole("button", { name: /Read-only/ }));
+  press(await screen.findByRole("menuitem", { name: "Trigger only" }));
 
   fireEvent.click(screen.getByText("Create"));
 
   await waitFor(() => expect(create).toHaveBeenCalled());
-  expect(create.mock.calls[0][0]).toEqual({ name: "sonarr", scopes: ["filters:write", "webhooks:write"] });
+  expect(create.mock.calls[0][0]).toEqual({ name: "sonarr", scopes: ["filters:write", "lists:invoke"] });
 });
 
 test("removing a permission from an existing key keeps the rest", async () => {

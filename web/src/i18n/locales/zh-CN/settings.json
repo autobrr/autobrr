@@ -548,10 +548,12 @@
     "accessLabel": "访问：",
     "access": {
       "read": "只读",
+      "invoke": "仅触发",
       "write": "读写"
     },
     "accessShort": {
       "read": "读",
+      "invoke": "触发",
       "write": "写"
     },
     "resources": {
@@ -581,11 +583,7 @@
       },
       "lists": {
         "label": "列表",
-        "description": "列表及列表刷新。"
-      },
-      "webhooks": {
-        "label": "Webhooks",
-        "description": "通过 webhook 触发列表刷新，例如来自 Sonarr 或 Radarr。"
+        "description": "列表、列表刷新及其 webhook，例如来自 Sonarr 或 Radarr。"
       },
       "notifications": {
         "label": "通知",

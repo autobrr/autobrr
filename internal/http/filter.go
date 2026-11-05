@@ -44,24 +44,27 @@ func newFilterHandler(encoder encoder, service filterService) *filterHandler {
 }
 
 func (h filterHandler) Routes(r chi.Router) {
-	r.Get("/", h.getFilters)
-	r.Post("/", h.store)
+	read := requireScope(domain.APIResourceFilters, domain.APIAccessRead)
+	write := requireScope(domain.APIResourceFilters, domain.APIAccessWrite)
 
-	r.Post("/indexers/prune-deprecated", h.pruneDeprecatedIndexers)
-	r.Post("/external/test", h.testExternal)
+	r.With(read).Get("/", h.getFilters)
+	r.With(write).Post("/", h.store)
+
+	r.With(write).Post("/indexers/prune-deprecated", h.pruneDeprecatedIndexers)
+	r.With(write).Post("/external/test", h.testExternal)
 
 	r.Route("/{filterID}", func(r chi.Router) {
-		r.Get("/", h.getByID)
-		r.Put("/", h.update)
-		r.Patch("/", h.updatePartial)
-		r.Delete("/", h.delete)
+		r.With(read).Get("/", h.getByID)
+		r.With(write).Put("/", h.update)
+		r.With(write).Patch("/", h.updatePartial)
+		r.With(write).Delete("/", h.delete)
 
-		r.With(requireAccess(domain.APIResourceFilters, domain.APIAccessWrite)).Post("/duplicate", h.duplicate)
-		r.Put("/enabled", h.toggleEnabled)
+		r.With(write).Post("/duplicate", h.duplicate)
+		r.With(write).Put("/enabled", h.toggleEnabled)
 
 		r.Route("/notifications", func(r chi.Router) {
-			r.Get("/", h.getFilterNotifications)
-			r.Put("/", h.updateFilterNotifications)
+			r.With(read).Get("/", h.getFilterNotifications)
+			r.With(write).Put("/", h.updateFilterNotifications)
 		})
 	})
 }

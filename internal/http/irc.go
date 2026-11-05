@@ -48,24 +48,28 @@ func newIrcHandler(encoder encoder, sse *sse.Server, service ircService) *ircHan
 }
 
 func (h ircHandler) Routes(r chi.Router) {
-	r.Get("/", h.listNetworks)
-	r.Post("/", h.storeNetwork)
+	read := requireScope(domain.APIResourceIRC, domain.APIAccessRead)
+	invoke := requireScope(domain.APIResourceIRC, domain.APIAccessInvoke)
+	write := requireScope(domain.APIResourceIRC, domain.APIAccessWrite)
+
+	r.With(read).Get("/", h.listNetworks)
+	r.With(write).Post("/", h.storeNetwork)
 
 	r.Route("/network/{networkID}", func(r chi.Router) {
-		r.Get("/", h.getNetworkByID)
-		r.Put("/", h.updateNetwork)
-		r.Delete("/", h.deleteNetwork)
+		r.With(read).Get("/", h.getNetworkByID)
+		r.With(write).Put("/", h.updateNetwork)
+		r.With(write).Delete("/", h.deleteNetwork)
 
-		r.Post("/cmd", h.sendCmd)
-		r.Post("/channel", h.storeChannel)
-		r.With(requireAccess(domain.APIResourceIRC, domain.APIAccessWrite)).Post("/restart", h.restartNetwork)
+		r.With(write).Post("/cmd", h.sendCmd)
+		r.With(write).Post("/channel", h.storeChannel)
+		r.With(invoke).Post("/restart", h.restartNetwork)
 
-		r.Get("/channel/{channel}/history", h.getMessageHistory)
+		r.With(read).Get("/channel/{channel}/history", h.getMessageHistory)
 
-		r.Post("/channel/{channel}/announce/process", h.announceProcess)
+		r.With(write).Post("/channel/{channel}/announce/process", h.announceProcess)
 	})
 
-	r.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
+	r.With(read).HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
 		// the SSE server also carries the logs and notifications streams, which the irc scope does not cover
 		if r.URL.Query().Get("stream") != irc.EventStreamKey {
 			h.encoder.BadRequestErr(w, errors.New("unsupported stream: '%s'", r.URL.Query().Get("stream")))

@@ -142,29 +142,8 @@ func (s *Server) IsAuthenticated(next http.Handler) http.Handler {
 
 type apiKeyContextKey struct{}
 
-// requireScope limits API key requests to keys with access to resource, deriving the access level from the
-// request method. Session requests are not scoped.
-func requireScope(resource domain.APIResource) func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			access := domain.APIAccessWrite
-			switch r.Method {
-			case http.MethodGet, http.MethodHead, http.MethodOptions:
-				access = domain.APIAccessRead
-			}
-
-			if apiKey, ok := r.Context().Value(apiKeyContextKey{}).(*domain.APIKey); ok && !apiKey.HasAccess(resource, access) {
-				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
-				return
-			}
-
-			next.ServeHTTP(w, r)
-		})
-	}
-}
-
-// requireAccess is requireScope with a fixed access level, for routes whose method does not match what they do.
-func requireAccess(resource domain.APIResource, access domain.APIAccess) func(next http.Handler) http.Handler {
+// requireScope limits API key requests to keys with access to resource. Session requests are not scoped.
+func requireScope(resource domain.APIResource, access domain.APIAccess) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if apiKey, ok := r.Context().Value(apiKeyContextKey{}).(*domain.APIKey); ok && !apiKey.HasAccess(resource, access) {

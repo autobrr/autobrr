@@ -37,7 +37,9 @@ func newAPIKeyHandler(encoder encoder, service apikeyService, config *domain.Con
 }
 
 func (h apikeyHandler) Routes(r chi.Router) {
+	r.Use(requireSession)
 	r.Use(h.rejectIfAuthDisabled)
+
 	r.Get("/", h.list)
 	r.Post("/", h.store)
 

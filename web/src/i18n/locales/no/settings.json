@@ -548,10 +548,12 @@
     "accessLabel": "Tilgang:",
     "access": {
       "read": "Kun lesing",
+      "invoke": "Kun utløse",
       "write": "Lesing og skriving"
     },
     "accessShort": {
       "read": "Les",
+      "invoke": "Utløs",
       "write": "Skriv"
     },
     "resources": {
@@ -581,11 +583,7 @@
       },
       "lists": {
         "label": "Lister",
-        "description": "Lister og oppdatering av lister."
-      },
-      "webhooks": {
-        "label": "Webhooks",
-        "description": "Utløs listeoppdateringer fra webhooks, f.eks. fra Sonarr eller Radarr."
+        "description": "Lister, oppdatering av lister og webhookene for det, f.eks. fra Sonarr eller Radarr."
       },
       "notifications": {
         "label": "Varsler",

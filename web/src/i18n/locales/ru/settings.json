@@ -548,10 +548,12 @@
       "accessLabel": "Доступ:",
       "access": {
         "read": "Только чтение",
+        "invoke": "Только запуск",
         "write": "Чтение и запись"
       },
       "accessShort": {
         "read": "Чтение",
+        "invoke": "Запуск",
         "write": "Запись"
       },
       "resources": {
@@ -581,11 +583,7 @@
         },
         "lists": {
           "label": "Списки",
-          "description": "Списки и их обновление."
-        },
-        "webhooks": {
-          "label": "Вебхуки",
-          "description": "Запуск обновления списков через вебхуки, например из Sonarr или Radarr."
+          "description": "Списки, их обновление и вебхуки для него, например из Sonarr или Radarr."
         },
         "notifications": {
           "label": "Уведомления",

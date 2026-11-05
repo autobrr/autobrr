@@ -11,7 +11,7 @@ interface APIKey {
   created_at: Date;
 }
 
-type APIKeyAccess = "read" | "write";
+type APIKeyAccess = "read" | "invoke" | "write";
 
 interface APIKeyResource {
   name: string;

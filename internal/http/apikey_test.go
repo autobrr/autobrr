@@ -13,9 +13,11 @@ import (
 	"github.com/autobrr/autobrr/internal/config"
 	"github.com/autobrr/autobrr/internal/domain"
 
+	"github.com/alexedwards/scs/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type apikeyServiceStub struct {
@@ -61,19 +63,36 @@ func (s *apikeyServiceStub) Update(_ context.Context, key *domain.APIKey) error 
 	return nil
 }
 
+type oidcServiceStub struct {
+	oidcService
+}
+
+func (oidcServiceStub) IsEnabled() bool { return false }
+
 func newScopedTestServer() *Server {
 	service := &apikeyServiceStub{tokens: map[string]*domain.APIKey{
-		"integrations":       {Scopes: []string{"filters:write", "lists:write", "webhooks:write"}},
+		"no-access":          {Scopes: []string{"mock:read"}},
+		"integrations":       {Scopes: []string{"filters:write", "lists:invoke"}},
 		"config-read":        {Scopes: []string{"config:read"}},
+		"feeds-invoke":       {Scopes: []string{"feeds:invoke"}},
 		"filters-read":       {Scopes: []string{"filters:read"}},
 		"filters-write":      {Scopes: []string{"filters:write"}},
 		"irc-read":           {Scopes: []string{"irc:read"}},
+		"irc-invoke":         {Scopes: []string{"irc:invoke"}},
+		"lists-read":         {Scopes: []string{"lists:read"}},
+		"lists-invoke":       {Scopes: []string{"lists:invoke"}},
+		"lists-write":        {Scopes: []string{"lists:write"}},
 		"logs-read":          {Scopes: []string{"logs:read"}},
 		"notifications-read": {Scopes: []string{"notifications:read"}},
-		"webhooks-write":     {Scopes: []string{"webhooks:write"}},
+		"releases-invoke":    {Scopes: []string{"releases:invoke"}},
 	}}
 
-	return &Server{apiService: service, config: &config.AppConfig{Config: &domain.Config{}}}
+	return &Server{
+		apiService:     service,
+		oidcService:    oidcServiceStub{},
+		sessionManager: scs.New(),
+		config:         &config.AppConfig{Config: &domain.Config{}},
+	}
 }
 
 func serveWithToken(router http.Handler, method, target, token, body string) *httptest.ResponseRecorder {
@@ -88,6 +107,103 @@ func serveWithToken(router http.Handler, method, target, token, body string) *ht
 	return recorder
 }
 
+// apiRouteHandlers returns every route of the real API router keyed by "METHOD /pattern", wrapped in the
+// middlewares it is served with.
+func apiRouteHandlers(t *testing.T, s *Server) map[string]http.Handler {
+	t.Helper()
+
+	handlers := map[string]http.Handler{}
+	err := chi.Walk(s.apiRoutes(), func(method, route string, handler http.Handler, middlewares ...func(http.Handler) http.Handler) error {
+		handlers[method+" "+route] = chi.Chain(middlewares...).Handler(handler)
+		return nil
+	})
+	require.NoError(t, err)
+
+	return handlers
+}
+
+// routeAllows reports whether a request with token gets past the route's scope check. The test server has no
+// services, so a handler that runs panics or fails on its input; only the scope checks answer 403.
+func routeAllows(handler http.Handler, method, token string) (allowed bool) {
+	defer func() {
+		if recover() != nil {
+			allowed = true
+		}
+	}()
+
+	return serveWithToken(handler, method, "/?stream=logs", token, "").Code != http.StatusForbidden
+}
+
+func TestAPIRoutesRequireScope(t *testing.T) {
+	handlers := apiRouteHandlers(t, newScopedTestServer())
+
+	checked := 0
+	for route, handler := range handlers {
+		method, pattern, _ := strings.Cut(route, " ")
+		if strings.HasPrefix(pattern, "/auth/") || strings.HasPrefix(pattern, "/healthz/") {
+			continue
+		}
+
+		checked++
+		assert.False(t, routeAllows(handler, method, "no-access"), "%s has no scope check", route)
+	}
+
+	assert.Greater(t, checked, 100)
+}
+
+func TestAPIRouteAccess(t *testing.T) {
+	handlers := apiRouteHandlers(t, newScopedTestServer())
+
+	tests := []struct {
+		route string
+		token string
+		want  bool
+	}{
+		{route: "GET /lists/", token: "lists-read", want: true},
+		{route: "GET /lists/", token: "lists-invoke", want: false},
+		{route: "POST /lists/refresh", token: "lists-invoke", want: true},
+		{route: "POST /lists/refresh", token: "lists-read", want: false},
+		{route: "POST /lists/refresh", token: "lists-write", want: true},
+		{route: "POST /lists/{listID}/refresh", token: "lists-invoke", want: true},
+		{route: "PUT /lists/{listID}/", token: "lists-invoke", want: false},
+		{route: "PUT /lists/{listID}/", token: "lists-write", want: true},
+		{route: "GET /webhook/lists/trigger", token: "lists-invoke", want: true},
+		{route: "POST /webhook/lists/trigger/arr", token: "lists-invoke", want: true},
+		{route: "POST /webhook/lists/trigger/{listID}", token: "lists-invoke", want: true},
+		{route: "POST /webhook/lists/trigger", token: "filters-write", want: false},
+		{route: "POST /feeds/{feedID}/forcerun", token: "feeds-invoke", want: true},
+		{route: "GET /feeds/", token: "feeds-invoke", want: false},
+		{route: "POST /feeds/test", token: "feeds-invoke", want: false},
+		{route: "POST /release/{releaseID}/actions/{actionStatusID}/retry", token: "releases-invoke", want: true},
+		{route: "POST /release/cleanup-jobs/{jobID}/run", token: "releases-invoke", want: true},
+		{route: "DELETE /release/", token: "releases-invoke", want: false},
+		{route: "POST /irc/network/{networkID}/restart", token: "irc-invoke", want: true},
+		{route: "POST /irc/network/{networkID}/cmd", token: "irc-invoke", want: false},
+		{route: "GET /filters/", token: "filters-read", want: true},
+		{route: "POST /filters/", token: "filters-read", want: false},
+		{route: "POST /filters/{filterID}/duplicate", token: "filters-read", want: false},
+		{route: "POST /filters/{filterID}/duplicate", token: "filters-write", want: true},
+		{route: "PUT /actions/{actionID}/", token: "filters-write", want: true},
+		{route: "PUT /filters/{filterID}/", token: "integrations", want: true},
+		{route: "POST /lists/refresh", token: "integrations", want: true},
+		{route: "GET /config/", token: "config-read", want: true},
+		{route: "PATCH /config/", token: "config-read", want: false},
+		{route: "GET /keys/", token: "integrations", want: false},
+		{route: "GET /alerts/", token: "integrations", want: false},
+		{route: "GET /events", token: "logs-read", want: true},
+		{route: "GET /events", token: "notifications-read", want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.route+" "+tt.token, func(t *testing.T) {
+			handler, ok := handlers[tt.route]
+			require.True(t, ok, "no route %s", tt.route)
+
+			method, _, _ := strings.Cut(tt.route, " ")
+			assert.Equal(t, tt.want, routeAllows(handler, method, tt.token))
+		})
+	}
+}
+
 func TestAPIKeyScopeMiddleware(t *testing.T) {
 	s := newScopedTestServer()
 
@@ -99,54 +215,40 @@ func TestAPIKeyScopeMiddleware(t *testing.T) {
 	router.Group(func(r chi.Router) {
 		r.Use(s.IsAuthenticated)
 
-		r.With(requireScope(domain.APIResourceFilters)).Route("/filters", func(r chi.Router) {
-			r.Get("/", ok)
-			r.Post("/", ok)
-			r.With(requireAccess(domain.APIResourceFilters, domain.APIAccessWrite)).Get("/duplicate", ok)
-		})
-		r.With(requireAccess(domain.APIResourceWebhooks, domain.APIAccessWrite)).Route("/webhook", func(r chi.Router) {
-			r.Get("/trigger", ok)
-		})
-		r.With(requireSession).Route("/keys", func(r chi.Router) {
-			r.Get("/", ok)
-		})
+		r.With(requireScope(domain.APIResourceFilters, domain.APIAccessRead)).Get("/filters", ok)
 		r.With(requireStreamAccess).Get("/events", ok)
 	})
 
 	tests := []struct {
 		name   string
-		method string
 		target string
 		token  string
 		want   int
 	}{
-		{name: "invalid_key", method: http.MethodGet, target: "/filters/", token: "nope", want: http.StatusUnauthorized},
-		{name: "integrations_read", method: http.MethodGet, target: "/filters/", token: "integrations", want: http.StatusOK},
-		{name: "integrations_keys", method: http.MethodGet, target: "/keys/", token: "integrations", want: http.StatusForbidden},
-		{name: "read_get", method: http.MethodGet, target: "/filters/", token: "filters-read", want: http.StatusOK},
-		{name: "read_post", method: http.MethodPost, target: "/filters/", token: "filters-read", want: http.StatusForbidden},
-		{name: "read_mutating_get", method: http.MethodGet, target: "/filters/duplicate", token: "filters-read", want: http.StatusForbidden},
-		{name: "write_post", method: http.MethodPost, target: "/filters/", token: "filters-write", want: http.StatusOK},
-		{name: "write_mutating_get", method: http.MethodGet, target: "/filters/duplicate", token: "filters-write", want: http.StatusOK},
-		{name: "scoped_keys", method: http.MethodGet, target: "/keys/", token: "filters-write", want: http.StatusForbidden},
-		{name: "webhook_trigger", method: http.MethodGet, target: "/webhook/trigger", token: "webhooks-write", want: http.StatusOK},
-		{name: "webhook_other_scope", method: http.MethodGet, target: "/webhook/trigger", token: "filters-write", want: http.StatusForbidden},
-		{name: "other_resource", method: http.MethodGet, target: "/filters/", token: "webhooks-write", want: http.StatusForbidden},
-		{name: "query_param", method: http.MethodGet, target: "/filters/?apikey=filters-read", want: http.StatusOK},
-		{name: "events_logs", method: http.MethodGet, target: "/events?stream=logs", token: "logs-read", want: http.StatusOK},
-		{name: "events_logs_cannot_read_notifications", method: http.MethodGet, target: "/events?stream=notifications", token: "logs-read", want: http.StatusForbidden},
-		{name: "events_notifications", method: http.MethodGet, target: "/events?stream=notifications", token: "notifications-read", want: http.StatusOK},
-		{name: "events_notifications_cannot_read_logs", method: http.MethodGet, target: "/events?stream=logs", token: "notifications-read", want: http.StatusForbidden},
-		{name: "events_irc", method: http.MethodGet, target: "/events?stream=irc", token: "irc-read", want: http.StatusOK},
-		{name: "events_unknown_stream", method: http.MethodGet, target: "/events?stream=mock", token: "logs-read", want: http.StatusBadRequest},
+		{name: "invalid_key", target: "/filters", token: "nope", want: http.StatusUnauthorized},
+		{name: "query_param", target: "/filters?apikey=filters-read", want: http.StatusOK},
+		{name: "events_logs", target: "/events?stream=logs", token: "logs-read", want: http.StatusOK},
+		{name: "events_logs_cannot_read_notifications", target: "/events?stream=notifications", token: "logs-read", want: http.StatusForbidden},
+		{name: "events_notifications", target: "/events?stream=notifications", token: "notifications-read", want: http.StatusOK},
+		{name: "events_notifications_cannot_read_logs", target: "/events?stream=logs", token: "notifications-read", want: http.StatusForbidden},
+		{name: "events_irc", target: "/events?stream=irc", token: "irc-read", want: http.StatusOK},
+		{name: "events_unknown_stream", target: "/events?stream=mock", token: "logs-read", want: http.StatusBadRequest},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			recorder := serveWithToken(router, tt.method, tt.target, tt.token, "")
+			recorder := serveWithToken(router, http.MethodGet, tt.target, tt.token, "")
 
 			assert.Equal(t, tt.want, recorder.Code)
 		})
 	}
+}
+
+func TestRequireScopeAllowsSessions(t *testing.T) {
+	handler := requireScope(domain.APIResourceFilters, domain.APIAccessWrite)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	assert.Equal(t, http.StatusOK, serveWithToken(handler, http.MethodPost, "/", "", "").Code)
 }
 
 func TestIrcEventsOnlyServeIrcStream(t *testing.T) {
@@ -155,7 +257,7 @@ func TestIrcEventsOnlyServeIrcStream(t *testing.T) {
 	router := chi.NewRouter()
 	router.Group(func(r chi.Router) {
 		r.Use(s.IsAuthenticated)
-		r.With(requireScope(domain.APIResourceIRC)).Route("/irc", newIrcHandler(encoder{}, nil, nil).Routes)
+		r.Route("/irc", newIrcHandler(encoder{}, nil, nil).Routes)
 	})
 
 	for _, stream := range []string{"logs", "notifications", ""} {
@@ -165,21 +267,6 @@ func TestIrcEventsOnlyServeIrcStream(t *testing.T) {
 			assert.Equal(t, http.StatusBadRequest, recorder.Code)
 		})
 	}
-}
-
-func TestConfigWriteRequiresSession(t *testing.T) {
-	s := newScopedTestServer()
-
-	router := chi.NewRouter()
-	router.Group(func(r chi.Router) {
-		r.Use(s.IsAuthenticated)
-		r.With(requireScope(domain.APIResourceConfig)).Route("/config", newConfigHandler(encoder{}, buildInfo{}, s.config).Routes)
-	})
-
-	recorder := serveWithToken(router, http.MethodPatch, "/config/", "config-read", `{"log_level":"DEBUG"}`)
-
-	assert.Equal(t, http.StatusForbidden, recorder.Code)
-	assert.Empty(t, s.config.Config.LogLevel)
 }
 
 func newAPIKeyTestRouter(cfg *domain.Config) chi.Router {
@@ -253,7 +340,7 @@ func TestAPIKeyHandlerUpdate(t *testing.T) {
 		body   string
 		want   int
 	}{
-		{name: "ok", target: "/1", body: `{"id":9,"name":"sonarr","key":"ignored","scopes":["webhooks:write"]}`, want: http.StatusOK},
+		{name: "ok", target: "/1", body: `{"id":9,"name":"sonarr","key":"ignored","scopes":["lists:invoke"]}`, want: http.StatusOK},
 		{name: "invalid_scopes", target: "/1", body: `{"name":"sonarr","scopes":["logs:write"]}`, want: http.StatusBadRequest},
 		{name: "not_found", target: "/2", body: `{"name":"sonarr","scopes":["filters:write"]}`, want: http.StatusNotFound},
 		{name: "invalid_id", target: "/mock-key", body: `{"name":"sonarr","scopes":["filters:write"]}`, want: http.StatusBadRequest},
@@ -270,7 +357,7 @@ func TestAPIKeyHandlerUpdate(t *testing.T) {
 
 	assert.Equal(t, 1, service.updated.ID)
 	assert.Empty(t, service.updated.Key)
-	assert.Equal(t, []string{"webhooks:write"}, service.updated.Scopes)
+	assert.Equal(t, []string{"lists:invoke"}, service.updated.Scopes)
 }
 
 func TestAPIKeyHandler_AllowedWhenAuthEnabled(t *testing.T) {

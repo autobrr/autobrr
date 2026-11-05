@@ -46,7 +46,6 @@ const (
 	APIResourceProxies       APIResource = "proxies"
 	APIResourceReleases      APIResource = "releases"
 	APIResourceUpdates       APIResource = "updates"
-	APIResourceWebhooks      APIResource = "webhooks"
 )
 
 // String returns the resource as used in scopes.
@@ -58,8 +57,11 @@ func (r APIResource) String() string {
 type APIAccess string
 
 const (
-	APIAccessRead  APIAccess = "read"
-	APIAccessWrite APIAccess = "write"
+	APIAccessRead APIAccess = "read"
+	// APIAccessInvoke triggers work that is already configured, like a list refresh or a feed run, without
+	// reading or changing that config.
+	APIAccessInvoke APIAccess = "invoke"
+	APIAccessWrite  APIAccess = "write"
 )
 
 // String returns the access level as used in scopes.
@@ -70,17 +72,16 @@ func (a APIAccess) String() string {
 var apiResourceAccess = map[APIResource][]APIAccess{
 	APIResourceConfig:        {APIAccessRead},
 	APIResourceDownloaders:   {APIAccessRead, APIAccessWrite},
-	APIResourceFeeds:         {APIAccessRead, APIAccessWrite},
+	APIResourceFeeds:         {APIAccessRead, APIAccessInvoke, APIAccessWrite},
 	APIResourceFilters:       {APIAccessRead, APIAccessWrite},
 	APIResourceIndexers:      {APIAccessRead, APIAccessWrite},
-	APIResourceIRC:           {APIAccessRead, APIAccessWrite},
-	APIResourceLists:         {APIAccessRead, APIAccessWrite},
+	APIResourceIRC:           {APIAccessRead, APIAccessInvoke, APIAccessWrite},
+	APIResourceLists:         {APIAccessRead, APIAccessInvoke, APIAccessWrite},
 	APIResourceLogs:          {APIAccessRead},
 	APIResourceNotifications: {APIAccessRead, APIAccessWrite},
 	APIResourceProxies:       {APIAccessRead, APIAccessWrite},
-	APIResourceReleases:      {APIAccessRead, APIAccessWrite},
+	APIResourceReleases:      {APIAccessRead, APIAccessInvoke, APIAccessWrite},
 	APIResourceUpdates:       {APIAccessRead},
-	APIResourceWebhooks:      {APIAccessWrite},
 }
 
 // Validate requires at least one resource:access scope and at most one per resource.
@@ -112,7 +113,7 @@ func (k *APIKey) Validate() error {
 	return nil
 }
 
-// HasAccess reports whether the key grants access to resource. Write access implies read access.
+// HasAccess reports whether the key grants access to resource. Write access implies read and invoke access.
 func (k *APIKey) HasAccess(resource APIResource, access APIAccess) bool {
 	for _, scope := range k.Scopes {
 		r, a, ok := parseAPIScope(scope)

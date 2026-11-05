@@ -256,7 +256,7 @@ func validateAPIKeysHashed(db *sql.DB, t *testing.T) {
 	require.NoError(t, rows.Err())
 
 	require.Len(t, got, 3)
-	integrationScopes := []string{"filters:write", "lists:write", "webhooks:write"}
+	integrationScopes := []string{"filters:write", "lists:invoke"}
 	assert.Equal(t, row{id: 1, name: "sonarr", keyHash: domain.HashAPIKey("plain-key-one"), scopes: integrationScopes}, got[0])
 	assert.Equal(t, row{id: 2, name: "radarr", keyHash: domain.HashAPIKey("plain-key-two"), scopes: integrationScopes}, got[1])
 	assert.Equal(t, row{id: 3, name: "lidarr", keyHash: domain.HashAPIKey("plain-key-three"), scopes: integrationScopes}, got[2])

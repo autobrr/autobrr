@@ -1116,13 +1116,12 @@ export const ListsAniListOptions: OptionBasic[] = [
 
 export const API_KEY_RESOURCES: APIKeyResource[] = [
   { name: "filters", access: ["read", "write"] },
-  { name: "releases", access: ["read", "write"] },
+  { name: "releases", access: ["read", "invoke", "write"] },
   { name: "indexers", access: ["read", "write"] },
-  { name: "irc", access: ["read", "write"] },
-  { name: "feeds", access: ["read", "write"] },
+  { name: "irc", access: ["read", "invoke", "write"] },
+  { name: "feeds", access: ["read", "invoke", "write"] },
   { name: "downloaders", access: ["read", "write"] },
-  { name: "lists", access: ["read", "write"] },
-  { name: "webhooks", access: ["write"] },
+  { name: "lists", access: ["read", "invoke", "write"] },
   { name: "notifications", access: ["read", "write"] },
   { name: "proxies", access: ["read", "write"] },
   { name: "config", access: ["read"] },

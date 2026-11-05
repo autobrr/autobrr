@@ -43,20 +43,23 @@ func newIndexerHandler(encoder encoder, service indexerService, ircSvc ircServic
 }
 
 func (h indexerHandler) Routes(r chi.Router) {
-	r.Get("/schema", h.getSchema)
-	r.Post("/", h.store)
-	r.Get("/", h.getAll)
-	r.Get("/options", h.list)
-	r.Get("/deprecations", h.deprecations)
-	r.Delete("/deprecations/{indexerID}", h.deleteArchived)
+	read := requireScope(domain.APIResourceIndexers, domain.APIAccessRead)
+	write := requireScope(domain.APIResourceIndexers, domain.APIAccessWrite)
+
+	r.With(read).Get("/schema", h.getSchema)
+	r.With(write).Post("/", h.store)
+	r.With(read).Get("/", h.getAll)
+	r.With(read).Get("/options", h.list)
+	r.With(read).Get("/deprecations", h.deprecations)
+	r.With(write).Delete("/deprecations/{indexerID}", h.deleteArchived)
 
 	r.Route("/{indexerID}", func(r chi.Router) {
-		r.Get("/", h.findByID)
-		r.Put("/", h.update)
-		r.Delete("/", h.delete)
-		r.Post("/api/test", h.testApi)
+		r.With(read).Get("/", h.findByID)
+		r.With(write).Put("/", h.update)
+		r.With(write).Delete("/", h.delete)
+		r.With(write).Post("/api/test", h.testApi)
 
-		r.Patch("/enabled", h.toggleEnabled)
+		r.With(write).Patch("/enabled", h.toggleEnabled)
 	})
 }
 

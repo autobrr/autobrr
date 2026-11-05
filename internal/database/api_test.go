@@ -57,7 +57,7 @@ func TestAPIRepo_Update(t *testing.T) {
 			key := &domain.APIKey{Name: "TestKey", KeyHash: domain.HashAPIKey("123"), Scopes: []string{"filters:write"}}
 			require.NoError(t, repo.Store(ctx, key))
 
-			update := &domain.APIKey{ID: key.ID, Name: "Renamed", Scopes: []string{"filters:read", "webhooks:write"}}
+			update := &domain.APIKey{ID: key.ID, Name: "Renamed", Scopes: []string{"filters:read", "lists:invoke"}}
 			err := repo.Update(ctx, update)
 			require.NoError(t, err)
 			assert.Equal(t, key.KeyHash, update.KeyHash)
@@ -66,7 +66,7 @@ func TestAPIRepo_Update(t *testing.T) {
 			apiKey, err := repo.FindByID(ctx, key.ID)
 			require.NoError(t, err)
 			assert.Equal(t, "Renamed", apiKey.Name)
-			assert.Equal(t, []string{"filters:read", "webhooks:write"}, apiKey.Scopes)
+			assert.Equal(t, []string{"filters:read", "lists:invoke"}, apiKey.Scopes)
 
 			_ = repo.Delete(ctx, key.ID)
 		})

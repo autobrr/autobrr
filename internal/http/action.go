@@ -35,13 +35,16 @@ func newActionHandler(encoder encoder, service actionService) *actionHandler {
 }
 
 func (h actionHandler) Routes(r chi.Router) {
-	r.Get("/", h.getActions)
-	r.Post("/", h.storeAction)
+	read := requireScope(domain.APIResourceFilters, domain.APIAccessRead)
+	write := requireScope(domain.APIResourceFilters, domain.APIAccessWrite)
+
+	r.With(read).Get("/", h.getActions)
+	r.With(write).Post("/", h.storeAction)
 
 	r.Route("/{actionID}", func(r chi.Router) {
-		r.Delete("/", h.deleteAction)
-		r.Put("/", h.updateAction)
-		r.Patch("/toggleEnabled", h.toggleActionEnabled)
+		r.With(write).Delete("/", h.deleteAction)
+		r.With(write).Put("/", h.updateAction)
+		r.With(write).Patch("/toggleEnabled", h.toggleActionEnabled)
 	})
 }
 

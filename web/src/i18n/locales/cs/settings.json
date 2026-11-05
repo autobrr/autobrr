@@ -548,10 +548,12 @@
       "accessLabel": "Přístup:",
       "access": {
         "read": "Pouze čtení",
+        "invoke": "Pouze spouštění",
         "write": "Čtení a zápis"
       },
       "accessShort": {
         "read": "Čtení",
+        "invoke": "Spouštění",
         "write": "Zápis"
       },
       "resources": {
@@ -581,11 +583,7 @@
         },
         "lists": {
           "label": "Seznamy",
-          "description": "Seznamy a jejich obnovování."
-        },
-        "webhooks": {
-          "label": "Webhooky",
-          "description": "Spouštění obnovy seznamů přes webhooky, např. ze Sonarru nebo Radarru."
+          "description": "Seznamy, jejich obnovování a webhooky pro obnovu, např. ze Sonarru nebo Radarru."
         },
         "notifications": {
           "label": "Oznámení",

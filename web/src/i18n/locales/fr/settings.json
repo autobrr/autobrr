@@ -548,10 +548,12 @@
       "accessLabel": "Accès :",
       "access": {
         "read": "Lecture seule",
+        "invoke": "Déclenchement uniquement",
         "write": "Lecture et écriture"
       },
       "accessShort": {
         "read": "Lecture",
+        "invoke": "Déclencher",
         "write": "Écriture"
       },
       "resources": {
@@ -581,11 +583,7 @@
         },
         "lists": {
           "label": "Listes",
-          "description": "Listes et actualisation des listes."
-        },
-        "webhooks": {
-          "label": "Webhooks",
-          "description": "Déclencher l'actualisation des listes via webhook, par ex. depuis Sonarr ou Radarr."
+          "description": "Listes, actualisation des listes et ses webhooks, par ex. depuis Sonarr ou Radarr."
         },
         "notifications": {
           "label": "Notifications",

@@ -550,10 +550,12 @@
     "accessLabel": "Access:",
     "access": {
       "read": "Read-only",
+      "invoke": "Trigger only",
       "write": "Read and write"
     },
     "accessShort": {
       "read": "Read",
+      "invoke": "Trigger",
       "write": "Write"
     },
     "resources": {
@@ -583,11 +585,7 @@
       },
       "lists": {
         "label": "Lists",
-        "description": "Lists and list refreshes."
-      },
-      "webhooks": {
-        "label": "Webhooks",
-        "description": "Trigger list refreshes from webhooks, e.g. from Sonarr or Radarr."
+        "description": "Lists, list refreshes and the refresh webhooks, e.g. from Sonarr or Radarr."
       },
       "notifications": {
         "label": "Notifications",

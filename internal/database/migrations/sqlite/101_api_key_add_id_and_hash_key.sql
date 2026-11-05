@@ -11,11 +11,11 @@ CREATE TABLE api_key
 );
 
 -- scopes were never enforced before, so whatever a key had stored, it had full access; give every key the access
--- the common integrations (filter updates, list edits and list refresh webhooks) rely on
+-- the common integrations (filter updates and list refreshes) rely on
 INSERT INTO api_key (name, key_hash, scopes, created_at)
 SELECT name,
        sha256_hex(key),
-       '{"filters:write","lists:write","webhooks:write"}',
+       '{"filters:write","lists:invoke"}',
        created_at
 FROM api_key_old
 ORDER BY created_at;
