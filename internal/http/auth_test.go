@@ -355,6 +355,40 @@ func TestAuthHandlerLogin(t *testing.T) {
 	assert.NotEmpty(t, resp.Header.Get("Set-Cookie"), "handler returned no cookie")
 }
 
+func TestAuthHandlerLoginPerMode(t *testing.T) {
+	tests := []struct {
+		name   string
+		config domain.Config
+		want   int
+	}{
+		{name: "builtin", config: domain.Config{}, want: http.StatusNoContent},
+		{name: "oidc with password fallback", config: domain.Config{OIDCEnabled: true}, want: http.StatusNoContent},
+		{name: "oidc only", config: domain.Config{OIDCEnabled: true, OIDCDisableBuiltInLogin: true}, want: http.StatusForbidden},
+		{name: "disabled", config: domain.Config{AuthDisabled: true, AuthDisabledAcknowledgement: domain.AuthDisabledAcknowledgementValue}, want: http.StatusForbidden},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			service := authServiceMock{users: map[string]*domain.User{"test": {Username: "test", Password: "pass"}}}
+			server := &Server{
+				log:            zerolog.Nop(),
+				config:         &config.AppConfig{Config: &tt.config},
+				sessionManager: scs.New(),
+			}
+
+			handler := newAuthHandler(encoder{}, zerolog.Nop(), server, &tt.config, server.sessionManager, service, &oidcAuthServiceMock{})
+			router := setupServer(server)
+			router.Route("/auth", handler.Routes)
+
+			rec := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodPost, "/auth/login", strings.NewReader(`{"username":"test","password":"pass"}`))
+			req.Header.Set("Content-Type", "application/json")
+			router.ServeHTTP(rec, req)
+
+			assert.Equal(t, tt.want, rec.Code)
+		})
+	}
+}
+
 func TestAuthHandlerValidateOK(t *testing.T) {
 	t.Parallel()
 	logger := zerolog.Nop()

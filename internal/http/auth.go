@@ -121,8 +121,8 @@ func (h *authHandler) bufferLoginBody(next http.Handler) http.Handler {
 }
 
 func (h *authHandler) login(w http.ResponseWriter, r *http.Request) {
-	if h.config.AuthMode() == domain.AuthModeDisabled {
-		h.encoder.StatusError(w, http.StatusForbidden, errors.New("authentication is disabled"))
+	if !h.config.AuthCapabilities().PasswordLogin {
+		h.encoder.StatusError(w, http.StatusForbidden, errors.New("password login is unavailable in %s authentication mode", h.config.AuthMode()))
 		return
 	}
 

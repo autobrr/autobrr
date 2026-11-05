@@ -125,7 +125,7 @@ checkForUpdates = true
 # OIDC Redirect URL (e.g. http://localhost:7474/api/auth/oidc/callback)
 #oidcRedirectUrl = ""
 #
-# Disable Built In Login Form (only works when using external auth)
+# Disable password login, both the login form and POST /api/auth/login (requires oidcEnabled)
 #oidcDisableBuiltInLogin = false
 #
 # Redirect unauthenticated visitors to the OIDC provider (requires oidcEnabled)
