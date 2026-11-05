@@ -292,19 +292,22 @@ export const OnboardRoute = createRoute({
 
 type ValidateResponse = Awaited<ReturnType<typeof APIClient.auth.validate>>;
 
-const toAuthInfo = (validation: ValidateResponse, config: Config, issuerUrl?: string): AuthInfo => ({
+const toAuthInfo = (validation: ValidateResponse, config?: Config, issuerUrl?: string): AuthInfo => ({
   isLoggedIn: true,
   username: validation.username || "unknown",
   authMethod: validation.auth_method,
-  authMode: config.auth_mode,
-  capabilities: config.auth_capabilities,
+  authMode: config?.auth_mode,
+  capabilities: config?.auth_capabilities,
   profilePicture: validation.profile_picture,
   issuerUrl
 });
 
 const resolveAuth = async (client: QueryClient, config?: Config): Promise<AuthInfo> => {
   const validation = await APIClient.auth.validate();
-  const serverConfig = config ?? await client.query(ConfigQueryOptions());
+
+  // A config error must not log out a valid session. Without a mode, the next
+  // navigation's reconciliation fetches the config again.
+  const serverConfig = config ?? await client.query(ConfigQueryOptions()).catch(() => undefined);
 
   let issuerUrl;
   if (validation.auth_method === "oidc") {
@@ -334,7 +337,7 @@ export const LoginRoute = createRoute({
     // Modes without a login method have nothing to log in to, so bookmarks and stale
     // tabs on /login continue into the app instead of a form that always fails.
     const validation = await APIClient.auth.validate().catch(() => undefined);
-    const config = validation && await context.queryClient.query(ConfigQueryOptions()).catch(() => undefined);
+    const config = validation && await context.queryClient.query({ ...ConfigQueryOptions(), staleTime: 0 }).catch(() => undefined);
     if (validation && config && !config.auth_capabilities.password_login && !config.auth_capabilities.oidc_login) {
       AuthContext.set(toAuthInfo(validation, config));
 

@@ -385,6 +385,11 @@ func TestAuthHandlerLoginPerMode(t *testing.T) {
 			router.ServeHTTP(rec, req)
 
 			assert.Equal(t, tt.want, rec.Code)
+			if tt.want == http.StatusForbidden {
+				assert.Empty(t, rec.Header().Values("Set-Cookie"))
+			} else {
+				assert.NotEmpty(t, rec.Header().Values("Set-Cookie"))
+			}
 		})
 	}
 }

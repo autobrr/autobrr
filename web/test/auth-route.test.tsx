@@ -44,7 +44,7 @@ const config = (auth_mode: AuthMode, auth_capabilities = capabilities[auth_mode]
 });
 
 const beforeLoad = async () => {
-  const opts = { context: { queryClient }, location: { href: "/settings" } };
+  const opts = { context: { queryClient }, location: { href: "/settings", publicHref: "/settings" } };
 
   try {
     await AuthRoute.options.beforeLoad?.(opts as never);
@@ -116,7 +116,24 @@ test("a mode switch without a surviving session goes to login", async () => {
   const thrown = await beforeLoad();
 
   expect(isRedirect(thrown)).toBe(true);
+  if (isRedirect(thrown)) {
+    expect(thrown.options.to).toBe("/login");
+    expect(thrown.options.search).toEqual({ redirect: "/settings" });
+  }
   expect(AuthContext.get().isLoggedIn).toBe(false);
+});
+
+test("a config error at login keeps the valid session", async () => {
+  vi.spyOn(APIClient.auth, "validate").mockResolvedValue({ username: "ze0s", auth_method: "password" });
+  const getConfig = vi.spyOn(APIClient.config, "get").mockRejectedValueOnce(new Error("Service Unavailable"));
+
+  expect(await beforeLoad()).toBeUndefined();
+  expect(AuthContext.get()).toMatchObject({ isLoggedIn: true, username: "ze0s", authMethod: "password", authMode: undefined });
+
+  getConfig.mockResolvedValue(config("builtin"));
+
+  expect(await beforeLoad()).toBeUndefined();
+  expect(AuthContext.get()).toMatchObject({ authMode: "builtin", capabilities: capabilities.builtin });
 });
 
 test("capability changes within a mode update the context without validating", async () => {

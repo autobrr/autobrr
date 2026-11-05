@@ -8,6 +8,7 @@ import { QueryClient } from "@tanstack/react-query";
 import { afterEach, expect, test, vi } from "vitest";
 
 import { APIClient } from "@api/APIClient";
+import { SettingsKeys } from "@api/query_keys";
 import { LoginRoute } from "@app/routes";
 import { AuthContext } from "@utils/Context";
 
@@ -102,6 +103,25 @@ test("auth enabled without a session renders the login form", async () => {
   expect(thrown).toBeUndefined();
   expect(navigate).not.toHaveBeenCalled();
   expect(AuthContext.get().isLoggedIn).toBe(false);
+});
+
+test("the login redirect does not trust a cached config from before a restart", async () => {
+  vi.spyOn(APIClient.auth, "validate").mockResolvedValue({ username: "admin", auth_method: "disabled" });
+  vi.spyOn(APIClient.config, "get").mockResolvedValue(disabledConfig);
+
+  // The app's client keeps queries fresh for 30s, so a bare client would hide the bug.
+  const client = new QueryClient({ defaultOptions: { queries: { staleTime: 30 * 1000 } } });
+  client.setQueryData(SettingsKeys.config(), builtinConfig);
+  const opts = { context: { queryClient: client }, navigate: vi.fn(), search: {} };
+
+  let thrown;
+  try {
+    await LoginRoute.options.beforeLoad?.(opts as never);
+  } catch (err) {
+    thrown = err;
+  }
+
+  expect(isRedirect(thrown)).toBe(true);
 });
 
 test("a session in a mode with a login form renders the login form", async () => {
