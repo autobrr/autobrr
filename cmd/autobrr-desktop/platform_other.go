@@ -14,8 +14,13 @@ func showInfo(title, message string) {}
 
 // lockInstance always succeeds outside Windows, where the desktop build is
 // only used for development.
-func lockInstance(configDir string) (bool, error) {
-	return true, nil
+func lockInstance(configDir string) (unlock func(), locked bool, err error) {
+	return func() {}, true, nil
+}
+
+// askYesNo answers no outside Windows, which has no dialog to ask with.
+func askYesNo(title, message string) bool {
+	return false
 }
 
 // onSessionEnd is a no-op outside Windows, where logout and shutdown send
@@ -35,5 +40,14 @@ func startsOnLogin(name, command string) (bool, error) {
 }
 
 func setStartOnLogin(name, command string, enabled bool) error {
+	return nil
+}
+
+// desktopSetting and setDesktopSetting back Windows-only tray settings.
+func desktopSetting(name string) (bool, error) {
+	return false, nil
+}
+
+func setDesktopSetting(name string, on bool) error {
 	return nil
 }

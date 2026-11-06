@@ -14,31 +14,16 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"sync/atomic"
 
 	"github.com/autobrr/autobrr/distrib/windows/icons"
 	"github.com/autobrr/autobrr/internal/application"
-	"github.com/autobrr/autobrr/internal/events"
+	"github.com/autobrr/autobrr/internal/meta"
 
 	"github.com/gogpu/systray"
 )
 
-func newTray(app *application.App, quit context.CancelFunc) *systray.SystemTray {
+func newTray(app *application.App, quit context.CancelFunc, updater *selfUpdater, restart func(), updatedFrom string) *systray.SystemTray {
 	tray := systray.New()
-
-	// counts update notifications, so a manual check can tell whether the
-	// event it triggered already notified
-	var updateNotices atomic.Int64
-
-	notifyUpdate := func(tag string) {
-		updateNotices.Add(1)
-		tray.ShowNotification("autobrr", "New update available: "+tag)
-	}
-
-	app.OnAppUpdate(func(_ context.Context, event events.AppUpdateEvent) error {
-		notifyUpdate(event.NewVersion)
-		return nil
-	})
 
 	menu := systray.NewMenu()
 
@@ -53,6 +38,10 @@ func newTray(app *application.App, quit context.CancelFunc) *systray.SystemTray 
 	go func() {
 		<-app.Ready()
 		openItem.SetDisabled(false)
+
+		if updatedFrom != "" {
+			tray.ShowNotification("autobrr", "autobrr was updated from "+updatedFrom+" to "+meta.GetVersion())
+		}
 	}()
 
 	menu.Add("Open Config Folder", func() {
@@ -65,27 +54,7 @@ func newTray(app *application.App, quit context.CancelFunc) *systray.SystemTray 
 		addStartOnLogin(menu, app)
 	}
 
-	menu.Add("Check for updates", func() {
-		notices := updateNotices.Load()
-
-		rel, err := app.CheckUpdateAvailable(context.Background())
-		if err != nil {
-			app.Log().Error().Err(err).Msg("could not check for updates")
-			tray.ShowNotification("autobrr", "Could not check for updates")
-			return
-		}
-
-		if rel == nil {
-			tray.ShowNotification("autobrr", "autobrr is up to date")
-			return
-		}
-
-		// the event bus is synchronous, so a release found by this check has
-		// already notified through OnAppUpdate
-		if updateNotices.Load() == notices {
-			notifyUpdate(rel.TagName)
-		}
-	})
+	addUpdateMenu(menu, app, tray, updater, restart)
 
 	menu.AddSeparator()
 

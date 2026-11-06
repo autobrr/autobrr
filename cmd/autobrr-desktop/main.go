@@ -11,8 +11,11 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
+	"sync/atomic"
 	_ "time/tzdata"
 
 	"github.com/autobrr/autobrr/internal/application"
@@ -42,18 +45,22 @@ func init() {
 func main() {
 	meta.Set(version, commit, date)
 
-	var configPath string
+	var configPath, updatedFrom string
 
 	root := &cobra.Command{
 		Use:          "autobrr-desktop",
 		Short:        "autobrr with a system tray icon",
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return run(cmd.Context(), configPath)
+			return run(cmd.Context(), configPath, updatedFrom)
 		},
 	}
 
 	root.PersistentFlags().StringVar(&configPath, "config", "", "path to configuration directory")
+
+	// set by the restart after an update
+	root.Flags().StringVar(&updatedFrom, strings.TrimPrefix(updatedFromFlag, "--"), "", "")
+	_ = root.Flags().MarkHidden(strings.TrimPrefix(updatedFromFlag, "--"))
 
 	root.AddCommand(cli.CommandVersion())
 
@@ -64,8 +71,9 @@ func main() {
 
 // run keeps the tray on the calling goroutine and the application on another.
 // Whichever ends first takes the other down: Quit cancels ctx, and a returning
-// Run removes the tray, which unblocks tray.Run.
-func run(ctx context.Context, configPath string) error {
+// Run removes the tray, which unblocks tray.Run. After an update it starts the
+// new exe once the application has shut down.
+func run(ctx context.Context, configPath, updatedFrom string) error {
 	ctx, cancel := cli.ShutdownContext(ctx)
 	defer cancel()
 
@@ -77,7 +85,7 @@ func run(ctx context.Context, configPath string) error {
 	}
 
 	// checked before Run, so a second instance never opens the database
-	locked, err := lockInstance(app.Config().ConfigPath)
+	unlock, locked, err := lockInstance(app.Config().ConfigPath)
 	if err != nil {
 		app.Log().Error().Err(err).Msg("could not check for a running instance")
 	} else if !locked {
@@ -86,7 +94,21 @@ func run(ctx context.Context, configPath string) error {
 		return nil
 	}
 
-	tray := newTray(app, cancel)
+	// resolved before an update renames the running exe
+	exe, err := os.Executable()
+	if err != nil {
+		showError("autobrr", err.Error())
+
+		return errors.Wrap(err, "could not find executable")
+	}
+
+	var restartRequested atomic.Bool
+	restart := func() {
+		restartRequested.Store(true)
+		cancel()
+	}
+
+	tray := newTray(app, cancel, newSelfUpdater(exe), restart, updatedFrom)
 
 	var runErr error
 	done := make(chan struct{})
@@ -112,9 +134,25 @@ func run(ctx context.Context, configPath string) error {
 
 	if runErr != nil {
 		showError("autobrr", fmt.Sprintf("autobrr stopped: %v\n\nLog file: %s", runErr, app.Config().LogPath))
+
+		return runErr
 	}
 
-	return runErr
+	if restartRequested.Load() {
+		// the new process must be able to take the instance lock while this one exits
+		if unlock != nil {
+			unlock()
+		}
+
+		cmd := exec.Command(exe, restartArgs(os.Args[1:], meta.GetVersion())...)
+		if err := cmd.Start(); err != nil {
+			showError("autobrr", fmt.Sprintf("autobrr was updated but could not restart: %v\n\nStart it again from the Start Menu.", err))
+
+			return errors.Wrap(err, "could not restart")
+		}
+	}
+
+	return nil
 }
 
 // newApp defaults to the OS config directory, because a desktop launch has no

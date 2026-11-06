@@ -29,6 +29,9 @@ var (
 const (
 	mbIconError       = 0x10
 	mbIconInformation = 0x40
+	mbIconQuestion    = 0x20
+	mbYesNo           = 0x04
+	idYes             = 6
 	wmQueryEndSession = 0x0011
 	wmEndSession      = 0x0016
 )
@@ -54,11 +57,12 @@ func showMessage(title, message string, icon uintptr) {
 // configDir. The named mutex is scoped to the config directory, so instances
 // with separate configs can still run side by side, and to the login session
 // through the Local namespace. Windows releases it when the process exits, so
-// a crash cannot leave it stale.
-func lockInstance(configDir string) (bool, error) {
+// a crash cannot leave it stale. unlock releases it early, for a restart that
+// starts the new process before this one exits.
+func lockInstance(configDir string) (unlock func(), locked bool, err error) {
 	dir, err := filepath.Abs(configDir)
 	if err != nil {
-		return false, errors.Wrap(err, "could not resolve config directory")
+		return nil, false, errors.Wrap(err, "could not resolve config directory")
 	}
 
 	// mutex names cannot contain backslashes, and Windows paths are case-insensitive
@@ -66,19 +70,30 @@ func lockInstance(configDir string) (bool, error) {
 
 	name, err := windows.UTF16PtrFromString(`Local\autobrr-` + hex.EncodeToString(sum[:16]))
 	if err != nil {
-		return false, err
+		return nil, false, err
 	}
 
-	// the handle is deliberately never closed: holding it until exit is the lock
-	if _, err := windows.CreateMutex(nil, false, name); err != nil {
+	handle, err := windows.CreateMutex(nil, false, name)
+	if err != nil {
 		if err == windows.ERROR_ALREADY_EXISTS {
-			return false, nil
+			_ = windows.CloseHandle(handle)
+			return nil, false, nil
 		}
 
-		return false, errors.Wrap(err, "could not create instance mutex")
+		return nil, false, errors.Wrap(err, "could not create instance mutex")
 	}
 
-	return true, nil
+	return func() { _ = windows.CloseHandle(handle) }, true, nil
+}
+
+// askYesNo shows a question dialog and reports whether the user picked Yes.
+func askYesNo(title, message string) bool {
+	t, _ := windows.UTF16PtrFromString(title)
+	m, _ := windows.UTF16PtrFromString(message)
+
+	ret, _, _ := procMessageBoxW.Call(0, uintptr(unsafe.Pointer(m)), uintptr(unsafe.Pointer(t)), mbYesNo|mbIconQuestion)
+
+	return ret == idYes
 }
 
 type wndClassEx struct {
@@ -149,6 +164,9 @@ func onSessionEnd(fn func()) error {
 }
 
 const (
+	// per-user tray settings; the MSI also writes its Installed marker here
+	desktopSettingsKey = `Software\autobrr\autobrr-desktop`
+
 	runKey = `Software\Microsoft\Windows\CurrentVersion\Run`
 
 	// Settings > Apps > Startup and Task Manager disable a Run entry here,
@@ -238,6 +256,49 @@ func setStartOnLogin(name, command string, enabled bool) error {
 
 	if err := approved.DeleteValue(name); err != nil && err != registry.ErrNotExist {
 		return errors.Wrap(err, "could not clear startup approved entry")
+	}
+
+	return nil
+}
+
+// desktopSetting reads a tray setting, which is off until it was first saved.
+func desktopSetting(name string) (bool, error) {
+	k, err := registry.OpenKey(registry.CURRENT_USER, desktopSettingsKey, registry.QUERY_VALUE)
+	if err != nil {
+		if err == registry.ErrNotExist {
+			return false, nil
+		}
+
+		return false, errors.Wrap(err, "could not open settings key")
+	}
+	defer k.Close()
+
+	value, _, err := k.GetIntegerValue(name)
+	if err != nil {
+		if err == registry.ErrNotExist {
+			return false, nil
+		}
+
+		return false, errors.Wrap(err, "could not read setting %s", name)
+	}
+
+	return value != 0, nil
+}
+
+func setDesktopSetting(name string, on bool) error {
+	k, _, err := registry.CreateKey(registry.CURRENT_USER, desktopSettingsKey, registry.SET_VALUE)
+	if err != nil {
+		return errors.Wrap(err, "could not open settings key")
+	}
+	defer k.Close()
+
+	var value uint32
+	if on {
+		value = 1
+	}
+
+	if err := k.SetDWordValue(name, value); err != nil {
+		return errors.Wrap(err, "could not write setting %s", name)
 	}
 
 	return nil

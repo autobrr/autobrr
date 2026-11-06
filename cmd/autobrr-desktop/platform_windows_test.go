@@ -21,22 +21,33 @@ import (
 func TestLockInstance(t *testing.T) {
 	dir := t.TempDir()
 
-	locked, err := lockInstance(dir)
+	unlock, locked, err := lockInstance(dir)
 	if err != nil || !locked {
 		t.Fatalf("first lock: locked=%v err=%v", locked, err)
 	}
 
 	for _, same := range []string{dir, strings.ToUpper(dir), dir + `\`, filepath.Join(dir, "sub", "..")} {
-		locked, err := lockInstance(same)
+		_, locked, err := lockInstance(same)
 		if err != nil || locked {
 			t.Errorf("lockInstance(%q): locked=%v err=%v, want already running", same, locked, err)
 		}
 	}
 
-	locked, err = lockInstance(t.TempDir())
+	otherUnlock, locked, err := lockInstance(t.TempDir())
 	if err != nil || !locked {
 		t.Errorf("other config dir: locked=%v err=%v, want its own lock", locked, err)
+	} else {
+		otherUnlock()
 	}
+
+	// a restart unlocks before the new process locks
+	unlock()
+
+	unlock, locked, err = lockInstance(dir)
+	if err != nil || !locked {
+		t.Fatalf("lock after unlock: locked=%v err=%v", locked, err)
+	}
+	unlock()
 }
 
 func TestLoginCommand(t *testing.T) {
@@ -111,5 +122,38 @@ func TestStartOnLogin(t *testing.T) {
 
 	if err := setStartOnLogin(name, command, false); err != nil {
 		t.Fatalf("disabling twice: %v", err)
+	}
+}
+
+// Writes a real value under HKCU, named per process and removed afterwards.
+func TestDesktopSetting(t *testing.T) {
+	name := fmt.Sprintf("autobrr-test-%d", os.Getpid())
+
+	t.Cleanup(func() {
+		if k, err := registry.OpenKey(registry.CURRENT_USER, desktopSettingsKey, registry.SET_VALUE); err == nil {
+			_ = k.DeleteValue(name)
+			k.Close()
+		}
+	})
+
+	assertSetting := func(want bool) {
+		t.Helper()
+
+		got, err := desktopSetting(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got != want {
+			t.Fatalf("desktopSetting = %v, want %v", got, want)
+		}
+	}
+
+	assertSetting(false)
+
+	for _, on := range []bool{true, false, true} {
+		if err := setDesktopSetting(name, on); err != nil {
+			t.Fatal(err)
+		}
+		assertSetting(on)
 	}
 }
