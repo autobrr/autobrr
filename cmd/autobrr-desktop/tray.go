@@ -8,6 +8,7 @@ package main
 import (
 	"context"
 	"net"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
@@ -60,6 +61,10 @@ func newTray(app *application.App, quit context.CancelFunc) *systray.SystemTray 
 		}
 	})
 
+	if runtime.GOOS == "windows" {
+		addStartOnLogin(menu, app)
+	}
+
 	menu.Add("Check for updates", func() {
 		notices := updateNotices.Load()
 
@@ -95,6 +100,39 @@ func newTray(app *application.App, quit context.CancelFunc) *systray.SystemTray 
 	tray.Show()
 
 	return tray
+}
+
+func addStartOnLogin(menu *systray.Menu, app *application.App) {
+	exe, err := os.Executable()
+	if err != nil {
+		app.Log().Error().Err(err).Msg("could not find executable for start on login")
+		return
+	}
+
+	configDir, err := filepath.Abs(app.Config().ConfigPath)
+	if err != nil {
+		app.Log().Error().Err(err).Msg("could not resolve config directory for start on login")
+		return
+	}
+
+	command := loginCommand(exe, configDir)
+
+	enabled, err := startsOnLogin("autobrr", command)
+	if err != nil {
+		app.Log().Error().Err(err).Msg("could not read start on login setting")
+	}
+
+	var item *systray.MenuItem
+	item = menu.AddCheckbox("Start on login", enabled, func() {
+		want := !item.IsChecked()
+
+		if err := setStartOnLogin("autobrr", command, want); err != nil {
+			app.Log().Error().Err(err).Bool("enabled", want).Msg("could not change start on login")
+			return
+		}
+
+		item.SetChecked(want)
+	})
 }
 
 // webURL maps wildcard bind addresses to localhost, since a browser cannot

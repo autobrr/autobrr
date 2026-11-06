@@ -23,3 +23,17 @@ func lockInstance(configDir string) (bool, error) {
 func onSessionEnd(fn func()) error {
 	return nil
 }
+
+// loginCommand, startsOnLogin and setStartOnLogin back the Windows-only
+// "Start on login" menu item, which the tray does not add elsewhere.
+func loginCommand(exe, configDir string) string {
+	return ""
+}
+
+func startsOnLogin(name, command string) (bool, error) {
+	return false, nil
+}
+
+func setStartOnLogin(name, command string, enabled bool) error {
+	return nil
+}

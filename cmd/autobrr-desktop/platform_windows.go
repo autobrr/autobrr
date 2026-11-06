@@ -15,6 +15,7 @@ import (
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"golang.org/x/sys/windows"
+	"golang.org/x/sys/windows/registry"
 )
 
 var (
@@ -142,6 +143,101 @@ func onSessionEnd(fn func()) error {
 
 	if hwnd, _, err := procCreateWindowExW.Call(0, uintptr(unsafe.Pointer(className)), 0, 0, 0, 0, 0, 0, 0, 0, uintptr(instance), 0); hwnd == 0 {
 		return errors.Wrap(err, "could not create session window")
+	}
+
+	return nil
+}
+
+const (
+	runKey = `Software\Microsoft\Windows\CurrentVersion\Run`
+
+	// Settings > Apps > Startup and Task Manager disable a Run entry here,
+	// without touching the Run value itself
+	startupApprovedKey = `Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run`
+)
+
+// loginCommand is the command line Windows runs at login. The config directory
+// is always passed, so the entry keeps working if the default ever changes.
+func loginCommand(exe, configDir string) string {
+	return windows.EscapeArg(exe) + " --config " + windows.EscapeArg(configDir)
+}
+
+// startsOnLogin reports whether the Run entry name launches command and is not
+// disabled in Windows settings. An entry for another path, such as an older
+// copy of the exe, counts as off, so enabling it again points it here.
+func startsOnLogin(name, command string) (bool, error) {
+	k, err := registry.OpenKey(registry.CURRENT_USER, runKey, registry.QUERY_VALUE)
+	if err != nil {
+		if err == registry.ErrNotExist {
+			return false, nil
+		}
+
+		return false, errors.Wrap(err, "could not open run key")
+	}
+	defer k.Close()
+
+	value, _, err := k.GetStringValue(name)
+	if err != nil {
+		if err == registry.ErrNotExist {
+			return false, nil
+		}
+
+		return false, errors.Wrap(err, "could not read run entry")
+	}
+
+	if !strings.EqualFold(value, command) {
+		return false, nil
+	}
+
+	return !disabledAtStartup(name), nil
+}
+
+func disabledAtStartup(name string) bool {
+	k, err := registry.OpenKey(registry.CURRENT_USER, startupApprovedKey, registry.QUERY_VALUE)
+	if err != nil {
+		return false
+	}
+	defer k.Close()
+
+	data, _, err := k.GetBinaryValue(name)
+	if err != nil || len(data) == 0 {
+		return false
+	}
+
+	// Windows writes 02 or 06 to enable the entry and 03 or 07 to disable it
+	return data[0]&1 == 1
+}
+
+// setStartOnLogin adds or removes the Run entry name. It also clears a
+// disabled state left in Windows settings, which would otherwise keep a new
+// entry from running.
+func setStartOnLogin(name, command string, enabled bool) error {
+	k, _, err := registry.CreateKey(registry.CURRENT_USER, runKey, registry.SET_VALUE)
+	if err != nil {
+		return errors.Wrap(err, "could not open run key")
+	}
+	defer k.Close()
+
+	if enabled {
+		if err := k.SetStringValue(name, command); err != nil {
+			return errors.Wrap(err, "could not write run entry")
+		}
+	} else if err := k.DeleteValue(name); err != nil && err != registry.ErrNotExist {
+		return errors.Wrap(err, "could not delete run entry")
+	}
+
+	approved, err := registry.OpenKey(registry.CURRENT_USER, startupApprovedKey, registry.SET_VALUE)
+	if err != nil {
+		if err == registry.ErrNotExist {
+			return nil
+		}
+
+		return errors.Wrap(err, "could not open startup approved key")
+	}
+	defer approved.Close()
+
+	if err := approved.DeleteValue(name); err != nil && err != registry.ErrNotExist {
+		return errors.Wrap(err, "could not clear startup approved entry")
 	}
 
 	return nil
