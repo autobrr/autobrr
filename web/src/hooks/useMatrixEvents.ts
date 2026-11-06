@@ -12,7 +12,7 @@ import { MatrixRoomHistoryQueryOptions } from "@api/queries";
 
 type MessageHandler = (message: MatrixMessage) => void;
 type HealthHandler = (event: MatrixHealthEvent) => void;
-type ReconnectHandler = () => void;
+type OpenHandler = () => void;
 
 const roomKey = (networkId: number, room: string) => `${networkId}:${room}`;
 
@@ -21,8 +21,7 @@ class MatrixEventManager {
   private eventSource: EventSource | null = null;
   private messageHandlers = new Map<string, Set<MessageHandler>>();
   private healthHandlers = new Set<HealthHandler>();
-  private reconnectHandlers = new Set<ReconnectHandler>();
-  private hasOpened = false;
+  private openHandlers = new Set<OpenHandler>();
   private refCount = 0;
   private reconnectTimer: number | null = null;
   private reconnectAttempt = 0;
@@ -47,11 +46,12 @@ class MatrixEventManager {
     return this.retain(() => this.healthHandlers.delete(handler));
   }
 
-  // Called when the stream comes back after a drop; events sent meanwhile are not replayed.
-  subscribeToReconnect(handler: ReconnectHandler): () => void {
-    this.reconnectHandlers.add(handler);
+  // Called every time the stream opens. Events sent before that, including while a first
+  // connect was still being set up after a history snapshot, are not replayed.
+  subscribeToOpen(handler: OpenHandler): () => void {
+    this.openHandlers.add(handler);
 
-    return this.retain(() => this.reconnectHandlers.delete(handler));
+    return this.retain(() => this.openHandlers.delete(handler));
   }
 
   private retain(release: () => void): () => void {
@@ -65,7 +65,6 @@ class MatrixEventManager {
       this.refCount--;
       if (this.refCount === 0) {
         this.disconnect();
-        this.hasOpened = false;
       }
     };
   }
@@ -89,12 +88,7 @@ class MatrixEventManager {
 
     this.eventSource.onopen = () => {
       this.reconnectAttempt = 0;
-
-      if (this.hasOpened) {
-        this.reconnectHandlers.forEach((handler) => handler());
-      }
-
-      this.hasOpened = true;
+      this.openHandlers.forEach((handler) => handler());
     };
 
     // The browser only retries transport errors. A non-2xx handshake (expired session,
@@ -155,7 +149,7 @@ export function useMatrixRoomWithHistory(networkId: number, room: string, limit:
     setLiveMessages((prev) => [...prev, message].slice(-limit));
   }), [networkId, room, limit]);
 
-  useEffect(() => matrixEventManager.subscribeToReconnect(() => {
+  useEffect(() => matrixEventManager.subscribeToOpen(() => {
     queryClient.invalidateQueries({ queryKey: MatrixKeys.roomHistory(networkId, room) });
   }), [queryClient, networkId, room]);
 

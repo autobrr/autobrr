@@ -263,13 +263,21 @@ func (h *Handler) session(ctx context.Context, since string) (string, bool, erro
 
 	h.log.Debug().Str("user_id", whoami.UserID).Msg("matrix authenticated")
 
-	roomIDs, failed, err := h.joinRooms(ctx, h.rooms)
+	roomIDs, failed, retryAfter, err := h.joinRooms(ctx, h.rooms)
 	if err != nil {
 		return since, false, err
 	}
 
 	if len(roomIDs) == 0 {
 		return since, false, errors.New("could not join any room")
+	}
+
+	// connected means a sync succeeded, so a session that only gets as far as joining keeps backing off
+	connected := false
+	markConnected := func() {
+		connected = true
+		h.setConnected()
+		h.log.Info().Int("rooms", len(roomIDs)).Msg("matrix network connected")
 	}
 
 	if since == "" {
@@ -279,45 +287,51 @@ func (h *Handler) session(ctx context.Context, since string) (string, bool, erro
 		}
 
 		since = resp.NextBatch
+		markConnected()
 	}
 
-	h.setConnected()
-	h.log.Info().Int("rooms", len(roomIDs)).Msg("matrix network connected")
-
 	joinRetry := h.joinRetryInitial
-	nextJoin := time.Now().Add(joinRetry)
+	nextJoin := time.Now().Add(max(joinRetry, retryAfter))
 
-	// rooms joined mid-session arrive with their recent history, which must not be announced
-	skipHistory := map[string]struct{}{}
+	// rooms joined mid-session may arrive with their history, which must not be announced
+	lateJoined := map[string]struct{}{}
 
 	for {
 		if len(failed) > 0 && !time.Now().Before(nextJoin) {
-			joined, stillFailed, err := h.joinRooms(ctx, failed)
+			joined, stillFailed, retryAfter, err := h.joinRooms(ctx, failed)
 			if err != nil {
-				return since, true, err
+				return since, connected, err
 			}
 
 			for _, id := range joined {
-				skipHistory[id] = struct{}{}
+				lateJoined[id] = struct{}{}
 			}
 
 			roomIDs = append(roomIDs, joined...)
 			failed = stillFailed
 
 			joinRetry = min(joinRetry*2, joinRetryMax)
-			nextJoin = time.Now().Add(joinRetry)
+			nextJoin = time.Now().Add(max(joinRetry, retryAfter))
 		}
 
 		resp, err := h.sync(ctx, matrix.SyncRequest{Since: since, Timeout: syncTimeout, Rooms: roomIDs, TimelineLimit: syncTimelineLimit})
 		if err != nil {
-			return since, true, err
+			return since, connected, err
 		}
 
-		for id := range skipHistory {
-			if _, ok := resp.Rooms.Join[id]; ok {
-				delete(resp.Rooms.Join, id)
-				delete(skipHistory, id)
+		if !connected {
+			markConnected()
+		}
+
+		for id := range lateJoined {
+			joinedRoom, ok := resp.Rooms.Join[id]
+			if !ok {
+				continue
 			}
+
+			joinedRoom.Timeline.Events = eventsAfterJoin(joinedRoom.Timeline.Events, whoami.UserID)
+			resp.Rooms.Join[id] = joinedRoom
+			delete(lateJoined, id)
 		}
 
 		h.handleSync(resp)
@@ -432,18 +446,27 @@ func tokensOf(network domain.MatrixNetwork) domain.MatrixTokens {
 	}
 }
 
-// joinRooms joins rooms and returns the room ids it is in and the rooms that failed.
-// Joining an already joined room succeeds, so this also resolves aliases on every
-// connect. A rejected login is returned instead of being reported per room.
-func (h *Handler) joinRooms(ctx context.Context, rooms []*room) ([]string, []*room, error) {
+// joinRooms joins rooms and returns the room ids it is in, the rooms that failed and
+// the longest retry delay the homeserver asked for. Joining an already joined room
+// succeeds, so this also resolves aliases on every connect. A rejected login is
+// returned instead of being reported per room.
+func (h *Handler) joinRooms(ctx context.Context, rooms []*room) ([]string, []*room, time.Duration, error) {
 	roomIDs := make([]string, 0, len(rooms))
-	var failed []*room
+
+	var (
+		failed     []*room
+		retryAfter time.Duration
+	)
 
 	for _, r := range rooms {
 		roomID, err := callAuthed(ctx, h, func() (string, error) { return h.client.JoinRoom(ctx, r.config.Name) })
 		if err != nil {
 			if _, ok := errors.AsType[*fatalError](err); ok {
-				return nil, nil, err
+				return nil, nil, 0, err
+			}
+
+			if merr, ok := errors.AsType[*matrix.Error](err); ok {
+				retryAfter = max(retryAfter, merr.RetryAfter)
 			}
 
 			h.log.Error().Err(err).Str("room", r.config.Name).Msg("could not join matrix room")
@@ -464,7 +487,20 @@ func (h *Handler) joinRooms(ctx context.Context, rooms []*room) ([]string, []*ro
 		roomIDs = append(roomIDs, roomID)
 	}
 
-	return roomIDs, failed, nil
+	return roomIDs, failed, retryAfter, nil
+}
+
+// eventsAfterJoin drops the history a room arrives with when it is joined mid-session:
+// everything up to the user's own join event. A room the user was already in carries
+// no join event and is returned unchanged.
+func eventsAfterJoin(events []matrix.Event, userID string) []matrix.Event {
+	for i := len(events) - 1; i >= 0; i-- {
+		if events[i].IsJoinOf(userID) {
+			return events[i+1:]
+		}
+	}
+
+	return events
 }
 
 func (h *Handler) handleSync(resp *matrix.SyncResponse) {

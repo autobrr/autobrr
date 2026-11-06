@@ -17,6 +17,7 @@ import (
 // Event types and message types the announce listener reads.
 const (
 	EventTypeRoomMessage = "m.room.message"
+	EventTypeRoomMember  = "m.room.member"
 	MsgTypeText          = "m.text"
 	MsgTypeNotice        = "m.notice"
 	RelationTypeReplace  = "m.replace"
@@ -56,7 +57,25 @@ type Event struct {
 	EventID        string          `json:"event_id"`
 	Sender         string          `json:"sender"`
 	OriginServerTS int64           `json:"origin_server_ts"`
+	StateKey       *string         `json:"state_key,omitempty"`
 	Content        json.RawMessage `json:"content"`
+}
+
+// IsJoinOf reports whether the event is userID joining the room.
+func (e Event) IsJoinOf(userID string) bool {
+	if e.Type != EventTypeRoomMember || e.StateKey == nil || *e.StateKey != userID {
+		return false
+	}
+
+	var content struct {
+		Membership string `json:"membership"`
+	}
+
+	if err := json.Unmarshal(e.Content, &content); err != nil {
+		return false
+	}
+
+	return content.Membership == "join"
 }
 
 // MessageContent is the content of an m.room.message event.
@@ -116,7 +135,8 @@ func (c *Client) Sync(ctx context.Context, req SyncRequest) (*SyncResponse, erro
 			AccountData: eventFilter{Types: []string{}},
 			Ephemeral:   eventFilter{Types: []string{}},
 			State:       eventFilter{Types: []string{}},
-			Timeline:    eventFilter{Limit: new(req.TimelineLimit), Types: []string{EventTypeRoomMessage}},
+			// member events mark where a room joined mid-session stops being history
+			Timeline: eventFilter{Limit: new(req.TimelineLimit), Types: []string{EventTypeRoomMessage, EventTypeRoomMember}},
 		},
 	}
 

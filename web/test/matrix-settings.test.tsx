@@ -138,19 +138,17 @@ test("a message sent while history is loading is shown once", async () => {
   expect(screen.getAllByText(/during load/)).toHaveLength(1);
 });
 
-test("history is fetched again after the stream reconnects", async () => {
+test("history is fetched again whenever the stream opens", async () => {
   const getRoomHistory = vi.spyOn(APIClient.matrix, "getRoomHistory").mockResolvedValue([]);
 
   const stream = renderScreen();
   await openRoomLog();
   await waitFor(() => expect(getRoomHistory).toHaveBeenCalledTimes(1));
 
-  stream.reopen();
-  expect(getRoomHistory).toHaveBeenCalledTimes(1);
-
-  getRoomHistory.mockResolvedValue([{ id: "$missed", network: 5, room, sender: "@blubot:matrix.watchtower.pm", msg: "missed while offline", time: "2026-11-06T00:02:00Z" }]);
+  // the stream can open after the first snapshot, or come back after a drop
+  getRoomHistory.mockResolvedValue([{ id: "$missed", network: 5, room, sender: "@blubot:matrix.watchtower.pm", msg: "missed before the stream opened", time: "2026-11-06T00:02:00Z" }]);
   stream.reopen();
 
-  expect(await screen.findByText(/missed while offline/)).toBeTruthy();
+  expect(await screen.findByText(/missed before the stream opened/)).toBeTruthy();
   expect(getRoomHistory).toHaveBeenCalledTimes(2);
 });

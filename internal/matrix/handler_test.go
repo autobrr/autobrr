@@ -17,6 +17,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/indexer"
+	"github.com/autobrr/autobrr/pkg/matrix"
 
 	"github.com/r3labs/sse/v2"
 	"github.com/rs/zerolog"
@@ -98,6 +99,10 @@ func messageEvent(id, sender, body string, edit bool) map[string]any {
 	}
 
 	return map[string]any{"type": "m.room.message", "event_id": id, "sender": sender, "content": content}
+}
+
+func joinEvent(userID string) map[string]any {
+	return map[string]any{"type": "m.room.member", "event_id": "$join", "sender": userID, "state_key": userID, "content": map[string]any{"membership": "join"}}
 }
 
 func syncBody(nextBatch string, events ...map[string]any) map[string]any {
@@ -347,17 +352,18 @@ func TestHandler_RetriesFailedJoin(t *testing.T) {
 			join := body["rooms"].(map[string]any)["join"].(map[string]any)
 
 			if strings.Contains(r.URL.Query().Get("filter"), otherID) {
-				if !strings.Contains(r.URL.Query().Get("since"), "joined") {
-					// first sync after the late join carries the room's history
-					join[otherID] = map[string]any{"timeline": map[string]any{"events": []any{messageEvent("$old", testAnnouncer, testAnnounce, false)}}}
-					body["next_batch"] = "joined"
-				} else if r.URL.Query().Get("since") == "joined" {
-					join[otherID] = map[string]any{"timeline": map[string]any{"events": []any{messageEvent("$new", testAnnouncer, testAnnounce, false)}}}
-					body["next_batch"] = "joined-2"
-				} else {
+				if r.URL.Query().Get("since") == "joined" {
 					<-r.Context().Done()
 					return
 				}
+
+				// first sync after the late join carries the room's history up to our own join
+				join[otherID] = map[string]any{"timeline": map[string]any{"events": []any{
+					messageEvent("$old", testAnnouncer, testAnnounce, false),
+					joinEvent("@autobrr:matrix.watchtower.pm"),
+					messageEvent("$new", testAnnouncer, testAnnounce, false),
+				}}}
+				body["next_batch"] = "joined"
 			} else {
 				time.Sleep(20 * time.Millisecond)
 			}
@@ -399,4 +405,52 @@ func TestHandler_RetriesFailedJoin(t *testing.T) {
 	_, roomHealth := h.Health()
 	assert.True(t, roomHealth[otherAlias].Joined)
 	assert.Empty(t, roomHealth[otherAlias].Error)
+}
+
+func TestEventsAfterJoin(t *testing.T) {
+	userID := "@autobrr:matrix.watchtower.pm"
+	other := "@someone:matrix.watchtower.pm"
+
+	event := func(eventType, id string, stateKey *string, membership string) matrix.Event {
+		content, _ := json.Marshal(map[string]string{"membership": membership})
+		return matrix.Event{Type: eventType, EventID: id, StateKey: stateKey, Content: content}
+	}
+
+	old := event(matrix.EventTypeRoomMessage, "$old", nil, "")
+	live := event(matrix.EventTypeRoomMessage, "$live", nil, "")
+	ownJoin := event(matrix.EventTypeRoomMember, "$join", &userID, "join")
+	otherJoin := event(matrix.EventTypeRoomMember, "$other", &other, "join")
+
+	assert.Equal(t, []matrix.Event{live}, eventsAfterJoin([]matrix.Event{old, ownJoin, live}, userID))
+	assert.Equal(t, []matrix.Event{old, otherJoin, live}, eventsAfterJoin([]matrix.Event{old, otherJoin, live}, userID), "a room the user was already in keeps its live events")
+	assert.Empty(t, eventsAfterJoin([]matrix.Event{old, ownJoin}, userID))
+}
+
+// A reconnect that authenticates and joins but cannot sync is not a connection, so the
+// caller keeps backing off instead of resetting to the minimum delay.
+func TestHandler_SessionWithoutSyncIsNotConnected(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/_matrix/client/v3/account/whoami":
+			writeJSON(w, http.StatusOK, map[string]any{"user_id": "@autobrr:matrix.watchtower.pm"})
+		case strings.HasPrefix(r.URL.Path, "/_matrix/client/v3/join/"):
+			writeJSON(w, http.StatusOK, map[string]any{"room_id": testRoomID})
+		default:
+			writeJSON(w, http.StatusBadGateway, map[string]any{})
+		}
+	}))
+	defer server.Close()
+
+	network := domain.MatrixNetwork{
+		ID: 1, Name: "Watchtower", Enabled: true, Homeserver: server.URL,
+		AuthMethod: domain.MatrixAuthMethodToken, AccessToken: "token",
+		Rooms: []domain.MatrixRoom{{ID: 1, Enabled: true, Name: testRoomAlias}},
+	}
+
+	h := newHandler(zerolog.Nop(), &fakeSSE{}, &fakeTokenStore{roomIDs: map[int64]string{}}, server.Client(), &fakeReleaseService{}, network, nil)
+
+	since, connected, err := h.session(t.Context(), "s1")
+	require.Error(t, err)
+	assert.False(t, connected)
+	assert.Equal(t, "s1", since)
 }
