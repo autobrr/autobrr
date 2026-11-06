@@ -32,6 +32,12 @@ type matrixRepo interface {
 
 type indexerService interface {
 	GetIndexersByMatrixHomeserver(homeserver string) []*domain.IndexerDefinition
+
+	indexerStatus
+}
+
+type indexerStatus interface {
+	IsEnabled(identifier string) bool
 }
 
 type releaseService interface {
@@ -129,7 +135,7 @@ func (s *Service) startHandler(network domain.MatrixNetwork) {
 
 	definitions := s.indexerSvc.GetIndexersByMatrixHomeserver(network.Homeserver)
 
-	handler := newHandler(s.log, s.sse, s.repo, s.httpClient, s.releaseSvc, network, definitions)
+	handler := newHandler(s.log, s.sse, s.repo, s.httpClient, s.releaseSvc, s.indexerSvc, network, definitions)
 	handler.Start()
 
 	s.handlers[network.ID] = handler

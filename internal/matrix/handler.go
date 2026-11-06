@@ -99,7 +99,7 @@ type Handler struct {
 	done   chan struct{}
 }
 
-func newHandler(log zerolog.Logger, publisher ssePublisher, repo tokenStore, httpClient *http.Client, releaseSvc releaseService, network domain.MatrixNetwork, definitions []*domain.IndexerDefinition) *Handler {
+func newHandler(log zerolog.Logger, publisher ssePublisher, repo tokenStore, httpClient *http.Client, releaseSvc releaseService, indexerSvc indexerStatus, network domain.MatrixNetwork, definitions []*domain.IndexerDefinition) *Handler {
 	h := &Handler{
 		log:              log.With().Str("network", network.Name).Int64("network_id", network.ID).Logger(),
 		sse:              publisher,
@@ -130,7 +130,7 @@ func newHandler(log zerolog.Logger, publisher ssePublisher, repo tokenStore, htt
 
 			processor, ok := processors[definition.Identifier]
 			if !ok {
-				processor = announce.NewMatrixAnnounceProcessor(h.log, releaseSvc, definition)
+				processor = announce.NewMatrixAnnounceProcessor(h.log, releaseSvc, indexerSvc, definition)
 				processors[definition.Identifier] = processor
 				h.processors = append(h.processors, processor)
 			}

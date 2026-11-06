@@ -109,6 +109,7 @@ type Handler struct {
 	sse                sseServer
 	network            *domain.IrcNetwork
 	releaseSvc         releaseService
+	indexerSvc         indexerStatus
 	announceProcessors map[string]announce.Processor
 
 	// definitionsM serializes channel (re)builds: a reload from the service can
@@ -151,7 +152,7 @@ type Handler struct {
 	stateMachine *ConnectionStateMachine
 }
 
-func NewHandler(log zerolog.Logger, eventBus eventBus, sse sseServer, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc releaseService) *Handler {
+func NewHandler(log zerolog.Logger, eventBus eventBus, sse sseServer, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc releaseService, indexerSvc indexerStatus) *Handler {
 	h := &Handler{
 		log:              log.With().Str("network", network.Server).Logger(),
 		eventBus:         eventBus,
@@ -160,6 +161,7 @@ func NewHandler(log zerolog.Logger, eventBus eventBus, sse sseServer, network do
 		clientState:      ircStopped,
 		network:          &network,
 		releaseSvc:       releaseSvc,
+		indexerSvc:       indexerSvc,
 		definitions:      map[string]*domain.IndexerDefinition{},
 		authenticated:    false,
 		saslauthed:       false,
@@ -260,7 +262,7 @@ func (h *Handler) initChannels(definitions []*domain.IndexerDefinition) {
 				skipCleanMessage = channel.Parse.SkipCleanMessage
 			}
 
-			ircChannel := NewChannel(h.log, network.ID, channelName, true, skipCleanMessage, announce.NewAnnounceProcessor(h.log.With().Str("channel", channelName).Logger(), h.releaseSvc, definition))
+			ircChannel := NewChannel(h.log, network.ID, channelName, true, skipCleanMessage, announce.NewAnnounceProcessor(h.log.With().Str("channel", channelName).Logger(), h.releaseSvc, h.indexerSvc, definition))
 			ircChannel.setInviteBot(inviteBot)
 			ircChannel.SetStateMachine(NewChannelStateMachine(ircChannel, h, inviteCommand))
 			ircChannel.syncInviteCommand(inviteCommand)
