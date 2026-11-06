@@ -304,6 +304,11 @@ jobs:
           path: dist/${{ matrix.goos }}
           key: ${{ env.cache_prefix }}-${{ matrix.goos}}-${{ env.sha_short }}${{ env.flags }}
 
+      # GoReleaser builds the desktop MSI with wixl, which Ubuntu ships in its own package
+      - name: Install wixl
+        if: matrix.goos == 'windows'
+        run: sudo apt-get update && sudo apt-get install -y wixl
+
       - name: Run GoReleaser snapshot build
         if: ${{ ! startsWith(github.ref, 'refs/tags/') }}
         uses: goreleaser/goreleaser-action@v7
@@ -345,6 +350,7 @@ jobs:
             dist/${{ matrix.goos }}/*.apk
             dist/${{ matrix.goos }}/*.deb
             dist/${{ matrix.goos }}/*.rpm
+            dist/${{ matrix.goos }}/msi/*/*.msi
 
   release:
     name: Merge and publish distribution binaries

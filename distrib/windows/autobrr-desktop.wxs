@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Built by GoReleaser with wixl, which reads only part of the WiX v3 schema. -->
+<!-- A new MSI finds the installed one by UpgradeCode, so it never changes. -->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product
+    Id="*"
+    Name="autobrr"
+    Language="1033"
+    Version="{{ .Major }}.{{ .Minor }}.{{ .Patch }}"
+    Manufacturer="autobrr"
+    UpgradeCode="c5405e9a-6e49-4d5f-8073-ffe5d06ea387">
+    <Package
+      Description="autobrr"
+      Manufacturer="autobrr"
+      InstallerVersion="500"
+      Compressed="yes"
+      InstallScope="perUser" />
+
+    <!-- Version drops pre-release suffixes, so v1.2.0-rc1 and v1.2.0 share 1.2.0.
+         Without AllowSameVersionUpgrades the final would install next to the rc. -->
+    <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="autobrr.ico" SourceFile="distrib/windows/icons/autobrr-desktop.ico" />
+    <Property Id="ARPPRODUCTICON" Value="autobrr.ico" />
+    <Property Id="ARPURLINFOABOUT" Value="https://autobrr.com" />
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <!-- InstallScope only sets the summary flag in wixl, so the folder must be
+           per user too. Config and database stay in %APPDATA%\autobrr, which
+           the MSI never touches. -->
+      <Directory Id="LocalAppDataFolder">
+        <Directory Id="LocalProgramsFolder" Name="Programs">
+          <Directory Id="INSTALLFOLDER" Name="autobrr" />
+        </Directory>
+      </Directory>
+      <Directory Id="ProgramMenuFolder" />
+    </Directory>
+
+    <DirectoryRef Id="INSTALLFOLDER">
+      <Component Id="AutobrrDesktop" Guid="c85b4c0e-3456-429c-89f4-7a7502b92c06">
+        <RegistryValue Root="HKCU" Key="Software\autobrr\autobrr-desktop" Name="Installed" Type="integer" Value="1" KeyPath="yes" />
+        <File Id="AutobrrDesktopExe" Name="autobrr-desktop.exe" Source="autobrr-desktop.exe" />
+        <!-- An explicit Target keeps wixl from making an advertised shortcut. -->
+        <Shortcut Id="StartMenuShortcut" Directory="ProgramMenuFolder" Name="autobrr" Target="[#AutobrrDesktopExe]" WorkingDirectory="INSTALLFOLDER" />
+        <RemoveFolder Id="InstallFolder" On="uninstall" />
+      </Component>
+    </DirectoryRef>
+
+    <Feature Id="Complete" Level="1">
+      <ComponentRef Id="AutobrrDesktop" />
+    </Feature>
+
+    <!-- The tray's "Start on login" writes these values, not the MSI, so the MSI
+         cannot remove them as its own. Skipped on an upgrade, which uninstalls
+         the old version but keeps the same exe path. -->
+    <CustomAction Id="SetCmdPath" Property="CMDPATH" Value="[SystemFolder]cmd.exe" />
+    <CustomAction Id="RemoveStartOnLogin" Property="CMDPATH" ExeCommand='/c reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v autobrr /f &amp; reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run" /v autobrr /f' Return="ignore" />
+    <!-- Start autobrr after a new install or an upgrade, not on a repair, where
+         it already runs. msiexec /qn sets UILevel 2, so a silent install does not
+         start it. wixl aborts on CDATA, so the condition escapes its ">". -->
+    <CustomAction Id="StartAutobrr" FileKey="AutobrrDesktopExe" ExeCommand="" Return="asyncNoWait" />
+    <InstallExecuteSequence>
+      <Custom Action="SetCmdPath" After="CostFinalize">REMOVE~="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
+      <Custom Action="RemoveStartOnLogin" After="SetCmdPath">REMOVE~="ALL" AND NOT UPGRADINGPRODUCTCODE</Custom>
+      <Custom Action="StartAutobrr" After="InstallFinalize">NOT Installed AND UILevel &gt; 2</Custom>
+    </InstallExecuteSequence>
+  </Product>
+</Wix>
