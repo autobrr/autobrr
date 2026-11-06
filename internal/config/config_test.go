@@ -11,6 +11,7 @@ import (
 
 	"github.com/autobrr/autobrr/internal/domain"
 
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -118,4 +119,19 @@ func TestLoad_InvalidValue(t *testing.T) {
 
 	_, err := Load(dir)
 	assert.ErrorContains(t, err, "could not unmarshal config file")
+}
+
+func TestLoad_SyntaxError(t *testing.T) {
+	// viper is global, and a failed read keeps the values of the last good one
+	viper.Reset()
+
+	dir := t.TempDir()
+	// what UpdateConfig wrote for a Windows logPath before it escaped strings
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "config.toml"), []byte(`logPath = "C:\Users\x\autobrr.log"`), 0o600))
+
+	_, err := Load(dir)
+	assert.ErrorContains(t, err, "could not read config file")
+
+	// New keeps running on defaults, as it did before Load existed
+	assert.Equal(t, 7474, New(dir).Config.Port)
 }

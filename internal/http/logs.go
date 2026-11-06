@@ -111,10 +111,12 @@ func (h logsHandler) downloadFile(w http.ResponseWriter, r *http.Request) {
 
 	logFile := chi.URLParam(r, "logFile")
 
-	if !strings.Contains(logFile, ".log") {
+	// a bare name only: Windows decodes %5C to a separator that filepath.Join
+	// follows, which would reach files outside the log directory
+	if strings.ContainsAny(logFile, `/\`) || logFile != filepath.Base(logFile) || filepath.Ext(logFile) != ".log" {
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, errorResponse{
-			Message: "invalid log file. Must have .log extension",
+			Message: "invalid log file. Must be a .log file in the log directory",
 			Status:  http.StatusBadRequest,
 		})
 		return

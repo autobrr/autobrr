@@ -338,9 +338,10 @@ type AppConfig struct {
 	m      *sync.Mutex
 }
 
-// New loads the config at configPath and exits when it cannot be decoded.
+// New loads the config at configPath. A config file it cannot read is logged
+// and the defaults are used; one it cannot decode exits.
 func New(configPath string) *AppConfig {
-	c, err := Load(configPath)
+	c, err := newAppConfig(configPath, false)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -349,15 +350,21 @@ func New(configPath string) *AppConfig {
 }
 
 // Load is New for callers that report a config error themselves, such as the
-// desktop build, which has no console for log.Fatal to print to.
+// desktop build, which has no console for log.Fatal to print to. It also
+// returns read errors, such as a syntax error, rather than running on defaults
+// that the user did not choose.
 func Load(configPath string) (*AppConfig, error) {
+	return newAppConfig(configPath, true)
+}
+
+func newAppConfig(configPath string, strict bool) (*AppConfig, error) {
 	c := &AppConfig{
 		m: new(sync.Mutex),
 	}
 	c.defaults()
 	c.Config.ConfigPath = configPath
 
-	if err := c.load(configPath); err != nil {
+	if err := c.load(configPath, strict); err != nil {
 		return nil, err
 	}
 	c.loadFromEnv()
@@ -668,7 +675,7 @@ func validDatabaseType(v string) bool {
 	return slices.Contains(validDbTypes, v)
 }
 
-func (c *AppConfig) load(configPath string) error {
+func (c *AppConfig) load(configPath string, strict bool) error {
 	viper.SetConfigType("toml")
 
 	// clean trailing slash from configPath
@@ -695,6 +702,10 @@ func (c *AppConfig) load(configPath string) error {
 
 	// read config
 	if err := viper.ReadInConfig(); err != nil {
+		if strict {
+			return errors.Wrap(err, "could not read config file: %s", viper.ConfigFileUsed())
+		}
+
 		log.Printf("config read error: %q", err)
 	}
 
