@@ -53,7 +53,26 @@ func TestLogsHandler_DownloadFileRejectsPaths(t *testing.T) {
 			h.downloadFile(rec, req)
 
 			assert.Equal(t, tt.want, rec.Code)
+			if tt.want == http.StatusOK {
+				assert.Contains(t, rec.Body.String(), "line")
+			}
 			assert.NotContains(t, rec.Body.String(), "secret")
 		})
 	}
+}
+
+func TestLogsHandler_FilesListsTopLevelOnly(t *testing.T) {
+	logsDir := filepath.Join(t.TempDir(), "logs")
+	require.NoError(t, os.MkdirAll(filepath.Join(logsDir, "old"), 0o755))
+	require.NoError(t, os.WriteFile(filepath.Join(logsDir, "autobrr.log"), []byte("line\n"), 0o600))
+	require.NoError(t, os.WriteFile(filepath.Join(logsDir, "old", "nested.log"), []byte("line\n"), 0o600))
+
+	h := newLogsHandler(&config.AppConfig{Config: &domain.Config{LogPath: filepath.Join(logsDir, "autobrr.log")}})
+
+	rec := httptest.NewRecorder()
+	h.files(rec, httptest.NewRequest(http.MethodGet, "/api/logs/files", nil))
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	assert.Contains(t, rec.Body.String(), `"autobrr.log"`)
+	assert.NotContains(t, rec.Body.String(), "nested.log")
 }

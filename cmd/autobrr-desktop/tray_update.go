@@ -170,10 +170,10 @@ func (m *updateMenu) installConfirmed() bool {
 		return false
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
-	defer cancel()
+	checkCtx, cancelCheck := context.WithTimeout(context.Background(), time.Minute)
+	defer cancelCheck()
 
-	rel, err := m.app.CheckUpdateAvailable(ctx)
+	rel, err := m.app.CheckUpdateAvailable(checkCtx)
 	if err != nil {
 		m.installing.Store(false)
 		m.app.Log().Error().Err(err).Msg("could not check for updates")
@@ -191,6 +191,10 @@ func (m *updateMenu) installConfirmed() bool {
 		m.installing.Store(false)
 		return false
 	}
+
+	// started after the dialog, which may have been open for a long time
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
 
 	m.tray.ShowNotification("autobrr", "Downloading "+rel.TagName)
 

@@ -707,6 +707,10 @@ func (c *AppConfig) load(configPath string, strict bool) error {
 		}
 
 		log.Printf("config read error: %q", err)
+
+		// viper keeps the values of an earlier successful read, so decoding
+		// now would not give the defaults
+		return nil
 	}
 
 	if err := viper.Unmarshal(c.Config); err != nil {

@@ -56,7 +56,11 @@ func (h logsHandler) files(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var walk = func(path string, d fs.DirEntry, err error) error {
+		// downloads read from logsDir itself, so nested files could not be fetched
 		if d.IsDir() {
+			if path != logsDir {
+				return fs.SkipDir
+			}
 			return nil
 		}
 
