@@ -6,6 +6,10 @@
 package main
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"path/filepath"
+	"strings"
 	"unsafe"
 
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -23,6 +27,7 @@ var (
 
 const (
 	mbIconError       = 0x10
+	mbIconInformation = 0x40
 	wmQueryEndSession = 0x0011
 	wmEndSession      = 0x0016
 )
@@ -30,10 +35,49 @@ const (
 // showError is the only way a GUI build can report a failed start, it has no
 // console to print to.
 func showError(title, message string) {
+	showMessage(title, message, mbIconError)
+}
+
+func showInfo(title, message string) {
+	showMessage(title, message, mbIconInformation)
+}
+
+func showMessage(title, message string, icon uintptr) {
 	t, _ := windows.UTF16PtrFromString(title)
 	m, _ := windows.UTF16PtrFromString(message)
 
-	_, _, _ = procMessageBoxW.Call(0, uintptr(unsafe.Pointer(m)), uintptr(unsafe.Pointer(t)), mbIconError)
+	_, _, _ = procMessageBoxW.Call(0, uintptr(unsafe.Pointer(m)), uintptr(unsafe.Pointer(t)), icon)
+}
+
+// lockInstance reports false when another instance already runs with
+// configDir. The named mutex is scoped to the config directory, so instances
+// with separate configs can still run side by side, and to the login session
+// through the Local namespace. Windows releases it when the process exits, so
+// a crash cannot leave it stale.
+func lockInstance(configDir string) (bool, error) {
+	dir, err := filepath.Abs(configDir)
+	if err != nil {
+		return false, errors.Wrap(err, "could not resolve config directory")
+	}
+
+	// mutex names cannot contain backslashes, and Windows paths are case-insensitive
+	sum := sha256.Sum256([]byte(strings.ToLower(filepath.Clean(dir))))
+
+	name, err := windows.UTF16PtrFromString(`Local\autobrr-` + hex.EncodeToString(sum[:16]))
+	if err != nil {
+		return false, err
+	}
+
+	// the handle is deliberately never closed: holding it until exit is the lock
+	if _, err := windows.CreateMutex(nil, false, name); err != nil {
+		if err == windows.ERROR_ALREADY_EXISTS {
+			return false, nil
+		}
+
+		return false, errors.Wrap(err, "could not create instance mutex")
+	}
+
+	return true, nil
 }
 
 type wndClassEx struct {

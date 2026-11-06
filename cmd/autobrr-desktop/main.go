@@ -76,6 +76,16 @@ func run(ctx context.Context, configPath string) error {
 		return err
 	}
 
+	// checked before Run, so a second instance never opens the database
+	locked, err := lockInstance(app.Config().ConfigPath)
+	if err != nil {
+		app.Log().Error().Err(err).Msg("could not check for a running instance")
+	} else if !locked {
+		showInfo("autobrr", "autobrr is already running. Open it from the tray icon.")
+
+		return nil
+	}
+
 	tray := newTray(app, cancel)
 
 	var runErr error
