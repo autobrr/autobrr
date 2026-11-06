@@ -765,6 +765,25 @@ func TestNickServOfflineStatus(t *testing.T) {
 	assert.Empty(t, h.connectionErrors, "expected a reconnect to drop the old connection's status")
 }
 
+// TestReconnectForgetsFailedNickServAttempts verifies notices from an earlier
+// connection do not count toward stopping the network on the next one.
+func TestReconnectForgetsFailedNickServAttempts(t *testing.T) {
+	const protectedNotice = "This nickname is registered and protected. If it is your nick, type /msg NickServ IDENTIFY password. Otherwise, please choose a different nick."
+
+	h, _ := newTestHandler()
+	withNickServAuth(h, "test_bot")
+
+	h.handleNickServ(nickServNotice("user_bot", protectedNotice))
+	h.handleNickServ(nickServNotice("user_bot", protectedNotice))
+
+	h.onDisconnect(ircmsg.Message{Command: "DISCONNECT"})
+	h.identifyOutstanding = true
+
+	h.handleNickServ(nickServNotice("user_bot", protectedNotice))
+
+	assert.False(t, h.Stopped(), "expected one notice on a new connection to leave the network running")
+}
+
 // TestNickServNoticeRetriesIdentifyEarly verifies a NOTICE from NickServ sends a
 // scheduled retry right away: services are back, so waiting out the backoff
 // would only keep the network unauthenticated for up to 5 minutes longer.
