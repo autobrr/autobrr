@@ -32,9 +32,10 @@ type fakeIndexerService struct {
 }
 
 func (f *fakeIndexerService) IsEnabled(identifier string) bool {
+	enabled := f.enabled.Load()
 	f.checked <- identifier
 
-	return f.enabled.Load()
+	return enabled
 }
 
 func TestAnnounceProcessor_SkipsDisabledIndexer(t *testing.T) {
