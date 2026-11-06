@@ -92,6 +92,8 @@ type stubIndexerService struct{}
 
 func (stubIndexerService) GetIndexersByIRCNetwork(string) []*domain.IndexerDefinition { return nil }
 
+func (stubIndexerService) IsEnabled(string) bool { return true }
+
 type stubDefinitionsIndexerService struct {
 	definitions []*domain.IndexerDefinition
 }
@@ -99,6 +101,8 @@ type stubDefinitionsIndexerService struct {
 func (s stubDefinitionsIndexerService) GetIndexersByIRCNetwork(string) []*domain.IndexerDefinition {
 	return s.definitions
 }
+
+func (s stubDefinitionsIndexerService) IsEnabled(string) bool { return true }
 
 type stubProxyService struct {
 	proxy *domain.Proxy
@@ -118,7 +122,7 @@ func proxiedNetwork() domain.IrcNetwork {
 func runningHandler(s *Service, network domain.IrcNetwork, p *domain.Proxy) *Handler {
 	network.Proxy = p
 
-	h := NewHandler(zerolog.Nop(), noopEventBus{}, &mockSSEServer{}, network, nil, nil)
+	h := NewHandler(zerolog.Nop(), noopEventBus{}, &mockSSEServer{}, network, nil, nil, nil)
 	h.m.Lock()
 	h.clientState = ircLive
 	h.m.Unlock()
@@ -234,7 +238,7 @@ func TestStoreNetwork_ExistingNetworkRegistersNewChannel(t *testing.T) {
 	s := NewService(zerolog.Nop(), noopEventBus{}, &mockSSEServer{}, newStubIrcRepo(existing), nil, stubDefinitionsIndexerService{definitions: definitions}, stubProxyService{})
 
 	// a handler parked by a restart in flight, which the update must not bypass
-	h := NewHandler(zerolog.Nop(), noopEventBus{}, &mockSSEServer{}, existing, definitions[:1], nil)
+	h := NewHandler(zerolog.Nop(), noopEventBus{}, &mockSSEServer{}, existing, definitions[:1], nil, nil)
 	s.networkHandlers.Set(existing.ID, h)
 
 	err := s.StoreNetwork(t.Context(), &domain.IrcNetwork{

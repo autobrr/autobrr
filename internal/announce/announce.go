@@ -21,32 +21,38 @@ type releaseService interface {
 	Process(ctx context.Context, release *domain.Release)
 }
 
+type indexerService interface {
+	IsEnabled(identifier string) bool
+}
+
 type announceProcessor struct {
 	log     zerolog.Logger
 	indexer *domain.IndexerDefinition
 
 	releaseSvc releaseService
+	indexerSvc indexerService
 
 	channels map[string]*domain.IndexerIRCV2Channel
 	queues   map[string]chan string
 }
 
 // NewAnnounceProcessor returns a processor for the indexer's IRC channels.
-func NewAnnounceProcessor(log zerolog.Logger, releaseSvc releaseService, indexer *domain.IndexerDefinition) Processor {
-	return newAnnounceProcessor(log.With().Str("network", indexer.IRC.Network).Logger(), releaseSvc, indexer, indexer.IRC.ChannelsMap)
+func NewAnnounceProcessor(log zerolog.Logger, releaseSvc releaseService, indexerSvc indexerService, indexer *domain.IndexerDefinition) Processor {
+	return newAnnounceProcessor(log.With().Str("network", indexer.IRC.Network).Logger(), releaseSvc, indexerSvc, indexer, indexer.IRC.ChannelsMap)
 }
 
 // NewMatrixAnnounceProcessor returns a processor for the indexer's Matrix rooms, queued by lowercase room name.
-func NewMatrixAnnounceProcessor(log zerolog.Logger, releaseSvc releaseService, indexer *domain.IndexerDefinition) *MatrixProcessor {
+func NewMatrixAnnounceProcessor(log zerolog.Logger, releaseSvc releaseService, indexerSvc indexerService, indexer *domain.IndexerDefinition) *MatrixProcessor {
 	return &MatrixProcessor{
-		announceProcessor: newAnnounceProcessor(log.With().Str("homeserver", indexer.Matrix.Homeserver).Logger(), releaseSvc, indexer, indexer.Matrix.RoomsMap),
+		announceProcessor: newAnnounceProcessor(log.With().Str("homeserver", indexer.Matrix.Homeserver).Logger(), releaseSvc, indexerSvc, indexer, indexer.Matrix.RoomsMap),
 	}
 }
 
-func newAnnounceProcessor(log zerolog.Logger, releaseSvc releaseService, indexer *domain.IndexerDefinition, channels map[string]*domain.IndexerIRCV2Channel) *announceProcessor {
+func newAnnounceProcessor(log zerolog.Logger, releaseSvc releaseService, indexerSvc indexerService, indexer *domain.IndexerDefinition, channels map[string]*domain.IndexerIRCV2Channel) *announceProcessor {
 	ap := &announceProcessor{
 		log:        log.With().Str("module", "announce_processor").Str("indexer", indexer.Name).Logger(),
 		releaseSvc: releaseSvc,
+		indexerSvc: indexerSvc,
 		indexer:    indexer,
 		channels:   channels,
 	}
@@ -122,10 +128,6 @@ func (a *announceProcessor) processQueue(channelName string, queue chan string) 
 
 			l.Trace().Str("line", line).Msg("announce: process line")
 
-			if !a.indexer.Enabled {
-				l.Warn().Msg("indexer disabled, skipping further processing")
-			}
-
 			// check should ignore
 			match, err := parseLine.ParseLine(tmpVars, line, parseLine.Ignore)
 			if err != nil {
@@ -143,6 +145,13 @@ func (a *announceProcessor) processQueue(channelName string, queue chan string) 
 		}
 
 		if parseFailed {
+			continue
+		}
+
+		// checked per announce, after every line is consumed, so a toggle applies to running
+		// processors and a multi-line announce never leaves the queue out of step
+		if !a.indexerSvc.IsEnabled(a.indexer.Identifier) {
+			l.Debug().Msg("indexer disabled, skipping announce")
 			continue
 		}
 

@@ -123,6 +123,10 @@ func (noIndexers) GetIndexersByMatrixHomeserver(string) []*domain.IndexerDefinit
 	return nil
 }
 
+func (noIndexers) IsEnabled(string) bool {
+	return false
+}
+
 // Tokens verified against one homeserver must never be stored on a network that has
 // since moved to another, or the new homeserver would receive them.
 func TestService_ReplaceTokensRejectsChangedHomeserver(t *testing.T) {

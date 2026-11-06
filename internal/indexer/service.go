@@ -969,6 +969,19 @@ func (s *Service) GetMappedDefinitionByName(name string) (*domain.IndexerDefinit
 	return v, true
 }
 
+// IsEnabled reports whether the mapped indexer is enabled, read under the lock that guards toggles.
+func (s *Service) IsEnabled(identifier string) bool {
+	s.m.RLock()
+	defer s.m.RUnlock()
+
+	d, ok := s.mappedDefinitions[identifier]
+	if !ok {
+		return false
+	}
+
+	return d.Enabled
+}
+
 func (s *Service) TestApi(ctx context.Context, req domain.IndexerTestApiRequest) error {
 	indexer, err := s.FindByID(ctx, req.IndexerId)
 	if err != nil {

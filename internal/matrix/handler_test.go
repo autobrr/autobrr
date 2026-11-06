@@ -41,6 +41,14 @@ func (f *fakeReleaseService) Process(_ context.Context, release *domain.Release)
 	f.releases <- release
 }
 
+type fakeIndexerService struct {
+	disabled atomic.Bool
+}
+
+func (f *fakeIndexerService) IsEnabled(string) bool {
+	return !f.disabled.Load()
+}
+
 type fakeSSE struct {
 	m      sync.Mutex
 	events map[string][][]byte
@@ -217,7 +225,7 @@ func TestHandler_AnnounceFlow(t *testing.T) {
 
 	stream := &fakeSSE{}
 
-	h := newHandler(zerolog.Nop(), stream, store, server.Client(), releases, network, []*domain.IndexerDefinition{definition})
+	h := newHandler(zerolog.Nop(), stream, store, server.Client(), releases, &fakeIndexerService{}, network, []*domain.IndexerDefinition{definition})
 	h.Start()
 	defer h.Stop()
 
@@ -283,7 +291,7 @@ func TestHandler_TokenRejectedWithoutRefreshStops(t *testing.T) {
 		Rooms:       []domain.MatrixRoom{{ID: 1, Enabled: true, Name: testRoomAlias}},
 	}
 
-	h := newHandler(zerolog.Nop(), &fakeSSE{}, &fakeTokenStore{roomIDs: map[int64]string{}}, server.Client(), &fakeReleaseService{}, network, nil)
+	h := newHandler(zerolog.Nop(), &fakeSSE{}, &fakeTokenStore{roomIDs: map[int64]string{}}, server.Client(), &fakeReleaseService{}, &fakeIndexerService{}, network, nil)
 	h.Start()
 
 	select {
@@ -385,7 +393,7 @@ func TestHandler_RetriesFailedJoin(t *testing.T) {
 
 	releases := &fakeReleaseService{releases: make(chan *domain.Release, 10)}
 
-	h := newHandler(zerolog.Nop(), &fakeSSE{}, &fakeTokenStore{roomIDs: map[int64]string{}}, server.Client(), releases, network, []*domain.IndexerDefinition{definition})
+	h := newHandler(zerolog.Nop(), &fakeSSE{}, &fakeTokenStore{roomIDs: map[int64]string{}}, server.Client(), releases, &fakeIndexerService{}, network, []*domain.IndexerDefinition{definition})
 	h.joinRetryInitial = 50 * time.Millisecond
 	h.Start()
 	defer h.Stop()
@@ -469,7 +477,7 @@ func TestHandler_ReconnectDropsHistoryOfNewlyJoinedRoom(t *testing.T) {
 	}
 
 	releases := &fakeReleaseService{releases: make(chan *domain.Release, 10)}
-	h := newHandler(zerolog.Nop(), &fakeSSE{}, &fakeTokenStore{roomIDs: map[int64]string{}}, server.Client(), releases, network, []*domain.IndexerDefinition{definition})
+	h := newHandler(zerolog.Nop(), &fakeSSE{}, &fakeTokenStore{roomIDs: map[int64]string{}}, server.Client(), releases, &fakeIndexerService{}, network, []*domain.IndexerDefinition{definition})
 	defer h.Stop()
 
 	ctx, cancel := context.WithCancel(t.Context())
@@ -488,6 +496,60 @@ func TestHandler_ReconnectDropsHistoryOfNewlyJoinedRoom(t *testing.T) {
 		t.Fatalf("history from before the join was announced: %s", rls.TorrentName)
 	case <-time.After(200 * time.Millisecond):
 	}
+}
+
+// A disabled indexer keeps its room joined but produces no release from its announces.
+func TestHandler_DisabledIndexerSkipsAnnounce(t *testing.T) {
+	definition, err := indexer.OpenAndProcessDefinition("../indexer/definitions/blutopia.yaml")
+	require.NoError(t, err)
+
+	definition.SettingsMap = map[string]string{"rsskey": "secret"}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/_matrix/client/v3/account/whoami":
+			writeJSON(w, http.StatusOK, map[string]any{"user_id": "@autobrr:matrix.watchtower.pm"})
+		case strings.HasPrefix(r.URL.Path, "/_matrix/client/v3/join/"):
+			writeJSON(w, http.StatusOK, map[string]any{"room_id": testRoomID})
+		case r.URL.Path == "/_matrix/client/v3/sync" && r.URL.Query().Get("since") == "s1":
+			writeJSON(w, http.StatusOK, syncBody("s2", messageEvent("$new", testAnnouncer, testAnnounce, false)))
+		default:
+			<-r.Context().Done()
+		}
+	}))
+	defer server.Close()
+
+	network := domain.MatrixNetwork{
+		ID: 1, Name: "Watchtower", Enabled: true, Homeserver: server.URL,
+		AuthMethod: domain.MatrixAuthMethodToken, AccessToken: "token",
+		Rooms: []domain.MatrixRoom{{ID: 1, Enabled: true, Name: testRoomAlias}},
+	}
+
+	indexers := &fakeIndexerService{}
+	indexers.disabled.Store(true)
+
+	releases := &fakeReleaseService{releases: make(chan *domain.Release, 10)}
+	h := newHandler(zerolog.Nop(), &fakeSSE{}, &fakeTokenStore{roomIDs: map[int64]string{}}, server.Client(), releases, indexers, network, []*domain.IndexerDefinition{definition})
+	defer h.Stop()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	go h.session(ctx, "s1")
+
+	require.Eventually(t, func() bool {
+		history, err := h.History(testRoomAlias)
+		return err == nil && len(history) == 1
+	}, 5*time.Second, 10*time.Millisecond, "announce was not received")
+
+	select {
+	case rls := <-releases.releases:
+		t.Fatalf("disabled indexer produced a release: %s", rls.TorrentName)
+	case <-time.After(200 * time.Millisecond):
+	}
+
+	_, roomHealth := h.Health()
+	assert.True(t, roomHealth[testRoomAlias].Joined)
 }
 
 // A reconnect that authenticates and joins but cannot sync is not a connection, so the
@@ -511,7 +573,7 @@ func TestHandler_SessionWithoutSyncIsNotConnected(t *testing.T) {
 		Rooms: []domain.MatrixRoom{{ID: 1, Enabled: true, Name: testRoomAlias}},
 	}
 
-	h := newHandler(zerolog.Nop(), &fakeSSE{}, &fakeTokenStore{roomIDs: map[int64]string{}}, server.Client(), &fakeReleaseService{}, network, nil)
+	h := newHandler(zerolog.Nop(), &fakeSSE{}, &fakeTokenStore{roomIDs: map[int64]string{}}, server.Client(), &fakeReleaseService{}, &fakeIndexerService{}, network, nil)
 
 	since, connected, err := h.session(t.Context(), "s1")
 	require.Error(t, err)
