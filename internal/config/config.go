@@ -338,17 +338,38 @@ type AppConfig struct {
 	m      *sync.Mutex
 }
 
+// New loads the config at configPath. A config file it cannot read is logged
+// and the defaults are used; one it cannot decode exits.
 func New(configPath string) *AppConfig {
+	c, err := newAppConfig(configPath, false)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return c
+}
+
+// Load is New for callers that report a config error themselves, such as the
+// desktop build, which has no console for log.Fatal to print to. It also
+// returns read errors, such as a syntax error, rather than running on defaults
+// that the user did not choose.
+func Load(configPath string) (*AppConfig, error) {
+	return newAppConfig(configPath, true)
+}
+
+func newAppConfig(configPath string, strict bool) (*AppConfig, error) {
 	c := &AppConfig{
 		m: new(sync.Mutex),
 	}
 	c.defaults()
 	c.Config.ConfigPath = configPath
 
-	c.load(configPath)
+	if err := c.load(configPath, strict); err != nil {
+		return nil, err
+	}
 	c.loadFromEnv()
 
-	return c
+	return c, nil
 }
 
 func (c *AppConfig) defaults() {
@@ -654,7 +675,7 @@ func validDatabaseType(v string) bool {
 	return slices.Contains(validDbTypes, v)
 }
 
-func (c *AppConfig) load(configPath string) {
+func (c *AppConfig) load(configPath string, strict bool) error {
 	viper.SetConfigType("toml")
 
 	// clean trailing slash from configPath
@@ -681,12 +702,22 @@ func (c *AppConfig) load(configPath string) {
 
 	// read config
 	if err := viper.ReadInConfig(); err != nil {
+		if strict {
+			return errors.Wrap(err, "could not read config file: %s", viper.ConfigFileUsed())
+		}
+
 		log.Printf("config read error: %q", err)
+
+		// viper keeps the values of an earlier successful read, so decoding
+		// now would not give the defaults
+		return nil
 	}
 
 	if err := viper.Unmarshal(c.Config); err != nil {
-		log.Fatalf("Could not unmarshal config file: %v: err %q", viper.ConfigFileUsed(), err)
+		return errors.Wrap(err, "could not unmarshal config file: %s", viper.ConfigFileUsed())
 	}
+
+	return nil
 }
 
 func (c *AppConfig) DynamicReload(log zerolog.Logger) {
@@ -743,7 +774,7 @@ func (c *AppConfig) processLines(lines []string) []string {
 			foundLineUpdate = true
 		}
 		if !foundLineLogLevel && strings.Contains(line, "logLevel =") {
-			lines[i] = fmt.Sprintf(`logLevel = "%s"`, c.Config.LogLevel)
+			lines[i] = "logLevel = " + tomlString(c.Config.LogLevel)
 			foundLineLogLevel = true
 		}
 		if !foundLineLogPath && strings.Contains(line, "logPath =") {
@@ -756,7 +787,7 @@ func (c *AppConfig) processLines(lines []string) []string {
 					lines[i] = `#logPath = ""`
 				}
 			} else {
-				lines[i] = fmt.Sprintf("logPath = \"%s\"", c.Config.LogPath)
+				lines[i] = "logPath = " + tomlString(c.Config.LogPath)
 			}
 			foundLineLogPath = true
 		}
@@ -776,7 +807,7 @@ func (c *AppConfig) processLines(lines []string) []string {
 		lines = append(lines, "#")
 		lines = append(lines, `# Options: "ERROR", "WARN", "INFO", "DEBUG", "TRACE"`)
 		lines = append(lines, "#")
-		lines = append(lines, fmt.Sprintf(`logLevel = "%s"`, c.Config.LogLevel))
+		lines = append(lines, "logLevel = "+tomlString(c.Config.LogLevel))
 	}
 
 	if !foundLineLogPath {
@@ -787,9 +818,31 @@ func (c *AppConfig) processLines(lines []string) []string {
 		if c.Config.LogPath == "" {
 			lines = append(lines, `#logPath = ""`)
 		} else {
-			lines = append(lines, fmt.Sprintf(`logPath = "%s"`, c.Config.LogPath))
+			lines = append(lines, "logPath = "+tomlString(c.Config.LogPath))
 		}
 	}
 
 	return lines
+}
+
+// tomlString quotes s as a TOML basic string. Windows paths need it: written
+// raw, the backslashes in C:\Users read as escape sequences and the file no
+// longer parses.
+func tomlString(s string) string {
+	var b strings.Builder
+	b.WriteByte('"')
+	for _, r := range s {
+		switch {
+		case r == '"' || r == '\\':
+			b.WriteByte('\\')
+			b.WriteRune(r)
+		case r < 0x20 || r == 0x7f:
+			fmt.Fprintf(&b, `\u%04X`, r)
+		default:
+			b.WriteRune(r)
+		}
+	}
+	b.WriteByte('"')
+
+	return b.String()
 }

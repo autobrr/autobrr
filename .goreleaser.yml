@@ -64,6 +64,21 @@ builds:
     main: ./cmd/autobrrctl/main.go
     binary: autobrrctl
 
+  - id: autobrr-desktop
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -H windowsgui
+      - -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+    goos:
+      - windows
+    goarch:
+      - amd64
+    main: ./cmd/autobrr-desktop
+    binary: autobrr-desktop
+
 archives:
   - id: autobrr
     ids:
@@ -78,6 +93,27 @@ archives:
       {{- .Os }}_
       {{- if eq .Arch "amd64" }}x86_64
       {{- else }}{{ .Arch }}{{ end }}
+
+  - id: autobrr-desktop
+    ids:
+      - autobrr-desktop
+    formats:
+      - zip
+    name_template: >-
+      {{ .ProjectName }}-desktop_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else }}{{ .Arch }}{{ end }}
+
+msi:
+  - id: autobrr-desktop
+    ids:
+      - autobrr-desktop
+    wxs: ./distrib/windows/autobrr-desktop.wxs
+    extra_files:
+      - distrib/windows/icons/autobrr-desktop.ico
+    name: "{{ .ProjectName }}-desktop_{{ .Version }}_windows_x86_64"
 
 release:
   prerelease: auto

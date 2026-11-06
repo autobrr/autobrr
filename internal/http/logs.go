@@ -7,7 +7,6 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -48,7 +47,7 @@ func (h logsHandler) files(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logsDir := path.Dir(h.cfg.Config.LogPath)
+	logsDir := filepath.Dir(h.cfg.Config.LogPath)
 
 	// check if dir exists before walkDir
 	if _, err := os.Stat(logsDir); os.IsNotExist(err) {
@@ -57,7 +56,11 @@ func (h logsHandler) files(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var walk = func(path string, d fs.DirEntry, err error) error {
+		// downloads read from logsDir itself, so nested files could not be fetched
 		if d.IsDir() {
+			if path != logsDir {
+				return fs.SkipDir
+			}
 			return nil
 		}
 
@@ -98,7 +101,7 @@ func (h logsHandler) downloadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logsDir := path.Dir(h.cfg.Config.LogPath)
+	logsDir := filepath.Dir(h.cfg.Config.LogPath)
 
 	// check if dir exists before walkDir
 	if _, err := os.Stat(logsDir); os.IsNotExist(err) {
@@ -112,10 +115,12 @@ func (h logsHandler) downloadFile(w http.ResponseWriter, r *http.Request) {
 
 	logFile := chi.URLParam(r, "logFile")
 
-	if !strings.Contains(logFile, ".log") {
+	// a bare name only: Windows decodes %5C to a separator that filepath.Join
+	// follows, which would reach files outside the log directory
+	if strings.ContainsAny(logFile, `/\`) || logFile != filepath.Base(logFile) || filepath.Ext(logFile) != ".log" {
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, errorResponse{
-			Message: "invalid log file. Must have .log extension",
+			Message: "invalid log file. Must be a .log file in the log directory",
 			Status:  http.StatusBadRequest,
 		})
 		return

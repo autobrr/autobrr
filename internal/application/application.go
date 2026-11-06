@@ -60,6 +60,7 @@ type App struct {
 	sse           *sse.Server
 	eventBus      *events.EventBus
 	updateService *update.Service
+	ready         chan struct{}
 
 	db            *database.DB
 	httpServer    *http.Server
@@ -87,12 +88,16 @@ type App struct {
 	userService         *user.Service
 }
 
-// New loads the config and builds the parts that need no database. They exist
-// before Run so a host such as the tray can subscribe to events and check for
-// updates while the rest of the application starts.
+// New loads the config at configPath and returns NewFromConfig for it.
 func New(configPath string) *App {
-	cfg := config.New(configPath)
+	return NewFromConfig(config.New(configPath))
+}
 
+// NewFromConfig builds the parts that need no database. They exist before Run
+// so a host such as the tray can subscribe to events and check for updates
+// while the rest of the application starts. A host that needs different
+// defaults adjusts cfg before calling it, since the logger is built here.
+func NewFromConfig(cfg *config.AppConfig) *App {
 	serverEvents := sse.New()
 	serverEvents.Headers = map[string]string{
 		"Content-Type":      "text/event-stream",
@@ -109,12 +114,15 @@ func New(configPath string) *App {
 
 	cfg.DynamicReload(log)
 
+	eventBus := events.NewEventBus(log)
+
 	return &App{
 		log:           log,
 		cfg:           cfg,
 		sse:           serverEvents,
-		eventBus:      events.NewEventBus(log),
-		updateService: update.NewUpdate(log, cfg.Config),
+		eventBus:      eventBus,
+		updateService: update.NewUpdate(log, eventBus, cfg.Config),
+		ready:         make(chan struct{}),
 	}
 }
 
@@ -151,6 +159,8 @@ func (app *App) Run(ctx context.Context) error {
 	started, err := app.startComponents(runCtx, app.components(fail))
 	if err != nil {
 		fail(err)
+	} else {
+		close(app.ready)
 	}
 
 	<-runCtx.Done()
@@ -312,6 +322,12 @@ func (app *App) components(fail context.CancelCauseFunc) []component {
 	return components
 }
 
+// Ready is closed once every component has started and the web UI is serving.
+// It stays open when startup fails.
+func (app *App) Ready() <-chan struct{} {
+	return app.ready
+}
+
 // Config returns the loaded configuration.
 func (app *App) Config() *domain.Config {
 	return app.cfg.Config
@@ -453,7 +469,7 @@ func (app *App) setup(ctx context.Context) error {
 	)
 
 	app.apiService = api.NewService(app.log, apikeyRepo)
-	app.scheduler = scheduler.NewService(app.log, app.eventBus, app.cfg.Config, app.updateService)
+	app.scheduler = scheduler.NewService(app.log, app.cfg.Config, app.updateService)
 	app.notificationService = notification.NewService(app.log, app.eventBus, app.sse, notificationRepo, inboxRepo, app.scheduler)
 	app.userService = user.NewService(userRepo)
 	app.authService = auth.NewService(app.log, app.userService)

@@ -96,3 +96,42 @@ func TestAppConfig_processLines(t *testing.T) {
 		})
 	}
 }
+
+func TestUpdateConfig_WindowsLogPath(t *testing.T) {
+	dir := t.TempDir()
+
+	cfg, err := Load(dir)
+	require.NoError(t, err)
+
+	logPath := `C:\Users\a "b"\AppData\Roaming\autobrr\logs\autobrr.log`
+	cfg.Config.LogPath = logPath
+	require.NoError(t, cfg.UpdateConfig())
+
+	reloaded, err := Load(dir)
+	require.NoError(t, err)
+	assert.Equal(t, logPath, reloaded.Config.LogPath)
+}
+
+func TestLoad_InvalidValue(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "config.toml"), []byte(`port = "not a number"`), 0o600))
+
+	_, err := Load(dir)
+	assert.ErrorContains(t, err, "could not unmarshal config file")
+}
+
+func TestLoad_SyntaxError(t *testing.T) {
+	good := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(good, "config.toml"), []byte("port = 8080"), 0o600))
+	require.Equal(t, 8080, New(good).Config.Port)
+
+	broken := t.TempDir()
+	// unescaped backslashes are invalid escapes in a TOML basic string
+	require.NoError(t, os.WriteFile(filepath.Join(broken, "config.toml"), []byte(`logPath = "C:\Users\x\autobrr.log"`), 0o600))
+
+	_, err := Load(broken)
+	assert.ErrorContains(t, err, "could not read config file")
+
+	// New logs the error and uses the defaults, not the previous config
+	assert.Equal(t, 7474, New(broken).Config.Port)
+}
