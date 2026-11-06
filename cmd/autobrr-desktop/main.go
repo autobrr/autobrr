@@ -5,6 +5,8 @@
 
 package main
 
+//go:generate go run github.com/tc-hib/go-winres@v0.3.3 make --in ../../distrib/windows/winres.json --arch amd64 --out rsrc
+
 import (
 	"context"
 	"fmt"

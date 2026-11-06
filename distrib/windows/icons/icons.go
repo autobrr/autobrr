@@ -8,10 +8,13 @@ package icons
 
 import _ "embed"
 
-// TrayLight is the autobrr logo shown in the system tray.
+// TrayLight is the tray icon for a light taskbar.
 //
 //go:embed autobrr-light-32.png
 var TrayLight []byte
 
+// TrayDark is the tray icon for a dark taskbar, which Windows reports through
+// the SystemUsesLightTheme setting rather than the app theme.
+//
 //go:embed autobrr-white-32.png
 var TrayDark []byte
