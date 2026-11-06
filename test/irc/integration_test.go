@@ -287,8 +287,10 @@ func TestNickServIdentifiesAfterRegainingNick(t *testing.T) {
 	var accountFormSent atomic.Bool
 	srv := ircd.New(t, ircd.NickHeld("autobrr"), ircd.WithNickServScript(func(nick, text string) ([]string, bool) {
 		switch {
-		case nick == "autobrr":
+		case nick == "autobrr" && text == "IDENTIFY nspass":
 			return []string{"Password accepted - you are now recognized."}, true
+		case nick == "autobrr":
+			return nil, false
 		case len(strings.Fields(text)) == 2:
 			return []string{"Nick " + nick + " isn't registered."}, false
 		default:

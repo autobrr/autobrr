@@ -776,7 +776,10 @@ func TestReconnectForgetsFailedNickServAttempts(t *testing.T) {
 	h.handleNickServ(nickServNotice("user_bot", protectedNotice))
 	h.handleNickServ(nickServNotice("user_bot", protectedNotice))
 
+	require.Equal(t, 2, h.failedNickServAttempts)
+
 	h.onDisconnect(ircmsg.Message{Command: "DISCONNECT"})
+	assert.Zero(t, h.failedNickServAttempts)
 	h.identifyOutstanding = true
 
 	h.handleNickServ(nickServNotice("user_bot", protectedNotice))
