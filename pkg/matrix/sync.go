@@ -59,23 +59,36 @@ type Event struct {
 	OriginServerTS int64           `json:"origin_server_ts"`
 	StateKey       *string         `json:"state_key,omitempty"`
 	Content        json.RawMessage `json:"content"`
+	Unsigned       struct {
+		PrevContent json.RawMessage `json:"prev_content"`
+	} `json:"unsigned"`
 }
 
-// IsJoinOf reports whether the event is userID joining the room.
+// IsJoinOf reports whether the event is userID joining the room. A profile change is
+// also a join membership event, so an event whose previous membership already was join
+// does not count.
 func (e Event) IsJoinOf(userID string) bool {
 	if e.Type != EventTypeRoomMember || e.StateKey == nil || *e.StateKey != userID {
 		return false
 	}
 
-	var content struct {
+	return membership(e.Content) == "join" && membership(e.Unsigned.PrevContent) != "join"
+}
+
+func membership(content json.RawMessage) string {
+	if len(content) == 0 {
+		return ""
+	}
+
+	var member struct {
 		Membership string `json:"membership"`
 	}
 
-	if err := json.Unmarshal(e.Content, &content); err != nil {
-		return false
+	if err := json.Unmarshal(content, &member); err != nil {
+		return ""
 	}
 
-	return content.Membership == "join"
+	return member.Membership
 }
 
 // MessageContent is the content of an m.room.message event.

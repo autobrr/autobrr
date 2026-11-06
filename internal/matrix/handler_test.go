@@ -424,6 +424,68 @@ func TestEventsAfterJoin(t *testing.T) {
 	assert.Equal(t, []matrix.Event{live}, eventsAfterJoin([]matrix.Event{old, ownJoin, live}, userID))
 	assert.Equal(t, []matrix.Event{old, otherJoin, live}, eventsAfterJoin([]matrix.Event{old, otherJoin, live}, userID), "a room the user was already in keeps its live events")
 	assert.Empty(t, eventsAfterJoin([]matrix.Event{old, ownJoin}, userID))
+
+	profileChange := event(matrix.EventTypeRoomMember, "$profile", &userID, "join")
+	profileChange.Unsigned.PrevContent = json.RawMessage(`{"membership":"join"}`)
+	assert.Equal(t, []matrix.Event{old, profileChange, live}, eventsAfterJoin([]matrix.Event{old, profileChange, live}, userID), "a profile change is not a join")
+
+	rejoin := event(matrix.EventTypeRoomMember, "$rejoin", &userID, "join")
+	rejoin.Unsigned.PrevContent = json.RawMessage(`{"membership":"leave"}`)
+	assert.Equal(t, []matrix.Event{live}, eventsAfterJoin([]matrix.Event{old, rejoin, live}, userID))
+}
+
+// A room joined at the start of a reconnect, after failing to join in the previous
+// session, arrives with its history; only what came after the join is announced.
+func TestHandler_ReconnectDropsHistoryOfNewlyJoinedRoom(t *testing.T) {
+	definition, err := indexer.OpenAndProcessDefinition("../indexer/definitions/blutopia.yaml")
+	require.NoError(t, err)
+
+	definition.SettingsMap = map[string]string{"rsskey": "secret"}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/_matrix/client/v3/account/whoami":
+			writeJSON(w, http.StatusOK, map[string]any{"user_id": "@autobrr:matrix.watchtower.pm"})
+		case strings.HasPrefix(r.URL.Path, "/_matrix/client/v3/join/"):
+			writeJSON(w, http.StatusOK, map[string]any{"room_id": testRoomID})
+		case r.URL.Path == "/_matrix/client/v3/sync" && r.URL.Query().Get("since") == "s1":
+			writeJSON(w, http.StatusOK, syncBody("s2",
+				messageEvent("$old", testAnnouncer, testAnnounce, false),
+				joinEvent("@autobrr:matrix.watchtower.pm"),
+				messageEvent("$new", testAnnouncer, testAnnounce, false),
+			))
+		default:
+			<-r.Context().Done()
+		}
+	}))
+	defer server.Close()
+
+	network := domain.MatrixNetwork{
+		ID: 1, Name: "Watchtower", Enabled: true, Homeserver: server.URL,
+		AuthMethod: domain.MatrixAuthMethodToken, AccessToken: "token",
+		Rooms: []domain.MatrixRoom{{ID: 1, Enabled: true, Name: testRoomAlias}},
+	}
+
+	releases := &fakeReleaseService{releases: make(chan *domain.Release, 10)}
+	h := newHandler(zerolog.Nop(), &fakeSSE{}, &fakeTokenStore{roomIDs: map[int64]string{}}, server.Client(), releases, network, []*domain.IndexerDefinition{definition})
+	defer h.Stop()
+
+	ctx, cancel := context.WithCancel(t.Context())
+	defer cancel()
+
+	go h.session(ctx, "s1")
+
+	select {
+	case <-releases.releases:
+	case <-time.After(5 * time.Second):
+		t.Fatal("announce after the join was not processed")
+	}
+
+	select {
+	case rls := <-releases.releases:
+		t.Fatalf("history from before the join was announced: %s", rls.TorrentName)
+	case <-time.After(200 * time.Millisecond):
+	}
 }
 
 // A reconnect that authenticates and joins but cannot sync is not a connection, so the

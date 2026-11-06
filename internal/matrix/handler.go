@@ -280,6 +280,9 @@ func (h *Handler) session(ctx context.Context, since string) (string, bool, erro
 		h.log.Info().Int("rooms", len(roomIDs)).Msg("matrix network connected")
 	}
 
+	// rooms joined after since may arrive with their history, which must not be announced
+	lateJoined := map[string]struct{}{}
+
 	if since == "" {
 		resp, err := h.sync(ctx, matrix.SyncRequest{Rooms: roomIDs, TimelineLimit: 1})
 		if err != nil {
@@ -288,13 +291,16 @@ func (h *Handler) session(ctx context.Context, since string) (string, bool, erro
 
 		since = resp.NextBatch
 		markConnected()
+	} else {
+		// on a reconnect any room may have been joined since the last sync, for example
+		// one that failed to join before; rooms that stayed joined carry no join event
+		for _, id := range roomIDs {
+			lateJoined[id] = struct{}{}
+		}
 	}
 
 	joinRetry := h.joinRetryInitial
 	nextJoin := time.Now().Add(max(joinRetry, retryAfter))
-
-	// rooms joined mid-session may arrive with their history, which must not be announced
-	lateJoined := map[string]struct{}{}
 
 	for {
 		if len(failed) > 0 && !time.Now().Before(nextJoin) {
