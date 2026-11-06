@@ -143,10 +143,17 @@ function ListItem({ network }: ListItemProps) {
 
   const health = network.health;
   const loggedIn = network.user_id !== "";
+  const needsLogin = !loggedIn || health?.login_required === true;
+
+  // Drawers do not stack, so the edit panel hands over to the login panel.
+  const loginFromEdit = () => {
+    toggleUpdate();
+    toggleLogin();
+  };
 
   return (
     <li>
-      <MatrixNetworkUpdateForm isOpen={updateIsOpen} toggle={toggleUpdate} data={network} />
+      <MatrixNetworkUpdateForm isOpen={updateIsOpen} toggle={toggleUpdate} data={network} onLogin={loginFromEdit} />
       <MatrixLoginForm isOpen={loginIsOpen} toggle={toggleLogin} data={network} />
 
       <div
@@ -177,12 +184,18 @@ function ListItem({ network }: ListItemProps) {
               {health.error}
             </div>
           )}
+          {needsLogin && (
+            <div className="md:hidden ml-6 mt-1">
+              <LoginButton onClick={toggleLogin} />
+            </div>
+          )}
         </div>
         <div className="hidden md:flex col-span-4 md:pl-6 text-gray-500 dark:text-gray-400">
           <p className="block text-sm truncate">{network.homeserver}</p>
         </div>
-        <div className="hidden md:flex col-span-3 md:pl-6 text-gray-500 dark:text-gray-400">
-          <p className="block text-sm truncate">{loggedIn ? network.user_id : t("matrix.notLoggedIn")}</p>
+        <div className="hidden md:flex col-span-3 md:pl-6 items-center gap-3 text-gray-500 dark:text-gray-400">
+          {loggedIn && <p className="block text-sm truncate">{network.user_id}</p>}
+          {needsLogin && <LoginButton onClick={toggleLogin} />}
         </div>
         <div className="col-span-1 text-gray-500 dark:text-gray-400">
           <ListItemDropdown network={network} toggleUpdate={toggleUpdate} toggleLogin={toggleLogin} />
@@ -220,6 +233,28 @@ function ListItem({ network }: ListItemProps) {
     </li>
   );
 }
+
+interface LoginButtonProps {
+  onClick: () => void;
+}
+
+const LoginButton = ({ onClick }: LoginButtonProps) => {
+  const { t } = useTranslation("settings");
+
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        // the row toggles its rooms on click
+        e.preventDefault();
+        onClick();
+      }}
+      className="shrink-0 inline-flex items-center px-2.5 py-1 border border-transparent shadow-xs text-xs font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 cursor-pointer"
+    >
+      {t("matrix.login")}
+    </button>
+  );
+};
 
 interface NetworkStatusProps {
   network: MatrixNetwork;

@@ -185,7 +185,11 @@ export function MatrixNetworkAddForm({ isOpen, toggle }: AddFormProps) {
   );
 }
 
-export function MatrixNetworkUpdateForm({ isOpen, toggle, data }: UpdateFormProps<MatrixNetwork>) {
+interface MatrixNetworkUpdateFormProps extends UpdateFormProps<MatrixNetwork> {
+  onLogin: () => void;
+}
+
+export function MatrixNetworkUpdateForm({ isOpen, toggle, data, onLogin }: MatrixNetworkUpdateFormProps) {
   const { t } = useTranslation("settings");
   const queryClient = useQueryClient();
 
@@ -241,10 +245,83 @@ export function MatrixNetworkUpdateForm({ isOpen, toggle, data }: UpdateFormProp
       onSubmit={onSubmit}
       deleteAction={deleteAction}
     >
-      {(values) => <NetworkFields rooms={values.rooms} />}
+      {(values) => (
+        <>
+          <AccountSection network={data} onLogin={onLogin} />
+          <NetworkFields rooms={values.rooms} />
+        </>
+      )}
     </SlideOver>
   );
 }
+
+interface AccountSectionProps {
+  network: MatrixNetwork;
+  onLogin: () => void;
+}
+
+// Reads the network from props, not the form: logging in and out applies right away,
+// so it must not wait for, or be undone by, the form's Save and Cancel.
+const AccountSection = ({ network, onLogin }: AccountSectionProps) => {
+  const { t } = useTranslation("settings");
+  const queryClient = useQueryClient();
+
+  const logoutMutation = useMutation({
+    mutationFn: (id: number) => APIClient.matrix.logout(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: MatrixKeys.lists() });
+
+      toast.custom((toastInstance) => <Toast type="success" body={t("matrix.loggedOut", { name: network.name })} t={toastInstance} />);
+    }
+  });
+
+  const loggedIn = network.user_id !== "";
+
+  return (
+    <div className="px-4 py-5 border-b border-gray-200 dark:border-gray-700">
+      <h2 className="text-lg font-medium text-gray-900 dark:text-white">{t("forms.matrix.account")}</h2>
+      <p className="text-sm text-gray-500 dark:text-gray-400">{t("forms.matrix.accountDesc")}</p>
+
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0 text-sm">
+          {loggedIn ? (
+            <>
+              <p className="font-medium text-gray-900 dark:text-white truncate">{network.user_id}</p>
+              {network.auth_method && (
+                <p className="text-gray-500 dark:text-gray-400">{t(`forms.matrix.authMethod.${network.auth_method}`)}</p>
+              )}
+            </>
+          ) : (
+            <p className="text-gray-500 dark:text-gray-400">{t("matrix.notLoggedIn")}</p>
+          )}
+          {loggedIn && network.health?.login_required && network.health.error && (
+            <p className="text-red-600 dark:text-red-400">{network.health.error}</p>
+          )}
+        </div>
+
+        <div className="flex gap-2">
+          {loggedIn && (
+            <button
+              type="button"
+              disabled={logoutMutation.isPending}
+              onClick={() => logoutMutation.mutate(network.id)}
+              className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {t("matrix.logout")}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onLogin}
+            className="inline-flex justify-center py-2 px-4 border border-transparent shadow-xs text-sm font-medium rounded-md text-white bg-blue-600 dark:bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 cursor-pointer"
+          >
+            {t("matrix.login")}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export function MatrixLoginForm({ isOpen, toggle, data }: UpdateFormProps<MatrixNetwork>) {
   return (

@@ -172,11 +172,13 @@ func IsMatrixRoomName(name string) bool {
 
 // MatrixNetworkHealth is the runtime state of a network's sync loop.
 type MatrixNetworkHealth struct {
-	Connected      bool         `json:"connected"`
-	ConnectedSince *time.Time   `json:"connected_since,omitempty"`
-	Healthy        bool         `json:"healthy"`
-	Error          string       `json:"error,omitempty"`
-	Login          *MatrixLogin `json:"login,omitempty"`
+	Connected      bool       `json:"connected"`
+	ConnectedSince *time.Time `json:"connected_since,omitempty"`
+	Healthy        bool       `json:"healthy"`
+	Error          string     `json:"error,omitempty"`
+	// LoginRequired is set when the network has no login or its login was rejected.
+	LoginRequired bool         `json:"login_required"`
+	Login         *MatrixLogin `json:"login,omitempty"`
 }
 
 // MatrixRoomHealth is the runtime state of a joined room.

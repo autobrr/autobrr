@@ -896,7 +896,13 @@
       "saveToken": "保存令牌",
       "tokenSaved": "已为 {{name}} 保存访问令牌",
       "tokenFailed": "主服务器拒绝了该访问令牌",
-      "close": "关闭"
+      "close": "关闭",
+      "account": "账户",
+      "accountDesc": "登录和退出登录会立即生效，无需保存。",
+      "authMethod": {
+        "OAUTH": "浏览器登录",
+        "TOKEN": "访问令牌"
+      }
     },
     "indexer": {
       "title": "索引器",

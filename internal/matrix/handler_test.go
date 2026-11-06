@@ -250,6 +250,7 @@ func TestHandler_AnnounceFlow(t *testing.T) {
 	networkHealth, roomHealth := h.Health()
 	assert.True(t, networkHealth.Connected)
 	assert.True(t, networkHealth.Healthy)
+	assert.False(t, networkHealth.LoginRequired)
 	assert.True(t, roomHealth[testRoomAlias].Joined)
 	assert.NotNil(t, roomHealth[testRoomAlias].LastAnnounce)
 
@@ -296,6 +297,7 @@ func TestHandler_TokenRejectedWithoutRefreshStops(t *testing.T) {
 	networkHealth, _ := h.Health()
 	assert.False(t, networkHealth.Connected)
 	assert.Equal(t, reasonTokenRejected, networkHealth.Error)
+	assert.True(t, networkHealth.LoginRequired)
 }
 
 func TestAnnounceLine(t *testing.T) {

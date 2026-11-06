@@ -218,8 +218,12 @@ func (s *Service) attachHealth(network *domain.MatrixNetwork) {
 				network.Rooms[i].Health = &rh
 			}
 		}
-	} else if network.Enabled && !network.HasCredentials() {
-		health.Error = reasonNotLoggedIn
+	} else if !network.HasCredentials() {
+		health.LoginRequired = true
+
+		if network.Enabled {
+			health.Error = reasonNotLoggedIn
+		}
 	}
 
 	if login, ok := s.logins[network.ID]; ok {

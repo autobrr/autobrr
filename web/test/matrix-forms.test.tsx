@@ -89,7 +89,7 @@ test("a pasted access token is sent to the network", async () => {
 test("update form rejects a room that is not an alias or room id", async () => {
   const update = vi.spyOn(APIClient.matrix, "update").mockResolvedValue();
 
-  renderWithClient(<MatrixNetworkUpdateForm isOpen={true} toggle={() => {}} data={network} />);
+  renderWithClient(<MatrixNetworkUpdateForm isOpen={true} toggle={() => {}} data={network} onLogin={() => {}} />);
 
   const room = document.querySelector("input[name='rooms[0].name']") as HTMLInputElement;
   fireEvent.change(room, { target: { value: "blu-announce" } });
@@ -108,4 +108,37 @@ test("a pending login started earlier is shown when the panel opens again", asyn
   expect(await screen.findByText("ABCD-EFGH")).toBeTruthy();
   expect(screen.queryByText("Start login")).toBeNull();
   expect(login).not.toHaveBeenCalled();
+});
+
+test("the edit panel account section logs in and out without saving the form", async () => {
+  const update = vi.spyOn(APIClient.matrix, "update").mockResolvedValue();
+  const logout = vi.spyOn(APIClient.matrix, "logout").mockResolvedValue();
+  const onLogin = vi.fn();
+
+  renderWithClient(
+    <MatrixNetworkUpdateForm
+      isOpen={true}
+      toggle={() => {}}
+      data={{ ...network, auth_method: "OAUTH", user_id: "@autobrr:matrix.watchtower.pm" }}
+      onLogin={onLogin}
+    />
+  );
+
+  expect(await screen.findByText("@autobrr:matrix.watchtower.pm")).toBeTruthy();
+  expect(screen.getByText("Browser login")).toBeTruthy();
+
+  fireEvent.click(screen.getByRole("button", { name: "Log in" }));
+  expect(onLogin).toHaveBeenCalledTimes(1);
+
+  fireEvent.click(screen.getByRole("button", { name: "Log out" }));
+  await waitFor(() => expect(logout).toHaveBeenCalledWith(5));
+
+  expect(update).not.toHaveBeenCalled();
+});
+
+test("the edit panel offers no log out without a login", async () => {
+  renderWithClient(<MatrixNetworkUpdateForm isOpen={true} toggle={() => {}} data={network} onLogin={() => {}} />);
+
+  expect(await screen.findByText("Not logged in")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Log out" })).toBeNull();
 });

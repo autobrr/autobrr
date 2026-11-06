@@ -898,7 +898,13 @@
       "saveToken": "Save token",
       "tokenSaved": "Access token saved for {{name}}",
       "tokenFailed": "The access token was rejected by the homeserver",
-      "close": "Close"
+      "close": "Close",
+      "account": "Account",
+      "accountDesc": "Logging in and out applies right away, without saving.",
+      "authMethod": {
+        "OAUTH": "Browser login",
+        "TOKEN": "Access token"
+      }
     },
     "indexer": {
       "title": "Indexer",

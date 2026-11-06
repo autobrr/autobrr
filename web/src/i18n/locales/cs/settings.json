@@ -896,7 +896,13 @@
         "saveToken": "Uložit token",
         "tokenSaved": "Přístupový token pro {{name}} uložen",
         "tokenFailed": "Domovský server přístupový token odmítl",
-        "close": "Zavřít"
+        "close": "Zavřít",
+        "account": "Účet",
+        "accountDesc": "Přihlášení a odhlášení se projeví okamžitě, bez uložení.",
+        "authMethod": {
+          "OAUTH": "Přihlášení v prohlížeči",
+          "TOKEN": "Přístupový token"
+        }
       },
       "indexer": {
         "title": "Indexer",

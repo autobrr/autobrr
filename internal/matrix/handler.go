@@ -92,6 +92,7 @@ type Handler struct {
 	connected      bool
 	connectedSince *time.Time
 	lastErr        string
+	loginRequired  bool
 	roomHealth     map[string]*domain.MatrixRoomHealth
 
 	cancel context.CancelFunc
@@ -183,7 +184,7 @@ func (h *Handler) Stop() {
 
 func (h *Handler) run(ctx context.Context) {
 	if !h.network.HasCredentials() {
-		h.setError(reasonNotLoggedIn)
+		h.setLoginRequired(reasonNotLoggedIn)
 		return
 	}
 
@@ -216,8 +217,10 @@ func (h *Handler) run(ctx context.Context) {
 
 		h.setDisconnected(err)
 
+		// every fatal stop is a rejected login
 		if fatal, ok := errors.AsType[*fatalError](err); ok {
 			h.log.Error().Err(fatal.err).Msg("matrix network stopped")
+			h.setLoginRequired(fatal.reason)
 			return
 		}
 
@@ -238,7 +241,7 @@ func (h *Handler) run(ctx context.Context) {
 	}
 }
 
-// fatalError stops the sync loop until the user changes the network.
+// fatalError stops the sync loop until the user logs in again.
 type fatalError struct {
 	reason string
 	err    error
@@ -702,6 +705,18 @@ func (h *Handler) setDisconnected(err error) {
 	}
 }
 
+// setLoginRequired stops reporting the network as merely failing: only a new login
+// brings it back, so the UI offers one.
+func (h *Handler) setLoginRequired(reason string) {
+	defer h.broadcastHealth()
+
+	h.m.Lock()
+	defer h.m.Unlock()
+
+	h.lastErr = reason
+	h.loginRequired = true
+}
+
 func (h *Handler) setError(reason string) {
 	defer h.broadcastHealth()
 
@@ -765,6 +780,7 @@ func (h *Handler) Health() (domain.MatrixNetworkHealth, map[string]domain.Matrix
 		Connected:      h.connected,
 		ConnectedSince: h.connectedSince,
 		Error:          h.lastErr,
+		LoginRequired:  h.loginRequired,
 	}
 
 	rooms := make(map[string]domain.MatrixRoomHealth, len(h.roomHealth))

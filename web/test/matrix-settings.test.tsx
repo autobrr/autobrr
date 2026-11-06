@@ -152,3 +152,25 @@ test("history is fetched again whenever the stream opens", async () => {
   expect(await screen.findByText(/missed before the stream opened/)).toBeTruthy();
   expect(getRoomHistory).toHaveBeenCalledTimes(2);
 });
+
+test("a network whose login was rejected shows a log in button that opens the login panel", async () => {
+  vi.spyOn(APIClient.matrix, "getRoomHistory").mockResolvedValue([]);
+  vi.spyOn(APIClient.matrix, "getByID").mockResolvedValue(network);
+
+  const stream = renderScreen();
+  expect(await screen.findByText("Watchtower")).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Log in" })).toBeNull();
+
+  stream.emit("HEALTH", {
+    network: 5,
+    health: { connected: false, healthy: false, error: "access token was rejected, log in again", login_required: true },
+    rooms: { [room]: { joined: false } }
+  });
+
+  const loginButtons = await screen.findAllByRole("button", { name: "Log in" });
+  fireEvent.click(loginButtons[0]);
+
+  expect(await screen.findByText("Log in: Watchtower")).toBeTruthy();
+  // the click opens the login panel without also expanding the rooms
+  expect(screen.queryByText("View")).toBeNull();
+});

@@ -896,7 +896,13 @@
       "saveToken": "Token speichern",
       "tokenSaved": "Zugriffstoken für {{name}} gespeichert",
       "tokenFailed": "Der Homeserver hat das Zugriffstoken abgelehnt",
-      "close": "Schließen"
+      "close": "Schließen",
+      "account": "Konto",
+      "accountDesc": "An- und Abmelden wirkt sofort, ohne Speichern.",
+      "authMethod": {
+        "OAUTH": "Anmeldung im Browser",
+        "TOKEN": "Zugriffstoken"
+      }
     },
     "indexer": {
       "title": "Indexer",

@@ -35,6 +35,7 @@ interface MatrixNetworkHealth {
   connected_since?: string;
   healthy: boolean;
   error?: string;
+  login_required?: boolean;
   login?: MatrixLogin;
 }
 

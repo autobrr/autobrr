@@ -896,7 +896,13 @@
       "saveToken": "Lagre token",
       "tokenSaved": "Tilgangstoken lagret for {{name}}",
       "tokenFailed": "Hjemmeserveren avviste tilgangstokenet",
-      "close": "Lukk"
+      "close": "Lukk",
+      "account": "Konto",
+      "accountDesc": "Innlogging og utlogging gjelder med en gang, uten å lagre.",
+      "authMethod": {
+        "OAUTH": "Innlogging i nettleser",
+        "TOKEN": "Tilgangstoken"
+      }
     },
     "indexer": {
       "title": "Indekserer",

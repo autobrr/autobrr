@@ -896,7 +896,13 @@
       "saveToken": "Enregistrer le jeton",
       "tokenSaved": "Jeton d'accès enregistré pour {{name}}",
       "tokenFailed": "Le serveur d'accueil a refusé le jeton d'accès",
-      "close": "Fermer"
+      "close": "Fermer",
+      "account": "Compte",
+      "accountDesc": "La connexion et la déconnexion s'appliquent immédiatement, sans enregistrer.",
+      "authMethod": {
+        "OAUTH": "Connexion par navigateur",
+        "TOKEN": "Jeton d'accès"
+      }
     },
     "indexer": {
       "title": "Indexeur",

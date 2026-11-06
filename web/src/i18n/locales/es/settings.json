@@ -896,7 +896,13 @@
       "saveToken": "Guardar token",
       "tokenSaved": "Token de acceso guardado para {{name}}",
       "tokenFailed": "El servidor rechazó el token de acceso",
-      "close": "Cerrar"
+      "close": "Cerrar",
+      "account": "Cuenta",
+      "accountDesc": "Iniciar y cerrar sesión se aplica al momento, sin guardar.",
+      "authMethod": {
+        "OAUTH": "Inicio de sesión en el navegador",
+        "TOKEN": "Token de acceso"
+      }
     },
     "indexer": {
       "title": "Indexador",
