@@ -360,46 +360,49 @@ func (s *Service) ProcessManual(ctx context.Context, req *domain.ReleaseProcessR
 	rls := domain.NewRelease(domain.IndexerMinimal{ID: def.ID, Name: def.Name, Identifier: def.Identifier, IdentifierExternal: def.IdentifierExternal})
 	rls.TraceID = domain.TraceIDFromCtx(ctx)
 
+	var channel *domain.IndexerIRCV2Channel
+
 	switch req.IndexerImplementation {
 	case string(domain.IndexerImplementationIRC):
-
-		// from announce/announce.go
-		tmpVars := map[string]string{}
-		parseFailed := false
-
-		channelName := def.IRC.Channels[0].Name
-		channel, ok := def.IRC.GetChannel(channelName)
-		if !ok {
+		if def.IRC == nil || len(def.IRC.Channels) == 0 {
 			return errors.New("no channel configured")
 		}
 
-		for idx, parseLine := range channel.Parse.Lines {
-			match, err := parseLine.ParseLine(tmpVars, req.AnnounceLines[idx], parseLine.Ignore)
-			if err != nil {
-				parseFailed = true
-				break
-			}
+		channel, ok = def.IRC.GetChannel(def.IRC.Channels[0].Name)
 
-			if !match {
-				parseFailed = true
-				break
-			}
+	case string(domain.IndexerImplementationMatrix):
+		if def.Matrix == nil || len(def.Matrix.Rooms) == 0 {
+			return errors.New("no room configured")
 		}
 
-		if parseFailed {
-			return errors.New("parse failed")
-		}
-
-		rls.Protocol = domain.ReleaseProtocol(def.Protocol)
-
-		// on lines matched
-		if err := channel.Parse.Parse(def, channelName, tmpVars, rls); err != nil {
-			return err
-		}
+		channel, ok = def.Matrix.GetRoom(def.Matrix.Rooms[0].Name)
 
 	default:
 		return errors.New("implementation %q is not supported", req.IndexerImplementation)
+	}
 
+	if !ok || channel.Parse == nil {
+		return errors.New("no channel configured")
+	}
+
+	if len(req.AnnounceLines) < len(channel.Parse.Lines) {
+		return errors.New("expected %d announce lines got %d", len(channel.Parse.Lines), len(req.AnnounceLines))
+	}
+
+	// from announce/announce.go
+	tmpVars := map[string]string{}
+
+	for idx, parseLine := range channel.Parse.Lines {
+		match, err := parseLine.ParseLine(tmpVars, req.AnnounceLines[idx], parseLine.Ignore)
+		if err != nil || !match {
+			return errors.New("parse failed")
+		}
+	}
+
+	rls.Protocol = domain.ReleaseProtocol(def.Protocol)
+
+	if err := channel.Parse.Parse(def, tmpVars, rls); err != nil {
+		return err
 	}
 
 	// process

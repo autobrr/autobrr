@@ -42,6 +42,7 @@ const (
 	APIResourceIRC           APIResource = "irc"
 	APIResourceLists         APIResource = "lists"
 	APIResourceLogs          APIResource = "logs"
+	APIResourceMatrix        APIResource = "matrix"
 	APIResourceNotifications APIResource = "notifications"
 	APIResourceProxies       APIResource = "proxies"
 	APIResourceReleases      APIResource = "releases"
@@ -78,6 +79,7 @@ var apiResourceAccess = map[APIResource][]APIAccess{
 	APIResourceIRC:           {APIAccessRead, APIAccessInvoke, APIAccessWrite},
 	APIResourceLists:         {APIAccessRead, APIAccessInvoke, APIAccessWrite},
 	APIResourceLogs:          {APIAccessRead},
+	APIResourceMatrix:        {APIAccessRead, APIAccessInvoke, APIAccessWrite},
 	APIResourceNotifications: {APIAccessRead, APIAccessWrite},
 	APIResourceProxies:       {APIAccessRead, APIAccessWrite},
 	APIResourceReleases:      {APIAccessRead, APIAccessInvoke, APIAccessWrite},

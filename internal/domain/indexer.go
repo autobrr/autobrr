@@ -135,6 +135,7 @@ type IndexerDefinition struct {
 	Settings           []IndexerSetting      `json:"settings,omitempty"`
 	SettingsMap        map[string]string     `json:"-"`
 	IRC                *IndexerIRCV2         `json:"irc,omitempty"`
+	Matrix             *IndexerMatrix        `json:"matrix,omitempty"`
 	Feed               *FeedSettings         `json:"feed,omitempty"`
 }
 
@@ -153,21 +154,47 @@ func (i *IndexerDefinition) Prepare() {
 				Parse:      channel.Parse,
 			}
 
-			switch i.Identifier {
-			case "ggn":
-				ch.Parse.parser = IRCParserGazelleGames{}
-			case "ops":
-				ch.Parse.parser = IRCParserOrpheus{}
-			case "redacted":
-				ch.Parse.parser = IRCParserRedacted{}
-			default:
-				ch.Parse.parser = DefaultIRCParser
-			}
+			ch.Parse.parser = announceParserFor(i.Identifier)
 
 			// key by lowercase channel name: the IRC and announce layers
 			// canonicalize channel names to lowercase, so lookups use lowercase.
 			i.IRC.ChannelsMap[strings.ToLower(channel.Name)] = ch
 		}
+	}
+
+	if i.Matrix != nil {
+		if homeserver, err := NormalizeMatrixHomeserver(i.Matrix.Homeserver); err == nil {
+			i.Matrix.Homeserver = homeserver
+		}
+
+		i.Matrix.RoomsMap = map[string]*IndexerIRCV2Channel{}
+
+		for _, room := range i.Matrix.Rooms {
+			r := &IndexerIRCV2Channel{
+				Name:       room.Name,
+				Announcers: room.Announcers,
+				Parse:      room.Parse,
+			}
+
+			if r.Parse != nil {
+				r.Parse.parser = announceParserFor(i.Identifier)
+			}
+
+			i.Matrix.RoomsMap[strings.ToLower(room.Name)] = r
+		}
+	}
+}
+
+func announceParserFor(identifier string) IRCParser {
+	switch identifier {
+	case "ggn":
+		return IRCParserGazelleGames{}
+	case "ops":
+		return IRCParserOrpheus{}
+	case "redacted":
+		return IRCParserRedacted{}
+	default:
+		return DefaultIRCParser
 	}
 }
 
@@ -175,6 +202,7 @@ type IndexerImplementation string
 
 const (
 	IndexerImplementationIRC     IndexerImplementation = "irc"
+	IndexerImplementationMatrix  IndexerImplementation = "matrix"
 	IndexerImplementationTorznab IndexerImplementation = "torznab"
 	IndexerImplementationNewznab IndexerImplementation = "newznab"
 	IndexerImplementationRSS     IndexerImplementation = "rss"
@@ -185,6 +213,8 @@ func (i IndexerImplementation) String() string {
 	switch i {
 	case IndexerImplementationIRC:
 		return "irc"
+	case IndexerImplementationMatrix:
+		return "matrix"
 	case IndexerImplementationTorznab:
 		return "torznab"
 	case IndexerImplementationNewznab:
@@ -221,6 +251,43 @@ func (i IndexerDefinition) ValidateIRC() error {
 
 		if err := channel.Parse.SizeUnits.Validate(); err != nil {
 			return errors.Wrap(err, "invalid parse for channel: %s", channel.Name)
+		}
+	}
+
+	return nil
+}
+
+// ValidateMatrix rejects incomplete Matrix rooms and invalid parse metadata in an indexer definition.
+func (i IndexerDefinition) ValidateMatrix() error {
+	if i.Matrix == nil {
+		return nil
+	}
+
+	if _, err := NormalizeMatrixHomeserver(i.Matrix.Homeserver); err != nil {
+		return err
+	}
+
+	if len(i.Matrix.Rooms) == 0 {
+		return errors.New("matrix definition has no rooms")
+	}
+
+	for _, room := range i.Matrix.Rooms {
+		if !IsMatrixRoomName(room.Name) {
+			return errors.New("invalid matrix room: '%s'", room.Name)
+		}
+
+		// any user can post in a public room, so announces are only trusted from listed senders
+		if len(room.Announcers) == 0 {
+			return errors.New("matrix room has no announcers: %s", room.Name)
+		}
+
+		// a parse without lines makes the announce consumer spin without reading its queue
+		if room.Parse == nil || len(room.Parse.Lines) == 0 {
+			return errors.New("matrix room has no parse lines: %s", room.Name)
+		}
+
+		if err := room.Parse.SizeUnits.Validate(); err != nil {
+			return errors.Wrap(err, "invalid parse for room: %s", room.Name)
 		}
 	}
 
@@ -307,16 +374,7 @@ func (i *IndexerDefinitionCustom) ToIndexerDefinition() *IndexerDefinition {
 				},
 			}
 
-			switch i.Identifier {
-			case "ggn":
-				channel.Parse.parser = IRCParserGazelleGames{}
-			case "ops":
-				channel.Parse.parser = IRCParserOrpheus{}
-			case "redacted":
-				channel.Parse.parser = IRCParserRedacted{}
-			default:
-				channel.Parse.parser = DefaultIRCParser
-			}
+			channel.Parse.parser = announceParserFor(i.Identifier)
 
 			d.IRC.Channels = append(d.IRC.Channels, channel)
 			d.IRC.ChannelsMap[strings.ToLower(channelName)] = &channel
@@ -436,6 +494,21 @@ type IndexerIRCV2 struct {
 func (irc *IndexerIRCV2) GetChannel(name string) (*IndexerIRCV2Channel, bool) {
 	channel, ok := irc.ChannelsMap[strings.ToLower(name)]
 	return channel, ok
+}
+
+// IndexerMatrix is the Matrix announce source of an indexer definition. Rooms reuse
+// the IRC channel announce and parse configuration.
+type IndexerMatrix struct {
+	Network    string                          `json:"network"`
+	Homeserver string                          `json:"homeserver"`
+	Rooms      []IndexerIRCV2Channel           `json:"rooms"`
+	RoomsMap   map[string]*IndexerIRCV2Channel `json:"-"`
+}
+
+// GetRoom returns the room config for an alias or room id, ignoring case.
+func (m *IndexerMatrix) GetRoom(name string) (*IndexerIRCV2Channel, bool) {
+	room, ok := m.RoomsMap[strings.ToLower(name)]
+	return room, ok
 }
 
 type IndexerIRCV2Channel struct {
@@ -752,17 +825,13 @@ func (p *IndexerIRCV2Parse) MapCustomVariables(vars map[string]string) error {
 	return nil
 }
 
-func (p *IndexerIRCV2Parse) Parse(def *IndexerDefinition, channelName string, vars map[string]string, rls *Release) error {
-	channel, ok := def.IRC.GetChannel(channelName)
-	if !ok {
-		return errors.New("could not find channel: %s", channelName)
-	}
-
+// Parse maps the variables captured from an announce onto the release.
+func (p *IndexerIRCV2Parse) Parse(def *IndexerDefinition, vars map[string]string, rls *Release) error {
 	if err := p.MapCustomVariables(vars); err != nil {
 		return errors.Wrap(err, "could not map custom variables for release")
 	}
 
-	if err := rls.MapVars(vars, channel.Parse.ForceSizeUnit, channel.Parse.SizeUnits); err != nil {
+	if err := rls.MapVars(vars, p.ForceSizeUnit, p.SizeUnits); err != nil {
 		return errors.Wrap(err, "could not map variables for release")
 	}
 
@@ -779,7 +848,7 @@ func (p *IndexerIRCV2Parse) Parse(def *IndexerDefinition, channelName string, va
 	}
 
 	// parse urls
-	if err := channel.Parse.Match.ParseURLs(baseUrl, mergedVars, rls); err != nil {
+	if err := p.Match.ParseURLs(baseUrl, mergedVars, rls); err != nil {
 		return errors.Wrap(err, "could not parse urls for release")
 	}
 

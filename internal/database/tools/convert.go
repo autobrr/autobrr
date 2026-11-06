@@ -36,6 +36,8 @@ var defaultTables = []string{
 	"indexer_deprecation",
 	"irc_network",
 	"irc_channel",
+	"matrix_network",
+	"matrix_room",
 	"release_profile_duplicate",
 	"filter",
 	"filter_external",

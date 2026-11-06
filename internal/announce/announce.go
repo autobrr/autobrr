@@ -27,27 +27,46 @@ type announceProcessor struct {
 
 	releaseSvc releaseService
 
-	queues map[string]chan string
+	channels map[string]*domain.IndexerIRCV2Channel
+	queues   map[string]chan string
 }
 
+// NewAnnounceProcessor returns a processor for the indexer's IRC channels.
 func NewAnnounceProcessor(log zerolog.Logger, releaseSvc releaseService, indexer *domain.IndexerDefinition) Processor {
+	return newAnnounceProcessor(log.With().Str("network", indexer.IRC.Network).Logger(), releaseSvc, indexer, indexer.IRC.ChannelsMap)
+}
+
+// NewMatrixAnnounceProcessor returns a processor for the indexer's Matrix rooms, queued by lowercase room name.
+func NewMatrixAnnounceProcessor(log zerolog.Logger, releaseSvc releaseService, indexer *domain.IndexerDefinition) *MatrixProcessor {
+	return &MatrixProcessor{
+		announceProcessor: newAnnounceProcessor(log.With().Str("homeserver", indexer.Matrix.Homeserver).Logger(), releaseSvc, indexer, indexer.Matrix.RoomsMap),
+	}
+}
+
+func newAnnounceProcessor(log zerolog.Logger, releaseSvc releaseService, indexer *domain.IndexerDefinition, channels map[string]*domain.IndexerIRCV2Channel) *announceProcessor {
 	ap := &announceProcessor{
-		log:        log.With().Str("module", "announce_processor").Str("indexer", indexer.Name).Str("network", indexer.IRC.Network).Logger(),
+		log:        log.With().Str("module", "announce_processor").Str("indexer", indexer.Name).Logger(),
 		releaseSvc: releaseSvc,
 		indexer:    indexer,
+		channels:   channels,
 	}
 
-	// setup queues and consumers
 	ap.setupQueues()
 	ap.setupQueueConsumers()
 
 	return ap
 }
 
+// MatrixProcessor is an announce processor that is stopped with its Matrix network.
+// Stop closes the queues, so no line may be queued after it.
+type MatrixProcessor struct {
+	*announceProcessor
+}
+
 func (a *announceProcessor) setupQueues() {
 	queues := make(map[string]chan string)
-	for _, channel := range a.indexer.IRC.Channels {
-		channelName := strings.ToLower(channel.Name)
+	for name := range a.channels {
+		channelName := strings.ToLower(name)
 
 		queues[channelName] = make(chan string, 128)
 		a.log.Trace().Str("channel", channelName).Msg("setup channel queue")
@@ -75,7 +94,7 @@ func (a *announceProcessor) Stop() {
 
 func (a *announceProcessor) processQueue(channelName string, queue chan string) {
 	// the channel config is static for the life of the consumer, so resolve it once.
-	channel, ok := a.indexer.IRC.GetChannel(channelName)
+	channel, ok := a.channels[channelName]
 	if !ok {
 		a.log.Error().Str("channel", channelName).Msg("no channel found")
 		return
@@ -97,7 +116,7 @@ func (a *announceProcessor) processQueue(channelName string, queue chan string) 
 		for _, parseLine := range channel.Parse.Lines {
 			line, err := a.getNextLine(queue)
 			if err != nil {
-				l.Error().Err(err).Msg("could not get line from queue")
+				l.Trace().Err(err).Msg("announce queue closed")
 				return
 			}
 
@@ -132,7 +151,7 @@ func (a *announceProcessor) processQueue(channelName string, queue chan string) 
 		rls.Protocol = domain.ReleaseProtocol(a.indexer.Protocol)
 
 		// on lines matched
-		if err := channel.Parse.Parse(a.indexer, channelName, tmpVars, rls); err != nil {
+		if err := channel.Parse.Parse(a.indexer, tmpVars, rls); err != nil {
 			l.Error().Err(err).Msg("announce: could not parse announce for release")
 			continue
 		}

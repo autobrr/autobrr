@@ -1119,6 +1119,7 @@ export const API_KEY_RESOURCES: APIKeyResource[] = [
   { name: "releases", access: ["read", "invoke", "write"] },
   { name: "indexers", access: ["read", "write"] },
   { name: "irc", access: ["read", "invoke", "write"] },
+  { name: "matrix", access: ["read", "invoke", "write"] },
   { name: "feeds", access: ["read", "invoke", "write"] },
   { name: "downloaders", access: ["read", "write"] },
   { name: "lists", access: ["read", "invoke", "write"] },

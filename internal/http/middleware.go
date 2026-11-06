@@ -20,6 +20,7 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/irc"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/internal/matrix"
 	"github.com/autobrr/autobrr/internal/notification"
 
 	"github.com/go-chi/chi/v5/middleware"
@@ -288,6 +289,7 @@ func requireUser(next http.Handler) http.Handler {
 var eventStreamResources = map[string]domain.APIResource{
 	logger.StreamLogs:           domain.APIResourceLogs,
 	irc.EventStreamKey:          domain.APIResourceIRC,
+	matrix.EventStreamKey:       domain.APIResourceMatrix,
 	notification.InboxStreamKey: domain.APIResourceNotifications,
 }
 

@@ -26,6 +26,7 @@ import (
 	"github.com/autobrr/autobrr/internal/irc"
 	"github.com/autobrr/autobrr/internal/list"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/internal/matrix"
 	"github.com/autobrr/autobrr/internal/meta"
 	"github.com/autobrr/autobrr/internal/metrics"
 	"github.com/autobrr/autobrr/internal/notification"
@@ -80,6 +81,7 @@ type App struct {
 	rlsDownloadService  *release.DownloadService
 	scheduler           *scheduler.Service
 	listService         *list.Service
+	matrixService       *matrix.Service
 	metricsManager      *metrics.Manager
 	proxyService        *proxy.Service
 	userService         *user.Service
@@ -92,8 +94,15 @@ func New(configPath string) *App {
 	cfg := config.New(configPath)
 
 	serverEvents := sse.New()
+	serverEvents.Headers = map[string]string{
+		"Content-Type":      "text/event-stream",
+		"Cache-Control":     "no-cache",
+		"Connection":        "keep-alive",
+		"X-Accel-Buffering": "no",
+	}
 	serverEvents.CreateStreamWithOpts(logger.StreamLogs, sse.StreamOpts{MaxEntries: 1000, AutoReplay: true})
 	serverEvents.CreateStreamWithOpts("irc", sse.StreamOpts{MaxEntries: 0, AutoReplay: false, AutoStream: true})
+	serverEvents.CreateStreamWithOpts(matrix.EventStreamKey, sse.StreamOpts{MaxEntries: 0, AutoReplay: false, AutoStream: true})
 	serverEvents.CreateStreamWithOpts(notification.InboxStreamKey, sse.StreamOpts{MaxEntries: 0, AutoReplay: false})
 
 	log := logger.New(cfg.Config, serverEvents)
@@ -216,6 +225,16 @@ func (app *App) components(fail context.CancelCauseFunc) []component {
 			},
 			stop: func(ctx context.Context) error {
 				app.ircService.StopHandlers(ctx)
+
+				return nil
+			},
+		},
+		component{
+			name:     "matrix",
+			optional: true,
+			start:    app.matrixService.StartHandlers,
+			stop: func(ctx context.Context) error {
+				app.matrixService.StopHandlers(ctx)
 
 				return nil
 			},
@@ -425,6 +444,7 @@ func (app *App) setup(ctx context.Context) error {
 		indexerRepo      = database.NewIndexerRepo(app.log, db)
 		ircRepo          = database.NewIrcRepo(app.log, db)
 		listRepo         = database.NewListRepo(app.log, db)
+		matrixRepo       = database.NewMatrixRepo(app.log, db)
 		notificationRepo = database.NewNotificationRepo(app.log, db)
 		inboxRepo        = database.NewNotificationInboxRepo(app.log, db)
 		releaseRepo      = database.NewReleaseRepo(app.log, db)
@@ -446,6 +466,7 @@ func (app *App) setup(ctx context.Context) error {
 	app.filterService = filter.NewService(app.log, filterRepo, app.actionService, releaseRepo, app.indexerAPIService, app.indexerService, app.rlsDownloadService, app.notificationService)
 	app.releaseService = release.NewService(app.log, app.eventBus, releaseRepo, app.actionService, app.filterService, app.indexerService, app.scheduler)
 	app.ircService = irc.NewService(app.log, app.eventBus, app.sse, ircRepo, app.releaseService, app.indexerService, app.proxyService)
+	app.matrixService = matrix.NewService(app.log, app.sse, matrixRepo, app.releaseService, app.indexerService)
 	app.feedService = feed.NewService(app.log, app.eventBus, feedRepo, feedCacheRepo, app.releaseService, app.proxyService, app.scheduler)
 	app.listService = list.NewService(app.log, app.eventBus, listRepo, app.downloaderService, app.filterService, app.scheduler)
 	app.alertService = alert.NewService(app.log, app.eventBus, app.cfg.Config, app.sse, app.updateService, app.ircService, app.listService)
@@ -469,6 +490,7 @@ func (app *App) setup(ctx context.Context) error {
 		IndexerService:      app.indexerService,
 		IrcService:          app.ircService,
 		ListService:         app.listService,
+		MatrixService:       app.matrixService,
 		NotificationService: app.notificationService,
 		OIDCService:         oidcService,
 		ProxyService:        app.proxyService,
