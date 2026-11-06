@@ -66,6 +66,7 @@ func withNickServAuth(h *Handler, account string) {
 		Password:  "hunter2",
 	}
 	h.identifyOutstanding = true
+	h.identifySentAt = time.Now()
 }
 
 func TestOnNoticeMatchesNickServCaseInsensitively(t *testing.T) {
