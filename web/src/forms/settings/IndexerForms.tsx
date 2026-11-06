@@ -523,14 +523,18 @@ function IndexerAddFormPanel({ toggle }: IndexerAddFormPanelProps) {
     mutationFn: (network: IrcNetworkCreate) => APIClient.irc.createNetwork(network)
   });
 
-  const matrixMutation = useMutation({
-    mutationFn: (network: MatrixNetworkCreate) => APIClient.matrix.store(network),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: MatrixKeys.lists() });
+  // Plain promise rather than a mutation callback, so the network is still created when
+  // the drawer closes before the indexer request returns.
+  const storeMatrixNetwork = (network: MatrixNetworkCreate) =>
+    APIClient.matrix.store(network)
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: MatrixKeys.lists() });
 
-      toast.custom((toastInstance) => <Toast type="success" body={t("forms.indexer.matrixLoginRequired")} t={toastInstance} />);
-    }
-  });
+        toast.custom((toastInstance) => <Toast type="success" body={t("forms.indexer.matrixLoginRequired")} t={toastInstance} />);
+      })
+      .catch(() => {
+        toast.custom((toastInstance) => <Toast type="error" body={t("forms.indexer.matrixAddFailed", { name: network.name })} t={toastInstance} />);
+      });
 
   const feedMutation = useMutation({
     mutationFn: (feed: FeedCreate) => APIClient.feeds.create(feed),
@@ -680,11 +684,9 @@ function IndexerAddFormPanel({ toggle }: IndexerAddFormPanelProps) {
           rooms: ind.matrix.rooms.map((room) => ({ id: 0, enabled: true, name: room.name, room_id: "" }))
         };
 
-        mutation.mutate(formData, {
-          onSuccess: () => {
-            matrixMutation.mutate(network);
-          }
-        });
+        mutation.mutateAsync(formData)
+          .then(() => storeMatrixNetwork(network))
+          .catch(() => {});
         return;
       }
       default: {
@@ -1149,7 +1151,7 @@ export function IndexerUpdateForm({ isOpen, toggle, data: indexer }: UpdateFormP
       deleteAction={deleteAction}
       onSubmit={onSubmit}
       initialValues={initialValues}
-      extraButtons={(values) => <TestApiButton values={values} show={indexer.implementation === "irc" && indexer.supports.includes("api")} />}
+      extraButtons={(values) => <TestApiButton values={values} show={(indexer.implementation === "irc" || indexer.implementation === "matrix") && indexer.supports.includes("api")} />}
     >
       {(values) => (
         <div className="py-2 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">

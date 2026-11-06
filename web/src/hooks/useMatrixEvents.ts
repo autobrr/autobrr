@@ -4,13 +4,15 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { APIClient } from "@api/APIClient";
+import { MatrixKeys } from "@api/query_keys";
 import { MatrixRoomHistoryQueryOptions } from "@api/queries";
 
 type MessageHandler = (message: MatrixMessage) => void;
 type HealthHandler = (event: MatrixHealthEvent) => void;
+type ReconnectHandler = () => void;
 
 const roomKey = (networkId: number, room: string) => `${networkId}:${room}`;
 
@@ -19,6 +21,8 @@ class MatrixEventManager {
   private eventSource: EventSource | null = null;
   private messageHandlers = new Map<string, Set<MessageHandler>>();
   private healthHandlers = new Set<HealthHandler>();
+  private reconnectHandlers = new Set<ReconnectHandler>();
+  private hasOpened = false;
   private refCount = 0;
   private reconnectTimer: number | null = null;
   private reconnectAttempt = 0;
@@ -43,6 +47,13 @@ class MatrixEventManager {
     return this.retain(() => this.healthHandlers.delete(handler));
   }
 
+  // Called when the stream comes back after a drop; events sent meanwhile are not replayed.
+  subscribeToReconnect(handler: ReconnectHandler): () => void {
+    this.reconnectHandlers.add(handler);
+
+    return this.retain(() => this.reconnectHandlers.delete(handler));
+  }
+
   private retain(release: () => void): () => void {
     this.refCount++;
     if (this.refCount === 1) {
@@ -54,6 +65,7 @@ class MatrixEventManager {
       this.refCount--;
       if (this.refCount === 0) {
         this.disconnect();
+        this.hasOpened = false;
       }
     };
   }
@@ -77,6 +89,12 @@ class MatrixEventManager {
 
     this.eventSource.onopen = () => {
       this.reconnectAttempt = 0;
+
+      if (this.hasOpened) {
+        this.reconnectHandlers.forEach((handler) => handler());
+      }
+
+      this.hasOpened = true;
     };
 
     // The browser only retries transport errors. A non-2xx handshake (expired session,
@@ -115,25 +133,34 @@ class MatrixEventManager {
 
 const matrixEventManager = new MatrixEventManager();
 
+// mergeRoomMessages combines the server history with live messages, dropping messages
+// that are in both and keeping the newest limit in time order.
+export const mergeRoomMessages = (history: MatrixMessage[], live: MatrixMessage[], limit: number) => {
+  const seen = new Set(history.map((message) => message.id));
+  const merged = [...history, ...live.filter((message) => !seen.has(message.id))];
+
+  merged.sort((a, b) => Date.parse(a.time) - Date.parse(b.time));
+
+  return merged.slice(-limit);
+};
+
 export function useMatrixRoomWithHistory(networkId: number, room: string, limit: number) {
+  const queryClient = useQueryClient();
   const [liveMessages, setLiveMessages] = useState<MatrixMessage[]>([]);
 
   const historyQuery = useQuery(MatrixRoomHistoryQueryOptions(networkId, room));
-  const historySettled = historyQuery.isSuccess || historyQuery.isError;
 
-  // Live messages are only collected once history is in, so the two never overlap.
-  useEffect(() => {
-    if (!historySettled) {
-      return;
-    }
+  // Subscribed before history arrives so nothing falls between the two; the ids drop the overlap.
+  useEffect(() => matrixEventManager.subscribeToRoom(networkId, room, (message) => {
+    setLiveMessages((prev) => [...prev, message].slice(-limit));
+  }), [networkId, room, limit]);
 
-    return matrixEventManager.subscribeToRoom(networkId, room, (message) => {
-      setLiveMessages((prev) => [...prev, message].slice(-limit));
-    });
-  }, [networkId, room, historySettled, limit]);
+  useEffect(() => matrixEventManager.subscribeToReconnect(() => {
+    queryClient.invalidateQueries({ queryKey: MatrixKeys.roomHistory(networkId, room) });
+  }), [queryClient, networkId, room]);
 
   const messages = useMemo(
-    () => [...(historyQuery.data ?? []), ...liveMessages].slice(-limit),
+    () => mergeRoomMessages(historyQuery.data ?? [], liveMessages, limit),
     [historyQuery.data, liveMessages, limit]
   );
 

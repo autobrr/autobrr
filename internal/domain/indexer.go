@@ -281,8 +281,9 @@ func (i IndexerDefinition) ValidateMatrix() error {
 			return errors.New("matrix room has no announcers: %s", room.Name)
 		}
 
-		if room.Parse == nil {
-			return errors.New("matrix room has no parse: %s", room.Name)
+		// a parse without lines makes the announce consumer spin without reading its queue
+		if room.Parse == nil || len(room.Parse.Lines) == 0 {
+			return errors.New("matrix room has no parse lines: %s", room.Name)
 		}
 
 		if err := room.Parse.SizeUnits.Validate(); err != nil {

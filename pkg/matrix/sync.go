@@ -140,5 +140,10 @@ func (c *Client) Sync(ctx context.Context, req SyncRequest) (*SyncResponse, erro
 		return nil, err
 	}
 
+	// without next_batch the stream position is lost and the next session would skip announces as backlog
+	if resp.NextBatch == "" {
+		return nil, errors.New("sync response has no next_batch")
+	}
+
 	return &resp, nil
 }

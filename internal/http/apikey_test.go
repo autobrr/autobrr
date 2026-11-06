@@ -191,6 +191,11 @@ func TestAPIRouteAccess(t *testing.T) {
 		{route: "DELETE /release/", token: "releases-invoke", want: false},
 		{route: "POST /irc/network/{networkID}/restart", token: "irc-invoke", want: true},
 		{route: "POST /irc/network/{networkID}/cmd", token: "irc-invoke", want: false},
+		{route: "GET /matrix/", token: "matrix-read", want: true},
+		{route: "GET /matrix/", token: "irc-read", want: false},
+		{route: "GET /matrix/network/{networkID}/room/history", token: "matrix-read", want: true},
+		{route: "POST /matrix/network/{networkID}/token", token: "matrix-read", want: false},
+		{route: "POST /matrix/network/{networkID}/login", token: "matrix-read", want: false},
 		{route: "GET /filters/", token: "filters-read", want: true},
 		{route: "POST /filters/", token: "filters-read", want: false},
 		{route: "POST /filters/{filterID}/duplicate", token: "filters-read", want: false},
@@ -310,6 +315,24 @@ func TestIrcEventsOnlyServeIrcStream(t *testing.T) {
 	for _, stream := range []string{"logs", "notifications", ""} {
 		t.Run(stream, func(t *testing.T) {
 			recorder := serveWithToken(router, http.MethodGet, "/irc/events?stream="+stream, "irc-read", "")
+
+			assert.Equal(t, http.StatusBadRequest, recorder.Code)
+		})
+	}
+}
+
+func TestMatrixEventsOnlyServeMatrixStream(t *testing.T) {
+	s := newScopedTestServer()
+
+	router := chi.NewRouter()
+	router.Group(func(r chi.Router) {
+		r.Use(s.IsAuthenticated)
+		r.Route("/matrix", newMatrixHandler(encoder{}, nil, nil).Routes)
+	})
+
+	for _, stream := range []string{"irc", "logs", ""} {
+		t.Run(stream, func(t *testing.T) {
+			recorder := serveWithToken(router, http.MethodGet, "/matrix/events?stream="+stream, "matrix-read", "")
 
 			assert.Equal(t, http.StatusBadRequest, recorder.Code)
 		})

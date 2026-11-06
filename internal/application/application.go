@@ -94,6 +94,12 @@ func New(configPath string) *App {
 	cfg := config.New(configPath)
 
 	serverEvents := sse.New()
+	serverEvents.Headers = map[string]string{
+		"Content-Type":      "text/event-stream",
+		"Cache-Control":     "no-cache",
+		"Connection":        "keep-alive",
+		"X-Accel-Buffering": "no",
+	}
 	serverEvents.CreateStreamWithOpts(logger.StreamLogs, sse.StreamOpts{MaxEntries: 1000, AutoReplay: true})
 	serverEvents.CreateStreamWithOpts("irc", sse.StreamOpts{MaxEntries: 0, AutoReplay: false, AutoStream: true})
 	serverEvents.CreateStreamWithOpts(matrix.EventStreamKey, sse.StreamOpts{MaxEntries: 0, AutoReplay: false, AutoStream: true})

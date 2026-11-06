@@ -129,6 +129,10 @@ func NormalizeMatrixHomeserver(homeserver string) (string, error) {
 		return "", errors.New("invalid homeserver url: '%s'", homeserver)
 	}
 
+	if u.User != nil || u.RawQuery != "" || u.Fragment != "" {
+		return "", errors.New("homeserver url must not contain credentials, a query or a fragment: '%s'", homeserver)
+	}
+
 	return u.Scheme + "://" + strings.ToLower(u.Host) + strings.TrimRight(u.Path, "/"), nil
 }
 
@@ -230,6 +234,8 @@ type MatrixManualProcessRequest struct {
 
 // MatrixMessage is a room message kept in the room history and streamed to the UI.
 type MatrixMessage struct {
+	// ID is the Matrix event id, which lets the UI merge history and live messages without duplicates.
+	ID      string    `json:"id"`
 	Network int64     `json:"network"`
 	Room    string    `json:"room"`
 	Sender  string    `json:"sender"`

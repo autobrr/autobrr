@@ -171,6 +171,10 @@ func (c *OAuthClient) RequestDeviceAuthorization(ctx context.Context, metadata *
 		return nil, err
 	}
 
+	if out.DeviceCode == "" || out.UserCode == "" || out.VerificationURI == "" || out.ExpiresIn <= 0 {
+		return nil, errors.New("incomplete device authorization response")
+	}
+
 	if out.Interval <= 0 {
 		out.Interval = 5
 	}

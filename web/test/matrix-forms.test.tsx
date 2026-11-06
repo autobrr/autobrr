@@ -98,3 +98,14 @@ test("update form rejects a room that is not an alias or room id", async () => {
   await waitFor(() => expect(room.className).toContain("border-red-500"));
   expect(update).not.toHaveBeenCalled();
 });
+
+test("a pending login started earlier is shown when the panel opens again", async () => {
+  vi.spyOn(APIClient.matrix, "getByID").mockResolvedValue({ ...network, health: { connected: false, healthy: false, login: pendingLogin } });
+  const login = vi.spyOn(APIClient.matrix, "login");
+
+  renderWithClient(<MatrixLoginForm isOpen={true} toggle={() => {}} data={network} />);
+
+  expect(await screen.findByText("ABCD-EFGH")).toBeTruthy();
+  expect(screen.queryByText("Start login")).toBeNull();
+  expect(login).not.toHaveBeenCalled();
+});

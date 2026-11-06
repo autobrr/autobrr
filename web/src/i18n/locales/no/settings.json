@@ -929,6 +929,7 @@
       "settingsMatrixTitle": "Matrix",
       "settingsMatrixDesc": "Matrix-nettverket og rommene settes opp automatisk. Logg inn under Innstillinger > Matrix etter at indekseren er lagt til.",
       "matrixLoginRequired": "Matrix-nettverk lagt til. Logg inn under Innstillinger > Matrix for å begynne å motta annonseringer.",
+      "matrixAddFailed": "Indekseren ble lagt til, men Matrix-nettverket {{name}} kunne ikke opprettes. Legg det til under Innstillinger > Matrix.",
       "ircGuideTooltip": "Vennligst les IRC-guiden vår hvis du ikke er kjent med IRC.",
       "name": "Navn",
       "url": "URL",

@@ -931,6 +931,7 @@
       "settingsMatrixTitle": "Matrix",
       "settingsMatrixDesc": "The Matrix network and rooms are set up automatically. After adding the indexer, log in under Settings > Matrix.",
       "matrixLoginRequired": "Matrix network added. Log in under Settings > Matrix to start receiving announces.",
+      "matrixAddFailed": "The indexer was added, but its Matrix network {{name}} could not be created. Add it under Settings > Matrix.",
       "ircGuideTooltip": "Please read our IRC guide if you are unfamiliar with IRC.",
       "name": "Name",
       "url": "URL",

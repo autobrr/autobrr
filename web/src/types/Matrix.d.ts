@@ -56,6 +56,7 @@ interface MatrixLogin {
 }
 
 interface MatrixMessage {
+  id: string;
   network: number;
   room: string;
   sender: string;

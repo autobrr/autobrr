@@ -88,6 +88,17 @@ func TestMatrixRepo_NetworkLifecycle(t *testing.T) {
 			require.Len(t, byHomeserver[0].Rooms, 1)
 			assert.Equal(t, "#other:matrix.watchtower.pm", byHomeserver[0].Rooms[0].Name)
 
+			// a new homeserver drops the credentials of the old one
+			require.NoError(t, repo.UpdateTokens(ctx, network.ID, tokens))
+			byHomeserver[0].Homeserver = "https://matrix.example.org"
+			require.NoError(t, repo.UpdateNetwork(ctx, &byHomeserver[0]))
+
+			moved, err := repo.GetNetworkByID(ctx, network.ID)
+			require.NoError(t, err)
+			assert.False(t, moved.HasCredentials())
+			assert.Empty(t, moved.RefreshToken)
+			assert.Empty(t, moved.OAuthClientID)
+
 			require.NoError(t, repo.UpdateTokens(ctx, network.ID, domain.MatrixTokens{}))
 
 			cleared, err := repo.GetNetworkByID(ctx, network.ID)

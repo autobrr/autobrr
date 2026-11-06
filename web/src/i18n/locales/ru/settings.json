@@ -929,6 +929,7 @@
       "settingsMatrixTitle": "Matrix",
       "settingsMatrixDesc": "Сеть Matrix и комнаты настраиваются автоматически. После добавления индексатора войдите в Настройки > Matrix.",
       "matrixLoginRequired": "Сеть Matrix добавлена. Войдите в Настройки > Matrix, чтобы начать получать анонсы.",
+      "matrixAddFailed": "Индексатор добавлен, но его сеть Matrix {{name}} не удалось создать. Добавьте её в Настройки > Matrix.",
       "ircGuideTooltip": "Пожалуйста, прочитайте наше руководство по IRC, если вы с ним не знакомы.",
       "name": "Имя",
       "url": "URL",

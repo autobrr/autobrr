@@ -309,3 +309,94 @@ func TestMessageBufferKeepsNewest(t *testing.T) {
 	assert.Equal(t, "5", messages[0].Message)
 	assert.Equal(t, strconv.Itoa(maxRoomMessages+4), messages[len(messages)-1].Message)
 }
+
+// A room that fails to join is retried while the joined room keeps syncing, and the
+// history it arrives with on joining is not announced.
+func TestHandler_RetriesFailedJoin(t *testing.T) {
+	const otherAlias = "#other:matrix.watchtower.pm"
+	const otherID = "!other:matrix.watchtower.pm"
+
+	definition, err := indexer.OpenAndProcessDefinition("../indexer/definitions/blutopia.yaml")
+	require.NoError(t, err)
+
+	definition.SettingsMap = map[string]string{"rsskey": "secret"}
+	definition.Matrix.Rooms = append(definition.Matrix.Rooms, domain.IndexerIRCV2Channel{
+		Name:       otherAlias,
+		Announcers: definition.Matrix.Rooms[0].Announcers,
+		Parse:      definition.Matrix.Rooms[0].Parse,
+	})
+	definition.Prepare()
+
+	var joinAttempts, batch atomic.Int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/_matrix/client/v3/account/whoami":
+			writeJSON(w, http.StatusOK, map[string]any{"user_id": "@autobrr:matrix.watchtower.pm"})
+		case r.URL.Path == "/_matrix/client/v3/join/"+testRoomAlias:
+			writeJSON(w, http.StatusOK, map[string]any{"room_id": testRoomID})
+		case r.URL.Path == "/_matrix/client/v3/join/"+otherAlias:
+			if joinAttempts.Add(1) == 1 {
+				writeJSON(w, http.StatusTooManyRequests, map[string]any{"errcode": "M_LIMIT_EXCEEDED"})
+				return
+			}
+			writeJSON(w, http.StatusOK, map[string]any{"room_id": otherID})
+		case r.URL.Path == "/_matrix/client/v3/sync":
+			n := batch.Add(1)
+			body := map[string]any{"next_batch": "s" + strconv.Itoa(int(n)), "rooms": map[string]any{"join": map[string]any{}}}
+			join := body["rooms"].(map[string]any)["join"].(map[string]any)
+
+			if strings.Contains(r.URL.Query().Get("filter"), otherID) {
+				if !strings.Contains(r.URL.Query().Get("since"), "joined") {
+					// first sync after the late join carries the room's history
+					join[otherID] = map[string]any{"timeline": map[string]any{"events": []any{messageEvent("$old", testAnnouncer, testAnnounce, false)}}}
+					body["next_batch"] = "joined"
+				} else if r.URL.Query().Get("since") == "joined" {
+					join[otherID] = map[string]any{"timeline": map[string]any{"events": []any{messageEvent("$new", testAnnouncer, testAnnounce, false)}}}
+					body["next_batch"] = "joined-2"
+				} else {
+					<-r.Context().Done()
+					return
+				}
+			} else {
+				time.Sleep(20 * time.Millisecond)
+			}
+
+			writeJSON(w, http.StatusOK, body)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	network := domain.MatrixNetwork{
+		ID: 1, Name: "Watchtower", Enabled: true, Homeserver: server.URL,
+		AuthMethod: domain.MatrixAuthMethodToken, AccessToken: "token",
+		Rooms: []domain.MatrixRoom{{ID: 1, Enabled: true, Name: testRoomAlias}, {ID: 2, Enabled: true, Name: otherAlias}},
+	}
+
+	releases := &fakeReleaseService{releases: make(chan *domain.Release, 10)}
+
+	h := newHandler(zerolog.Nop(), &fakeSSE{}, &fakeTokenStore{roomIDs: map[int64]string{}}, server.Client(), releases, network, []*domain.IndexerDefinition{definition})
+	h.joinRetryInitial = 50 * time.Millisecond
+	h.Start()
+	defer h.Stop()
+
+	select {
+	case <-releases.releases:
+	case <-time.After(5 * time.Second):
+		t.Fatal("room was not joined on retry")
+	}
+
+	select {
+	case rls := <-releases.releases:
+		t.Fatalf("history of the late-joined room was announced: %s", rls.TorrentName)
+	case <-time.After(200 * time.Millisecond):
+	}
+
+	assert.Equal(t, int32(2), joinAttempts.Load())
+
+	_, roomHealth := h.Health()
+	assert.True(t, roomHealth[otherAlias].Joined)
+	assert.Empty(t, roomHealth[otherAlias].Error)
+}

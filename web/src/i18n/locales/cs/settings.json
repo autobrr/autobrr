@@ -929,6 +929,7 @@
         "settingsMatrixTitle": "Matrix",
         "settingsMatrixDesc": "Síť Matrix a místnosti se nastaví automaticky. Po přidání indexeru se přihlaste v Nastavení > Matrix.",
         "matrixLoginRequired": "Síť Matrix přidána. Přihlaste se v Nastavení > Matrix, abyste začali přijímat oznámení.",
+        "matrixAddFailed": "Indexer byl přidán, ale jeho síť Matrix {{name}} nelze vytvořit. Přidejte ji v Nastavení > Matrix.",
         "ircGuideTooltip": "Projděte si naši IRC příručku, pokud neznáte IRC.",
         "name": "Název",
         "url": "URL",

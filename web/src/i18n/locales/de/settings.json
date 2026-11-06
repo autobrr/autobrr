@@ -929,6 +929,7 @@
       "settingsMatrixTitle": "Matrix",
       "settingsMatrixDesc": "Das Matrix-Netzwerk und die Räume werden automatisch eingerichtet. Melde dich nach dem Hinzufügen des Indexers unter Einstellungen > Matrix an.",
       "matrixLoginRequired": "Matrix-Netzwerk hinzugefügt. Melde dich unter Einstellungen > Matrix an, um Ankündigungen zu empfangen.",
+      "matrixAddFailed": "Der Indexer wurde hinzugefügt, aber sein Matrix-Netzwerk {{name}} konnte nicht erstellt werden. Füge es unter Einstellungen > Matrix hinzu.",
       "ircGuideTooltip": "Bitte das IRC-Handbuch lesen, wenn du nicht mit IRC vertraut bist.",
       "name": "Name",
       "url": "URL",

@@ -929,6 +929,7 @@
       "settingsMatrixTitle": "Matrix",
       "settingsMatrixDesc": "Le réseau Matrix et les salons sont configurés automatiquement. Après avoir ajouté l'indexeur, connectez-vous dans Paramètres > Matrix.",
       "matrixLoginRequired": "Réseau Matrix ajouté. Connectez-vous dans Paramètres > Matrix pour commencer à recevoir les annonces.",
+      "matrixAddFailed": "L'indexeur a été ajouté, mais son réseau Matrix {{name}} n'a pas pu être créé. Ajoutez-le dans Paramètres > Matrix.",
       "ircGuideTooltip": "Consulter notre guide IRC si tu n'es pas familier avec IRC.",
       "name": "Nom",
       "url": "URL",

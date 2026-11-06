@@ -104,6 +104,10 @@ func (c *Client) JoinRoom(ctx context.Context, roomIDOrAlias string) (string, er
 		return "", err
 	}
 
+	if resp.RoomID == "" {
+		return "", errors.New("join response for %s has no room_id", roomIDOrAlias)
+	}
+
 	return resp.RoomID, nil
 }
 

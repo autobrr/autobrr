@@ -76,13 +76,7 @@ func (h matrixHandler) Routes(r chi.Router) {
 			return
 		}
 
-		h.sse.Headers = map[string]string{
-			"Content-Type":      "text/event-stream",
-			"Cache-Control":     "no-cache",
-			"Connection":        "keep-alive",
-			"X-Accel-Buffering": "no",
-		}
-
+		// headers are set once at startup; writing them per request races with other streams
 		h.sse.ServeHTTP(w, r)
 	})
 }

@@ -929,6 +929,7 @@
       "settingsMatrixTitle": "Matrix",
       "settingsMatrixDesc": "La red Matrix y las salas se configuran automáticamente. Después de añadir el indexer, inicia sesión en Ajustes > Matrix.",
       "matrixLoginRequired": "Red Matrix añadida. Inicia sesión en Ajustes > Matrix para empezar a recibir anuncios.",
+      "matrixAddFailed": "Se añadió el indexer, pero no se pudo crear su red Matrix {{name}}. Añádela en Ajustes > Matrix.",
       "ircGuideTooltip": "Por favor lee nuestra guía de IRC si no estás familiarizado con IRC.",
       "name": "Nombre",
       "url": "URL",

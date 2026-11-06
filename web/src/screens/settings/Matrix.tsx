@@ -297,7 +297,7 @@ const RoomItem = ({ network, room }: RoomItemProps) => {
           </button>
         </div>
       </div>
-      {viewRoom && <RoomEvents networkId={network.id} room={room.name} />}
+      {viewRoom && <RoomEvents key={`${network.id}:${room.name}`} networkId={network.id} room={room.name} />}
     </li>
   );
 };
@@ -367,7 +367,7 @@ const RoomEvents = ({ networkId, room }: RoomEventsProps) => {
           <p className="py-4 text-center text-sm text-gray-500 dark:text-gray-500">{t("matrix.noMessages")}</p>
         )}
         {messages.map((message, idx) => (
-          <div key={`${message.time}-${idx}`} className="flex items-center hover:bg-gray-200 dark:hover:bg-gray-800">
+          <div key={message.id || `${message.time}-${idx}`} className="flex items-center hover:bg-gray-200 dark:hover:bg-gray-800">
             <ReprocessAnnounceButton networkId={networkId} room={room} msg={message.msg} />
             <div className="flex-1">
               <span className="font-mono text-gray-500 dark:text-gray-500">

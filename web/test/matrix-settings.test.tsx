@@ -51,6 +51,12 @@ class FakeEventSource {
       this.listeners.get(type)?.(new MessageEvent(type, { data: JSON.stringify(data) }));
     });
   }
+
+  reopen() {
+    act(() => {
+      this.onopen?.();
+    });
+  }
 }
 
 const renderScreen = () => {
@@ -75,7 +81,7 @@ const openRoomLog = async () => {
 };
 
 test("room log shows history, then live messages from the stream, and replays a line", async () => {
-  const history: MatrixMessage = { network: 5, room, sender: "@blubot:matrix.watchtower.pm", msg: "[Blutopia] [NEW] first", time: "2026-11-06T00:00:00Z" };
+  const history: MatrixMessage = { id: "$first", network: 5, room, sender: "@blubot:matrix.watchtower.pm", msg: "[Blutopia] [NEW] first", time: "2026-11-06T00:00:00Z" };
   const getRoomHistory = vi.spyOn(APIClient.matrix, "getRoomHistory").mockResolvedValue([history]);
   const reprocess = vi.spyOn(APIClient.matrix, "reprocessAnnounce").mockResolvedValue();
 
@@ -85,8 +91,8 @@ test("room log shows history, then live messages from the stream, and replays a 
   expect(await screen.findByText(/\[Blutopia\] \[NEW\] first/)).toBeTruthy();
   expect(getRoomHistory).toHaveBeenCalledWith(5, room);
 
-  stream.emit("MESSAGE", { ...history, msg: "[Blutopia] [NEW] second", time: "2026-11-06T00:01:00Z" });
-  stream.emit("MESSAGE", { ...history, room: "#other:matrix.watchtower.pm", msg: "other room" });
+  stream.emit("MESSAGE", { ...history, id: "$second", msg: "[Blutopia] [NEW] second", time: "2026-11-06T00:01:00Z" });
+  stream.emit("MESSAGE", { ...history, id: "$other", room: "#other:matrix.watchtower.pm", msg: "other room" });
 
   expect(await screen.findByText(/\[Blutopia\] \[NEW\] second/)).toBeTruthy();
   expect(screen.queryByText(/other room/)).toBeNull();
@@ -110,4 +116,41 @@ test("health from the stream updates the network without waiting for the poll", 
   });
 
   expect(await screen.findByText("access token was rejected, log in again")).toBeTruthy();
+});
+
+test("a message sent while history is loading is shown once", async () => {
+  const first: MatrixMessage = { id: "$first", network: 5, room, sender: "@blubot:matrix.watchtower.pm", msg: "first", time: "2026-11-06T00:00:00Z" };
+  const during: MatrixMessage = { ...first, id: "$during", msg: "during load", time: "2026-11-06T00:00:30Z" };
+
+  let resolveHistory: (messages: MatrixMessage[]) => void = () => {};
+  vi.spyOn(APIClient.matrix, "getRoomHistory").mockReturnValue(new Promise((resolve) => {
+    resolveHistory = resolve;
+  }));
+
+  const stream = renderScreen();
+  await openRoomLog();
+
+  // the server snapshot already contains the message the stream delivered first
+  stream.emit("MESSAGE", during);
+  await act(async () => resolveHistory([first, during]));
+
+  expect(await screen.findByText(/first/)).toBeTruthy();
+  expect(screen.getAllByText(/during load/)).toHaveLength(1);
+});
+
+test("history is fetched again after the stream reconnects", async () => {
+  const getRoomHistory = vi.spyOn(APIClient.matrix, "getRoomHistory").mockResolvedValue([]);
+
+  const stream = renderScreen();
+  await openRoomLog();
+  await waitFor(() => expect(getRoomHistory).toHaveBeenCalledTimes(1));
+
+  stream.reopen();
+  expect(getRoomHistory).toHaveBeenCalledTimes(1);
+
+  getRoomHistory.mockResolvedValue([{ id: "$missed", network: 5, room, sender: "@blubot:matrix.watchtower.pm", msg: "missed while offline", time: "2026-11-06T00:02:00Z" }]);
+  stream.reopen();
+
+  expect(await screen.findByText(/missed while offline/)).toBeTruthy();
+  expect(getRoomHistory).toHaveBeenCalledTimes(2);
 });

@@ -262,10 +262,16 @@ interface MatrixLoginPanelProps {
 function MatrixLoginPanel({ toggle, network }: MatrixLoginPanelProps) {
   const { t } = useTranslation("settings");
   const queryClient = useQueryClient();
-  const [started, setStarted] = useState(false);
 
-  const networkQuery = useQuery(MatrixNetworkQueryOptions(network.id, started ? 3000 : false));
-  const login = started ? networkQuery.data?.health?.login : undefined;
+  const [startedLogin, setStartedLogin] = useState<MatrixLogin>();
+  const started = startedLogin !== undefined;
+
+  const networkQuery = useQuery(MatrixNetworkQueryOptions(network.id, 3000));
+  const serverLogin = networkQuery.data?.health?.login;
+
+  // A pending login survives closing the panel or a page reload. A finished one is only
+  // shown for a login started here, so an old failure does not greet the next visit.
+  const login = serverLogin?.state === "PENDING" || started ? (serverLogin ?? startedLogin) : undefined;
   const pending = login?.state === "PENDING";
 
   const loginMutation = useMutation({
@@ -274,7 +280,7 @@ function MatrixLoginPanel({ toggle, network }: MatrixLoginPanelProps) {
       queryClient.setQueryData<MatrixNetwork>(MatrixKeys.detail(network.id), (current) =>
         current ? { ...current, health: { ...(current.health ?? { connected: false, healthy: false }), login: data } } : current
       );
-      setStarted(true);
+      setStartedLogin(data);
     },
     onError: () => {
       toast.custom((toastInstance) => <Toast type="error" body={t("forms.matrix.loginFailed")} t={toastInstance} />);

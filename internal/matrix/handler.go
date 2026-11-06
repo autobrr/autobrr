@@ -35,6 +35,9 @@ const (
 	tokenRefreshMargin = time.Minute
 	backoffMin         = 2 * time.Second
 	backoffMax         = 5 * time.Minute
+	joinRetryMin       = 30 * time.Second
+	joinRetryMax       = 10 * time.Minute
+	tokenStoreTimeout  = 10 * time.Second
 )
 
 // Health reasons shown in the UI.
@@ -80,6 +83,11 @@ type Handler struct {
 	rooms      []*room
 	processors []*announce.MatrixProcessor
 
+	// joinRetryInitial is the first delay before retrying rooms that failed to join
+	joinRetryInitial time.Duration
+	// tokensUnsaved is owned by the sync loop goroutine
+	tokensUnsaved bool
+
 	m              sync.RWMutex
 	connected      bool
 	connectedSince *time.Time
@@ -92,13 +100,14 @@ type Handler struct {
 
 func newHandler(log zerolog.Logger, publisher ssePublisher, repo tokenStore, httpClient *http.Client, releaseSvc releaseService, network domain.MatrixNetwork, definitions []*domain.IndexerDefinition) *Handler {
 	h := &Handler{
-		log:        log.With().Str("network", network.Name).Int64("network_id", network.ID).Logger(),
-		sse:        publisher,
-		repo:       repo,
-		network:    network,
-		client:     matrix.NewClient(network.Homeserver, httpClient),
-		oauth:      matrix.NewOAuthClient(httpClient),
-		roomHealth: map[string]*domain.MatrixRoomHealth{},
+		log:              log.With().Str("network", network.Name).Int64("network_id", network.ID).Logger(),
+		sse:              publisher,
+		repo:             repo,
+		network:          network,
+		client:           matrix.NewClient(network.Homeserver, httpClient),
+		oauth:            matrix.NewOAuthClient(httpClient),
+		roomHealth:       map[string]*domain.MatrixRoomHealth{},
+		joinRetryInitial: joinRetryMin,
 	}
 
 	h.client.SetAccessToken(network.AccessToken)
@@ -125,9 +134,10 @@ func newHandler(log zerolog.Logger, publisher ssePublisher, repo tokenStore, htt
 				h.processors = append(h.processors, processor)
 			}
 
+			// user ids are case-sensitive, so senders must match exactly
 			announcers := make(map[string]struct{}, len(roomDef.Announcers))
 			for _, announcer := range roomDef.Announcers {
-				announcers[strings.ToLower(announcer)] = struct{}{}
+				announcers[announcer] = struct{}{}
 			}
 
 			r.subscribers = append(r.subscribers, roomSubscriber{processor: processor, announcers: announcers})
@@ -182,15 +192,26 @@ func (h *Handler) run(ctx context.Context) {
 		return
 	}
 
+	defer func() {
+		if h.tokensUnsaved {
+			h.storeTokens(context.Background())
+		}
+	}()
+
 	backoff := backoffMin
 	since := ""
 
 	for ctx.Err() == nil {
-		next, err := h.session(ctx, since)
+		next, connected, err := h.session(ctx, since)
 		since = next
 
 		if ctx.Err() != nil {
 			return
+		}
+
+		// earlier outages must not slow down recovery from this one
+		if connected {
+			backoff = backoffMin
 		}
 
 		h.setDisconnected(err)
@@ -228,29 +249,33 @@ func (e *fatalError) Error() string {
 }
 
 // session connects and syncs until an error. It returns the last sync token so a
-// reconnect resumes where the previous session stopped; an empty since starts fresh
-// and skips the room history.
-func (h *Handler) session(ctx context.Context, since string) (string, error) {
+// reconnect resumes where the previous session stopped, and whether it connected; an
+// empty since starts fresh and skips the room history.
+func (h *Handler) session(ctx context.Context, since string) (string, bool, error) {
 	if err := h.ensureToken(ctx); err != nil {
-		return since, err
+		return since, false, err
 	}
 
 	whoami, err := callAuthed(ctx, h, func() (*matrix.WhoamiResponse, error) { return h.client.Whoami(ctx) })
 	if err != nil {
-		return since, err
+		return since, false, err
 	}
 
 	h.log.Debug().Str("user_id", whoami.UserID).Msg("matrix authenticated")
 
-	roomIDs := h.joinRooms(ctx)
+	roomIDs, failed, err := h.joinRooms(ctx, h.rooms)
+	if err != nil {
+		return since, false, err
+	}
+
 	if len(roomIDs) == 0 {
-		return since, errors.New("could not join any room")
+		return since, false, errors.New("could not join any room")
 	}
 
 	if since == "" {
 		resp, err := h.sync(ctx, matrix.SyncRequest{Rooms: roomIDs, TimelineLimit: 1})
 		if err != nil {
-			return since, err
+			return since, false, err
 		}
 
 		since = resp.NextBatch
@@ -259,15 +284,49 @@ func (h *Handler) session(ctx context.Context, since string) (string, error) {
 	h.setConnected()
 	h.log.Info().Int("rooms", len(roomIDs)).Msg("matrix network connected")
 
+	joinRetry := h.joinRetryInitial
+	nextJoin := time.Now().Add(joinRetry)
+
+	// rooms joined mid-session arrive with their recent history, which must not be announced
+	skipHistory := map[string]struct{}{}
+
 	for {
+		if len(failed) > 0 && !time.Now().Before(nextJoin) {
+			joined, stillFailed, err := h.joinRooms(ctx, failed)
+			if err != nil {
+				return since, true, err
+			}
+
+			for _, id := range joined {
+				skipHistory[id] = struct{}{}
+			}
+
+			roomIDs = append(roomIDs, joined...)
+			failed = stillFailed
+
+			joinRetry = min(joinRetry*2, joinRetryMax)
+			nextJoin = time.Now().Add(joinRetry)
+		}
+
 		resp, err := h.sync(ctx, matrix.SyncRequest{Since: since, Timeout: syncTimeout, Rooms: roomIDs, TimelineLimit: syncTimelineLimit})
 		if err != nil {
-			return since, err
+			return since, true, err
+		}
+
+		for id := range skipHistory {
+			if _, ok := resp.Rooms.Join[id]; ok {
+				delete(resp.Rooms.Join, id)
+				delete(skipHistory, id)
+			}
 		}
 
 		h.handleSync(resp)
 
 		since = resp.NextBatch
+
+		if h.tokensUnsaved {
+			h.storeTokens(ctx)
+		}
 	}
 }
 
@@ -337,14 +396,27 @@ func (h *Handler) refreshToken(ctx context.Context) error {
 
 	h.client.SetAccessToken(token.AccessToken)
 
-	// the old refresh token is spent, so the new pair must be stored even if the caller is stopping
-	if err := h.repo.UpdateTokens(context.WithoutCancel(ctx), h.network.ID, tokensOf(h.network)); err != nil {
-		h.log.Error().Err(err).Msg("could not store refreshed matrix tokens")
-	}
+	h.storeTokens(ctx)
 
 	h.log.Trace().Msg("matrix access token refreshed")
 
 	return nil
+}
+
+// storeTokens persists the current token pair. The old refresh token is spent once
+// refreshed, so this runs even while stopping, bounded so it cannot hold up a stop. A
+// failed write is retried after the next sync and when the loop exits.
+func (h *Handler) storeTokens(ctx context.Context) {
+	storeCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), tokenStoreTimeout)
+	defer cancel()
+
+	if err := h.repo.UpdateTokens(storeCtx, h.network.ID, tokensOf(h.network)); err != nil {
+		h.log.Error().Err(err).Msg("could not store refreshed matrix tokens")
+		h.tokensUnsaved = true
+		return
+	}
+
+	h.tokensUnsaved = false
 }
 
 func tokensOf(network domain.MatrixNetwork) domain.MatrixTokens {
@@ -360,16 +432,23 @@ func tokensOf(network domain.MatrixNetwork) domain.MatrixTokens {
 	}
 }
 
-// joinRooms joins every room and returns the room ids it is in. Joining an
-// already joined room succeeds, so this also resolves aliases on every connect.
-func (h *Handler) joinRooms(ctx context.Context) []string {
-	roomIDs := make([]string, 0, len(h.rooms))
+// joinRooms joins rooms and returns the room ids it is in and the rooms that failed.
+// Joining an already joined room succeeds, so this also resolves aliases on every
+// connect. A rejected login is returned instead of being reported per room.
+func (h *Handler) joinRooms(ctx context.Context, rooms []*room) ([]string, []*room, error) {
+	roomIDs := make([]string, 0, len(rooms))
+	var failed []*room
 
-	for _, r := range h.rooms {
+	for _, r := range rooms {
 		roomID, err := callAuthed(ctx, h, func() (string, error) { return h.client.JoinRoom(ctx, r.config.Name) })
 		if err != nil {
+			if _, ok := errors.AsType[*fatalError](err); ok {
+				return nil, nil, err
+			}
+
 			h.log.Error().Err(err).Str("room", r.config.Name).Msg("could not join matrix room")
 			h.setRoomError(r.config.Name, err.Error())
+			failed = append(failed, r)
 			continue
 		}
 
@@ -385,7 +464,7 @@ func (h *Handler) joinRooms(ctx context.Context) []string {
 		roomIDs = append(roomIDs, roomID)
 	}
 
-	return roomIDs
+	return roomIDs, failed, nil
 }
 
 func (h *Handler) handleSync(resp *matrix.SyncResponse) {
@@ -442,11 +521,10 @@ func (h *Handler) handleEvent(r *room, event matrix.Event) {
 
 	h.recordMessage(r, event, line)
 
-	sender := strings.ToLower(event.Sender)
 	queued := false
 
 	for _, subscriber := range r.subscribers {
-		if _, ok := subscriber.announcers[sender]; !ok {
+		if _, ok := subscriber.announcers[event.Sender]; !ok {
 			continue
 		}
 
@@ -483,6 +561,7 @@ func announceLine(body string) string {
 // recordMessage keeps a room message in the room history and streams it to the UI.
 func (h *Handler) recordMessage(r *room, event matrix.Event, line string) {
 	msg := domain.MatrixMessage{
+		ID:      event.EventID,
 		Network: h.network.ID,
 		Room:    r.config.Name,
 		Sender:  event.Sender,

@@ -220,20 +220,9 @@ func (s *Service) pollLogin(ctx context.Context, networkID int64, homeserver str
 		return "", errors.New("login cancelled")
 	}
 
-	// the old handler could otherwise rotate and store its own refresh token over the new login
-	s.stopHandler(networkID)
-
-	network, err := s.repo.GetNetworkByID(context.WithoutCancel(ctx), networkID)
-	if err != nil {
+	if err := s.replaceTokens(ctx, networkID, homeserver, tokens); err != nil {
 		return "", err
 	}
-
-	if err := s.repo.UpdateTokens(context.WithoutCancel(ctx), networkID, tokens); err != nil {
-		return "", errors.Wrap(err, "could not store tokens")
-	}
-
-	applyTokens(network, tokens)
-	s.startHandler(*network)
 
 	return whoami.UserID, nil
 }

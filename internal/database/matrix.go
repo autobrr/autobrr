@@ -246,7 +246,8 @@ func (r *MatrixRepo) StoreNetwork(ctx context.Context, network *domain.MatrixNet
 }
 
 // UpdateNetwork updates the network settings and syncs its rooms. Credentials are
-// written by UpdateTokens.
+// written by UpdateTokens, except that a new homeserver drops them in the same
+// transaction: they belong to an account on the old one.
 func (r *MatrixRepo) UpdateNetwork(ctx context.Context, network *domain.MatrixNetwork) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -255,6 +256,20 @@ func (r *MatrixRepo) UpdateNetwork(ctx context.Context, network *domain.MatrixNe
 
 	defer tx.Rollback()
 
+	homeserverQuery, homeserverArgs, err := r.db.squirrel.Select("homeserver").From("matrix_network").Where(sq.Eq{"id": network.ID}).ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	var currentHomeserver string
+	if err := tx.QueryRowContext(ctx, homeserverQuery, homeserverArgs...).Scan(&currentHomeserver); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.ErrRecordNotFound
+		}
+
+		return errors.Wrap(err, "error scanning row")
+	}
+
 	queryBuilder := r.db.squirrel.
 		Update("matrix_network").
 		Set("enabled", network.Enabled).
@@ -262,6 +277,12 @@ func (r *MatrixRepo) UpdateNetwork(ctx context.Context, network *domain.MatrixNe
 		Set("homeserver", network.Homeserver).
 		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
 		Where(sq.Eq{"id": network.ID})
+
+	if currentHomeserver != network.Homeserver {
+		for _, column := range []string{"auth_method", "user_id", "device_id", "access_token", "refresh_token", "token_expires_at", "oauth_client_id", "oauth_token_endpoint"} {
+			queryBuilder = queryBuilder.Set(column, nil)
+		}
+	}
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {

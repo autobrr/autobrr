@@ -70,12 +70,13 @@ func NewService(log zerolog.Logger, sse ssePublisher, repo matrixRepo, releaseSv
 	}
 }
 
-// StartHandlers starts a handler for every enabled network.
+// StartHandlers starts a handler for every enabled network. A failure is logged and
+// the service stays usable, so StopHandlers still runs at shutdown.
 func (s *Service) StartHandlers(ctx context.Context) error {
 	networks, err := s.repo.FindActiveNetworks(ctx)
 	if err != nil {
 		s.log.Error().Err(err).Msg("could not find active matrix networks")
-		return err
+		return nil
 	}
 
 	s.m.Lock()
@@ -119,10 +120,9 @@ func (s *Service) StopHandlers(ctx context.Context) {
 	}
 }
 
-// startHandler replaces the network's handler. The caller holds s.m.
+// startHandler starts a handler for a network that has none running. The caller
+// holds s.m and has stopped any previous handler.
 func (s *Service) startHandler(network domain.MatrixNetwork) {
-	s.stopHandler(network.ID)
-
 	if !network.Enabled || s.stopped {
 		return
 	}
@@ -148,19 +148,28 @@ func (s *Service) stopHandler(id int64) {
 	delete(s.handlers, id)
 }
 
-// RestartNetwork reconnects a network with its stored settings.
-func (s *Service) RestartNetwork(ctx context.Context, id int64) error {
-	network, err := s.repo.GetNetworkByID(ctx, id)
+// restart stops the network's handler and starts a new one from the stored network.
+// The stored row is read after the stop, so a token the old handler refreshed while
+// stopping is the one the new handler uses. The caller holds s.m.
+func (s *Service) restart(ctx context.Context, id int64) error {
+	s.stopHandler(id)
+
+	network, err := s.repo.GetNetworkByID(context.WithoutCancel(ctx), id)
 	if err != nil {
 		return err
 	}
 
-	s.m.Lock()
-	defer s.m.Unlock()
-
 	s.startHandler(*network)
 
 	return nil
+}
+
+// RestartNetwork reconnects a network with its stored settings.
+func (s *Service) RestartNetwork(ctx context.Context, id int64) error {
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	return s.restart(ctx, id)
 }
 
 // ListNetworks returns every network with its runtime health.
@@ -228,6 +237,10 @@ func (s *Service) StoreNetwork(ctx context.Context, network *domain.MatrixNetwor
 		return err
 	}
 
+	// serialized so concurrent merges into one network cannot drop each other's rooms
+	s.m.Lock()
+	defer s.m.Unlock()
+
 	existing, err := s.repo.FindNetworksByHomeserver(ctx, network.Homeserver)
 	if err != nil {
 		s.log.Error().Err(err).Str("homeserver", network.Homeserver).Msg("could not find matrix networks")
@@ -250,7 +263,7 @@ func (s *Service) StoreNetwork(ctx context.Context, network *domain.MatrixNetwor
 
 		*network = current
 
-		return s.RestartNetwork(ctx, current.ID)
+		return s.restart(ctx, current.ID)
 	}
 
 	if network.AccessToken != "" {
@@ -262,47 +275,62 @@ func (s *Service) StoreNetwork(ctx context.Context, network *domain.MatrixNetwor
 		return err
 	}
 
-	return s.RestartNetwork(ctx, network.ID)
+	return s.restart(ctx, network.ID)
 }
 
-// UpdateNetwork updates the settings and rooms of a network and restarts it.
+// UpdateNetwork updates the settings and rooms of a network and restarts it. The repo
+// drops the credentials when the homeserver changes, so the handler and any pending
+// login are stopped first: neither may store a token for the old homeserver afterwards.
 func (s *Service) UpdateNetwork(ctx context.Context, network *domain.MatrixNetwork) error {
 	if err := network.Validate(); err != nil {
 		return err
 	}
+
+	s.m.Lock()
+	defer s.m.Unlock()
 
 	current, err := s.repo.GetNetworkByID(ctx, network.ID)
 	if err != nil {
 		return err
 	}
 
-	// a different homeserver means a different account; the old token must not be sent to it
-	if current.Homeserver != network.Homeserver && current.HasCredentials() {
-		if err := s.repo.UpdateTokens(ctx, network.ID, domain.MatrixTokens{}); err != nil {
-			s.log.Error().Err(err).Int64("network_id", network.ID).Msg("could not clear matrix tokens")
-			return err
-		}
+	s.stopHandler(network.ID)
+
+	if current.Homeserver != network.Homeserver {
+		s.cancelLogin(network.ID)
 	}
 
 	if err := s.repo.UpdateNetwork(ctx, network); err != nil {
 		s.log.Error().Err(err).Int64("network_id", network.ID).Msg("could not update matrix network")
+		s.restoreHandler(ctx, network.ID)
 		return err
 	}
 
-	return s.RestartNetwork(ctx, network.ID)
+	return s.restart(ctx, network.ID)
+}
+
+// restoreHandler restarts a network from its stored row after a failed change, so the
+// failure does not leave it stopped. The caller holds s.m.
+func (s *Service) restoreHandler(ctx context.Context, id int64) {
+	if err := s.restart(ctx, id); err != nil {
+		s.log.Error().Err(err).Int64("network_id", id).Msg("could not restart matrix network")
+	}
 }
 
 // DeleteNetwork stops and deletes a network.
 func (s *Service) DeleteNetwork(ctx context.Context, id int64) error {
 	s.m.Lock()
+	defer s.m.Unlock()
+
 	s.stopHandler(id)
-	s.cancelLogin(id)
-	s.m.Unlock()
 
 	if err := s.repo.DeleteNetwork(ctx, id); err != nil {
 		s.log.Error().Err(err).Int64("network_id", id).Msg("could not delete matrix network")
+		s.restoreHandler(ctx, id)
 		return err
 	}
+
+	s.cancelLogin(id)
 
 	return nil
 }
@@ -325,25 +353,39 @@ func (s *Service) SetAccessToken(ctx context.Context, req *domain.MatrixSetToken
 	s.m.Lock()
 	defer s.m.Unlock()
 
-	s.stopHandler(network.ID)
 	s.cancelLogin(network.ID)
 
-	tokens := domain.MatrixTokens{
+	return s.replaceTokens(ctx, network.ID, network.Homeserver, domain.MatrixTokens{
 		AuthMethod:  domain.MatrixAuthMethodToken,
 		UserID:      whoami.UserID,
 		DeviceID:    whoami.DeviceID,
 		AccessToken: req.AccessToken,
-	}
+	})
+}
 
-	if err := s.repo.UpdateTokens(ctx, network.ID, tokens); err != nil {
-		s.log.Error().Err(err).Int64("network_id", network.ID).Msg("could not store matrix access token")
+// replaceTokens stores credentials that were verified against homeserver and restarts
+// the network. It refuses them if the network moved to another homeserver meanwhile.
+// The caller holds s.m.
+func (s *Service) replaceTokens(ctx context.Context, networkID int64, homeserver string, tokens domain.MatrixTokens) error {
+	network, err := s.repo.GetNetworkByID(context.WithoutCancel(ctx), networkID)
+	if err != nil {
 		return err
 	}
 
-	applyTokens(network, tokens)
-	s.startHandler(*network)
+	if network.Homeserver != homeserver {
+		return errors.New("network homeserver changed from %s to %s, log in again", homeserver, network.Homeserver)
+	}
 
-	return nil
+	// the old handler could otherwise rotate and store its own refresh token over these
+	s.stopHandler(networkID)
+
+	if err := s.repo.UpdateTokens(context.WithoutCancel(ctx), networkID, tokens); err != nil {
+		s.log.Error().Err(err).Int64("network_id", networkID).Msg("could not store matrix tokens")
+		s.restoreHandler(ctx, networkID)
+		return err
+	}
+
+	return s.restart(ctx, networkID)
 }
 
 // Logout stops a network and forgets its credentials.
@@ -356,6 +398,7 @@ func (s *Service) Logout(ctx context.Context, id int64) error {
 
 	if err := s.repo.UpdateTokens(ctx, id, domain.MatrixTokens{}); err != nil {
 		s.log.Error().Err(err).Int64("network_id", id).Msg("could not clear matrix tokens")
+		s.restoreHandler(ctx, id)
 		return err
 	}
 
@@ -387,15 +430,4 @@ func (s *Service) ManualProcessAnnounce(_ context.Context, req *domain.MatrixMan
 	}
 
 	return handler.QueueAnnounce(req.Room, req.Message)
-}
-
-func applyTokens(network *domain.MatrixNetwork, tokens domain.MatrixTokens) {
-	network.AuthMethod = tokens.AuthMethod
-	network.UserID = tokens.UserID
-	network.DeviceID = tokens.DeviceID
-	network.AccessToken = tokens.AccessToken
-	network.RefreshToken = tokens.RefreshToken
-	network.TokenExpiresAt = tokens.TokenExpiresAt
-	network.OAuthClientID = tokens.OAuthClientID
-	network.OAuthTokenEndpoint = tokens.OAuthTokenEndpoint
 }

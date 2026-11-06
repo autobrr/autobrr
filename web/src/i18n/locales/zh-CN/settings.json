@@ -929,6 +929,7 @@
       "settingsMatrixTitle": "Matrix",
       "settingsMatrixDesc": "Matrix 网络和房间会自动设置。添加索引器后，请在 设置 > Matrix 中登录。",
       "matrixLoginRequired": "已添加 Matrix 网络。请在 设置 > Matrix 中登录以开始接收公告。",
+      "matrixAddFailed": "索引器已添加，但无法创建其 Matrix 网络 {{name}}。请在 设置 > Matrix 中添加。",
       "ircGuideTooltip": "如果你对 IRC 不熟悉，请先阅读我们的 IRC 指南。",
       "name": "名称",
       "url": "URL",
