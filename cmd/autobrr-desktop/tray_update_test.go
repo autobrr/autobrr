@@ -22,8 +22,8 @@ func TestAutoUpdateDue(t *testing.T) {
 		want      bool
 	}{
 		{name: "just released", published: now.Add(-time.Hour), want: false},
-		{name: "one minute short", published: now.Add(-autoUpdateDelay + time.Minute), want: false},
-		{name: "exactly the delay", published: now.Add(-autoUpdateDelay), want: true},
+		{name: "one minute short", published: now.Add(-24*time.Hour + time.Minute), want: false},
+		{name: "exactly 24 hours", published: now.Add(-24 * time.Hour), want: true},
 		{name: "older", published: now.Add(-72 * time.Hour), want: true},
 		{name: "no publish date", published: time.Time{}, want: false},
 	}

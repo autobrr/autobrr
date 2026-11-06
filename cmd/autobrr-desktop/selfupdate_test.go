@@ -11,6 +11,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -200,4 +201,18 @@ func TestSelfUpdaterSwapRestoresExe(t *testing.T) {
 	assertFile(t, exe, "old")
 	assertMissing(t, exe+".new")
 	assertMissing(t, exe+".old")
+}
+
+func TestSelfUpdaterSwapAfterClose(t *testing.T) {
+	exe := installedExe(t)
+
+	u := newSelfUpdater(exe)
+	u.close()
+
+	if err := u.swap([]byte("new")); !errors.Is(err, errShuttingDown) {
+		t.Fatalf("swap error = %v, want errShuttingDown", err)
+	}
+
+	assertFile(t, exe, "old")
+	assertMissing(t, exe+".new")
 }

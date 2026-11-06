@@ -96,3 +96,26 @@ func TestAppConfig_processLines(t *testing.T) {
 		})
 	}
 }
+
+func TestUpdateConfig_WindowsLogPath(t *testing.T) {
+	dir := t.TempDir()
+
+	cfg, err := Load(dir)
+	require.NoError(t, err)
+
+	logPath := `C:\Users\a "b"\AppData\Roaming\autobrr\logs\autobrr.log`
+	cfg.Config.LogPath = logPath
+	require.NoError(t, cfg.UpdateConfig())
+
+	reloaded, err := Load(dir)
+	require.NoError(t, err)
+	assert.Equal(t, logPath, reloaded.Config.LogPath)
+}
+
+func TestLoad_InvalidValue(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "config.toml"), []byte(`port = "not a number"`), 0o600))
+
+	_, err := Load(dir)
+	assert.ErrorContains(t, err, "could not unmarshal config file")
+}

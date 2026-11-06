@@ -157,3 +157,31 @@ func TestDesktopSetting(t *testing.T) {
 		assertSetting(on)
 	}
 }
+
+func TestLockUpdate(t *testing.T) {
+	exe := filepath.Join(t.TempDir(), "autobrr-desktop.exe")
+
+	unlock, locked, err := lockUpdate(exe)
+	if err != nil || !locked {
+		t.Fatalf("first lock: locked=%v err=%v", locked, err)
+	}
+
+	if _, locked, err := lockUpdate(strings.ToUpper(exe)); err != nil || locked {
+		t.Fatalf("second lock: locked=%v err=%v, want held", locked, err)
+	}
+
+	// the instance lock for a config dir at the same path is a different mutex
+	instanceUnlock, locked, err := lockInstance(exe)
+	if err != nil || !locked {
+		t.Fatalf("instance lock: locked=%v err=%v", locked, err)
+	}
+	instanceUnlock()
+
+	unlock()
+
+	unlock, locked, err = lockUpdate(exe)
+	if err != nil || !locked {
+		t.Fatalf("lock after unlock: locked=%v err=%v", locked, err)
+	}
+	unlock()
+}

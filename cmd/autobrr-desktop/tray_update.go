@@ -16,6 +16,7 @@ import (
 	"github.com/autobrr/autobrr/internal/application"
 	"github.com/autobrr/autobrr/internal/events"
 	"github.com/autobrr/autobrr/internal/meta"
+	"github.com/autobrr/autobrr/pkg/errors"
 	pkgversion "github.com/autobrr/autobrr/pkg/version"
 
 	"github.com/gogpu/systray"
@@ -68,7 +69,19 @@ func addUpdateMenu(menu *systray.Menu, app *application.App, tray *systray.Syste
 		return nil
 	})
 
-	menu.Add("Check for updates", m.check)
+	// a check before startup finishes would emit the release before the
+	// notification service listens, and each release is emitted only once
+	checkItem := menu.Add("Check for updates", func() {
+		// off the tray thread, which also handles logoff, so a slow server
+		// cannot hold up the menu or a clean shutdown
+		go m.check()
+	})
+	checkItem.SetDisabled(true)
+
+	go func() {
+		<-app.Ready()
+		checkItem.SetDisabled(false)
+	}()
 
 	if !canSelfUpdate() {
 		return
@@ -182,7 +195,9 @@ func (m *updateMenu) installConfirmed() bool {
 	m.tray.ShowNotification("autobrr", "Downloading "+rel.TagName)
 
 	if err := m.install(ctx, rel); err != nil {
-		showError("autobrr", fmt.Sprintf("Could not install %s: %v\n\nYou can download it from %s", rel.TagName, err, rel.HtmlURL))
+		if !errors.Is(err, errShuttingDown) {
+			showError("autobrr", fmt.Sprintf("Could not install %s: %v\n\nYou can download it from %s", rel.TagName, err, rel.HtmlURL))
+		}
 		return false
 	}
 
@@ -220,7 +235,8 @@ func (m *updateMenu) autoUpdate(autoItem *systray.MenuItem) {
 			continue
 		}
 
-		if rel == nil || rel.TagName == failedTag || !autoUpdateDue(rel, time.Now()) {
+		// checked again, since the box may have been unticked during the request
+		if rel == nil || rel.TagName == failedTag || !autoUpdateDue(rel, time.Now()) || !autoItem.IsChecked() {
 			continue
 		}
 
@@ -233,6 +249,10 @@ func (m *updateMenu) autoUpdate(autoItem *systray.MenuItem) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 		err = m.install(ctx, rel)
 		cancel()
+
+		if errors.Is(err, errShuttingDown) {
+			return
+		}
 
 		if err != nil {
 			failedTag = rel.TagName

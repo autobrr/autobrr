@@ -54,33 +54,47 @@ func showMessage(title, message string, icon uintptr) {
 }
 
 // lockInstance reports false when another instance already runs with
-// configDir. The named mutex is scoped to the config directory, so instances
-// with separate configs can still run side by side, and to the login session
-// through the Local namespace. Windows releases it when the process exits, so
-// a crash cannot leave it stale. unlock releases it early, for a restart that
-// starts the new process before this one exits.
+// configDir. The lock is scoped to the config directory, so instances with
+// separate configs can still run side by side. unlock releases it early, for a
+// restart that starts the new process before this one exits.
 func lockInstance(configDir string) (unlock func(), locked bool, err error) {
-	dir, err := filepath.Abs(configDir)
+	return namedMutex("autobrr-", configDir)
+}
+
+// lockUpdate reports false while another process swaps exe, which instances
+// with separate configs share.
+func lockUpdate(exe string) (unlock func(), locked bool, err error) {
+	return namedMutex("autobrr-update-", exe)
+}
+
+// namedMutex holds a mutex named after prefix and the path, in the Local
+// namespace of the login session. Windows releases it when the process exits,
+// so a crash cannot leave it stale.
+func namedMutex(prefix, path string) (unlock func(), locked bool, err error) {
+	abs, err := filepath.Abs(path)
 	if err != nil {
-		return nil, false, errors.Wrap(err, "could not resolve config directory")
+		return nil, false, errors.Wrap(err, "could not resolve %s", path)
 	}
 
 	// mutex names cannot contain backslashes, and Windows paths are case-insensitive
-	sum := sha256.Sum256([]byte(strings.ToLower(filepath.Clean(dir))))
+	sum := sha256.Sum256([]byte(strings.ToLower(filepath.Clean(abs))))
 
-	name, err := windows.UTF16PtrFromString(`Local\autobrr-` + hex.EncodeToString(sum[:16]))
+	name, err := windows.UTF16PtrFromString(`Local\` + prefix + hex.EncodeToString(sum[:16]))
 	if err != nil {
 		return nil, false, err
 	}
 
 	handle, err := windows.CreateMutex(nil, false, name)
-	if err != nil {
-		if err == windows.ERROR_ALREADY_EXISTS {
-			_ = windows.CloseHandle(handle)
-			return nil, false, nil
-		}
-
-		return nil, false, errors.Wrap(err, "could not create instance mutex")
+	switch {
+	case err == windows.ERROR_ALREADY_EXISTS:
+		_ = windows.CloseHandle(handle)
+		return nil, false, nil
+	case err == windows.ERROR_ACCESS_DENIED:
+		// the mutex exists but belongs to an elevated process, such as a copy
+		// started with "Run as administrator"
+		return nil, false, nil
+	case err != nil:
+		return nil, false, errors.Wrap(err, "could not create mutex")
 	}
 
 	return func() { _ = windows.CloseHandle(handle) }, true, nil

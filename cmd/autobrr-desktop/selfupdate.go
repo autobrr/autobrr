@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -32,6 +33,9 @@ const (
 	maxUpdateDownload = 256 << 20
 )
 
+// errShuttingDown is returned by an install that starts after close.
+var errShuttingDown = errors.New("autobrr is shutting down")
+
 // selfUpdater replaces exe with the one from a release's desktop zip.
 type selfUpdater struct {
 	client *http.Client
@@ -39,6 +43,11 @@ type selfUpdater struct {
 
 	// rename is os.Rename, replaced in tests to fail the second rename of a swap
 	rename func(oldpath, newpath string) error
+
+	// held during a swap; close takes it, so the process never exits between
+	// the two renames, which would leave no exe at the installed path
+	mu     sync.Mutex
+	closed bool
 }
 
 func newSelfUpdater(exe string) *selfUpdater {
@@ -181,10 +190,36 @@ func extractExe(archive []byte) ([]byte, error) {
 	return nil, errors.New("no %s in archive", updateExeName)
 }
 
+// close waits for a running swap and makes later ones fail with
+// errShuttingDown. The shutdown path calls it before the process exits.
+func (u *selfUpdater) close() {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+
+	u.closed = true
+}
+
 // swap moves exe aside instead of overwriting it, because Windows lets a
 // running exe be renamed but not written. The previous version stays as
 // <exe>.old for a manual rollback until the next update replaces it.
 func (u *selfUpdater) swap(exe []byte) (err error) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+
+	if u.closed {
+		return errShuttingDown
+	}
+
+	// instances with separate configs share the exe and its .new and .old files
+	unlock, locked, err := lockUpdate(u.exe)
+	if err != nil {
+		return errors.Wrap(err, "could not lock exe for update")
+	}
+	if !locked {
+		return errors.New("another autobrr is updating %s", u.exe)
+	}
+	defer unlock()
+
 	next := u.exe + ".new"
 	old := u.exe + ".old"
 

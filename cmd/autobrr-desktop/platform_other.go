@@ -18,6 +18,11 @@ func lockInstance(configDir string) (unlock func(), locked bool, err error) {
 	return func() {}, true, nil
 }
 
+// lockUpdate always succeeds outside Windows, see lockInstance.
+func lockUpdate(exe string) (unlock func(), locked bool, err error) {
+	return func() {}, true, nil
+}
+
 // askYesNo answers no outside Windows, which has no dialog to ask with.
 func askYesNo(title, message string) bool {
 	return false

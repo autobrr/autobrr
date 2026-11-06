@@ -108,7 +108,9 @@ func run(ctx context.Context, configPath, updatedFrom string) error {
 		cancel()
 	}
 
-	tray := newTray(app, cancel, newSelfUpdater(exe), restart, updatedFrom)
+	updater := newSelfUpdater(exe)
+
+	tray := newTray(app, cancel, updater, restart, updatedFrom)
 
 	var runErr error
 	done := make(chan struct{})
@@ -121,6 +123,7 @@ func run(ctx context.Context, configPath, updatedFrom string) error {
 	if err := onSessionEnd(func() {
 		cancel()
 		<-done
+		updater.close()
 	}); err != nil {
 		app.Log().Error().Err(err).Msg("could not watch for session end")
 	}
@@ -131,6 +134,7 @@ func run(ctx context.Context, configPath, updatedFrom string) error {
 
 	cancel()
 	<-done
+	updater.close()
 
 	if runErr != nil {
 		showError("autobrr", fmt.Sprintf("autobrr stopped: %v\n\nLog file: %s", runErr, app.Config().LogPath))
@@ -168,7 +172,10 @@ func newApp(configPath string) (*application.App, error) {
 		configPath = filepath.Join(dir, "autobrr")
 	}
 
-	cfg := config.New(configPath)
+	cfg, err := config.Load(configPath)
+	if err != nil {
+		return nil, err
+	}
 
 	if cfg.Config.LogPath == "" {
 		cfg.Config.LogPath = filepath.Join(configPath, "logs", "autobrr.log")
