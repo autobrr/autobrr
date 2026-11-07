@@ -5,9 +5,11 @@ package database
 
 import (
 	"database/sql"
-	"fmt"
-	"net"
+	"maps"
 	"net/url"
+	"slices"
+	"strconv"
+	"strings"
 
 	"github.com/autobrr/autobrr/internal/database/migrations"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -49,55 +51,51 @@ func (db *DB) migratePostgres() error {
 	return nil
 }
 
-// PostgresDSN build postgres dsn connect string
+// PostgresDSN builds a libpq keyword/value connection string for lib/pq.
 func PostgresDSN(host string, port int, user, pass, database, socket, sslMode, extraParams string) (string, error) {
-	// If no database is provided, return an error
 	if database == "" {
 		return "", errors.New("postgres: database name is required")
 	}
 
-	pgDsn, err := url.Parse("postgres://")
-	if err != nil {
-		return "", errors.Wrap(err, "could not parse postgres DSN")
+	if socket == "" && host == "" && port == 0 {
+		return "", errors.New("postgres: host and port are required for TCP connection")
 	}
 
-	pgDsn.Path = database
-	if user != "" {
-		pgDsn.User = url.UserPassword(user, pass)
+	var kvs []string
+	add := func(key, value string) {
+		if value != "" {
+			kvs = append(kvs, key+"="+quoteDSNValue(value))
+		}
 	}
-	queryParams := pgDsn.Query()
 
-	// Build DSN based on the connection type (TCP vs. Unix socket)
 	if socket != "" {
-		// Unix socket connection via the host param
-		queryParams.Add("host", socket)
+		add("host", socket)
 	} else {
-		// TCP connection
-		if host == "" && port == 0 {
-			return "", errors.New("postgres: host and port are required for TCP connection")
-		}
-		if port > 0 {
-			pgDsn.Host = net.JoinHostPort(host, fmt.Sprintf("%d", port))
-		} else {
-			pgDsn.Host = database
-		}
+		add("host", host)
 	}
-
-	// Add SSL mode if provided
-	if sslMode != "" {
-		queryParams.Add("sslmode", sslMode)
+	if port > 0 {
+		add("port", strconv.Itoa(port))
 	}
+	add("dbname", database)
+	add("user", user)
+	add("password", pass)
+	add("sslmode", sslMode)
 
-	pgDsn.RawQuery = queryParams.Encode()
-
-	// Add any extra parameters
 	if extraParams != "" {
 		values, err := url.ParseQuery(extraParams)
 		if err != nil {
 			return "", errors.Wrap(err, "could not parse extra params")
 		}
-		pgDsn.RawQuery = fmt.Sprintf("%s&%s", pgDsn.RawQuery, values.Encode())
+		for _, key := range slices.Sorted(maps.Keys(values)) {
+			add(key, values.Get(key))
+		}
 	}
 
-	return pgDsn.String(), nil
+	return strings.Join(kvs, " "), nil
+}
+
+var dsnValueEscaper = strings.NewReplacer(`\`, `\\`, `'`, `\'`)
+
+func quoteDSNValue(value string) string {
+	return "'" + dsnValueEscaper.Replace(value) + "'"
 }

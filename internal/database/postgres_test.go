@@ -23,7 +23,7 @@ func TestPostgresDSN(t *testing.T) {
 		want string
 	}{
 		{
-			name: "default",
+			name: "tcp",
 			args: args{
 				host:     "localhost",
 				port:     5432,
@@ -33,10 +33,10 @@ func TestPostgresDSN(t *testing.T) {
 				sslMode:  "disable",
 				socket:   "",
 			},
-			want: "postgres://postgres:PASSWORD@localhost:5432/postgres?sslmode=disable",
+			want: "host='localhost' port='5432' dbname='postgres' user='postgres' password='PASSWORD' sslmode='disable'",
 		},
 		{
-			name: "default",
+			name: "tcp with extra params",
 			args: args{
 				host:        "localhost",
 				port:        5432,
@@ -47,15 +47,15 @@ func TestPostgresDSN(t *testing.T) {
 				extraParams: "connect_timeout=10",
 				socket:      "",
 			},
-			want: "postgres://postgres:PASSWORD@localhost:5432/postgres?sslmode=disable&connect_timeout=10",
+			want: "host='localhost' port='5432' dbname='postgres' user='postgres' password='PASSWORD' sslmode='disable' connect_timeout='10'",
 		},
 		{
-			name: "default",
+			name: "socket",
 			args: args{
 				database: "postgres",
 				socket:   "/path/to/socket",
 			},
-			want: "postgres://postgres?host=%2Fpath%2Fto%2Fsocket",
+			want: "host='/path/to/socket' dbname='postgres'",
 		},
 		{
 			name: "socket with credentials",
