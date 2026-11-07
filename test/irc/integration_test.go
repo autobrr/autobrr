@@ -800,3 +800,22 @@ func TestRegainingNickAfterRefusedChannelJoinedKeepsConnection(t *testing.T) {
 	time.Sleep(3 * time.Second)
 	require.Equal(t, 1, srv.JoinCount("#auto"), "expected no reconnect and no second server join")
 }
+
+// TestRegainingNickAfterRefusedChannelRemovedKeepsConnection verifies that a refused
+// channel that was removed since needs no reconnect when the nick comes back.
+func TestRegainingNickAfterRefusedChannelRemovedKeepsConnection(t *testing.T) {
+	srv := ircd.New(t, ircd.NickHeld("autobrr"), ircd.JoinOnConnect("autobrr", "#auto"))
+	srv.AddChannel("#auto", ircd.InviteOnly(), ircd.Announcer("ann"))
+
+	def := harness.MinimalDefinition("auto", "#auto", "ann")
+	net := harness.Network(srv, "autobrr", harness.None(), harness.Channel("#auto"))
+
+	inst := harness.Start(t, net, harness.Defs(def))
+	inst.WaitForState("#auto", "Error", 15*time.Second)
+
+	inst.Handler.RemoveChannel("#auto")
+	srv.SendNickChange("autobrr_0", "autobrr_0", "autobrr")
+
+	time.Sleep(3 * time.Second)
+	require.Zero(t, srv.JoinCount("#auto"), "expected no reconnect and no server join")
+}

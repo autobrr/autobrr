@@ -1494,9 +1494,16 @@ func (h *Handler) onNick(client *ircevent.Connection, msg ircmsg.Message) {
 
 	h.m.Lock()
 	authenticated := h.authenticated || h.saslauthed
-	reconnect := len(h.refusedOnFallback) > 0
+	refused := h.refusedOnFallback
 	h.refusedOnFallback = nil
 	h.m.Unlock()
+
+	reconnect := false
+	for key := range refused {
+		if channel, found := h.channels.Get(key); found && channel.IsEnabled() {
+			reconnect = true
+		}
+	}
 
 	if reconnect {
 		h.log.Info().Str("nick", newNick).Msg("regained nick after an invite-only refusal on a fallback nick, reconnecting")
