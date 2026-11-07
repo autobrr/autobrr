@@ -210,9 +210,25 @@ func (a *claimTestActions) ran() []string {
 	return out
 }
 
+// claimTestReleaseRepo is the real release repo with a hook to fail action status writes.
+type claimTestReleaseRepo struct {
+	*database.ReleaseRepo
+
+	failStore func(status *domain.ReleaseActionStatus) bool
+}
+
+func (r *claimTestReleaseRepo) StoreReleaseActionStatus(ctx context.Context, status *domain.ReleaseActionStatus) error {
+	if r.failStore != nil && r.failStore(status) {
+		return errors.New("database is locked")
+	}
+
+	return r.ReleaseRepo.StoreReleaseActionStatus(ctx, status)
+}
+
 type claimTestEnv struct {
 	db         *database.DB
 	svc        *Service
+	repo       *claimTestReleaseRepo
 	actions    *claimTestActions
 	actionRepo *database.ActionRepo
 	filterRepo *database.FilterRepo
@@ -233,6 +249,7 @@ func newClaimTestEnv(t *testing.T, engine string, indexers ...string) *claimTest
 
 	env := &claimTestEnv{
 		db:         db,
+		repo:       &claimTestReleaseRepo{ReleaseRepo: releaseRepo},
 		actionRepo: actionRepo,
 		filterRepo: filterRepo,
 		actions:    &claimTestActions{repo: actionRepo},
@@ -246,7 +263,7 @@ func newClaimTestEnv(t *testing.T, engine string, indexers ...string) *claimTest
 	}
 
 	filterSvc := filter.NewService(log, filterRepo, nil, releaseRepo, nil, nil, nil, nil)
-	env.svc = NewService(log, claimTestBus{}, releaseRepo, env.actions, filterSvc, nil, nil)
+	env.svc = NewService(log, claimTestBus{}, env.repo, env.actions, filterSvc, nil, nil)
 
 	return env
 }
@@ -591,6 +608,63 @@ func TestClaim_PrepareErrorFailsFilter(t *testing.T) {
 			{action: "hi-action-0", status: domain.ReleasePushStatusErr, rejections: []string{"could not download torrent file: 404"}},
 			{action: "lo-action-0", status: domain.ReleasePushStatusApproved, rejections: []string{}},
 		}, env.statuses(t))
+	})
+}
+
+// A torrent that can't be downloaded fails only the actions that need it, the other actions of
+// the filter still run.
+func TestClaim_PrepareErrorKeepsOtherActions(t *testing.T) {
+	forEachEngine(t, func(t *testing.T, engine string) {
+		env := newClaimTestEnv(t, engine, "tracker-a")
+		env.addFilter(t, claimTestFilter{name: "hi", priority: 2, actions: []domain.ActionType{domain.ActionTypeQbittorrent, domain.ActionTypeWebhook}})
+		env.addFilter(t, claimTestFilter{name: "lo", priority: 1, actions: []domain.ActionType{domain.ActionTypeExec}})
+
+		env.actions.prepare = func(action *domain.Action, _ *domain.Release) error {
+			if action.Type == domain.ActionTypeQbittorrent {
+				return errors.New("could not download torrent file: 404")
+			}
+			return nil
+		}
+
+		env.svc.Process(context.Background(), env.newRelease("tracker-a", claimTestReleaseName))
+
+		assert.Equal(t, []string{"hi-action-1"}, env.actions.ran())
+		assert.Equal(t, []claimTestStatus{
+			{action: "hi-action-0", status: domain.ReleasePushStatusErr, rejections: []string{"could not download torrent file: 404"}},
+			{action: "hi-action-1", status: domain.ReleasePushStatusApproved, rejections: []string{}},
+		}, env.statuses(t))
+	})
+}
+
+// A final status whose write fails is written again, so the stored row doesn't stay PENDING and
+// block the next copy.
+func TestClaim_FailedStatusWriteIsRetried(t *testing.T) {
+	forEachEngine(t, func(t *testing.T, engine string) {
+		env := newClaimTestEnv(t, engine, "tracker-a", "tracker-b")
+		env.addFilter(t, claimTestFilter{name: "movies", priority: 1, profileID: claimExactProfileID, actions: []domain.ActionType{domain.ActionTypeTest}})
+
+		var failed atomic.Bool
+		env.repo.failStore = func(status *domain.ReleaseActionStatus) bool {
+			return status.Status == domain.ReleasePushStatusRejected && failed.CompareAndSwap(false, true)
+		}
+
+		env.actions.run = func(_ *domain.Action, rls *domain.Release) []string {
+			if rls.Indexer.Identifier == "tracker-a" {
+				return []string{"re-announce took too long"}
+			}
+			return nil
+		}
+
+		env.svc.Process(context.Background(), env.newRelease("tracker-a", claimTestReleaseName))
+
+		require.True(t, failed.Load())
+		assert.Equal(t, []claimTestStatus{
+			{action: "movies-action-0", status: domain.ReleasePushStatusRejected, rejections: []string{"re-announce took too long"}},
+		}, env.statuses(t))
+
+		env.svc.Process(context.Background(), env.newRelease("tracker-b", claimTestReleaseName))
+
+		assert.Len(t, env.actions.approved(), 1, "the second copy is pushed once the first was rejected")
 	})
 }
 

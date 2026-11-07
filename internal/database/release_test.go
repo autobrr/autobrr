@@ -1024,7 +1024,7 @@ func TestReleaseRepo_CheckSmartEpisodeCanDownloadShow(t *testing.T) {
 			}
 
 			// Execute
-			canDownload, err := repo.CheckSmartEpisodeCanDownload(ctx, params)
+			canDownload, _, err := repo.CheckSmartEpisodeCanDownload(ctx, params)
 
 			// Verify
 			require.NoError(t, err)
@@ -2338,13 +2338,13 @@ func TestReleaseRepo_CheckSmartEpisodeTitleKey(t *testing.T) {
 		}
 
 		t.Run(fmt.Sprintf("Spin_Off_Does_Not_Block [%s]", dbType), func(t *testing.T) {
-			canDownload, err := repo.CheckSmartEpisodeCanDownload(ctx, &domain.SmartEpisodeParams{Title: "9-1-1", Season: 4, Episode: 10})
+			canDownload, _, err := repo.CheckSmartEpisodeCanDownload(ctx, &domain.SmartEpisodeParams{Title: "9-1-1", Season: 4, Episode: 10})
 			require.NoError(t, err)
 			assert.True(t, canDownload)
 		})
 
 		t.Run(fmt.Sprintf("Punctuation_Still_Blocks [%s]", dbType), func(t *testing.T) {
-			canDownload, err := repo.CheckSmartEpisodeCanDownload(ctx, &domain.SmartEpisodeParams{Title: "Franchise Example Show", Season: 2, Episode: 4})
+			canDownload, _, err := repo.CheckSmartEpisodeCanDownload(ctx, &domain.SmartEpisodeParams{Title: "Franchise Example Show", Season: 2, Episode: 4})
 			require.NoError(t, err)
 			assert.False(t, canDownload)
 		})
@@ -2454,14 +2454,23 @@ func TestReleaseRepo_InFlightPushes(t *testing.T) {
 			cleanup(t)
 			store(t, "Example.Show.S01E05.1080p.WEB.H264-GRP", domain.ReleasePushStatusPending)
 			store(t, "Other.Show.S01E05.1080p.WEB.H264-GRP", domain.ReleasePushStatusErr)
+			store(t, "Third.Show.S01E05.1080p.WEB.H264-GRP", domain.ReleasePushStatusPending)
+			store(t, "Third.Show.S01E06.1080p.WEB.H264-GRP", domain.ReleasePushStatusApproved)
 
-			canDownload, err := repo.CheckSmartEpisodeCanDownload(ctx, &domain.SmartEpisodeParams{Title: "Example Show", Season: 1, Episode: 4})
+			canDownload, inFlight, err := repo.CheckSmartEpisodeCanDownload(ctx, &domain.SmartEpisodeParams{Title: "Example Show", Season: 1, Episode: 4})
 			require.NoError(t, err)
 			assert.False(t, canDownload, "an episode being pushed is newer")
+			assert.True(t, inFlight, "only an episode being pushed is newer")
 
-			canDownload, err = repo.CheckSmartEpisodeCanDownload(ctx, &domain.SmartEpisodeParams{Title: "Other Show", Season: 1, Episode: 4})
+			canDownload, inFlight, err = repo.CheckSmartEpisodeCanDownload(ctx, &domain.SmartEpisodeParams{Title: "Other Show", Season: 1, Episode: 4})
 			require.NoError(t, err)
 			assert.True(t, canDownload, "a failed push does not count")
+			assert.False(t, inFlight)
+
+			canDownload, inFlight, err = repo.CheckSmartEpisodeCanDownload(ctx, &domain.SmartEpisodeParams{Title: "Third Show", Season: 1, Episode: 4})
+			require.NoError(t, err)
+			assert.False(t, canDownload)
+			assert.False(t, inFlight, "a grabbed newer episode wins over one being pushed")
 		})
 
 		t.Run(fmt.Sprintf("fail_pending_action_statuses [%s]", dbType), func(t *testing.T) {

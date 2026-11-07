@@ -483,7 +483,10 @@ func (app *App) setup(ctx context.Context) error {
 	app.releaseService = release.NewService(app.log, app.eventBus, releaseRepo, app.actionService, app.filterService, app.indexerService, app.scheduler)
 
 	// before HTTP, IRC, Matrix and feeds can start a push, PENDING means the push was interrupted
-	app.releaseService.FailInterruptedActions(ctx)
+	if err := app.releaseService.FailInterruptedActions(ctx); err != nil {
+		return err
+	}
+
 	app.ircService = irc.NewService(app.log, app.eventBus, app.sse, ircRepo, app.releaseService, app.indexerService, app.proxyService)
 	app.matrixService = matrix.NewService(app.log, app.sse, matrixRepo, app.releaseService, app.indexerService)
 	app.feedService = feed.NewService(app.log, app.eventBus, feedRepo, feedCacheRepo, app.releaseService, app.proxyService, app.scheduler)

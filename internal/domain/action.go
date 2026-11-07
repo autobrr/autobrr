@@ -72,22 +72,23 @@ const (
 	ReannounceMaxDuration = 15 * time.Minute
 )
 
-// ReannounceSchedule returns the re-announce interval in seconds and the max attempts, with the
-// attempts capped so interval x attempts stays within ReannounceMaxDuration.
-func (a *Action) ReannounceSchedule() (interval int, maxAttempts int) {
+// ReannounceSchedule returns the re-announce interval in seconds and the max attempts, capped so
+// the client's waits stay within ReannounceMaxDuration. extraWaits is how many waits the client
+// adds on top of one per attempt.
+func (a *Action) ReannounceSchedule(extraWaits int) (interval int, maxAttempts int) {
+	budget := int64(ReannounceMaxDuration / time.Second)
+
 	interval = reannounceDefaultInterval
 	if a.ReAnnounceInterval > 0 {
-		interval = int(a.ReAnnounceInterval)
+		interval = int(min(a.ReAnnounceInterval, budget))
 	}
 
 	maxAttempts = reannounceDefaultMaxAttempts
 	if a.ReAnnounceMaxAttempts > 0 {
-		maxAttempts = int(a.ReAnnounceMaxAttempts)
+		maxAttempts = int(min(a.ReAnnounceMaxAttempts, budget))
 	}
 
-	budget := int(ReannounceMaxDuration / time.Second)
-	interval = min(interval, budget)
-	maxAttempts = min(maxAttempts, budget/interval)
+	maxAttempts = max(min(maxAttempts, int(budget)/interval-extraWaits), 0)
 
 	return interval, maxAttempts
 }

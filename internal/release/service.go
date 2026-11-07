@@ -41,7 +41,6 @@ type releaseRepo interface {
 	StatsTopIndexers(ctx context.Context, days int) (*domain.ReleaseTopIndexersStats, error)
 	StatsTopFilters(ctx context.Context, days int) (*domain.ReleaseTopFiltersStats, error)
 	Delete(ctx context.Context, req *domain.DeleteReleaseRequest) error
-	CheckSmartEpisodeCanDownload(ctx context.Context, p *domain.SmartEpisodeParams) (bool, error)
 	UpdateBaseURL(ctx context.Context, indexer string, oldBaseURL, newBaseURL string) error
 
 	GetActionStatus(ctx context.Context, req *domain.GetReleaseActionStatusRequest) (*domain.ReleaseActionStatus, error)
@@ -558,16 +557,27 @@ func (s *Service) processFilters(ctx context.Context, filters []*domain.Filter, 
 func (s *Service) pushFilter(ctx context.Context, f *domain.Filter, release *domain.Release, actions []*domain.Action, triedActionClients map[actionClientTypeKey]struct{}) bool {
 	l := zerolog.Ctx(ctx)
 
+	prepared := make([]*domain.Action, 0, len(actions))
 	for _, act := range actions {
 		if err := s.actionSvc.CheckActionPreconditions(ctx, act, release); err != nil {
-			l.Error().Err(err).Str("action", act.Name).Msg("release.processFilters: error preparing filter actions")
-			s.failActions(ctx, release, actions, err, triedActionClients)
-			return false
+			l.Error().Err(err).Str("action", act.Name).Msg("release.processFilters: error preparing filter action")
+			s.failAction(ctx, release, act, err, triedActionClients)
+			continue
 		}
+
+		prepared = append(prepared, act)
 	}
 
+	if len(prepared) == 0 {
+		return false
+	}
+
+	actions = prepared
+
 	statuses, claimed, err := s.claim(ctx, f, release, actions)
-	defer s.resolvePending(ctx, statuses)
+
+	unsaved := make(map[*domain.ReleaseActionStatus]struct{})
+	defer s.resolvePending(ctx, statuses, unsaved)
 
 	if err != nil {
 		l.Error().Err(err).Msg("release.processFilters: error claiming release for filter")
@@ -593,6 +603,7 @@ func (s *Service) pushFilter(ctx context.Context, f *domain.Filter, release *dom
 
 			if err := s.StoreReleaseActionStatus(ctx, status); err != nil {
 				l.Error().Err(err).Msg("release.processFilters: error storing action status")
+				unsaved[status] = struct{}{}
 			}
 
 			continue
@@ -606,6 +617,7 @@ func (s *Service) pushFilter(ctx context.Context, f *domain.Filter, release *dom
 
 		if err := s.StoreReleaseActionStatus(ctx, status); err != nil {
 			l.Error().Err(err).Msg("release.processFilters: error storing action status")
+			unsaved[status] = struct{}{}
 		}
 
 		if status.Status == domain.ReleasePushStatusApproved {
@@ -656,28 +668,31 @@ func (s *Service) claim(ctx context.Context, f *domain.Filter, release *domain.R
 	return statuses, true, nil
 }
 
-// resolvePending marks the statuses a claim created that are still PENDING as PUSH_ERROR, so an
-// action that returned early or panicked can't keep blocking duplicates.
-func (s *Service) resolvePending(ctx context.Context, statuses []*domain.ReleaseActionStatus) {
+// resolvePending runs after a claimed push. It marks the statuses still PENDING as PUSH_ERROR, so
+// an action that returned early or panicked can't keep blocking duplicates, and writes again the
+// final statuses whose write failed, since the stored row would otherwise stay PENDING.
+func (s *Service) resolvePending(ctx context.Context, statuses []*domain.ReleaseActionStatus, unsaved map[*domain.ReleaseActionStatus]struct{}) {
 	ctx = context.WithoutCancel(ctx)
 
 	for _, status := range statuses {
-		if status.Status != domain.ReleasePushStatusPending {
+		if _, ok := unsaved[status]; !ok && status.Status != domain.ReleasePushStatusPending {
 			continue
 		}
 
-		status.Status = domain.ReleasePushStatusErr
-		status.Rejections = []string{"action did not finish"}
+		if status.Status == domain.ReleasePushStatusPending {
+			status.Status = domain.ReleasePushStatusErr
+			status.Rejections = []string{"action did not finish"}
+		}
 
 		if err := s.StoreReleaseActionStatus(ctx, status); err != nil {
-			zerolog.Ctx(ctx).Error().Err(err).Int64("action_status_id", status.ID).Msg("could not resolve pending action status")
+			zerolog.Ctx(ctx).Error().Err(err).Int64("action_status_id", status.ID).Str("status", string(status.Status)).Msg("could not resolve pending action status")
 		}
 	}
 }
 
-// failActions records a failure to prepare the filter's actions the way a failed action is
-// recorded. PUSH_ERROR counts nowhere, so this takes no claim.
-func (s *Service) failActions(ctx context.Context, release *domain.Release, actions []*domain.Action, cause error, triedActionClients map[actionClientTypeKey]struct{}) {
+// failAction records a failure to prepare an action the way a failed action is recorded.
+// PUSH_ERROR counts nowhere, so this takes no claim.
+func (s *Service) failAction(ctx context.Context, release *domain.Release, act *domain.Action, cause error, triedActionClients map[actionClientTypeKey]struct{}) {
 	l := zerolog.Ctx(ctx)
 
 	if release.ID == 0 {
@@ -687,24 +702,22 @@ func (s *Service) failActions(ctx context.Context, release *domain.Release, acti
 		}
 	}
 
-	for _, act := range actions {
-		status := domain.NewReleaseActionStatus(act, release)
-		status.Status = domain.ReleasePushStatusErr
-		status.Rejections = []string{cause.Error()}
+	status := domain.NewReleaseActionStatus(act, release)
+	status.Status = domain.ReleasePushStatusErr
+	status.Rejections = []string{cause.Error()}
 
-		if err := s.StoreReleaseActionStatus(ctx, status); err != nil {
-			l.Error().Err(err).Msg("release.processFilters: error storing action status")
-		}
-
-		s.eventBus.EmitReleasePush(ctx, events.ReleasePushEvent{
-			Type:         events.ReleasePushError,
-			Action:       act,
-			ActionStatus: status,
-			Release:      release,
-		})
-
-		triedActionClients[actionClientTypeKey{Type: act.Type, ClientID: act.ClientID}] = struct{}{}
+	if err := s.StoreReleaseActionStatus(ctx, status); err != nil {
+		l.Error().Err(err).Msg("release.processFilters: error storing action status")
 	}
+
+	s.eventBus.EmitReleasePush(ctx, events.ReleasePushEvent{
+		Type:         events.ReleasePushError,
+		Action:       act,
+		ActionStatus: status,
+		Release:      release,
+	})
+
+	triedActionClients[actionClientTypeKey{Type: act.Type, ClientID: act.ClientID}] = struct{}{}
 }
 
 func (s *Service) ProcessMultiple(ctx context.Context, releases []*domain.Release) {
@@ -834,31 +847,28 @@ func (s *Service) retryAction(ctx context.Context, action *domain.Action, releas
 		}
 	}(release)
 
-	// add action status as pending
 	status := domain.NewReleaseActionStatus(action, release)
 
 	if err := s.StoreReleaseActionStatus(ctx, status); err != nil {
 		l.Error().Err(err).Msg("release.retryAction: error storing action status")
 	}
 
-	actionStatus, err := s.runAction(ctx, action, release, status)
-	if err != nil {
-		l.Error().Err(err).Msg("release.retryAction: error running actions")
+	unsaved := make(map[*domain.ReleaseActionStatus]struct{})
+	defer s.resolvePending(ctx, []*domain.ReleaseActionStatus{status}, unsaved)
 
-		if err := s.StoreReleaseActionStatus(ctx, actionStatus); err != nil {
-			l.Error().Err(err).Msg("release.retryAction: error storing action status")
-			return err
-		}
-
-		return err
+	_, runErr := s.runAction(ctx, action, release, status)
+	if runErr != nil {
+		l.Error().Err(runErr).Msg("release.retryAction: error running actions")
 	}
 
-	if err := s.StoreReleaseActionStatus(ctx, actionStatus); err != nil {
+	if err := s.StoreReleaseActionStatus(ctx, status); err != nil {
 		l.Error().Err(err).Msg("release.retryAction: error storing action status")
+		unsaved[status] = struct{}{}
+
 		return err
 	}
 
-	return nil
+	return runErr
 }
 
 func (s *Service) Retry(ctx context.Context, req *domain.ReleaseActionRetryReq) error {
@@ -909,16 +919,17 @@ func (s *Service) Retry(ctx context.Context, req *domain.ReleaseActionRetryReq) 
 
 // FailInterruptedActions marks the action statuses left PENDING by the previous run as
 // PUSH_ERROR. It must run before anything can start a push.
-func (s *Service) FailInterruptedActions(ctx context.Context) {
+func (s *Service) FailInterruptedActions(ctx context.Context) error {
 	count, err := s.repo.FailPendingActionStatuses(ctx)
 	if err != nil {
-		s.log.Error().Err(err).Msg("could not mark interrupted actions as failed")
-		return
+		return errors.Wrap(err, "could not mark interrupted actions as failed")
 	}
 
 	if count > 0 {
 		s.log.Warn().Int64("count", count).Msg("marked actions interrupted by restart as failed")
 	}
+
+	return nil
 }
 
 func (s *Service) publishEventReleaseNew(ctx context.Context, release *domain.Release) {

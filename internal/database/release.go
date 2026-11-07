@@ -1485,14 +1485,16 @@ func (repo *ReleaseRepo) DeleteReleaseProfileDuplicate(ctx context.Context, id i
 	return nil
 }
 
-func (repo *ReleaseRepo) CheckSmartEpisodeCanDownload(ctx context.Context, p *domain.SmartEpisodeParams) (bool, error) {
+// CheckSmartEpisodeCanDownload reports whether no newer episode of the show was grabbed. When one
+// was, inFlight reports whether every newer episode is still being pushed.
+func (repo *ReleaseRepo) CheckSmartEpisodeCanDownload(ctx context.Context, p *domain.SmartEpisodeParams) (canDownload bool, inFlight bool, err error) {
 	titleKey := domain.TitleKey(p.Title)
 	if titleKey == "" {
-		return true, nil
+		return true, false, nil
 	}
 
 	queryBuilder := repo.db.squirrel.
-		Select("COUNT(*)").
+		Select("COUNT(*)", "COUNT(CASE WHEN ras.status = 'PUSH_APPROVED' THEN 1 END)").
 		From("release r").
 		LeftJoin("release_action_status ras ON r.id = ras.release_id").
 		Where(sq.And{
@@ -1536,32 +1538,32 @@ func (repo *ReleaseRepo) CheckSmartEpisodeCanDownload(ctx context.Context, p *do
 	} else {
 		/* No support for this scenario today. Specifically multi-part specials.
 		 * The Database presently does not have Subtitle as a field, but is coming at a future date. */
-		return true, nil
+		return true, false, nil
 	}
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		return false, errors.Wrap(err, "error building query")
+		return false, false, errors.Wrap(err, "error building query")
 	}
 
 	repo.log.Trace().Str("method", "CheckSmartEpisodeCanDownload").Str("query", query).Interface("args", args).Msg("executing query")
 
 	row := repo.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
-		return false, err
+		return false, false, err
 	}
 
-	var count int
+	var count, approved int
 
-	if err := row.Scan(&count); err != nil {
-		return false, err
+	if err := row.Scan(&count, &approved); err != nil {
+		return false, false, err
 	}
 
 	if count > 0 {
-		return false, nil
+		return false, approved == 0, nil
 	}
 
-	return true, nil
+	return true, false, nil
 }
 
 func (repo *ReleaseRepo) UpdateBaseURL(ctx context.Context, indexer string, oldBaseURL, newBaseURL string) error {

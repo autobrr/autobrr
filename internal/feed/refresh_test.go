@@ -85,7 +85,6 @@ type recordingCacheRepo struct {
 	existing    map[string]bool
 	existingErr error
 	stored      []domain.FeedCacheItem
-	deleted     chan string
 }
 
 func (r *recordingCacheRepo) ExistingItems(context.Context, int, []string) (map[string]bool, error) {
@@ -94,14 +93,6 @@ func (r *recordingCacheRepo) ExistingItems(context.Context, int, []string) (map[
 
 func (r *recordingCacheRepo) PutMany(_ context.Context, items []domain.FeedCacheItem) error {
 	r.stored = append(r.stored, items...)
-	return nil
-}
-
-func (r *recordingCacheRepo) Delete(_ context.Context, _ int, key string) error {
-	if r.deleted != nil {
-		r.deleted <- key
-	}
-
 	return nil
 }
 
@@ -247,45 +238,80 @@ func TestRefreshJob_RunE(t *testing.T) {
 }
 
 // inFlightReleaseSvc rejects the named releases the way processFilters does when a duplicate of
-// them is still being pushed.
+// them is still being pushed, and reports the names it was handed.
 type inFlightReleaseSvc struct {
 	inFlight map[string]bool
+	got      chan []string
 }
 
 func (r *inFlightReleaseSvc) ProcessMultipleFromIndexer(_ context.Context, releases []*domain.Release, _ domain.IndexerMinimal) error {
+	names := make([]string, 0, len(releases))
 	for _, rls := range releases {
 		rls.DuplicateInFlight = r.inFlight[rls.TorrentName]
+		names = append(names, rls.TorrentName)
 	}
+
+	r.got <- names
 
 	return nil
 }
 
-func TestRefreshJob_Run_uncachesInFlightDuplicates(t *testing.T) {
+// An item rejected while its duplicate was being pushed is checked again by the next run, even
+// though it is cached and the feed shows only cached items, so pagination stops on page 1.
+func TestRefreshJob_Run_retriesInFlightDuplicates(t *testing.T) {
 	now := time.Now()
 
-	cacheRepo := &recordingCacheRepo{deleted: make(chan string, 3)}
+	src := &stubSource{res: &fetchResult{entries: []entry{newEntry("pushed", now), newEntry("in-flight", now), newEntry("rejected", now)}}}
+	cacheRepo := &recordingCacheRepo{}
+	releaseSvc := &inFlightReleaseSvc{inFlight: map[string]bool{"in-flight": true}, got: make(chan []string, 1)}
 
 	j := &refreshJob{
 		log:        zerolog.Nop(),
 		feed:       &domain.Feed{ID: 4},
-		src:        &stubSource{res: &fetchResult{entries: []entry{newEntry("pushed", now), newEntry("in-flight", now), newEntry("rejected", now)}}},
+		src:        src,
 		repo:       &recordingFeedRepo{},
 		cacheRepo:  cacheRepo,
-		releaseSvc: &inFlightReleaseSvc{inFlight: map[string]bool{"in-flight": true}},
+		releaseSvc: releaseSvc,
+	}
+
+	handed := func() []string {
+		t.Helper()
+
+		select {
+		case names := <-releaseSvc.got:
+			return names
+		case <-time.After(time.Second):
+			t.Fatal("releases were not handed to the release service")
+			return nil
+		}
+	}
+
+	retried := func() bool {
+		j.retryMu.Lock()
+		defer j.retryMu.Unlock()
+
+		return len(j.retry) > 0
 	}
 
 	require.NoError(t, j.Run(t.Context()))
+	assert.Equal(t, []string{"rejected", "in-flight", "pushed"}, handed(), "oldest first")
+	require.Eventually(t, retried, time.Second, time.Millisecond)
 
-	select {
-	case key := <-cacheRepo.deleted:
-		assert.Equal(t, "in-flight", key)
-	case <-time.After(time.Second):
-		t.Fatal("in-flight duplicate was not removed from the cache")
-	}
+	// every item is cached now, so the fetch stops at the first one
+	src.res = &fetchResult{entries: []entry{newEntry("newer", now), newEntry("pushed", now), newEntry("in-flight", now)}}
+	cacheRepo.existing = map[string]bool{"pushed": true, "in-flight": true, "rejected": true}
+	releaseSvc.inFlight = nil
 
+	require.NoError(t, j.Run(t.Context()))
+	assert.Equal(t, []string{"in-flight", "newer"}, handed())
+	require.Never(t, retried, 50*time.Millisecond, time.Millisecond, "an item rejected for another reason is not retried")
+
+	cacheRepo.existing["newer"] = true
+
+	require.NoError(t, j.Run(t.Context()))
 	select {
-	case key := <-cacheRepo.deleted:
-		t.Fatalf("only the in-flight duplicate should be removed from the cache, got %s", key)
+	case names := <-releaseSvc.got:
+		t.Fatalf("nothing new to process, got %v", names)
 	case <-time.After(50 * time.Millisecond):
 	}
 }
@@ -395,10 +421,6 @@ func (r *statefulCacheRepo) ExistingItems(_ context.Context, _ int, keys []strin
 	}
 
 	return res, nil
-}
-
-func (r *statefulCacheRepo) Delete(context.Context, int, string) error {
-	return nil
 }
 
 func (r *statefulCacheRepo) PutMany(_ context.Context, items []domain.FeedCacheItem) error {

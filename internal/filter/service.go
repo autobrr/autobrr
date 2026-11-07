@@ -78,7 +78,7 @@ type notificationService interface {
 }
 
 type releaseRepo interface {
-	CheckSmartEpisodeCanDownload(ctx context.Context, p *domain.SmartEpisodeParams) (bool, error)
+	CheckSmartEpisodeCanDownload(ctx context.Context, p *domain.SmartEpisodeParams) (canDownload bool, inFlight bool, err error)
 	FindDuplicate(ctx context.Context, profile *domain.DuplicateReleaseProfile, release *domain.Release) (*domain.DuplicateMatch, error)
 }
 
@@ -740,7 +740,8 @@ func (s *Service) CheckClaim(ctx context.Context, f *domain.Filter, release *dom
 }
 
 // checkSmartEpisode reports whether the release is newer than every grabbed or in-flight episode
-// of the show, and adds the smart episode rejection when it is not.
+// of the show, and adds the smart episode rejection when it is not. A release blocked only by
+// episodes still being pushed is marked DuplicateInFlight.
 func (s *Service) checkSmartEpisode(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error) {
 	params := &domain.SmartEpisodeParams{
 		Title:   release.Title,
@@ -754,7 +755,7 @@ func (s *Service) checkSmartEpisode(ctx context.Context, f *domain.Filter, relea
 		Group:   release.Group,
 	}
 
-	canDownloadShow, err := s.CheckSmartEpisodeCanDownload(ctx, params)
+	canDownloadShow, inFlight, err := s.CheckSmartEpisodeCanDownload(ctx, params)
 	if err != nil {
 		return false, err
 	}
@@ -762,6 +763,8 @@ func (s *Service) checkSmartEpisode(ctx context.Context, f *domain.Filter, relea
 	if canDownloadShow {
 		return true, nil
 	}
+
+	release.DuplicateInFlight = inFlight
 
 	if params.IsDailyEpisode() {
 		f.RejectReasons.Add("smart episode", fmt.Sprintf("not new (%s) daily: %d-%d-%d", release.Title, release.Year, release.Month, release.Day), fmt.Sprintf("expected newer than (%s) daily: %d-%d-%d", release.Title, release.Year, release.Month, release.Day))
@@ -1012,7 +1015,7 @@ func (s *Service) AdditionalRecordLabelCheck(ctx context.Context, f *domain.Filt
 	return true, nil
 }
 
-func (s *Service) CheckSmartEpisodeCanDownload(ctx context.Context, params *domain.SmartEpisodeParams) (bool, error) {
+func (s *Service) CheckSmartEpisodeCanDownload(ctx context.Context, params *domain.SmartEpisodeParams) (canDownload bool, inFlight bool, err error) {
 	return s.releaseRepo.CheckSmartEpisodeCanDownload(ctx, params)
 }
 

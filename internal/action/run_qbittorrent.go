@@ -108,7 +108,7 @@ func (s *Service) runQbittorrent(ctx context.Context, action *domain.Action, rel
 	}
 
 	if !action.Paused && !action.ReAnnounceSkip && release.TorrentHash != "" {
-		interval, maxAttempts := action.ReannounceSchedule()
+		interval, maxAttempts := action.ReannounceSchedule(0)
 
 		opts := qbittorrent.ReannounceOptions{
 			Interval:        interval,

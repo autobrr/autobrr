@@ -199,6 +199,9 @@ func TestService_runQbittorrent_results(t *testing.T) {
 			}
 			assert.Equal(t, tt.wantRejections, rejections)
 			assert.True(t, q.called("torrents/add"))
+			if tt.action.PriorityLayout == domain.PriorityLayoutMax {
+				assert.True(t, q.called("torrents/topPrio"))
+			}
 		})
 	}
 }

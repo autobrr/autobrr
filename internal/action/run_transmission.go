@@ -145,7 +145,8 @@ func (s *Service) runTransmission(ctx context.Context, action *domain.Action, re
 func (s *Service) transmissionReannounce(ctx context.Context, action *domain.Action, tbt *transmissionrpc.Client, torrentId int64) error {
 	l := zerolog.Ctx(ctx)
 
-	interval, maxAttempts := action.ReannounceSchedule()
+	// the loop checks once more after the last re-announce, so it waits maxAttempts+1 times
+	interval, maxAttempts := action.ReannounceSchedule(1)
 
 	attempts := 0
 

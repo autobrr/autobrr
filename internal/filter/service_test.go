@@ -389,10 +389,14 @@ func Test_outputBuffer_Write(t *testing.T) {
 
 type duplicateRepoStub struct {
 	match *domain.DuplicateMatch
+
+	// newerEpisode blocks smart episode, newerEpisodeInFlight says it is still being pushed
+	newerEpisode         bool
+	newerEpisodeInFlight bool
 }
 
-func (s *duplicateRepoStub) CheckSmartEpisodeCanDownload(context.Context, *domain.SmartEpisodeParams) (bool, error) {
-	return true, nil
+func (s *duplicateRepoStub) CheckSmartEpisodeCanDownload(context.Context, *domain.SmartEpisodeParams) (bool, bool, error) {
+	return !s.newerEpisode, s.newerEpisodeInFlight, nil
 }
 
 func (s *duplicateRepoStub) FindDuplicate(context.Context, *domain.DuplicateReleaseProfile, *domain.Release) (*domain.DuplicateMatch, error) {
@@ -426,6 +430,43 @@ func TestService_CheckFilter_DuplicateInFlight(t *testing.T) {
 			if tt.wantReason != "" {
 				assert.Contains(t, f.RejectReasons.String(), tt.wantReason)
 			}
+		})
+	}
+}
+
+func TestService_CheckFilter_SmartEpisodeInFlight(t *testing.T) {
+	tests := []struct {
+		name         string
+		repo         *duplicateRepoStub
+		want         bool
+		wantInFlight bool
+	}{
+		{name: "no newer episode", repo: &duplicateRepoStub{}, want: true},
+		{name: "newer episode grabbed", repo: &duplicateRepoStub{newerEpisode: true}},
+		{name: "newer episode in flight", repo: &duplicateRepoStub{newerEpisode: true, newerEpisodeInFlight: true}, wantInFlight: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &Service{log: zerolog.Nop(), releaseRepo: tt.repo}
+
+			f := &domain.Filter{Name: "shows", SmartEpisode: true}
+			rls := domain.NewRelease(domain.IndexerMinimal{Identifier: "mock"})
+			rls.ParseString("Example.Show.S01E04.1080p.WEB.H264-GRP")
+
+			ok, err := s.CheckFilter(t.Context(), f, rls)
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.want, ok)
+			assert.Equal(t, tt.wantInFlight, rls.DuplicateInFlight)
+
+			f.RejectReasons = domain.NewRejectionReasons()
+			rls.DuplicateInFlight = false
+
+			ok, err = s.CheckClaim(t.Context(), f, rls)
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.want, ok)
+			assert.Equal(t, tt.wantInFlight, rls.DuplicateInFlight)
 		})
 	}
 }
