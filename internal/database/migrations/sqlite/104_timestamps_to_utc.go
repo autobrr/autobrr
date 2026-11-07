@@ -1,7 +1,7 @@
 // Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-package migrations
+package sqlite
 
 import (
 	"database/sql"
@@ -10,28 +10,32 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/migrator"
 )
 
-// SQLiteTimeLayout is the layout the SQLite driver binds time.Time values with, set
-// through the _time_format DSN parameter. Written in UTC it sorts as text.
-const SQLiteTimeLayout = "2006-01-02 15:04:05.999999999-07:00"
+// Migration104 rewrites every SQLite timestamp to UTC so stored timestamps sort as text.
+var Migration104 = &migrator.Migration{Name: "104_timestamps_to_utc", RunTx: migrateTimestampsToUTC}
 
-// sqliteDefaultTimeLayout is what DEFAULT CURRENT_TIMESTAMP writes: UTC without an offset.
-const sqliteDefaultTimeLayout = "2006-01-02 15:04:05"
+// timeLayout is the layout the SQLite driver binds time.Time values with, set through the
+// _time_format DSN parameter. Written in UTC it sorts as text.
+const timeLayout = "2006-01-02 15:04:05.999999999-07:00"
+
+// defaultTimeLayout is what DEFAULT CURRENT_TIMESTAMP writes: UTC without an offset.
+const defaultTimeLayout = "2006-01-02 15:04:05"
 
 // Older releases wrote timestamps in whatever layout the driver or the caller used:
 // RFC3339 with the host offset, the driver's default time.Time.String() output, and a
 // space separated layout with an offset from an earlier driver.
-var sqliteLegacyTimeLayouts = []string{
+var legacyTimeLayouts = []string{
 	time.RFC3339Nano,
-	SQLiteTimeLayout,
+	timeLayout,
 	"2006-01-02 15:04:05.999999999 -0700 MST",
 	"2006-01-02 15:04:05.999999999",
 	"2006-01-02T15:04:05.999999999",
 	"2006-01-02",
 }
 
-var sqliteTimestampColumns = []struct {
+var timestampColumns = []struct {
 	table   string
 	columns []string
 }{
@@ -55,37 +59,37 @@ var sqliteTimestampColumns = []struct {
 	{table: "matrix_room", columns: []string{"created_at", "updated_at"}},
 }
 
-// parseSQLiteTimestamp parses a stored SQLite timestamp and reports whether it has to be
+// parseTimestamp parses a stored SQLite timestamp and reports whether it has to be
 // rewritten to sort correctly as UTC text.
-func parseSQLiteTimestamp(raw string) (time.Time, bool, bool) {
-	if t, err := time.Parse(sqliteDefaultTimeLayout, raw); err == nil {
+func parseTimestamp(raw string) (time.Time, bool, bool) {
+	if t, err := time.Parse(defaultTimeLayout, raw); err == nil {
 		return t, false, true
 	}
 
 	// time.Time.String() appends the monotonic clock reading when it has one
 	value, _, _ := strings.Cut(raw, " m=")
 
-	for _, layout := range sqliteLegacyTimeLayouts {
+	for _, layout := range legacyTimeLayouts {
 		t, err := time.Parse(layout, value)
 		if err != nil {
 			continue
 		}
 
-		return t, t.UTC().Format(SQLiteTimeLayout) != raw, true
+		return t, t.UTC().Format(timeLayout) != raw, true
 	}
 
 	return time.Time{}, false, false
 }
 
-// migrateTimestampsToUTCSQLite rewrites every stored timestamp to UTC in SQLiteTimeLayout.
+// migrateTimestampsToUTC rewrites every stored timestamp to UTC in timeLayout.
 // Values it cannot parse are left as they are.
-func migrateTimestampsToUTCSQLite(tx *sql.Tx) error {
+func migrateTimestampsToUTC(tx *sql.Tx) error {
 	type rewrite struct {
 		rowID int64
 		value string
 	}
 
-	for _, tc := range sqliteTimestampColumns {
+	for _, tc := range timestampColumns {
 		for _, column := range tc.columns {
 			rows, err := tx.Query(fmt.Sprintf(`SELECT rowid, CAST(%s AS TEXT) FROM "%s" WHERE %s IS NOT NULL`, column, tc.table, column))
 			if err != nil {
@@ -103,8 +107,8 @@ func migrateTimestampsToUTCSQLite(tx *sql.Tx) error {
 					return errors.Wrap(err, "could not scan %s.%s", tc.table, column)
 				}
 
-				if t, changed, ok := parseSQLiteTimestamp(raw); ok && changed {
-					rewrites = append(rewrites, rewrite{rowID: rowID, value: t.UTC().Format(SQLiteTimeLayout)})
+				if t, changed, ok := parseTimestamp(raw); ok && changed {
+					rewrites = append(rewrites, rewrite{rowID: rowID, value: t.UTC().Format(timeLayout)})
 				}
 			}
 

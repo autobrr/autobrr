@@ -24,14 +24,18 @@ func main() {
 		panic(fmt.Sprintf("Failed to read migration files: %v", err))
 	}
 
-	// a .code file holds the name of a Go RunTx function and keeps the
-	// migration in its numbered slot instead of after the generated block
-	codeFiles, err := filepath.Glob(filepath.Join(migrationDir, "*.code"))
+	// a Go migration exports Migration<N> from the sqlite package and keeps its numbered
+	// slot instead of landing after the generated block
+	goFiles, err := filepath.Glob(filepath.Join(migrationDir, "*.go"))
 	if err != nil {
-		panic(fmt.Sprintf("Failed to read code migration files: %v", err))
+		panic(fmt.Sprintf("Failed to read Go migration files: %v", err))
 	}
 
-	files = append(files, codeFiles...)
+	for _, file := range goFiles {
+		if !strings.HasSuffix(file, "_test.go") {
+			files = append(files, file)
+		}
+	}
 
 	slices.SortFunc(files, func(a, b string) int {
 		return cmp.Compare(extractMigrationID(filepath.Base(a)), extractMigrationID(filepath.Base(b)))
@@ -43,13 +47,8 @@ func main() {
 	for _, file := range files {
 		filename := filepath.Base(file)
 
-		if name, ok := strings.CutSuffix(filename, ".code"); ok {
-			fn, err := os.ReadFile(file)
-			if err != nil {
-				panic(fmt.Sprintf("Failed to read code migration %s: %v", filename, err))
-			}
-
-			migrations = append(migrations, fmt.Sprintf(`	migrate.AddMigration(&migrator.Migration{Name: "%s", RunTx: %s})`, name, strings.TrimSpace(string(fn))))
+		if strings.HasSuffix(filename, ".go") {
+			migrations = append(migrations, fmt.Sprintf(`	migrate.AddMigration(sqlite.Migration%d)`, extractMigrationID(filename)))
 			continue
 		}
 

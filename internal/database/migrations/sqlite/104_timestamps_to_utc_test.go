@@ -1,7 +1,7 @@
 // Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-package migrations
+package sqlite
 
 import (
 	"testing"
@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParseSQLiteTimestamp(t *testing.T) {
+func TestParseTimestamp(t *testing.T) {
 	t.Parallel()
 
 	want := time.Date(2026, 7, 26, 23, 0, 0, 0, time.UTC)
@@ -32,7 +32,7 @@ func TestParseSQLiteTimestamp(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, changed, ok := parseSQLiteTimestamp(tt.raw)
+			got, changed, ok := parseTimestamp(tt.raw)
 			assert.Equal(t, tt.wantOK, ok)
 			assert.Equal(t, tt.wantChanged, changed)
 

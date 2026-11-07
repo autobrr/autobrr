@@ -4,7 +4,7 @@
 package migrations_test
 
 import (
-	"io/fs"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -23,11 +23,10 @@ func TestMigrationsRegisteredInOrder(t *testing.T) {
 	tests := []struct {
 		name    string
 		migrate *migrator.Migrator
-		fsys    fs.FS
 		dir     string
 	}{
-		{name: "sqlite", migrate: migrations.SQLiteMigrations(nil, zerolog.Nop()), fsys: migrations.SchemaMigrationsSQLite, dir: "sqlite"},
-		{name: "postgres", migrate: migrations.PostgresMigrations(nil, zerolog.Nop()), fsys: migrations.SchemaMigrationsPostgres, dir: "postgres"},
+		{name: "sqlite", migrate: migrations.SQLiteMigrations(nil, zerolog.Nop()), dir: "sqlite"},
+		{name: "postgres", migrate: migrations.PostgresMigrations(nil, zerolog.Nop()), dir: "postgres"},
 	}
 
 	for _, tt := range tests {
@@ -45,14 +44,15 @@ func TestMigrationsRegisteredInOrder(t *testing.T) {
 				registered[m.Name] = struct{}{}
 			}
 
-			entries, err := fs.ReadDir(tt.fsys, tt.dir)
+			entries, err := os.ReadDir(tt.dir)
 			require.NoError(t, err)
 
 			for _, e := range entries {
-				name := strings.TrimSuffix(e.Name(), ".sql")
-				if strings.HasPrefix(name, "current_schema") {
+				if strings.HasSuffix(e.Name(), "_test.go") || strings.HasPrefix(e.Name(), "current_schema") {
 					continue
 				}
+
+				name := strings.TrimSuffix(strings.TrimSuffix(e.Name(), ".sql"), ".go")
 
 				assert.Contains(t, registered, name, "migration file %s is not registered", e.Name())
 			}

@@ -6,6 +6,7 @@ package migrations
 import (
 	"database/sql"
 
+	"github.com/autobrr/autobrr/internal/database/migrations/postgres"
 	"github.com/autobrr/autobrr/pkg/migrator"
 
 	"github.com/rs/zerolog"
@@ -116,7 +117,7 @@ func PostgresMigrations(db *sql.DB, logger zerolog.Logger) *migrator.Migrator {
 	migrate.AddFileMigration("93_duplicate_profiles_fix_id_sequence.sql")
 	migrate.AddFileMigration("94_timestamps_to_timestamptz.sql")
 	migrate.AddFileMigration("95_release_table_v2.sql")
-	migrate.AddMigration(&migrator.Migration{Name: "96_release_backfill_duplicate_keys", RunTx: backfillReleaseKeys})
+	migrate.AddMigration(postgres.Migration96)
 
 	return migrate
 }

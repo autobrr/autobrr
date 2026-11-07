@@ -1,21 +1,25 @@
 // Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-package migrations
+package sqlite
 
 import (
 	"database/sql"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
+	"github.com/autobrr/autobrr/pkg/migrator"
 )
 
-const releaseKeysBatchSize = 1000
+// Migration107 fills the duplicate check keys of grabbed releases.
+var Migration107 = &migrator.Migration{Name: "107_release_backfill_duplicate_keys", RunTx: backfillDuplicateKeys}
 
-// backfillReleaseKeys computes name_key, title_key and sub_title_key for every release with
+const batchSize = 1000
+
+// backfillDuplicateKeys computes name_key, title_key and sub_title_key for every release with
 // a PUSH_APPROVED action, the only releases a duplicate check can match. The keys are Go
 // normalizations with no SQL equivalent.
-func backfillReleaseKeys(tx *sql.Tx) error {
+func backfillDuplicateKeys(tx *sql.Tx) error {
 	selectQuery := `SELECT r.id, COALESCE(r.release_name, ''), COALESCE(r.title, ''), COALESCE(r.sub_title, '')
 		FROM "release" r
 		WHERE r.id > $1
@@ -40,13 +44,13 @@ func backfillReleaseKeys(tx *sql.Tx) error {
 	var lastID int64
 
 	for {
-		rows, err := tx.Query(selectQuery, lastID, releaseKeysBatchSize)
+		rows, err := tx.Query(selectQuery, lastID, batchSize)
 		if err != nil {
 			return errors.Wrap(err, "could not read releases")
 		}
 
 		// lib/pq refuses an exec while rows are open on the same transaction
-		batch := make([]releaseKeys, 0, releaseKeysBatchSize)
+		batch := make([]releaseKeys, 0, batchSize)
 
 		for rows.Next() {
 			var rk releaseKeys
@@ -77,7 +81,7 @@ func backfillReleaseKeys(tx *sql.Tx) error {
 			}
 		}
 
-		if len(batch) < releaseKeysBatchSize {
+		if len(batch) < batchSize {
 			return nil
 		}
 
