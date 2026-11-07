@@ -113,6 +113,7 @@ func PostgresMigrations(db *sql.DB, logger zerolog.Logger) *migrator.Migrator {
 	migrate.AddFileMigration("90_add_action_ratio_group.sql")
 	migrate.AddFileMigration("91_api_key_add_id_and_hash_key.sql")
 	migrate.AddFileMigration("92_create_matrix_tables.sql")
+	migrate.AddFileMigration("93_add_release_freeleech_columns.sql")
 
 	return migrate
 }

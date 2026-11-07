@@ -174,7 +174,7 @@ func TestGetTables_CoversSchema(t *testing.T) {
 
 	// dead columns the SQLite release table rebuilds dropped but Postgres never did
 	postgresOnly := map[string][]string{
-		"release": {"artists", "format", "freeleech", "freeleech_percent", "has_cue", "has_log", "is_scene", "log_score", "quality", "raw", "unrated"},
+		"release": {"artists", "format", "has_cue", "has_log", "is_scene", "log_score", "quality", "raw", "unrated"},
 	}
 
 	for _, table := range GetTables() {

@@ -463,6 +463,8 @@ func TestReleaseRepo_Get(t *testing.T) {
 		mockData := getMockRelease()
 		mockData.Title = "Troy"
 		mockData.NormalizedHash = "troy-2004"
+		mockData.Freeleech = true
+		mockData.FreeleechPercent = 100
 		mockData.Year = 2004
 		mockData.Month = 5
 		mockData.Day = 14
@@ -518,6 +520,8 @@ func TestReleaseRepo_Get(t *testing.T) {
 			assert.Equal(t, mockData.ID, release.ID)
 			assert.Equal(t, mockData.Title, release.Title)
 			assert.Equal(t, mockData.NormalizedHash, release.NormalizedHash)
+			assert.Equal(t, mockData.Freeleech, release.Freeleech)
+			assert.Equal(t, mockData.FreeleechPercent, release.FreeleechPercent)
 			assert.Equal(t, mockData.Season, release.Season)
 			assert.Equal(t, mockData.Episode, release.Episode)
 			assert.Equal(t, mockData.Year, release.Year)
@@ -574,6 +578,8 @@ func TestReleaseRepo_Get(t *testing.T) {
 				Set("proper", nil).
 				Set("repack", nil).
 				Set("hybrid", nil).
+				Set("freeleech", nil).
+				Set("freeleech_percent", nil).
 				Where("id = ?", episode.ID).
 				RunWith(db.Handler).
 				ExecContext(t.Context())
@@ -596,6 +602,8 @@ func TestReleaseRepo_Get(t *testing.T) {
 			assert.False(t, storedEpisode.Proper)
 			assert.False(t, storedEpisode.Repack)
 			assert.False(t, storedEpisode.Hybrid)
+			assert.False(t, storedEpisode.Freeleech)
+			assert.Zero(t, storedEpisode.FreeleechPercent)
 			assert.Empty(t, storedEpisode.Tags)
 			assert.Empty(t, storedEpisode.Other)
 

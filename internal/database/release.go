@@ -45,8 +45,8 @@ func (repo *ReleaseRepo) Store(ctx context.Context, r *domain.Release) error {
 
 	queryBuilder := repo.db.squirrel.
 		Insert("release").
-		Columns("filter_status", "rejections", "indexer", "filter", "protocol", "implementation", "timestamp", "announce_type", "group_id", "torrent_id", "info_url", "download_url", "torrent_name", "normalized_hash", "size", "title", "sub_title", "category", "season", "episode", "year", "month", "day", "resolution", "source", "codec", "container", "hdr", "audio", "audio_channels", "release_group", "proper", "repack", "region", "language", "cut", "edition", "hybrid", "media_processing", "website", "type", "origin", "tags", "uploader", "pre_time", "other", "filter_id").
-		Values(r.FilterStatus, pq.Array(r.Rejections), r.Indexer.Identifier, r.FilterName, r.Protocol, r.Implementation, r.Timestamp.Format(time.RFC3339), r.AnnounceType, r.GroupID, r.TorrentID, r.InfoURL, r.DownloadURL, r.TorrentName, r.NormalizedHash, r.Size, r.Title, r.SubTitle, r.Category, r.Season, r.Episode, r.Year, r.Month, r.Day, r.Resolution, r.Source, codecStr, r.Container, hdrStr, audioStr, r.AudioChannels, r.Group, r.Proper, r.Repack, r.Region, languageStr, cutStr, editionStr, r.Hybrid, r.MediaProcessing, r.Website, r.Type.String(), r.Origin, pq.Array(r.Tags), r.Uploader, r.PreTime, pq.Array(r.Other), r.FilterID).
+		Columns("filter_status", "rejections", "indexer", "filter", "protocol", "implementation", "timestamp", "announce_type", "group_id", "torrent_id", "info_url", "download_url", "torrent_name", "normalized_hash", "size", "title", "sub_title", "category", "season", "episode", "year", "month", "day", "resolution", "source", "codec", "container", "hdr", "audio", "audio_channels", "release_group", "proper", "repack", "region", "language", "cut", "edition", "hybrid", "media_processing", "website", "type", "origin", "tags", "freeleech", "freeleech_percent", "uploader", "pre_time", "other", "filter_id").
+		Values(r.FilterStatus, pq.Array(r.Rejections), r.Indexer.Identifier, r.FilterName, r.Protocol, r.Implementation, r.Timestamp.Format(time.RFC3339), r.AnnounceType, r.GroupID, r.TorrentID, r.InfoURL, r.DownloadURL, r.TorrentName, r.NormalizedHash, r.Size, r.Title, r.SubTitle, r.Category, r.Season, r.Episode, r.Year, r.Month, r.Day, r.Resolution, r.Source, codecStr, r.Container, hdrStr, audioStr, r.AudioChannels, r.Group, r.Proper, r.Repack, r.Region, languageStr, cutStr, editionStr, r.Hybrid, r.MediaProcessing, r.Website, r.Type.String(), r.Origin, pq.Array(r.Tags), r.Freeleech, r.FreeleechPercent, r.Uploader, r.PreTime, pq.Array(r.Other), r.FilterID).
 		Suffix("RETURNING id").RunWith(repo.db.Handler)
 
 	q, args, err := queryBuilder.ToSql()
@@ -687,6 +687,8 @@ func (repo *ReleaseRepo) Get(ctx context.Context, req *domain.GetReleaseRequest)
 			"r.type",
 			"r.origin",
 			"r.tags",
+			"r.freeleech",
+			"r.freeleech_percent",
 			"r.uploader",
 			"r.pre_time",
 			"r.other",
@@ -712,8 +714,8 @@ func (repo *ReleaseRepo) Get(ctx context.Context, req *domain.GetReleaseRequest)
 
 	var indexerName, filterName, announceType, infoUrl, downloadUrl, subTitle, normalizedHash, groupId, torrentId, category, resolution, source, codec, container, hdr, audio, audioChannels, releaseGroup, region, language, cut, edition, mediaProcessing, website, releaseType, origin, uploader, preTime sql.NullString
 	var filterId sql.NullInt64
-	var season, episode, year, month, day sql.NullInt64
-	var proper, repack, hybrid sql.NullBool
+	var season, episode, year, month, day, freeleechPercent sql.NullInt64
+	var proper, repack, hybrid, freeleech sql.NullBool
 
 	if err := row.Scan(
 		&rls.ID,
@@ -760,6 +762,8 @@ func (repo *ReleaseRepo) Get(ctx context.Context, req *domain.GetReleaseRequest)
 		&releaseType,
 		&origin,
 		pq.Array(&rls.Tags),
+		&freeleech,
+		&freeleechPercent,
 		&uploader,
 		&preTime,
 		pq.Array(&rls.Other),
@@ -822,6 +826,8 @@ func (repo *ReleaseRepo) Get(ctx context.Context, req *domain.GetReleaseRequest)
 		rls.ParseType(releaseType.String)
 	}
 	rls.Origin = origin.String
+	rls.Freeleech = freeleech.Bool
+	rls.FreeleechPercent = int(freeleechPercent.Int64)
 	rls.Uploader = uploader.String
 	rls.PreTime = preTime.String
 
