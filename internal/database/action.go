@@ -85,7 +85,7 @@ func (r *ActionRepo) findByFilterID(ctx context.Context, filterID int, active *b
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
+	rows, err := r.db.QueryPrepared(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}
