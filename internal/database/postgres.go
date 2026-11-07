@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/autobrr/autobrr/internal/database/migrations"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -91,6 +92,9 @@ func PostgresDSN(host string, port int, user, pass, database, socket, sslMode, e
 			return "", errors.Wrap(err, "could not parse extra params")
 		}
 		for _, key := range slices.Sorted(maps.Keys(values)) {
+			if key == "" || strings.ContainsRune(key, '=') || strings.ContainsFunc(key, unicode.IsSpace) {
+				return "", errors.New("postgres: invalid extra param name %q", key)
+			}
 			if emitted[cmp.Or(dsnKeyAliases[key], key)] {
 				return "", errors.New("postgres: extra param %q is already set by a dedicated setting", key)
 			}
