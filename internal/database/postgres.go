@@ -4,6 +4,7 @@
 package database
 
 import (
+	"cmp"
 	"database/sql"
 	"maps"
 	"net/url"
@@ -90,7 +91,7 @@ func PostgresDSN(host string, port int, user, pass, database, socket, sslMode, e
 			return "", errors.Wrap(err, "could not parse extra params")
 		}
 		for _, key := range slices.Sorted(maps.Keys(values)) {
-			if emitted[key] {
+			if emitted[cmp.Or(dsnKeyAliases[key], key)] {
 				return "", errors.New("postgres: extra param %q is already set by a dedicated setting", key)
 			}
 			add(key, values.Get(key))
@@ -99,6 +100,8 @@ func PostgresDSN(host string, port int, user, pass, database, socket, sslMode, e
 
 	return strings.Join(kvs, " "), nil
 }
+
+var dsnKeyAliases = map[string]string{"database": "dbname"}
 
 var dsnValueEscaper = strings.NewReplacer(`\`, `\\`, `'`, `\'`)
 
