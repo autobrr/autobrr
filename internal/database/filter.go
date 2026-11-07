@@ -146,12 +146,8 @@ func (r *FilterRepo) find(ctx context.Context, params domain.FilterQueryParams) 
 		queryBuilder = queryBuilder.OrderBy("f.name ASC")
 	}
 
-	if params.Filters.Indexers != nil {
-		filter := sq.And{}
-		for _, v := range params.Filters.Indexers {
-			filter = append(filter, sq.Eq{"i.identifier": v})
-		}
-		queryBuilder = queryBuilder.Where(filter)
+	if len(params.Filters.Indexers) > 0 {
+		queryBuilder = queryBuilder.Where(sq.Eq{"i.identifier": params.Filters.Indexers})
 	}
 
 	query, args, err := queryBuilder.ToSql()

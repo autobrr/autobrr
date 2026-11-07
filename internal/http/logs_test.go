@@ -61,6 +61,22 @@ func TestLogsHandler_DownloadFileRejectsPaths(t *testing.T) {
 	}
 }
 
+func TestLogsHandler_DownloadFileWithoutLogPath(t *testing.T) {
+	h := newLogsHandler(&config.AppConfig{Config: &domain.Config{}})
+
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("logFile", "autobrr.log")
+
+	req := httptest.NewRequest(http.MethodGet, "/api/logs/files/autobrr.log", nil)
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, rctx))
+	rec := httptest.NewRecorder()
+
+	h.downloadFile(rec, req)
+
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	assert.Contains(t, rec.Body.String(), "log file path is not configured")
+}
+
 func TestLogsHandler_FilesListsTopLevelOnly(t *testing.T) {
 	logsDir := filepath.Join(t.TempDir(), "logs")
 	require.NoError(t, os.MkdirAll(filepath.Join(logsDir, "old"), 0o755))

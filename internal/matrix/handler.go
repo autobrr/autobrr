@@ -630,7 +630,7 @@ func (h *Handler) History(roomName string) ([]domain.MatrixMessage, error) {
 		}
 	}
 
-	return nil, errors.New("room not found: %s", roomName)
+	return nil, errors.Wrap(domain.ErrMatrixRoomNotFound, "could not find history for room: '%s'", roomName)
 }
 
 func (h *Handler) publish(event string, data any) {

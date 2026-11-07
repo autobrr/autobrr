@@ -2071,3 +2071,28 @@ func TestReleaseCleanupJobRepo_Delete(t *testing.T) {
 		})
 	}
 }
+
+func TestReleaseRepo_DeleteReleaseProfileDuplicate(t *testing.T) {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		repo := NewReleaseRepo(setupLoggerForTest(), testDb.db)
+
+		t.Run(fmt.Sprintf("Delete_Succeeds [%s]", dbType), func(t *testing.T) {
+			// An explicit id sidesteps the Postgres sequence, which the seeded profiles never advanced.
+			_, err := testDb.db.Handler.ExecContext(ctx, "INSERT INTO release_profile_duplicate (id, name) VALUES (1000, 'delete me')")
+			require.NoError(t, err)
+
+			require.NoError(t, repo.DeleteReleaseProfileDuplicate(ctx, 1000))
+
+			var count int
+			require.NoError(t, testDb.db.Handler.QueryRowContext(ctx, "SELECT COUNT(*) FROM release_profile_duplicate WHERE id = 1000").Scan(&count))
+			assert.Zero(t, count)
+		})
+
+		t.Run(fmt.Sprintf("Delete_Missing [%s]", dbType), func(t *testing.T) {
+			err := repo.DeleteReleaseProfileDuplicate(ctx, 999999)
+			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
+		})
+	}
+}

@@ -77,15 +77,28 @@ func (h listHandler) store(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h listHandler) update(w http.ResponseWriter, r *http.Request) {
+	listID, err := parseURLParamInt(r, "listID")
+	if err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
+
 	var data *domain.List
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
+	if data == nil {
+		h.encoder.BadRequestErr(w, errors.New("list is required"))
+		return
+	}
+
+	data.ID = int64(listID)
+
 	if err := h.listSvc.Update(r.Context(), data); err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
-			h.encoder.NotFoundErr(w, errors.New("could not find list"))
+			h.encoder.NotFoundErr(w, errors.New("could not find list with id %d", listID))
 			return
 		}
 

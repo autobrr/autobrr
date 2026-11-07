@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -52,6 +53,11 @@ func (h *webhookHandler) refreshByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.listSvc.RefreshList(context.Background(), int64(listID)); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("could not find list with id %d", listID))
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}
