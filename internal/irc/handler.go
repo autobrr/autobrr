@@ -71,6 +71,14 @@ const (
 	flappingWindow             = 15 * time.Minute
 )
 
+// Services move a client that does not identify off a registered nick, and
+// irc-go takes it back on every keepalive. Each round sends another IDENTIFY or
+// invite request, and networks ban clients that keep doing this.
+const (
+	nickLossStopThreshold = 3
+	nickLossWindow        = time.Hour
+)
+
 // restartQuitTimeout bounds how long a restart waits for the server to close the
 // old connection after QUIT before connecting again.
 const restartQuitTimeout = 3 * time.Second
@@ -124,6 +132,8 @@ type Handler struct {
 	connectedSince   time.Time
 	haveDisconnected bool
 	shortSessionEnds []time.Time
+	nickLosses       []time.Time
+	requestedNick    string // set by NickChange until the server acknowledges it
 	authenticated    bool
 	saslauthed       bool
 
@@ -843,6 +853,7 @@ func (h *Handler) stop() *ircevent.Connection {
 	h.connectedSince = time.Time{}
 	h.haveDisconnected = false
 	h.resetFlappingBreakerLocked()
+	h.nickLosses = nil
 	h.resetSessionLocked()
 	h.currentNick = ""
 	client := h.client
@@ -1438,11 +1449,27 @@ func (h *Handler) onNick(client *ircevent.Connection, msg ircmsg.Message) {
 	// to callback ordering while excluding unrelated users' nick changes.
 	h.m.Lock()
 	ours := h.client == client && (h.isOurCurrentNickLocked(oldNick) || h.isOurCurrentNickLocked(newNick))
+	regained := false
+	nickLoop := false
 	if ours {
 		h.currentNick = newNick
 		// an IDENTIFY sent as the old nick says nothing about this one, and while it
 		// stays unanswered authenticate would send no new one
 		h.resetIdentifyForm()
+
+		// a nick edited in the config is acknowledged before SetNetwork lands, so
+		// it would otherwise look like being moved off the nick
+		requested := h.requestedNick != "" && h.caseMapping.equal(newNick, h.requestedNick)
+		if requested {
+			h.requestedNick = ""
+		}
+
+		wasPreferred := h.caseMapping.equal(oldNick, h.network.Nick)
+		isPreferred := h.caseMapping.equal(newNick, h.network.Nick)
+		regained = !wasPreferred && isPreferred
+		if wasPreferred && !isPreferred && !requested {
+			nickLoop = h.recordNickLossLocked(time.Now())
+		}
 	}
 	h.m.Unlock()
 
@@ -1450,7 +1477,59 @@ func (h *Handler) onNick(client *ircevent.Connection, msg ircmsg.Message) {
 		return
 	}
 
+	if nickLoop {
+		h.stopForNickLoop(oldNick)
+		return
+	}
+
 	h.authenticate()
+
+	if !regained {
+		return
+	}
+
+	h.m.RLock()
+	authenticated := h.authenticated || h.saslauthed
+	h.m.RUnlock()
+
+	// unauthenticated, the channels have not started yet and join once we are
+	if authenticated {
+		h.retryRefusedInvites(newNick)
+	}
+}
+
+// recordNickLossLocked records that we were moved off our nick and reports
+// whether that happened often enough to stop the network. The caller must hold h.m.
+func (h *Handler) recordNickLossLocked(at time.Time) bool {
+	keepFrom := 0
+	for keepFrom < len(h.nickLosses) && at.Sub(h.nickLosses[keepFrom]) >= nickLossWindow {
+		keepFrom++
+	}
+	h.nickLosses = append(h.nickLosses[keepFrom:], at)
+
+	return len(h.nickLosses) >= nickLossStopThreshold
+}
+
+func (h *Handler) stopForNickLoop(nick string) {
+	errMsg := fmt.Sprintf("nick change loop: moved off nick %s %d times within %s; network stopped to avoid a ban. Check that the nick is registered or grouped to the NickServ account and that the password is correct", nick, nickLossStopThreshold, nickLossWindow)
+
+	h.log.Error().Str("nick", nick).Int("losses", nickLossStopThreshold).Dur("window", nickLossWindow).Msg("nick change loop; stopping network")
+
+	h.addConnectError(errMsg)
+	h.stateMachine.OnError(errMsg)
+	h.Stop()
+}
+
+// retryRefusedInvites requests again the invites a bot refused for another nick.
+// A reconnect can land on a fallback nick while the server still holds the old
+// connection, and bots that check the nick, like one requiring a |bot suffix,
+// refuse it. Nothing else retries a refused invite once the nick is back.
+func (h *Handler) retryRefusedInvites(nick string) {
+	for _, channel := range h.channels.Iterator() {
+		if sm := channel.StateMachine(); sm != nil {
+			sm.RetryRefusedInvite(nick)
+		}
+	}
 }
 
 func (h *Handler) onKick(msg ircmsg.Message) {
@@ -2391,6 +2470,7 @@ func (h *Handler) resetSessionLocked() {
 	h.authenticated = false
 	h.saslauthed = false
 	h.failedNickServAttempts = 0
+	h.requestedNick = ""
 	h.resetIdentifyForm()
 }
 
@@ -2426,6 +2506,10 @@ func (h *Handler) unlearnIdentifyForm() {
 // NickChange sets a new nick for our user
 func (h *Handler) NickChange(nick string) error {
 	h.log.Debug().Str("nick", nick).Msg("NICK change")
+
+	h.m.Lock()
+	h.requestedNick = nick
+	h.m.Unlock()
 
 	if client := h.getClient(); client != nil {
 		client.SetNick(nick)
