@@ -6,6 +6,7 @@
 package database
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -2093,6 +2094,54 @@ func TestReleaseRepo_DeleteReleaseProfileDuplicate(t *testing.T) {
 		t.Run(fmt.Sprintf("Delete_Missing [%s]", dbType), func(t *testing.T) {
 			err := repo.DeleteReleaseProfileDuplicate(ctx, 999999)
 			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
+		})
+	}
+}
+
+func TestReleaseRepo_DuplicateProfileRoundTrip(t *testing.T) {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		log := setupLoggerForTest()
+		repo := NewReleaseRepo(log, testDb.db)
+		filterRepo := NewFilterRepo(log, testDb.db)
+		indexerRepo := NewIndexerRepo(log, testDb.db)
+
+		t.Run(fmt.Sprintf("Loads_Flags_And_Clears_On_Delete [%s]", dbType), func(t *testing.T) {
+			profile := &domain.DuplicateReleaseProfile{Name: "round trip", Protocol: true, Title: true, Hybrid: true}
+			require.NoError(t, repo.StoreDuplicateProfile(ctx, profile))
+			require.NotZero(t, profile.ID)
+
+			indexerMock := getMockIndexer()
+			indexerMock.Identifier = "round-trip-indexer"
+			indexer, err := indexerRepo.Store(ctx, indexerMock)
+			require.NoError(t, err)
+
+			filter := getMockFilter()
+			filter.ReleaseProfileDuplicateID = profile.ID
+			require.NoError(t, filterRepo.Store(ctx, filter))
+			require.NoError(t, filterRepo.StoreIndexerConnection(ctx, filter.ID, int(indexer.ID)))
+
+			t.Cleanup(func() {
+				_ = filterRepo.Delete(context.Background(), filter.ID)
+				_ = indexerRepo.Delete(context.Background(), int(indexer.ID))
+			})
+
+			filters, err := filterRepo.FindByIndexerIdentifier(ctx, indexer.Identifier)
+			require.NoError(t, err)
+			require.Len(t, filters, 1)
+			require.NotNil(t, filters[0].DuplicateHandling)
+			assert.True(t, filters[0].DuplicateHandling.Title)
+			assert.True(t, filters[0].DuplicateHandling.Hybrid)
+			assert.True(t, filters[0].DuplicateHandling.Protocol)
+
+			require.NoError(t, repo.DeleteReleaseProfileDuplicate(ctx, profile.ID))
+
+			filters, err = filterRepo.FindByIndexerIdentifier(ctx, indexer.Identifier)
+			require.NoError(t, err)
+			require.Len(t, filters, 1)
+			assert.Nil(t, filters[0].DuplicateHandling)
+			assert.Zero(t, filters[0].ReleaseProfileDuplicateID)
 		})
 	}
 }

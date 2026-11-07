@@ -1449,22 +1449,48 @@ func (repo *ReleaseRepo) Delete(ctx context.Context, req *domain.DeleteReleaseRe
 }
 
 func (repo *ReleaseRepo) DeleteReleaseProfileDuplicate(ctx context.Context, id int64) error {
-	qb := repo.db.squirrel.Delete("release_profile_duplicate").Where(sq.Eq{"id": id})
-
-	query, args, err := qb.ToSql()
+	tx, err := repo.db.BeginTx(ctx, nil)
 	if err != nil {
-		return errors.Wrap(err, "error building SQL query")
+		return errors.Wrap(err, "error begin transaction")
 	}
 
-	result, err := repo.db.Handler.ExecContext(ctx, query, args...)
+	defer tx.Rollback()
+
+	// SQLite runs without foreign key enforcement, so ON DELETE SET NULL never fires there
+	updateQueryBuilder := repo.db.squirrel.
+		Update("filter").
+		Set("release_profile_duplicate_id", nil).
+		Where(sq.Eq{"release_profile_duplicate_id": id})
+
+	updateQuery, updateArgs, err := updateQueryBuilder.ToSql()
 	if err != nil {
-		return errors.Wrap(err, "error executing delete query")
+		return errors.Wrap(err, "error building query")
+	}
+
+	if _, err := tx.ExecContext(ctx, updateQuery, updateArgs...); err != nil {
+		return errors.Wrap(err, "error executing query")
+	}
+
+	deleteQueryBuilder := repo.db.squirrel.Delete("release_profile_duplicate").Where(sq.Eq{"id": id})
+
+	deleteQuery, deleteArgs, err := deleteQueryBuilder.ToSql()
+	if err != nil {
+		return errors.Wrap(err, "error building query")
+	}
+
+	result, err := tx.ExecContext(ctx, deleteQuery, deleteArgs...)
+	if err != nil {
+		return errors.Wrap(err, "error executing query")
 	}
 
 	if rowsAffected, err := result.RowsAffected(); err != nil {
 		return errors.Wrap(err, "error getting rows affected")
 	} else if rowsAffected == 0 {
 		return domain.ErrRecordNotFound
+	}
+
+	if err := tx.Commit(); err != nil {
+		return errors.Wrap(err, "error deleting duplicate release profile")
 	}
 
 	repo.log.Debug().Int64("id", id).Msg("deleted duplicate release profile")

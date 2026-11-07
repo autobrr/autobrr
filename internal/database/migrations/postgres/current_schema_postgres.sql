@@ -175,6 +175,8 @@ VALUES (1, 'Exact release', 'f', 't', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f
        (3, 'TV', 'f', 'f', 'f', 't', 'f', 't', 't', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 't', 't', 'f', 'f', 'f',
         'f', 'f');
 
+SELECT setval(pg_get_serial_sequence('release_profile_duplicate', 'id'), (SELECT MAX(id) FROM release_profile_duplicate));
+
 CREATE TABLE filter
 (
     id                           SERIAL PRIMARY KEY,

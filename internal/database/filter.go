@@ -579,6 +579,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			"rdp.repack",
 			"rdp.edition",
 			"rdp.language",
+			"rdp.hybrid",
+			"rdp.protocol",
 		).
 		From("filter f").
 		Join("filter_indexer fi ON f.id = fi.filter_id").
@@ -613,7 +615,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 		var releaseProfileDuplicateID, rdpId sql.NullInt64
 
 		var rdpName sql.NullString
-		var rdpRelName, rdpHash, rdpTitle, rdpSubTitle, rdpYear, rdpMonth, rdpDay, rdpSource, rdpResolution, rdpCodec, rdpContainer, rdpDynRange, rdpAudio, rdpGroup, rdpSeason, rdpEpisode, rdpWebsite, rdpProper, rdpRepack, rdpEdition, rdpLanguage sql.NullBool
+		var rdpRelName, rdpHash, rdpTitle, rdpSubTitle, rdpYear, rdpMonth, rdpDay, rdpSource, rdpResolution, rdpCodec, rdpContainer, rdpDynRange, rdpAudio, rdpGroup, rdpSeason, rdpEpisode, rdpWebsite, rdpProper, rdpRepack, rdpEdition, rdpLanguage, rdpHybrid, rdpProtocol sql.NullBool
 
 		err := rows.Scan(
 			&f.ID,
@@ -711,6 +713,8 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			&rdpRepack,
 			&rdpEdition,
 			&rdpLanguage,
+			&rdpHybrid,
+			&rdpProtocol,
 		)
 		if err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
@@ -761,11 +765,13 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 
 		f.Rejections = []string{}
 
-		if releaseProfileDuplicateID.Valid {
+		// SQLite does not enforce the foreign key, so a deleted profile can leave
+		// the filter pointing at nothing
+		if rdpId.Valid {
 			profile := domain.DuplicateReleaseProfile{
-				ID: rdpId.Int64,
-				//Protocol:    rdpName.String,
+				ID:           rdpId.Int64,
 				Name:         rdpName.String,
+				Protocol:     rdpProtocol.Bool,
 				ReleaseName:  rdpRelName.Bool,
 				Hash:         rdpHash.Bool,
 				Title:        rdpTitle.Bool,
@@ -787,6 +793,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 				Repack:       rdpRepack.Bool,
 				Edition:      rdpEdition.Bool,
 				Language:     rdpLanguage.Bool,
+				Hybrid:       rdpHybrid.Bool,
 			}
 			f.DuplicateHandling = &profile
 		}
