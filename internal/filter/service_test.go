@@ -386,3 +386,76 @@ func Test_outputBuffer_Write(t *testing.T) {
 	assert.Equal(t, 4, n)
 	assert.Len(t, b.String(), externalOutputMaxBytes)
 }
+
+type duplicateRepoStub struct {
+	match *domain.DuplicateMatch
+}
+
+func (s *duplicateRepoStub) CheckSmartEpisodeCanDownload(context.Context, *domain.SmartEpisodeParams) (bool, error) {
+	return true, nil
+}
+
+func (s *duplicateRepoStub) FindDuplicate(context.Context, *domain.DuplicateReleaseProfile, *domain.Release) (*domain.DuplicateMatch, error) {
+	return s.match, nil
+}
+
+func TestService_CheckFilter_DuplicateInFlight(t *testing.T) {
+	tests := []struct {
+		name         string
+		match        *domain.DuplicateMatch
+		wantReason   string
+		wantInFlight bool
+	}{
+		{name: "no duplicate"},
+		{name: "duplicate grabbed", match: &domain.DuplicateMatch{ReleaseID: 7, ReleaseName: "That.Movie"}, wantReason: "duplicate of release 7 That.Movie"},
+		{name: "duplicate in flight", match: &domain.DuplicateMatch{ReleaseID: 7, ReleaseName: "That.Movie", InFlight: true}, wantReason: "duplicate of release 7 That.Movie being pushed", wantInFlight: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &Service{log: zerolog.Nop(), releaseRepo: &duplicateRepoStub{match: tt.match}}
+
+			f := &domain.Filter{Name: "movies", DuplicateHandling: &domain.DuplicateReleaseProfile{ID: 1, Name: "Exact release", ReleaseName: true}}
+			rls := domain.NewRelease(domain.IndexerMinimal{Identifier: "mock"})
+			rls.ParseString("That.Movie.2023.1080p.BluRay.x264-GROUP")
+
+			_, err := s.CheckFilter(t.Context(), f, rls)
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.match != nil, rls.IsDuplicate)
+			assert.Equal(t, tt.wantInFlight, rls.DuplicateInFlight)
+			if tt.wantReason != "" {
+				assert.Contains(t, f.RejectReasons.String(), tt.wantReason)
+			}
+		})
+	}
+}
+
+func TestService_CheckClaim(t *testing.T) {
+	tests := []struct {
+		name         string
+		match        *domain.DuplicateMatch
+		want         bool
+		wantInFlight bool
+	}{
+		{name: "no duplicate", want: true},
+		{name: "duplicate grabbed", match: &domain.DuplicateMatch{ReleaseID: 7, ReleaseName: "That.Movie"}},
+		{name: "duplicate in flight", match: &domain.DuplicateMatch{ReleaseID: 7, ReleaseName: "That.Movie", InFlight: true}, wantInFlight: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &Service{log: zerolog.Nop(), releaseRepo: &duplicateRepoStub{match: tt.match}}
+
+			f := &domain.Filter{Name: "movies", RejectReasons: domain.NewRejectionReasons(), DuplicateHandling: &domain.DuplicateReleaseProfile{ID: 1, Name: "Exact release", ReleaseName: true}}
+			rls := domain.NewRelease(domain.IndexerMinimal{Identifier: "mock"})
+			rls.ParseString("That.Movie.2023.1080p.BluRay.x264-GROUP")
+
+			ok, err := s.CheckClaim(t.Context(), f, rls)
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.want, ok)
+			assert.Equal(t, !tt.want, rls.IsDuplicate)
+			assert.Equal(t, tt.wantInFlight, rls.DuplicateInFlight)
+			assert.Equal(t, tt.want, f.RejectReasons.Len() == 0)
+		})
+	}
+}

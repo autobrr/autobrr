@@ -14,6 +14,7 @@ import (
 type DuplicateMatch struct {
 	ReleaseID   int64
 	ReleaseName string
+	InFlight    bool // the match has no approved action yet, only pending ones
 }
 
 // remakeRegions are the rls regions that mark a remake of a show. Other regions are market or

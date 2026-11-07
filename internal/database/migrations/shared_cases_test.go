@@ -380,3 +380,49 @@ func validateDuplicateProfilesMapped(db *sql.DB, t *testing.T) {
 		15: {mediaProcessing: true},
 	}, got)
 }
+
+func setupTriedClientOrphans(db *sql.DB) error {
+	_, err := db.Exec(`INSERT INTO "release" (id, release_name) VALUES
+		(1, 'Orphan.Release.S01E01.1080p.WEB-DL-GRP'),
+		(2, 'Other.Client.S01E01.1080p.WEB-DL-GRP'),
+		(3, 'Interrupted.S01E01.1080p.WEB-DL-GRP')`)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.Exec(`INSERT INTO release_action_status (id, status, action, type, client, release_id, rejections) VALUES
+		(1, 'PUSH_REJECTED', 'hi', 'QBITTORRENT', 'qbit', 1, '{"max active downloads reached, skipping"}'),
+		(2, 'PENDING', 'lo', 'QBITTORRENT', 'qbit', 1, '{}'),
+		(3, 'PUSH_REJECTED', 'hi', 'QBITTORRENT', 'qbit', 2, '{"max active downloads reached, skipping"}'),
+		(4, 'PENDING', 'lo', 'QBITTORRENT', 'qbit-2', 2, '{}'),
+		(5, 'PENDING', 'push', 'QBITTORRENT', 'qbit', 3, '{}')`)
+
+	return err
+}
+
+func validateTriedClientOrphansRejected(db *sql.DB, t *testing.T) {
+	rows, err := db.Query(`SELECT id, status, rejections FROM release_action_status ORDER BY id`)
+	require.NoError(t, err)
+	defer rows.Close()
+
+	type row struct {
+		status, rejections string
+	}
+
+	got := map[int]row{}
+	for rows.Next() {
+		var id int
+		var r row
+		require.NoError(t, rows.Scan(&id, &r.status, &r.rejections))
+		got[id] = r
+	}
+	require.NoError(t, rows.Err())
+
+	assert.Equal(t, map[int]row{
+		1: {status: "PUSH_REJECTED", rejections: `{"max active downloads reached, skipping"}`},
+		2: {status: "PUSH_REJECTED", rejections: `{"action client already tried for this release"}`},
+		3: {status: "PUSH_REJECTED", rejections: `{"max active downloads reached, skipping"}`},
+		4: {status: "PENDING", rejections: "{}"},
+		5: {status: "PENDING", rejections: "{}"},
+	}, got)
+}

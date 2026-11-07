@@ -750,6 +750,19 @@ func TestRunMigrationTest_SQLite(t *testing.T) {
 			},
 			want: "",
 		},
+		{
+			name:   "tried client orphans rejected",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "tried client orphans rejected",
+				MigrationIndex:      109,
+				MigrationsUntilName: "109_release_drop_unused_indexes",
+				MigrationToRun:      "110_release_action_status_reject_tried_client_orphans",
+				SetupData:           setupTriedClientOrphans,
+				ValidateResult:      validateTriedClientOrphansRejected,
+			},
+			want: "",
+		},
 	}
 
 	for _, tt := range tests {

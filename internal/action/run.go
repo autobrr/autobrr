@@ -19,8 +19,8 @@ func (s *Service) RunAction(ctx context.Context, action *domain.Action, release 
 	ctx = l.WithContext(ctx)
 
 	defer func() {
-		errors.RecoverPanic(recover(), &err)
-		if err != nil {
+		if r := recover(); r != nil {
+			errors.RecoverPanic(r, &err)
 			l.Error().Err(err).Msg("recovering from panic in run action")
 		}
 	}()

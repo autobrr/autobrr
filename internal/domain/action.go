@@ -5,6 +5,7 @@ package domain
 
 import (
 	"strings"
+	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
 )
@@ -60,6 +61,35 @@ func (a *Action) NeedsTorrentDownloaded() bool {
 	default:
 		return false
 	}
+}
+
+const (
+	reannounceDefaultInterval    = 7
+	reannounceDefaultMaxAttempts = 50
+
+	// ReannounceMaxDuration bounds a re-announce loop. The push stays in flight, and blocks its
+	// duplicates, until the loop ends.
+	ReannounceMaxDuration = 15 * time.Minute
+)
+
+// ReannounceSchedule returns the re-announce interval in seconds and the max attempts, with the
+// attempts capped so interval x attempts stays within ReannounceMaxDuration.
+func (a *Action) ReannounceSchedule() (interval int, maxAttempts int) {
+	interval = reannounceDefaultInterval
+	if a.ReAnnounceInterval > 0 {
+		interval = int(a.ReAnnounceInterval)
+	}
+
+	maxAttempts = reannounceDefaultMaxAttempts
+	if a.ReAnnounceMaxAttempts > 0 {
+		maxAttempts = int(a.ReAnnounceMaxAttempts)
+	}
+
+	budget := int(ReannounceMaxDuration / time.Second)
+	interval = min(interval, budget)
+	maxAttempts = min(maxAttempts, budget/interval)
+
+	return interval, maxAttempts
 }
 
 // macroFields returns the action fields that get macro expanded and could

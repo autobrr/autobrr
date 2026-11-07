@@ -22,6 +22,7 @@ type jobFeedRepo interface {
 type jobFeedCacheRepo interface {
 	ExistingItems(ctx context.Context, feedId int, keys []string) (map[string]bool, error)
 	PutMany(ctx context.Context, items []domain.FeedCacheItem) error
+	Delete(ctx context.Context, feedId int, key string) error
 }
 
 type jobReleaseSvc interface {
@@ -61,7 +62,10 @@ func (j *refreshJob) Run(ctx context.Context) error {
 			continue
 		}
 
-		releases = append(releases, e.release())
+		rls := e.release()
+		rls.FeedCacheKey = e.key
+
+		releases = append(releases, rls)
 	}
 
 	if len(releases) == 0 {
@@ -75,9 +79,35 @@ func (j *refreshJob) Run(ctx context.Context) error {
 
 	j.log.Debug().Int("items_count", len(releases)).Msg("found new items to process")
 
-	go j.releaseSvc.ProcessMultipleFromIndexer(context.WithoutCancel(ctx), releases, j.feed.Indexer)
+	go func() {
+		ctx := context.WithoutCancel(ctx)
+
+		if err := j.releaseSvc.ProcessMultipleFromIndexer(ctx, releases, j.feed.Indexer); err != nil {
+			return
+		}
+
+		j.uncacheInFlightDuplicates(ctx, releases)
+	}()
 
 	return nil
+}
+
+// uncacheInFlightDuplicates removes the cache key of every item that was rejected only because
+// a duplicate of it was still being pushed, so the next run checks it again: it is pushed if that
+// push failed and rejected as a plain duplicate if it went through.
+func (j *refreshJob) uncacheInFlightDuplicates(ctx context.Context, releases []*domain.Release) {
+	for _, rls := range releases {
+		if !rls.DuplicateInFlight || rls.FeedCacheKey == "" {
+			continue
+		}
+
+		if err := j.cacheRepo.Delete(ctx, j.feed.ID, rls.FeedCacheKey); err != nil {
+			j.log.Error().Err(err).Str("item", rls.TorrentName).Msg("could not remove in-flight duplicate from feed cache")
+			continue
+		}
+
+		j.log.Debug().Str("item", rls.TorrentName).Msg("rejected while a duplicate was being pushed, checking again next run")
+	}
 }
 
 // maxPages fetches a single page when the cache holds no boundary from a previous run, so a

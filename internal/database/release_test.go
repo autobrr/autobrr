@@ -2354,3 +2354,144 @@ func TestReleaseRepo_CheckSmartEpisodeTitleKey(t *testing.T) {
 		_ = filterRepo.Delete(ctx, filter.ID)
 	}
 }
+
+func TestReleaseRepo_InFlightPushes(t *testing.T) {
+	ctx := t.Context()
+
+	exact := &domain.DuplicateReleaseProfile{Name: "Exact release", ReleaseName: true}
+	const name = "That.Movie.2023.1080p.BluRay.x264-GROUP"
+
+	for dbType, testDb := range testDBs {
+		log := setupLoggerForTest()
+		repo := NewReleaseRepo(log, testDb.db)
+		filterRepo := NewFilterRepo(log, testDb.db)
+		actionRepo := NewActionRepo(log, testDb.db)
+
+		filter := getMockFilterDuplicates()
+		require.NoError(t, filterRepo.Store(ctx, filter))
+
+		action := &domain.Action{Name: "Test", Type: domain.ActionTypeTest, Enabled: true, FilterID: filter.ID}
+		require.NoError(t, actionRepo.Store(ctx, action))
+
+		indexer := domain.IndexerMinimal{Name: "Mock", Identifier: "mock-in-flight"}
+
+		store := func(t *testing.T, name string, statuses ...domain.ReleasePushStatus) *domain.Release {
+			rls := domain.NewRelease(indexer)
+			rls.ParseString(name)
+			rls.FilterID = filter.ID
+			require.NoError(t, repo.Store(ctx, rls))
+
+			for _, status := range statuses {
+				require.NoError(t, repo.StoreReleaseActionStatus(ctx, &domain.ReleaseActionStatus{
+					Status:     status,
+					Action:     action.Name,
+					ActionID:   int64(action.ID),
+					Type:       action.Type,
+					FilterID:   int64(filter.ID),
+					Rejections: []string{},
+					ReleaseID:  rls.ID,
+					Timestamp:  time.Now(),
+				}))
+			}
+
+			return rls
+		}
+
+		parse := func(name string) *domain.Release {
+			rls := domain.NewRelease(indexer)
+			rls.ParseString(name)
+			return rls
+		}
+
+		cleanup := func(t *testing.T) {
+			t.Cleanup(func() {
+				_ = repo.Delete(context.Background(), &domain.DeleteReleaseRequest{Indexers: []string{indexer.Identifier}})
+			})
+		}
+
+		t.Run(fmt.Sprintf("duplicate_pending_is_in_flight [%s]", dbType), func(t *testing.T) {
+			cleanup(t)
+			pending := store(t, name, domain.ReleasePushStatusPending)
+
+			match, err := repo.FindDuplicate(ctx, exact, parse(name))
+			require.NoError(t, err)
+			require.NotNil(t, match)
+			assert.Equal(t, pending.ID, match.ReleaseID)
+			assert.True(t, match.InFlight)
+		})
+
+		t.Run(fmt.Sprintf("duplicate_approved_wins_over_pending [%s]", dbType), func(t *testing.T) {
+			cleanup(t)
+			approved := store(t, name, domain.ReleasePushStatusApproved)
+			store(t, name, domain.ReleasePushStatusPending)
+
+			match, err := repo.FindDuplicate(ctx, exact, parse(name))
+			require.NoError(t, err)
+			require.NotNil(t, match)
+			assert.Equal(t, approved.ID, match.ReleaseID)
+			assert.False(t, match.InFlight)
+		})
+
+		t.Run(fmt.Sprintf("duplicate_failed_push_frees_release [%s]", dbType), func(t *testing.T) {
+			cleanup(t)
+			store(t, name, domain.ReleasePushStatusErr, domain.ReleasePushStatusRejected)
+
+			match, err := repo.FindDuplicate(ctx, exact, parse(name))
+			require.NoError(t, err)
+			assert.Nil(t, match)
+		})
+
+		t.Run(fmt.Sprintf("duplicate_excludes_own_pending [%s]", dbType), func(t *testing.T) {
+			cleanup(t)
+			own := store(t, name, domain.ReleasePushStatusPending)
+
+			match, err := repo.FindDuplicate(ctx, exact, own)
+			require.NoError(t, err)
+			assert.Nil(t, match)
+		})
+
+		t.Run(fmt.Sprintf("smart_episode_counts_pending [%s]", dbType), func(t *testing.T) {
+			cleanup(t)
+			store(t, "Example.Show.S01E05.1080p.WEB.H264-GRP", domain.ReleasePushStatusPending)
+			store(t, "Other.Show.S01E05.1080p.WEB.H264-GRP", domain.ReleasePushStatusErr)
+
+			canDownload, err := repo.CheckSmartEpisodeCanDownload(ctx, &domain.SmartEpisodeParams{Title: "Example Show", Season: 1, Episode: 4})
+			require.NoError(t, err)
+			assert.False(t, canDownload, "an episode being pushed is newer")
+
+			canDownload, err = repo.CheckSmartEpisodeCanDownload(ctx, &domain.SmartEpisodeParams{Title: "Other Show", Season: 1, Episode: 4})
+			require.NoError(t, err)
+			assert.True(t, canDownload, "a failed push does not count")
+		})
+
+		t.Run(fmt.Sprintf("fail_pending_action_statuses [%s]", dbType), func(t *testing.T) {
+			cleanup(t)
+			pending := store(t, name, domain.ReleasePushStatusPending, domain.ReleasePushStatusApproved)
+
+			count, err := repo.FailPendingActionStatuses(ctx)
+			require.NoError(t, err)
+			assert.GreaterOrEqual(t, count, int64(1))
+
+			rows, err := testDb.db.Handler.QueryContext(ctx, `SELECT status, rejections FROM release_action_status WHERE release_id = $1`, pending.ID)
+			require.NoError(t, err)
+			defer rows.Close()
+
+			statuses := map[domain.ReleasePushStatus][]string{}
+			for rows.Next() {
+				var status domain.ReleasePushStatus
+				var rejections []string
+				require.NoError(t, rows.Scan(&status, pq.Array(&rejections)))
+				statuses[status] = rejections
+			}
+			require.NoError(t, rows.Err())
+
+			assert.Equal(t, map[domain.ReleasePushStatus][]string{
+				domain.ReleasePushStatusErr:      {"interrupted by restart"},
+				domain.ReleasePushStatusApproved: {},
+			}, statuses)
+		})
+
+		_ = actionRepo.Delete(ctx, &domain.DeleteActionRequest{ActionId: action.ID})
+		_ = filterRepo.Delete(ctx, filter.ID)
+	}
+}

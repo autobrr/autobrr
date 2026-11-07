@@ -583,6 +583,14 @@ func TestRunMigrationTest_Postgres(t *testing.T) {
 			SetupData:           setupLegacyDuplicateProfiles,
 			ValidateResult:      validateDuplicateProfilesMapped,
 		},
+		{
+			Name:                "tried client orphans rejected",
+			MigrationIndex:      98,
+			MigrationsUntilName: "98_release_drop_unused_indexes",
+			MigrationToRun:      "99_release_action_status_reject_tried_client_orphans",
+			SetupData:           setupTriedClientOrphans,
+			ValidateResult:      validateTriedClientOrphansRejected,
+		},
 	}
 
 	for _, tc := range tests {

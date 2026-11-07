@@ -85,6 +85,7 @@ type recordingCacheRepo struct {
 	existing    map[string]bool
 	existingErr error
 	stored      []domain.FeedCacheItem
+	deleted     chan string
 }
 
 func (r *recordingCacheRepo) ExistingItems(context.Context, int, []string) (map[string]bool, error) {
@@ -93,6 +94,14 @@ func (r *recordingCacheRepo) ExistingItems(context.Context, int, []string) (map[
 
 func (r *recordingCacheRepo) PutMany(_ context.Context, items []domain.FeedCacheItem) error {
 	r.stored = append(r.stored, items...)
+	return nil
+}
+
+func (r *recordingCacheRepo) Delete(_ context.Context, _ int, key string) error {
+	if r.deleted != nil {
+		r.deleted <- key
+	}
+
 	return nil
 }
 
@@ -237,6 +246,50 @@ func TestRefreshJob_RunE(t *testing.T) {
 	}
 }
 
+// inFlightReleaseSvc rejects the named releases the way processFilters does when a duplicate of
+// them is still being pushed.
+type inFlightReleaseSvc struct {
+	inFlight map[string]bool
+}
+
+func (r *inFlightReleaseSvc) ProcessMultipleFromIndexer(_ context.Context, releases []*domain.Release, _ domain.IndexerMinimal) error {
+	for _, rls := range releases {
+		rls.DuplicateInFlight = r.inFlight[rls.TorrentName]
+	}
+
+	return nil
+}
+
+func TestRefreshJob_Run_uncachesInFlightDuplicates(t *testing.T) {
+	now := time.Now()
+
+	cacheRepo := &recordingCacheRepo{deleted: make(chan string, 3)}
+
+	j := &refreshJob{
+		log:        zerolog.Nop(),
+		feed:       &domain.Feed{ID: 4},
+		src:        &stubSource{res: &fetchResult{entries: []entry{newEntry("pushed", now), newEntry("in-flight", now), newEntry("rejected", now)}}},
+		repo:       &recordingFeedRepo{},
+		cacheRepo:  cacheRepo,
+		releaseSvc: &inFlightReleaseSvc{inFlight: map[string]bool{"in-flight": true}},
+	}
+
+	require.NoError(t, j.Run(t.Context()))
+
+	select {
+	case key := <-cacheRepo.deleted:
+		assert.Equal(t, "in-flight", key)
+	case <-time.After(time.Second):
+		t.Fatal("in-flight duplicate was not removed from the cache")
+	}
+
+	select {
+	case key := <-cacheRepo.deleted:
+		t.Fatalf("only the in-flight duplicate should be removed from the cache, got %s", key)
+	case <-time.After(50 * time.Millisecond):
+	}
+}
+
 func TestRefreshJob_RunE_processOrder(t *testing.T) {
 	now := time.Now()
 
@@ -342,6 +395,10 @@ func (r *statefulCacheRepo) ExistingItems(_ context.Context, _ int, keys []strin
 	}
 
 	return res, nil
+}
+
+func (r *statefulCacheRepo) Delete(context.Context, int, string) error {
+	return nil
 }
 
 func (r *statefulCacheRepo) PutMany(_ context.Context, items []domain.FeedCacheItem) error {

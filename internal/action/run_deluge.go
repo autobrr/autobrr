@@ -168,15 +168,14 @@ func (s *Service) delugeV1(ctx context.Context, cfg *domain.Downloader, client *
 		}
 	}
 
+	// the torrent is in the client, so a label error is logged and the push still counts as approved
 	if action.Label != "" {
 		labelPluginActive, err := client.LabelPlugin(ctx)
 		if err != nil {
-			return nil, errors.Wrap(err, "could not load label plugin for client: %s", cfg.Name)
-		}
-
-		if labelPluginActive != nil {
+			l.Warn().Err(err).Str("hash", torrentHash).Str("client", cfg.Name).Msg("torrent added to client but could not load label plugin")
+		} else if labelPluginActive != nil {
 			if err := delugeSetOrCreateTorrentLabel(ctx, labelPluginActive, cfg.Name, torrentHash, action.Label); err != nil {
-				return nil, errors.Wrap(err, "could not set label: %s on client: %s", action.Label, cfg.Name)
+				l.Warn().Err(err).Str("hash", torrentHash).Str("client", cfg.Name).Str("label", action.Label).Msg("torrent added to client but could not set label")
 			}
 		}
 	}
@@ -278,15 +277,14 @@ func (s *Service) delugeV2(ctx context.Context, cfg *domain.Downloader, client *
 
 	}
 
+	// the torrent is in the client, so a label error is logged and the push still counts as approved
 	if action.Label != "" {
 		labelPluginActive, err := client.LabelPlugin(ctx)
 		if err != nil {
-			return nil, errors.Wrap(err, "could not load label plugin for client: %s", cfg.Name)
-		}
-
-		if labelPluginActive != nil {
+			l.Warn().Err(err).Str("hash", torrentHash).Str("client", cfg.Name).Msg("torrent added to client but could not load label plugin")
+		} else if labelPluginActive != nil {
 			if err := delugeSetOrCreateTorrentLabel(ctx, labelPluginActive, cfg.Name, torrentHash, action.Label); err != nil {
-				return nil, errors.Wrap(err, "could not set label: %s on client: %s", action.Label, cfg.Name)
+				l.Warn().Err(err).Str("hash", torrentHash).Str("client", cfg.Name).Str("label", action.Label).Msg("torrent added to client but could not set label")
 			}
 		}
 	}

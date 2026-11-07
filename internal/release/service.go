@@ -46,6 +46,7 @@ type releaseRepo interface {
 
 	GetActionStatus(ctx context.Context, req *domain.GetReleaseActionStatusRequest) (*domain.ReleaseActionStatus, error)
 	StoreReleaseActionStatus(ctx context.Context, status *domain.ReleaseActionStatus) error
+	FailPendingActionStatuses(ctx context.Context) (int64, error)
 
 	StoreDuplicateProfile(ctx context.Context, profile *domain.DuplicateReleaseProfile) error
 	FindDuplicateReleaseProfiles(ctx context.Context) ([]*domain.DuplicateReleaseProfile, error)
@@ -57,12 +58,14 @@ type releaseRepo interface {
 type actionService interface {
 	Get(ctx context.Context, req *domain.GetActionRequest) (*domain.Action, error)
 	FindByFilterID(ctx context.Context, filterID int, active *bool, withClient bool) ([]*domain.Action, error)
+	CheckActionPreconditions(ctx context.Context, action *domain.Action, release *domain.Release) error
 	RunAction(ctx context.Context, action *domain.Action, release *domain.Release) (rejections []string, err error)
 }
 
 type filterService interface {
 	FindByIndexerIdentifier(ctx context.Context, indexer string) ([]*domain.Filter, error)
 	CheckFilter(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error)
+	CheckClaim(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error)
 }
 
 type indexerService interface {
@@ -101,6 +104,10 @@ type Service struct {
 	eventBus    eventBus
 	m           sync.RWMutex
 	cleanupJobs map[string]int
+
+	// claimMu serializes the claim: the re-check of everything other pushes count towards and
+	// the inserts that make this push count, so two copies of one release can't both pass
+	claimMu sync.Mutex
 
 	repo       releaseRepo
 	actionSvc  actionService
@@ -471,24 +478,20 @@ func (s *Service) processFilters(ctx context.Context, filters []*domain.Filter, 
 	// save both client type and client id to potentially try another client of same type
 	triedActionClients := map[actionClientTypeKey]struct{}{}
 
-	// loop over and check filters
 	for _, f := range filters {
 		l := s.log.With().Str("trace_id", release.TraceID).Str("indexer", release.Indexer.Identifier).Str("filter", f.Name).Str("release", release.TorrentName).Logger()
 
 		// make the logger available to downstream services via ctx
 		subCtx := l.WithContext(ctx)
 
-		// save filter on release
 		release.Filter = f
 		release.FilterName = f.Name
 		release.FilterID = f.ID
 
-		// reset IsDuplicate
 		release.IsDuplicate = false
 		release.SkipDuplicateProfileID = 0
 		release.SkipDuplicateProfileName = ""
 
-		// test filter
 		match, err := s.filterSvc.CheckFilter(subCtx, f, release)
 		if err != nil {
 			l.Error().Err(err).Msg("release.processFilters: error checking filter")
@@ -504,7 +507,6 @@ func (s *Service) processFilters(ctx context.Context, filters []*domain.Filter, 
 
 		l.Info().Msg("filter matched!")
 
-		// found matching filter, lets find the filter actions and attach
 		active := true
 		actions, err := s.actionSvc.FindByFilterID(subCtx, f.ID, &active, false)
 		if err != nil {
@@ -512,94 +514,197 @@ func (s *Service) processFilters(ctx context.Context, filters []*domain.Filter, 
 			return err
 		}
 
-		// if no actions, continue to next filter
 		if len(actions) == 0 {
 			l.Warn().Msg("release.processFilters: no active actions found for filter, trying next one..")
 			continue
 		}
 
-		// save release here to only save those with rejections from actions instead of all releases
-		if release.ID == 0 {
-			if err = s.Store(subCtx, release); err != nil {
-				l.Error().Err(err).Interface("release_data", release).Msg("release.processFilters: error writing release to database")
-				return err
-			}
-		}
-
-		var rejections []string
-
-		// run actions (watchFolder, test, exec, qBittorrent, Deluge, arr etc.)
-		for idx, act := range actions {
-			// only run enabled actions
+		runnable := make([]*domain.Action, 0, len(actions))
+		for _, act := range actions {
 			if !act.Enabled {
 				l.Trace().Str("action", act.Name).Msg("release.processFilters: action is disabled, skipping..")
 				continue
 			}
 
-			// add action status as pending
-			actionStatus := domain.NewReleaseActionStatus(act, release)
-
-			if err := s.StoreReleaseActionStatus(subCtx, actionStatus); err != nil {
-				l.Error().Err(err).Msg("release.processFilters: error storing action status for filter")
-			}
-
-			if idx == 0 {
-				// sleep for the delay period specified in the filter before running actions
-				delay := release.Filter.Delay
-				if delay > 0 {
-					l.Debug().Int("delay", delay).Msg("release.processFilters: delaying processing as specified in the filter")
-					time.Sleep(time.Duration(delay) * time.Second)
-				}
-			}
-
-			l.Trace().Str("action", act.Name).Msg("release.processFilters: run action")
-
-			// keep track of action clients to avoid sending the same thing all over again
-			_, tried := triedActionClients[actionClientTypeKey{Type: act.Type, ClientID: act.ClientID}]
-			if tried {
-				l.Debug().Msg("release.processFilters: action client already tried for this release, skipping..")
+			if _, tried := triedActionClients[actionClientTypeKey{Type: act.Type, ClientID: act.ClientID}]; tried {
+				l.Debug().Str("action", act.Name).Msg("release.processFilters: action client already tried for this release, skipping..")
 				continue
 			}
 
-			// run action
-			status, err := s.runAction(subCtx, act, release, actionStatus)
-			if err != nil {
-				l.Error().Err(err).Msg("release.processFilters: error running filter action")
-				//continue
-			}
+			runnable = append(runnable, act)
+		}
 
-			rejections = status.Rejections
-
-			if err := s.StoreReleaseActionStatus(subCtx, status); err != nil {
-				l.Error().Err(err).Msg("release.processFilters: error storing action status")
-			}
-
-			if len(rejections) > 0 {
-				// if we get action rejection, remember which action client it was from
-				triedActionClients[actionClientTypeKey{Type: act.Type, ClientID: act.ClientID}] = struct{}{}
-
-				// log something and fire events
-				l.Debug().Str("action", act.Name).Str("action_type", string(act.Type)).Strs("rejections", rejections).Msg("action rejected release")
-			}
-
-			// if no rejections consider action approved, run next
+		if len(runnable) == 0 {
+			l.Debug().Msg("release.processFilters: no action left to run for filter, trying next one..")
 			continue
 		}
 
-		if err = s.Update(subCtx, release); err != nil {
-			l.Error().Err(err).Msg("release.processFilters: error updating release")
+		if f.Delay > 0 {
+			l.Debug().Int("delay", f.Delay).Msg("release.processFilters: delaying processing as specified in the filter")
+			time.Sleep(time.Duration(f.Delay) * time.Second)
 		}
 
-		// if we have rejections from arr, continue to next filter
-		if len(rejections) > 0 {
-			continue
+		if s.pushFilter(subCtx, f, release, runnable, triedActionClients) {
+			release.DuplicateInFlight = false
+			break
 		}
-
-		// all actions run, decide to stop or continue here
-		break
 	}
 
 	return nil
+}
+
+// pushFilter prepares, claims and runs the actions of a matched filter, and reports whether any
+// of them was approved. Rejected and failed actions mark their client as tried.
+func (s *Service) pushFilter(ctx context.Context, f *domain.Filter, release *domain.Release, actions []*domain.Action, triedActionClients map[actionClientTypeKey]struct{}) bool {
+	l := zerolog.Ctx(ctx)
+
+	for _, act := range actions {
+		if err := s.actionSvc.CheckActionPreconditions(ctx, act, release); err != nil {
+			l.Error().Err(err).Str("action", act.Name).Msg("release.processFilters: error preparing filter actions")
+			s.failActions(ctx, release, actions, err, triedActionClients)
+			return false
+		}
+	}
+
+	statuses, claimed, err := s.claim(ctx, f, release, actions)
+	defer s.resolvePending(ctx, statuses)
+
+	if err != nil {
+		l.Error().Err(err).Msg("release.processFilters: error claiming release for filter")
+		return false
+	}
+
+	if !claimed {
+		l.Info().Str("stage", "claim").Str("rejections", f.RejectReasons.StringTruncated()).Msg("filter rejected release")
+		return false
+	}
+
+	approved := false
+
+	for idx, act := range actions {
+		status := statuses[idx]
+		client := actionClientTypeKey{Type: act.Type, ClientID: act.ClientID}
+
+		if _, tried := triedActionClients[client]; tried {
+			l.Debug().Str("action", act.Name).Msg("release.processFilters: action client already tried for this release, skipping..")
+
+			status.Status = domain.ReleasePushStatusRejected
+			status.Rejections = []string{"action client already tried for this release"}
+
+			if err := s.StoreReleaseActionStatus(ctx, status); err != nil {
+				l.Error().Err(err).Msg("release.processFilters: error storing action status")
+			}
+
+			continue
+		}
+
+		l.Trace().Str("action", act.Name).Msg("release.processFilters: run action")
+
+		if _, err := s.runAction(ctx, act, release, status); err != nil {
+			l.Error().Err(err).Msg("release.processFilters: error running filter action")
+		}
+
+		if err := s.StoreReleaseActionStatus(ctx, status); err != nil {
+			l.Error().Err(err).Msg("release.processFilters: error storing action status")
+		}
+
+		if status.Status == domain.ReleasePushStatusApproved {
+			approved = true
+			continue
+		}
+
+		triedActionClients[client] = struct{}{}
+
+		l.Debug().Str("action", act.Name).Str("action_type", string(act.Type)).Strs("rejections", status.Rejections).Msg("action rejected release")
+	}
+
+	if err := s.Update(ctx, release); err != nil {
+		l.Error().Err(err).Msg("release.processFilters: error updating release")
+	}
+
+	return approved
+}
+
+// claim re-checks the filter against what other pushes have grabbed and, if it still passes,
+// stores the release and a PENDING status for every action. From then on the push counts towards
+// download limits and duplicate checks. No network I/O may happen under claimMu.
+func (s *Service) claim(ctx context.Context, f *domain.Filter, release *domain.Release, actions []*domain.Action) ([]*domain.ReleaseActionStatus, bool, error) {
+	s.claimMu.Lock()
+	defer s.claimMu.Unlock()
+
+	ok, err := s.filterSvc.CheckClaim(ctx, f, release)
+	if err != nil || !ok {
+		return nil, false, err
+	}
+
+	if release.ID == 0 {
+		if err := s.Store(ctx, release); err != nil {
+			return nil, false, err
+		}
+	}
+
+	statuses := make([]*domain.ReleaseActionStatus, 0, len(actions))
+	for _, act := range actions {
+		status := domain.NewReleaseActionStatus(act, release)
+		if err := s.StoreReleaseActionStatus(ctx, status); err != nil {
+			return statuses, false, err
+		}
+
+		statuses = append(statuses, status)
+	}
+
+	return statuses, true, nil
+}
+
+// resolvePending marks the statuses a claim created that are still PENDING as PUSH_ERROR, so an
+// action that returned early or panicked can't keep blocking duplicates.
+func (s *Service) resolvePending(ctx context.Context, statuses []*domain.ReleaseActionStatus) {
+	ctx = context.WithoutCancel(ctx)
+
+	for _, status := range statuses {
+		if status.Status != domain.ReleasePushStatusPending {
+			continue
+		}
+
+		status.Status = domain.ReleasePushStatusErr
+		status.Rejections = []string{"action did not finish"}
+
+		if err := s.StoreReleaseActionStatus(ctx, status); err != nil {
+			zerolog.Ctx(ctx).Error().Err(err).Int64("action_status_id", status.ID).Msg("could not resolve pending action status")
+		}
+	}
+}
+
+// failActions records a failure to prepare the filter's actions the way a failed action is
+// recorded. PUSH_ERROR counts nowhere, so this takes no claim.
+func (s *Service) failActions(ctx context.Context, release *domain.Release, actions []*domain.Action, cause error, triedActionClients map[actionClientTypeKey]struct{}) {
+	l := zerolog.Ctx(ctx)
+
+	if release.ID == 0 {
+		if err := s.Store(ctx, release); err != nil {
+			l.Error().Err(err).Msg("release.processFilters: error writing release to database")
+			return
+		}
+	}
+
+	for _, act := range actions {
+		status := domain.NewReleaseActionStatus(act, release)
+		status.Status = domain.ReleasePushStatusErr
+		status.Rejections = []string{cause.Error()}
+
+		if err := s.StoreReleaseActionStatus(ctx, status); err != nil {
+			l.Error().Err(err).Msg("release.processFilters: error storing action status")
+		}
+
+		s.eventBus.EmitReleasePush(ctx, events.ReleasePushEvent{
+			Type:         events.ReleasePushError,
+			Action:       act,
+			ActionStatus: status,
+			Release:      release,
+		})
+
+		triedActionClients[actionClientTypeKey{Type: act.Type, ClientID: act.ClientID}] = struct{}{}
+	}
 }
 
 func (s *Service) ProcessMultiple(ctx context.Context, releases []*domain.Release) {
@@ -659,7 +764,6 @@ func (s *Service) ProcessMultipleFromIndexer(ctx context.Context, releases []*do
 
 		if err := s.processRelease(ctx, release, filters); err != nil {
 			s.log.Error().Err(err).Str("trace_id", release.TraceID).Str("indexer", indexer.Name).Msg("release.ProcessMultipleFromIndexer: error processing filters for indexer")
-			return nil
 		}
 	}
 
@@ -792,8 +896,8 @@ func (s *Service) Retry(ctx context.Context, req *domain.ReleaseActionRetryReq) 
 	// replay correlates with the request log
 	release.TraceID = domain.TraceIDFromCtx(ctx)
 
-	// run filterAction
-	if err := s.retryAction(ctx, filterAction, release); err != nil {
+	// a closed browser tab must not leave the status PENDING
+	if err := s.retryAction(context.WithoutCancel(ctx), filterAction, release); err != nil {
 		s.log.Error().Err(err).Str("trace_id", release.TraceID).Str("action", filterAction.Name).Msg("release.Retry: error re-running action")
 		return err
 	}
@@ -801,6 +905,20 @@ func (s *Service) Retry(ctx context.Context, req *domain.ReleaseActionRetryReq) 
 	s.log.Info().Str("trace_id", release.TraceID).Str("action", filterAction.Name).Str("release", release.TorrentName).Msg("successfully replayed action for release")
 
 	return nil
+}
+
+// FailInterruptedActions marks the action statuses left PENDING by the previous run as
+// PUSH_ERROR. It must run before anything can start a push.
+func (s *Service) FailInterruptedActions(ctx context.Context) {
+	count, err := s.repo.FailPendingActionStatuses(ctx)
+	if err != nil {
+		s.log.Error().Err(err).Msg("could not mark interrupted actions as failed")
+		return
+	}
+
+	if count > 0 {
+		s.log.Warn().Int64("count", count).Msg("marked actions interrupted by restart as failed")
+	}
 }
 
 func (s *Service) publishEventReleaseNew(ctx context.Context, release *domain.Release) {

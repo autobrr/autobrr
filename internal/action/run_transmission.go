@@ -18,11 +18,6 @@ import (
 	"github.com/rs/zerolog"
 )
 
-const (
-	ReannounceMaxAttempts = 50
-	ReannounceInterval    = 7 // interval in seconds
-)
-
 var ErrReannounceTookTooLong = errors.New("ErrReannounceTookTooLong")
 
 func (s *Service) runTransmission(ctx context.Context, action *domain.Action, release *domain.Release) ([]string, error) {
@@ -84,6 +79,8 @@ func (s *Service) runTransmission(ctx context.Context, action *domain.Action, re
 		return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentName, cfg.Host)
 	}
 
+	// the torrent is in the client from here on, so later errors are logged and the push still
+	// counts as approved
 	if action.Label != "" || action.LimitUploadSpeed > 0 || action.LimitDownloadSpeed > 0 || action.LimitRatio > 0 || action.LimitSeedTime > 0 {
 		p := transmissionrpc.TorrentSetPayload{
 			IDs: []int64{*torrent.ID},
@@ -122,10 +119,10 @@ func (s *Service) runTransmission(ctx context.Context, action *domain.Action, re
 		l.Trace().Interface("set_payload", p).Str("hash", *torrent.HashString).Str("client", cfg.Name).Msg("transmission torrent set payload")
 
 		if err := client.TorrentSet(ctx, p); err != nil {
-			return nil, errors.Wrap(err, "could not set label for hash %s to client: %s", *torrent.HashString, cfg.Host)
+			l.Warn().Err(err).Str("hash", *torrent.HashString).Str("client", cfg.Name).Msg("torrent added to client but could not set label and limits")
+		} else {
+			l.Debug().Str("hash", *torrent.HashString).Str("client", cfg.Name).Msg("set label for torrent successful to client")
 		}
-
-		l.Debug().Str("hash", *torrent.HashString).Str("client", cfg.Name).Msg("set label for torrent successful to client")
 	}
 
 	if !action.Paused && !action.ReAnnounceSkip {
@@ -134,7 +131,7 @@ func (s *Service) runTransmission(ctx context.Context, action *domain.Action, re
 				return []string{fmt.Sprintf("reannounce took too long for torrent: %s, deleted", *torrent.HashString)}, nil
 			}
 
-			return nil, errors.Wrap(err, "could not reannounce torrent: %s", *torrent.HashString)
+			l.Warn().Err(err).Str("hash", *torrent.HashString).Str("client", cfg.Name).Msg("torrent added to client but re-announce failed")
 		}
 
 		return nil, nil
@@ -148,15 +145,7 @@ func (s *Service) runTransmission(ctx context.Context, action *domain.Action, re
 func (s *Service) transmissionReannounce(ctx context.Context, action *domain.Action, tbt *transmissionrpc.Client, torrentId int64) error {
 	l := zerolog.Ctx(ctx)
 
-	interval := ReannounceInterval
-	if action.ReAnnounceInterval > 0 {
-		interval = int(action.ReAnnounceInterval)
-	}
-
-	maxAttempts := ReannounceMaxAttempts
-	if action.ReAnnounceMaxAttempts > 0 {
-		maxAttempts = int(action.ReAnnounceMaxAttempts)
-	}
+	interval, maxAttempts := action.ReannounceSchedule()
 
 	attempts := 0
 
