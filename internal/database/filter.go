@@ -48,51 +48,6 @@ func windowTypeOrFixed(w domain.FilterMaxDownloadsWindowType) domain.FilterMaxDo
 	return w
 }
 
-var (
-	fixedWindowStartSQLite = map[domain.FilterMaxDownloadsUnit]string{
-		domain.FilterMaxDownloadsMinute: `strftime('%Y-%m-%d %H:%M:00', datetime('now', 'localtime'))`,
-		domain.FilterMaxDownloadsHour:   `strftime('%Y-%m-%d %H:00:00', datetime('now', 'localtime'))`,
-		domain.FilterMaxDownloadsDay:    `datetime('now', 'localtime', 'start of day')`,
-		domain.FilterMaxDownloadsWeek:   `datetime('now', 'localtime', 'weekday 0', '-7 days', 'start of day')`,
-		domain.FilterMaxDownloadsMonth:  `datetime('now', 'localtime', 'start of month')`,
-	}
-
-	fixedWindowStartPG = map[domain.FilterMaxDownloadsUnit]string{
-		domain.FilterMaxDownloadsMinute: `date_trunc('minute', CURRENT_TIMESTAMP)`,
-		domain.FilterMaxDownloadsHour:   `date_trunc('hour', CURRENT_TIMESTAMP)`,
-		domain.FilterMaxDownloadsDay:    `date_trunc('day', CURRENT_DATE)`,
-		domain.FilterMaxDownloadsWeek:   `date_trunc('week', CURRENT_DATE)`,
-		domain.FilterMaxDownloadsMonth:  `date_trunc('month', CURRENT_DATE)`,
-	}
-)
-
-// downloadsWindowStart returns the engine specific SQL expression for the start
-// of the filter's download window: the most recent calendar boundary for FIXED
-// windows, now minus the period for ROLLING windows. All parts are built from
-// fixed expressions and clamped integers, never user input.
-func (r *FilterRepo) downloadsWindowStart(filter *domain.Filter) string {
-	if filter.MaxDownloadsWindowType == domain.FilterMaxDownloadsWindowRolling {
-		n, unit := filter.DownloadPeriod()
-
-		if r.db.Driver == "postgres" {
-			return fmt.Sprintf("CURRENT_TIMESTAMP - INTERVAL '%d %s'", n, unit)
-		}
-
-		return fmt.Sprintf("datetime('now', 'localtime', '-%d %s')", n, unit)
-	}
-
-	boundaries := fixedWindowStartSQLite
-	if r.db.Driver == "postgres" {
-		boundaries = fixedWindowStartPG
-	}
-
-	if expr, ok := boundaries[filter.MaxDownloadsUnit]; ok {
-		return expr
-	}
-
-	return boundaries[domain.FilterMaxDownloadsDay]
-}
-
 func (r *FilterRepo) Find(ctx context.Context, params domain.FilterQueryParams) ([]*domain.Filter, error) {
 	return r.find(ctx, params)
 }
@@ -1156,7 +1111,7 @@ func (r *FilterRepo) Update(ctx context.Context, filter *domain.Filter) error {
 		Set("min_leechers", filter.MinLeechers).
 		Set("max_leechers", filter.MaxLeechers).
 		Set("release_profile_duplicate_id", toNullInt64(filter.ReleaseProfileDuplicateID)).
-		Set("updated_at", time.Now().Format(time.RFC3339)).
+		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
 		Where(sq.Eq{"id": filter.ID})
 
 	query, args, err := queryBuilder.ToSql()
@@ -1732,15 +1687,7 @@ func (r *FilterRepo) GetFilterDownloadCount(ctx context.Context, filter *domain.
 		Where(sq.Eq{"status": []string{"PUSH_APPROVED", "PENDING"}, "filter_id": filter.ID})
 
 	if filter.MaxDownloadsUnit != domain.FilterMaxDownloadsEver {
-		windowStart := r.downloadsWindowStart(filter)
-
-		if r.db.Driver == "postgres" {
-			queryBuilder = queryBuilder.Where("timestamp >= " + windowStart)
-		} else {
-			// stored SQLite timestamps mix formats and offsets, so both sides
-			// are normalized through datetime() before comparing
-			queryBuilder = queryBuilder.Where("datetime(timestamp, 'localtime') >= " + windowStart)
-		}
+		queryBuilder = queryBuilder.Where(sq.GtOrEq{"timestamp": filter.DownloadWindowStart(time.Now())})
 	}
 
 	query, args, err := queryBuilder.ToSql()

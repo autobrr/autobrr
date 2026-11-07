@@ -114,6 +114,7 @@ func PostgresMigrations(db *sql.DB, logger zerolog.Logger) *migrator.Migrator {
 	migrate.AddFileMigration("91_api_key_add_id_and_hash_key.sql")
 	migrate.AddFileMigration("92_create_matrix_tables.sql")
 	migrate.AddFileMigration("93_duplicate_profiles_fix_id_sequence.sql")
+	migrate.AddFileMigration("94_timestamps_to_timestamptz.sql")
 
 	return migrate
 }

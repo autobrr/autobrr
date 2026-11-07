@@ -5,8 +5,10 @@ package domain
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFilter_CheckFilter(t *testing.T) {
@@ -2352,27 +2354,36 @@ func TestFilter_CheckFilter1(t *testing.T) {
 	}
 }
 
-func TestFilter_DownloadPeriod(t *testing.T) {
+func TestFilter_DownloadWindowStart(t *testing.T) {
 	t.Parallel()
+
+	stockholm, err := time.LoadLocation("Europe/Stockholm")
+	require.NoError(t, err)
+
+	// Thursday, local time
+	now := time.Date(2026, 11, 5, 14, 37, 12, 0, stockholm)
+
 	tests := []struct {
-		name     string
-		filter   Filter
-		wantN    int
-		wantUnit string
+		name   string
+		filter Filter
+		want   time.Time
 	}{
-		{name: "rolling_minute", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsMinute, MaxDownloadsPeriod: 2, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}, wantN: 2, wantUnit: "minutes"},
-		{name: "rolling_hour", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsHour, MaxDownloadsPeriod: 6, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}, wantN: 6, wantUnit: "hours"},
-		{name: "rolling_day", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsDay, MaxDownloadsPeriod: 3, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}, wantN: 3, wantUnit: "days"},
-		{name: "rolling_week", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsWeek, MaxDownloadsPeriod: 2, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}, wantN: 14, wantUnit: "days"},
-		{name: "rolling_month", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsMonth, MaxDownloadsPeriod: 2, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}, wantN: 2, wantUnit: "months"},
-		{name: "rolling_zero_period", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsHour, MaxDownloadsPeriod: 0, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}, wantN: 1, wantUnit: "hours"},
-		{name: "fixed_ignores_period", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsDay, MaxDownloadsPeriod: 3}, wantN: 1, wantUnit: "days"},
+		{name: "fixed_minute", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsMinute}, want: time.Date(2026, 11, 5, 14, 37, 0, 0, stockholm)},
+		{name: "fixed_hour", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsHour}, want: time.Date(2026, 11, 5, 14, 0, 0, 0, stockholm)},
+		{name: "fixed_day", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsDay}, want: time.Date(2026, 11, 5, 0, 0, 0, 0, stockholm)},
+		{name: "fixed_week_starts_monday", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsWeek}, want: time.Date(2026, 11, 2, 0, 0, 0, 0, stockholm)},
+		{name: "fixed_month", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsMonth}, want: time.Date(2026, 11, 1, 0, 0, 0, 0, stockholm)},
+		{name: "fixed_ignores_period", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsDay, MaxDownloadsPeriod: 3}, want: time.Date(2026, 11, 5, 0, 0, 0, 0, stockholm)},
+		{name: "rolling_minute", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsMinute, MaxDownloadsPeriod: 2, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}, want: now.Add(-2 * time.Minute)},
+		{name: "rolling_hour", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsHour, MaxDownloadsPeriod: 6, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}, want: now.Add(-6 * time.Hour)},
+		{name: "rolling_day", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsDay, MaxDownloadsPeriod: 3, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}, want: now.AddDate(0, 0, -3)},
+		{name: "rolling_week", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsWeek, MaxDownloadsPeriod: 2, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}, want: now.AddDate(0, 0, -14)},
+		{name: "rolling_month", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsMonth, MaxDownloadsPeriod: 2, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}, want: now.AddDate(0, -2, 0)},
+		{name: "rolling_zero_period", filter: Filter{MaxDownloadsUnit: FilterMaxDownloadsHour, MaxDownloadsWindowType: FilterMaxDownloadsWindowRolling}, want: now.Add(-time.Hour)},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			n, unit := tt.filter.DownloadPeriod()
-			assert.Equal(t, tt.wantN, n)
-			assert.Equal(t, tt.wantUnit, unit)
+			assert.True(t, tt.want.Equal(tt.filter.DownloadWindowStart(now)), "got %s want %s", tt.filter.DownloadWindowStart(now), tt.want)
 		})
 	}
 }

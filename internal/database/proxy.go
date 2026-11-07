@@ -6,7 +6,6 @@ package database
 import (
 	"context"
 	"database/sql"
-	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -72,7 +71,7 @@ func (r *ProxyRepo) Update(ctx context.Context, p *domain.Proxy) error {
 		Set("auth_user", toNullString(p.User)).
 		Set("auth_pass", toNullString(p.Pass)).
 		Set("timeout", p.Timeout).
-		Set("updated_at", time.Now().Format(time.RFC3339)).
+		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
 		Where(sq.Eq{"id": p.ID})
 
 	query, args, err := queryBuilder.ToSql()
@@ -336,7 +335,7 @@ func (r *ProxyRepo) ToggleEnabled(ctx context.Context, id int64, enabled bool) e
 	queryBuilder := r.db.squirrel.
 		Update("proxy").
 		Set("enabled", enabled).
-		Set("updated_at", time.Now().Format(time.RFC3339)).
+		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
 		Where(sq.Eq{"id": id})
 
 	query, args, err := queryBuilder.ToSql()

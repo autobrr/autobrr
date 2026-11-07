@@ -445,7 +445,7 @@ func tableColumns(ctx context.Context, c conn, table string) ([]string, error) {
 
 // toSQLiteValue converts a lib/pq value into the representation the SQLite repos write:
 // arrays and json come back as []byte and must be stored as text, not blobs, and timestamps
-// are stored as RFC3339 strings.
+// are stored as UTC text in the layout the SQLite driver binds them with.
 func toSQLiteValue(v any, pgType string) any {
 	switch val := v.(type) {
 	case []byte:
@@ -455,7 +455,7 @@ func toSQLiteValue(v any, pgType string) any {
 
 		return string(val)
 	case time.Time:
-		return val.UTC().Format(time.RFC3339)
+		return val.UTC().Format(migrations.SQLiteTimeLayout)
 	}
 
 	return v

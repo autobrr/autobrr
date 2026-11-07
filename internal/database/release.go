@@ -7,7 +7,6 @@ import (
 	"cmp"
 	"context"
 	"database/sql"
-	"fmt"
 	"regexp"
 	"slices"
 	"strings"
@@ -46,7 +45,7 @@ func (repo *ReleaseRepo) Store(ctx context.Context, r *domain.Release) error {
 	queryBuilder := repo.db.squirrel.
 		Insert("release").
 		Columns("filter_status", "rejections", "indexer", "filter", "protocol", "implementation", "timestamp", "announce_type", "group_id", "torrent_id", "info_url", "download_url", "torrent_name", "normalized_hash", "size", "title", "sub_title", "category", "season", "episode", "year", "month", "day", "resolution", "source", "codec", "container", "hdr", "audio", "audio_channels", "release_group", "proper", "repack", "region", "language", "cut", "edition", "hybrid", "media_processing", "website", "type", "origin", "tags", "uploader", "pre_time", "other", "filter_id").
-		Values(r.FilterStatus, pq.Array(r.Rejections), r.Indexer.Identifier, r.FilterName, r.Protocol, r.Implementation, r.Timestamp.Format(time.RFC3339), r.AnnounceType, r.GroupID, r.TorrentID, r.InfoURL, r.DownloadURL, r.TorrentName, r.NormalizedHash, r.Size, r.Title, r.SubTitle, r.Category, r.Season, r.Episode, r.Year, r.Month, r.Day, r.Resolution, r.Source, codecStr, r.Container, hdrStr, audioStr, r.AudioChannels, r.Group, r.Proper, r.Repack, r.Region, languageStr, cutStr, editionStr, r.Hybrid, r.MediaProcessing, r.Website, r.Type.String(), r.Origin, pq.Array(r.Tags), r.Uploader, r.PreTime, pq.Array(r.Other), r.FilterID).
+		Values(r.FilterStatus, pq.Array(r.Rejections), r.Indexer.Identifier, r.FilterName, r.Protocol, r.Implementation, r.Timestamp, r.AnnounceType, r.GroupID, r.TorrentID, r.InfoURL, r.DownloadURL, r.TorrentName, r.NormalizedHash, r.Size, r.Title, r.SubTitle, r.Category, r.Season, r.Episode, r.Year, r.Month, r.Day, r.Resolution, r.Source, codecStr, r.Container, hdrStr, audioStr, r.AudioChannels, r.Group, r.Proper, r.Repack, r.Region, languageStr, cutStr, editionStr, r.Hybrid, r.MediaProcessing, r.Website, r.Type.String(), r.Origin, pq.Array(r.Tags), r.Uploader, r.PreTime, pq.Array(r.Other), r.FilterID).
 		Suffix("RETURNING id").RunWith(repo.db.Handler)
 
 	q, args, err := queryBuilder.ToSql()
@@ -91,7 +90,7 @@ func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, status *d
 			Update("release_action_status").
 			Set("status", status.Status).
 			Set("rejections", pq.Array(status.Rejections)).
-			Set("timestamp", status.Timestamp.Format(time.RFC3339)).
+			Set("timestamp", status.Timestamp).
 			Where(sq.Eq{"id": status.ID}).
 			Where(sq.Eq{"release_id": status.ReleaseID})
 
@@ -108,7 +107,7 @@ func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, status *d
 		queryBuilder := repo.db.squirrel.
 			Insert("release_action_status").
 			Columns("status", "action", "action_id", "type", "client", "filter", "filter_id", "rejections", "timestamp", "release_id").
-			Values(status.Status, status.Action, status.ActionID, status.Type, status.Client, status.Filter, status.FilterID, pq.Array(status.Rejections), status.Timestamp.Format(time.RFC3339), status.ReleaseID).
+			Values(status.Status, status.Action, status.ActionID, status.Type, status.Client, status.Filter, status.FilterID, pq.Array(status.Rejections), status.Timestamp, status.ReleaseID).
 			Suffix("RETURNING id").RunWith(repo.db.Handler)
 
 		if err := queryBuilder.QueryRowContext(ctx).Scan(&status.ID); err != nil {
@@ -980,26 +979,19 @@ type statsWindow struct {
 	days   int
 	now    time.Time
 	cutoff time.Time
-	arg    any
 }
 
 func (repo *ReleaseRepo) statsWindow(days int) statsWindow {
 	w := statsWindow{days: days, now: time.Now().UTC()}
 	if days > 0 {
 		w.cutoff = w.now.AddDate(0, 0, -(days - 1)).Truncate(24 * time.Hour)
-		w.arg = w.cutoff
-		if repo.db.Driver == "sqlite" {
-			// raw string compare keeps the timestamp index usable and is exact at
-			// midnight boundaries for both timestamp formats found in old databases
-			w.arg = w.cutoff.Format("2006-01-02 15:04:05")
-		}
 	}
 	return w
 }
 
 func (w statsWindow) apply(qb sq.SelectBuilder, column string) sq.SelectBuilder {
 	if w.days > 0 {
-		return qb.Where(sq.GtOrEq{column: w.arg})
+		return qb.Where(sq.GtOrEq{column: w.cutoff})
 	}
 	return qb
 }
@@ -1038,9 +1030,8 @@ func minDateKey[T any](m map[string]*T) string {
 
 func (repo *ReleaseRepo) statsDayExpr() string {
 	if repo.db.Driver == "sqlite" {
-		// substr instead of strftime: both timestamp formats found in old
-		// databases share the YYYY-MM-DD HH prefix, and skipping per-row date
-		// parsing roughly halves the scan cost on large tables
+		// substr instead of strftime: stored timestamps are UTC text starting with
+		// YYYY-MM-DD HH, and skipping per-row date parsing roughly halves the scan cost
 		return "substr(timestamp, 1, 10)"
 	}
 	return "to_char(timestamp, 'YYYY-MM-DD')"
@@ -1375,16 +1366,7 @@ func (repo *ReleaseRepo) Delete(ctx context.Context, req *domain.DeleteReleaseRe
 	qb := repo.db.squirrel.Delete("release")
 
 	if req.OlderThan > 0 {
-		if repo.db.Driver == "sqlite" {
-			qb = qb.Where(fmt.Sprintf("datetime(timestamp) < datetime('now','-%d hours')", req.OlderThan))
-		} else {
-			// postgres compatible
-			thresholdTime := time.Now().Add(time.Duration(-req.OlderThan) * time.Hour)
-			qb = qb.Where(sq.Lt{
-				//"timestamp": fmt.Sprintf("(now() - interval '%d hours')", req.OlderThan),
-				"timestamp": thresholdTime,
-			})
-		}
+		qb = qb.Where(sq.Lt{"timestamp": time.Now().Add(time.Duration(-req.OlderThan) * time.Hour)})
 	}
 
 	if len(req.Indexers) > 0 {
