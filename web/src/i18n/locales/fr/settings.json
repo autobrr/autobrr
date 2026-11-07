@@ -279,7 +279,7 @@
     "cleanupJobEnabled": "activé",
     "cleanupJobDisabled": "désactivé",
     "duplicateFieldTitles": {
-      "releaseName": "Nom de la release",
+      "releaseName": "Nom de la release normalisé",
       "hash": "Hash normalisé du nom de la release. Utiliser avec Nom de la release pour une correspondance exacte",
       "title": "Titre parsé",
       "subTitle": "Sous-titre parsé comme le nom de l'épisode",
@@ -292,14 +292,17 @@
       "codec": "Codec",
       "container": "Conteneur",
       "dynamicRange": "Plage dynamique (HDR, DV)",
-      "audio": "Formats audio",
+      "audio": "Formats et canaux audio",
       "season": "Numéro de saison",
       "episode": "Numéro d'épisode",
       "website": "Site web/Service",
       "proper": "Scene proper",
       "repack": "Scene repack",
       "edition": "Édition (ex. Collector's Edition) et coupe (ex. Director's Cut)",
-      "language": "Langue et région"
+      "language": "Langue et région",
+      "protocol": "Même protocole",
+      "mediaProcessing": "Distingue les REMUX des encodes",
+      "hybrid": "Version hybride"
     },
     "noDuplicateProfiles": "Aucun profil de doublons de release",
     "addNewProfile": "Ajouter un nouveau profil",
@@ -978,6 +981,8 @@
       "title": "Profil de doublons",
       "added": "Profil ajouté",
       "addFailed": "Le profil n'a pas pu être ajouté",
+      "updated": "Le profil a été mis à jour",
+      "deleteWarning": "Les filtres qui utilisent ce profil n'ignoreront plus les doublons.",
       "deleted": "Le profil {{name}} a été supprimé !",
       "fields": {
         "name": "Nom",
@@ -1002,19 +1007,24 @@
         "repack": "Repack",
         "edition": "Édition",
         "hybrid": "Version hybride",
-        "language": "Langue"
+        "language": "Langue",
+        "protocol": "Protocole",
+        "mediaProcessing": "Traitement du média"
       },
       "descriptions": {
-        "releaseName": "Nom complet de la release",
+        "releaseName": "Compare le nom de la release sans tenir compte de la casse, de la ponctuation ni des espaces. Les autres options sont alors ignorées",
         "hash": "Hash normalisé du nom de la release. Utiliser avec Nom de la release pour une correspondance exacte",
-        "title": "Titre parsé",
+        "title": "Titre analysé, sans tenir compte de la casse, des accents ni de la ponctuation",
         "subTitle": "Sous-titre parsé comme le nom de l'épisode",
         "dailyReleases": "Pour les releases quotidiennes",
         "group": "Groupe de release",
         "website": "Services tels que AMZN/HULU/NF",
         "dynamicRange": "Plage dynamique (HDR, DV, etc.)",
         "edition": "Édition et coupe",
-        "language": "Langue et région"
+        "language": "Langue et région",
+        "protocol": "Ne compare que les releases du même protocole (torrent ou usenet)",
+        "mediaProcessing": "Distingue les REMUX des encodes",
+        "audio": "Formats et canaux audio"
       }
     },
     "cleanupJob": {

@@ -151,6 +151,7 @@ interface ReleaseProfileDuplicate {
   edition: boolean;
   hybrid: boolean;
   language: boolean;
+  media_processing: boolean;
 }
 
 interface ReleaseCleanupJob {

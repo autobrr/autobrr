@@ -58,6 +58,7 @@ export function ReleaseProfileDuplicateAddForm({ isOpen, toggle }: AddFormProps)
     edition: false,
     hybrid: false,
     language: false,
+    media_processing: false,
   };
 
   return (
@@ -69,34 +70,7 @@ export function ReleaseProfileDuplicateAddForm({ isOpen, toggle }: AddFormProps)
       onSubmit={onSubmit}
       initialValues={initialValues}
     >
-      {() => (
-        <div className="py-2 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
-          <TextFieldWide required name="name" label={t("forms.releaseProfile.fields.name")}/>
-
-          <SwitchGroupWide name="release_name" label={t("forms.releaseProfile.fields.releaseName")} description={t("forms.releaseProfile.descriptions.releaseName")} />
-          <SwitchGroupWide name="hash" label={t("forms.releaseProfile.fields.hash")} description={t("forms.releaseProfile.descriptions.hash")} />
-          <SwitchGroupWide name="title" label={t("forms.releaseProfile.fields.title")} description={t("forms.releaseProfile.descriptions.title")} />
-          <SwitchGroupWide name="sub_title" label={t("forms.releaseProfile.fields.subTitle")} description={t("forms.releaseProfile.descriptions.subTitle")} />
-          <SwitchGroupWide name="year" label={t("forms.releaseProfile.fields.year")} />
-          <SwitchGroupWide name="month" label={t("forms.releaseProfile.fields.month")} description={t("forms.releaseProfile.descriptions.dailyReleases")} />
-          <SwitchGroupWide name="day" label={t("forms.releaseProfile.fields.day")} description={t("forms.releaseProfile.descriptions.dailyReleases")} />
-          <SwitchGroupWide name="source" label={t("forms.releaseProfile.fields.source")} />
-          <SwitchGroupWide name="resolution" label={t("forms.releaseProfile.fields.resolution")} />
-          <SwitchGroupWide name="codec" label={t("forms.releaseProfile.fields.codec")} />
-          <SwitchGroupWide name="container" label={t("forms.releaseProfile.fields.container")} />
-          <SwitchGroupWide name="dynamic_range" label={t("forms.releaseProfile.fields.dynamicRange")} />
-          <SwitchGroupWide name="audio" label={t("forms.releaseProfile.fields.audio")} />
-          <SwitchGroupWide name="group" label={t("forms.releaseProfile.fields.group")} description={t("forms.releaseProfile.descriptions.group")} />
-          <SwitchGroupWide name="season" label={t("forms.releaseProfile.fields.season")} />
-          <SwitchGroupWide name="episode" label={t("forms.releaseProfile.fields.episode")} />
-          <SwitchGroupWide name="website" label={t("forms.releaseProfile.fields.website")} description={t("forms.releaseProfile.descriptions.website")} />
-          <SwitchGroupWide name="proper" label={t("forms.releaseProfile.fields.proper")} />
-          <SwitchGroupWide name="repack" label={t("forms.releaseProfile.fields.repack")} />
-          <SwitchGroupWide name="edition" label={t("forms.releaseProfile.fields.edition")} />
-          <SwitchGroupWide name="hybrid" label={t("forms.releaseProfile.fields.hybrid")} />
-          <SwitchGroupWide name="language" label={t("forms.releaseProfile.fields.language")} />
-        </div>
-      )}
+      {() => <ReleaseProfileDuplicateFields />}
     </SlideOver>
   );
 }
@@ -109,7 +83,7 @@ export function ReleaseProfileDuplicateUpdateForm({ isOpen, toggle, data: profil
     mutationFn: (profile: ReleaseProfileDuplicate) => APIClient.release.profiles.duplicates.store(profile),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ReleaseProfileDuplicateKeys.lists() });
-      toast.custom((toastInstance) => <Toast type="success" body={t("forms.releaseProfile.added")} t={toastInstance} />);
+      toast.custom((toastInstance) => <Toast type="success" body={t("forms.releaseProfile.updated")} t={toastInstance} />);
 
       toggle();
     },
@@ -160,6 +134,7 @@ export function ReleaseProfileDuplicateUpdateForm({ isOpen, toggle, data: profil
     edition: profile.edition,
     hybrid: profile.hybrid,
     language: profile.language,
+    media_processing: profile.media_processing,
   };
 
   return (
@@ -169,37 +144,45 @@ export function ReleaseProfileDuplicateUpdateForm({ isOpen, toggle, data: profil
       isOpen={isOpen}
       toggle={toggle}
       deleteAction={onDelete}
+      deleteWarning={t("forms.releaseProfile.deleteWarning")}
       onSubmit={onSubmit}
       initialValues={initialValues}
     >
-      {() => (
-        <div className="py-2 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
-          <TextFieldWide required name="name" label={t("forms.releaseProfile.fields.name")}/>
-
-          <SwitchGroupWide name="release_name" label={t("forms.releaseProfile.fields.releaseName")} description={t("forms.releaseProfile.descriptions.releaseName")} />
-          <SwitchGroupWide name="hash" label={t("forms.releaseProfile.fields.hash")} description={t("forms.releaseProfile.descriptions.hash")} />
-          <SwitchGroupWide name="title" label={t("forms.releaseProfile.fields.title")} description={t("forms.releaseProfile.descriptions.title")} />
-          <SwitchGroupWide name="sub_title" label={t("forms.releaseProfile.fields.subTitle")} description={t("forms.releaseProfile.descriptions.subTitle")} />
-          <SwitchGroupWide name="year" label={t("forms.releaseProfile.fields.year")} />
-          <SwitchGroupWide name="month" label={t("forms.releaseProfile.fields.month")} description={t("forms.releaseProfile.descriptions.dailyReleases")} />
-          <SwitchGroupWide name="day" label={t("forms.releaseProfile.fields.day")} description={t("forms.releaseProfile.descriptions.dailyReleases")} />
-          <SwitchGroupWide name="source" label={t("forms.releaseProfile.fields.source")} />
-          <SwitchGroupWide name="resolution" label={t("forms.releaseProfile.fields.resolution")} />
-          <SwitchGroupWide name="codec" label={t("forms.releaseProfile.fields.codec")} />
-          <SwitchGroupWide name="container" label={t("forms.releaseProfile.fields.container")} />
-          <SwitchGroupWide name="dynamic_range" label={t("forms.releaseProfile.fields.dynamicRange")} description={t("forms.releaseProfile.descriptions.dynamicRange")} />
-          <SwitchGroupWide name="audio" label={t("forms.releaseProfile.fields.audio")} />
-          <SwitchGroupWide name="group" label={t("forms.releaseProfile.fields.group")} description={t("forms.releaseProfile.descriptions.group")} />
-          <SwitchGroupWide name="season" label={t("forms.releaseProfile.fields.season")} />
-          <SwitchGroupWide name="episode" label={t("forms.releaseProfile.fields.episode")} />
-          <SwitchGroupWide name="website" label={t("forms.releaseProfile.fields.website")} description={t("forms.releaseProfile.descriptions.website")} />
-          <SwitchGroupWide name="repack" label={t("forms.releaseProfile.fields.repack")} />
-          <SwitchGroupWide name="proper" label={t("forms.releaseProfile.fields.proper")} />
-          <SwitchGroupWide name="edition" label={t("forms.releaseProfile.fields.edition")} description={t("forms.releaseProfile.descriptions.edition")} />
-          <SwitchGroupWide name="hybrid" label={t("forms.releaseProfile.fields.hybrid")} />
-          <SwitchGroupWide name="language" label={t("forms.releaseProfile.fields.language")} description={t("forms.releaseProfile.descriptions.language")} />
-        </div>
-      )}
+      {() => <ReleaseProfileDuplicateFields />}
     </SlideOver>
+  );
+}
+
+function ReleaseProfileDuplicateFields() {
+  const { t } = useTranslation("settings");
+
+  return (
+    <div className="py-2 space-y-6 sm:py-0 sm:space-y-0 divide-y divide-gray-200 dark:divide-gray-700">
+      <TextFieldWide required name="name" label={t("forms.releaseProfile.fields.name")}/>
+
+      <SwitchGroupWide name="release_name" label={t("forms.releaseProfile.fields.releaseName")} description={t("forms.releaseProfile.descriptions.releaseName")} />
+      <SwitchGroupWide name="title" label={t("forms.releaseProfile.fields.title")} description={t("forms.releaseProfile.descriptions.title")} />
+      <SwitchGroupWide name="sub_title" label={t("forms.releaseProfile.fields.subTitle")} description={t("forms.releaseProfile.descriptions.subTitle")} />
+      <SwitchGroupWide name="year" label={t("forms.releaseProfile.fields.year")} />
+      <SwitchGroupWide name="month" label={t("forms.releaseProfile.fields.month")} description={t("forms.releaseProfile.descriptions.dailyReleases")} />
+      <SwitchGroupWide name="day" label={t("forms.releaseProfile.fields.day")} description={t("forms.releaseProfile.descriptions.dailyReleases")} />
+      <SwitchGroupWide name="season" label={t("forms.releaseProfile.fields.season")} />
+      <SwitchGroupWide name="episode" label={t("forms.releaseProfile.fields.episode")} />
+      <SwitchGroupWide name="source" label={t("forms.releaseProfile.fields.source")} />
+      <SwitchGroupWide name="resolution" label={t("forms.releaseProfile.fields.resolution")} />
+      <SwitchGroupWide name="codec" label={t("forms.releaseProfile.fields.codec")} />
+      <SwitchGroupWide name="container" label={t("forms.releaseProfile.fields.container")} />
+      <SwitchGroupWide name="dynamic_range" label={t("forms.releaseProfile.fields.dynamicRange")} description={t("forms.releaseProfile.descriptions.dynamicRange")} />
+      <SwitchGroupWide name="audio" label={t("forms.releaseProfile.fields.audio")} description={t("forms.releaseProfile.descriptions.audio")} />
+      <SwitchGroupWide name="media_processing" label={t("forms.releaseProfile.fields.mediaProcessing")} description={t("forms.releaseProfile.descriptions.mediaProcessing")} />
+      <SwitchGroupWide name="group" label={t("forms.releaseProfile.fields.group")} description={t("forms.releaseProfile.descriptions.group")} />
+      <SwitchGroupWide name="website" label={t("forms.releaseProfile.fields.website")} description={t("forms.releaseProfile.descriptions.website")} />
+      <SwitchGroupWide name="proper" label={t("forms.releaseProfile.fields.proper")} />
+      <SwitchGroupWide name="repack" label={t("forms.releaseProfile.fields.repack")} />
+      <SwitchGroupWide name="edition" label={t("forms.releaseProfile.fields.edition")} description={t("forms.releaseProfile.descriptions.edition")} />
+      <SwitchGroupWide name="hybrid" label={t("forms.releaseProfile.fields.hybrid")} />
+      <SwitchGroupWide name="language" label={t("forms.releaseProfile.fields.language")} description={t("forms.releaseProfile.descriptions.language")} />
+      <SwitchGroupWide name="protocol" label={t("forms.releaseProfile.fields.protocol")} description={t("forms.releaseProfile.descriptions.protocol")} />
+    </div>
   );
 }

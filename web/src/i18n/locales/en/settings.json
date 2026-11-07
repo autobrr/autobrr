@@ -280,7 +280,7 @@
     "cleanupJobEnabled": "enabled",
     "cleanupJobDisabled": "disabled",
     "duplicateFieldTitles": {
-      "releaseName": "Release name",
+      "releaseName": "Normalized release name",
       "hash": "Normalized hash of the release name. Use with Release name for exact match",
       "title": "Parsed title",
       "subTitle": "Parsed sub title like Episode name",
@@ -293,14 +293,17 @@
       "codec": "Codec",
       "container": "Container",
       "dynamicRange": "Dynamic Range (HDR,DV)",
-      "audio": "Audio formats",
+      "audio": "Audio formats and channels",
       "season": "Season number",
       "episode": "Episode number",
       "website": "Website/Service",
       "proper": "Scene proper",
       "repack": "Scene repack",
       "edition": "Edition (eg. Collectors Edition) and Cut (eg. Directors Cut)",
-      "language": "Language and Region"
+      "language": "Language and Region",
+      "protocol": "Same protocol",
+      "mediaProcessing": "Keep REMUX and encodes apart",
+      "hybrid": "Hybrid version"
     },
     "noDuplicateProfiles": "No duplicate release profiles",
     "addNewProfile": "Add new profile",
@@ -980,6 +983,8 @@
       "title": "Duplicate Profile",
       "added": "Profile was added",
       "addFailed": "Profile could not be added",
+      "updated": "Profile was updated",
+      "deleteWarning": "Filters using this profile stop skipping duplicates.",
       "deleted": "Profile {{name}} was deleted!",
       "fields": {
         "name": "Name",
@@ -1004,19 +1009,24 @@
         "repack": "Repack",
         "edition": "Edition",
         "hybrid": "Hybrid version",
-        "language": "Language"
+        "language": "Language",
+        "protocol": "Protocol",
+        "mediaProcessing": "Media processing"
       },
       "descriptions": {
-        "releaseName": "Full release name",
+        "releaseName": "Compare the release name, ignoring case, punctuation and spacing. Other switches are ignored when this is on",
         "hash": "Normalized hash of the release name. Use with Release name for exact match",
-        "title": "Parsed title",
+        "title": "Parsed title, ignoring case, accents and punctuation",
         "subTitle": "Parsed Sub Title like Episode Name",
         "dailyReleases": "For daily releases",
         "group": "Release group",
         "website": "Services such as AMZN/HULU/NF",
         "dynamicRange": "Dynamic Range (HDR,DV etc)",
         "edition": "Edition and Cut",
-        "language": "Language and Region"
+        "language": "Language and Region",
+        "protocol": "Only match releases of the same protocol (torrent or usenet)",
+        "mediaProcessing": "Keep REMUX and encodes apart",
+        "audio": "Audio formats and channels"
       }
     },
     "cleanupJob": {

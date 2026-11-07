@@ -279,7 +279,7 @@
     "cleanupJobEnabled": "aktivert",
     "cleanupJobDisabled": "deaktivert",
     "duplicateFieldTitles": {
-      "releaseName": "Utgivelsesnavn",
+      "releaseName": "Normalisert utgivelsesnavn",
       "hash": "Normalisert hash for utgivelsesnavnet. Bruk med utgivelsesnavn for eksakt samsvar",
       "title": "Tolket tittel",
       "subTitle": "Tolket undertittel, som episodenavn",
@@ -292,14 +292,17 @@
       "codec": "Kodek",
       "container": "Container",
       "dynamicRange": "Dynamisk område (HDR,DV)",
-      "audio": "Lydformater",
+      "audio": "Lydformater og kanaler",
       "season": "Sesongnummer",
       "episode": "Episodenummer",
       "website": "Nettsted/tjeneste",
       "proper": "Scene proper",
       "repack": "Scene repack",
       "edition": "Utgave (f.eks. Collectors Edition) og Cut (f.eks. Directors Cut)",
-      "language": "Språk og region"
+      "language": "Språk og region",
+      "protocol": "Samme protokoll",
+      "mediaProcessing": "Skill mellom REMUX og encoder",
+      "hybrid": "Hybridversjon"
     },
     "noDuplicateProfiles": "Ingen duplikatprofiler for utgivelser",
     "addNewProfile": "Legg til ny profil",
@@ -978,6 +981,8 @@
       "title": "Duplikatprofil",
       "added": "Profilen ble lagt til",
       "addFailed": "Profilen kunne ikke legges til",
+      "updated": "Profilen ble oppdatert",
+      "deleteWarning": "Filtre som bruker denne profilen slutter å hoppe over duplikater.",
       "deleted": "Profilen {{name}} ble slettet!",
       "fields": {
         "name": "Navn",
@@ -1002,19 +1007,24 @@
         "repack": "Repack",
         "edition": "Utgave",
         "hybrid": "Hybridversjon",
-        "language": "Språk"
+        "language": "Språk",
+        "protocol": "Protokoll",
+        "mediaProcessing": "Mediebehandling"
       },
       "descriptions": {
-        "releaseName": "Fullt utgivelsesnavn",
+        "releaseName": "Sammenligner utgivelsesnavnet uten hensyn til store/små bokstaver, tegnsetting og mellomrom. Andre brytere ignoreres da",
         "hash": "Normalisert hash for utgivelsesnavnet. Bruk med utgivelsesnavn for eksakt samsvar",
-        "title": "Tolket tittel",
+        "title": "Tolket tittel, uten hensyn til store/små bokstaver, aksenter og tegnsetting",
         "subTitle": "Tolket undertittel som episodenavn",
         "dailyReleases": "For daglige utgivelser (Daily releases)",
         "group": "Utgivelsesgruppe",
         "website": "Tjenester som AMZN/HULU/NF",
         "dynamicRange": "Dynamisk område (HDR, DV osv.)",
         "edition": "Utgave og kutt (Cut)",
-        "language": "Språk og region"
+        "language": "Språk og region",
+        "protocol": "Sammenlign kun utgivelser med samme protokoll (torrent eller usenet)",
+        "mediaProcessing": "Skill mellom REMUX og encoder",
+        "audio": "Lydformater og kanaler"
       }
     },
     "cleanupJob": {

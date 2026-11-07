@@ -81,7 +81,6 @@ function ReleaseProfileListItem({ profile }: ReleaseProfileProps) {
         </div>
         <div className="col-span-9 sm:col-span-9 lg:col-span-9 pl-4 sm:pl-4 pr-6 py-3 flex gap-x-0.5 flex-row text-sm font-medium text-gray-900 dark:text-white truncate">
           {profile.release_name && <EnabledPill value={profile.release_name} label="RLS" title={t("releases.duplicateFieldTitles.releaseName")} />}
-          {profile.hash && <EnabledPill value={profile.hash} label={t("forms.releaseProfile.fields.hash")} title={t("releases.duplicateFieldTitles.hash")} />}
           {profile.title && <EnabledPill value={profile.title} label={t("forms.releaseProfile.fields.title")} title={t("releases.duplicateFieldTitles.title")} />}
           {profile.sub_title && <EnabledPill value={profile.sub_title} label={t("forms.releaseProfile.fields.subTitle")} title={t("releases.duplicateFieldTitles.subTitle")} />}
           {profile.group && <EnabledPill value={profile.group} label={t("forms.releaseProfile.fields.group")} title={t("releases.duplicateFieldTitles.group")} />}
@@ -101,6 +100,9 @@ function ReleaseProfileListItem({ profile }: ReleaseProfileProps) {
           {profile.repack && <EnabledPill value={profile.repack} label={t("forms.releaseProfile.fields.repack")} title={t("releases.duplicateFieldTitles.repack")} />}
           {profile.edition && <EnabledPill value={profile.edition} label={t("forms.releaseProfile.fields.edition")} title={t("releases.duplicateFieldTitles.edition")} />}
           {profile.language && <EnabledPill value={profile.language} label={t("forms.releaseProfile.fields.language")} title={t("releases.duplicateFieldTitles.language")} />}
+          {profile.hybrid && <EnabledPill value={profile.hybrid} label={t("forms.releaseProfile.fields.hybrid")} title={t("releases.duplicateFieldTitles.hybrid")} />}
+          {profile.media_processing && <EnabledPill value={profile.media_processing} label={t("forms.releaseProfile.fields.mediaProcessing")} title={t("releases.duplicateFieldTitles.mediaProcessing")} />}
+          {profile.protocol && <EnabledPill value={profile.protocol} label={t("forms.releaseProfile.fields.protocol")} title={t("releases.duplicateFieldTitles.protocol")} />}
         </div>
         <div className="col-span-1 pl-0.5 whitespace-nowrap text-center text-sm font-medium">
           <span className="text-blue-600 dark:text-gray-300 hover:text-blue-900 cursor-pointer"

@@ -279,7 +279,7 @@
     "cleanupJobEnabled": "habilitado",
     "cleanupJobDisabled": "deshabilitado",
     "duplicateFieldTitles": {
-      "releaseName": "Nombre del lanzamiento",
+      "releaseName": "Nombre del lanzamiento normalizado",
       "hash": "Hash normalizado del nombre del lanzamiento. Usar con Nombre del lanzamiento para coincidencia exacta",
       "title": "Título parseado",
       "subTitle": "Subtítulo parseado como nombre del episodio",
@@ -292,14 +292,17 @@
       "codec": "Códec",
       "container": "Contenedor",
       "dynamicRange": "Rango dinámico (HDR,DV)",
-      "audio": "Formatos de audio",
+      "audio": "Formatos y canales de audio",
       "season": "Número de temporada",
       "episode": "Número de episodio",
       "website": "Sitio web/Servicio",
       "proper": "Scene proper",
       "repack": "Scene repack",
       "edition": "Edición (ej. Edición de Coleccionista) y Corte (ej. Corte del Director)",
-      "language": "Idioma y región"
+      "language": "Idioma y región",
+      "protocol": "Mismo protocolo",
+      "mediaProcessing": "Distingue entre REMUX y encodes",
+      "hybrid": "Versión híbrida"
     },
     "noDuplicateProfiles": "No hay perfiles de lanzamientos duplicados",
     "addNewProfile": "Agregar nuevo perfil",
@@ -978,6 +981,8 @@
       "title": "Perfil de duplicados",
       "added": "Se agregó el perfil",
       "addFailed": "No se pudo agregar el perfil",
+      "updated": "El perfil se actualizó",
+      "deleteWarning": "Los filtros que usan este perfil dejarán de omitir duplicados.",
       "deleted": "¡Se eliminó el perfil {{name}}!",
       "fields": {
         "name": "Nombre",
@@ -1002,19 +1007,24 @@
         "repack": "Repack",
         "edition": "Edición",
         "hybrid": "Versión híbrida",
-        "language": "Idioma"
+        "language": "Idioma",
+        "protocol": "Protocolo",
+        "mediaProcessing": "Procesamiento de medios"
       },
       "descriptions": {
-        "releaseName": "Nombre completo del lanzamiento",
+        "releaseName": "Compara el nombre del lanzamiento sin tener en cuenta mayúsculas, puntuación ni espacios. Los demás interruptores se ignoran",
         "hash": "Hash normalizado del nombre del lanzamiento. Usar con Nombre del lanzamiento para coincidencia exacta",
-        "title": "Título parseado",
+        "title": "Título parseado, sin tener en cuenta mayúsculas, acentos ni puntuación",
         "subTitle": "Subtítulo parseado como nombre del episodio",
         "dailyReleases": "Para lanzamientos diarios",
         "group": "Grupo de lanzamiento",
         "website": "Servicios como AMZN/HULU/NF",
         "dynamicRange": "Rango dinámico (HDR,DV etc)",
         "edition": "Edición y corte",
-        "language": "Idioma y región"
+        "language": "Idioma y región",
+        "protocol": "Solo coincide con lanzamientos del mismo protocolo (torrent o usenet)",
+        "mediaProcessing": "Distingue entre REMUX y encodes",
+        "audio": "Formatos y canales de audio"
       }
     },
     "cleanupJob": {
