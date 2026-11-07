@@ -627,3 +627,88 @@ func TestInviteRejectThenLateForceJoinRecovers(t *testing.T) {
 	inst.WaitForMonitoring("#inv", 15*time.Second)
 	inst.WaitForHealthy(15 * time.Second)
 }
+
+// TestInviteRetriedAfterRegainingNick replays a reconnect that lands on a
+// fallback nick while the server still holds the old connection, on a network
+// whose invite bot refuses every nick but the configured one. The refusal parks
+// the channel, and getting the nick back must request the invite again.
+func TestInviteRetriedAfterRegainingNick(t *testing.T) {
+	srv := ircd.New(t, ircd.NickHeld("autobrr"))
+	srv.AddChannel("#inv", ircd.InviteOnly(), ircd.Announcer("Gatekeeper"))
+
+	var requests atomic.Int32
+	srv.AddBot("Gatekeeper", func(b *ircd.Bot, from, text string) {
+		requests.Add(1)
+		if from != "autobrr" {
+			b.Notice(from, from+" is not permitted to join #inv. You must be a bot.")
+			return
+		}
+		b.Invite(from, "#inv")
+	})
+
+	def := harness.InviteDefinition("inv", "#inv", "Gatekeeper", "Gatekeeper")
+	net := harness.Network(srv, "autobrr", harness.None(), harness.Channel("#inv"))
+	net.InviteCommand = inviteCmd
+
+	inst := harness.Start(t, net, harness.Defs(def))
+	inst.WaitForState("#inv", "InviteFailed", 15*time.Second)
+
+	srv.SendNickChange("autobrr_0", "autobrr_0", "autobrr")
+
+	inst.WaitForMonitoring("#inv", 10*time.Second)
+	require.EqualValues(t, 2, requests.Load(), "expected exactly one new invite request after regaining the nick")
+}
+
+// TestInviteRefusedOnOwnNickNotRetried verifies regaining the nick does not
+// request again an invite the bot refused for that same nick: the refusal is
+// about the credentials, and asking again only spams the bot.
+func TestInviteRefusedOnOwnNickNotRetried(t *testing.T) {
+	srv := ircd.New(t)
+	srv.AddChannel("#inv", ircd.InviteOnly(), ircd.Announcer("Gatekeeper"))
+
+	var requests atomic.Int32
+	srv.AddBot("Gatekeeper", func(b *ircd.Bot, from, text string) {
+		requests.Add(1)
+		b.Notice(from, "Invalid IRCKEY - request denied")
+	})
+
+	def := harness.InviteDefinition("inv", "#inv", "Gatekeeper", "Gatekeeper")
+	net := harness.Network(srv, "autobrr", harness.None(), harness.Channel("#inv"))
+	net.InviteCommand = inviteCmd
+
+	inst := harness.Start(t, net, harness.Defs(def))
+	inst.WaitForState("#inv", "InviteFailed", 15*time.Second)
+
+	srv.SendNickChange("autobrr", "autobrr", "Guest1")
+	srv.SendNickChange("Guest1", "Guest1", "autobrr")
+
+	time.Sleep(time.Second)
+	require.EqualValues(t, 1, requests.Load(), "expected no new invite request for a nick the bot already refused")
+	require.False(t, inst.Handler.Stopped(), "expected one lost nick to leave the network running")
+}
+
+// TestNickLossLoopStopsNetwork replays services that keep moving the client off
+// its nick while irc-go keeps taking it back. Every round sends another IDENTIFY
+// or invite request, and networks ban clients that do this, so the network must
+// stop with a reason instead of looping until it is banned.
+func TestNickLossLoopStopsNetwork(t *testing.T) {
+	srv := ircd.New(t)
+	srv.AddChannel("#loop", ircd.Announcer("ann"))
+
+	def := harness.MinimalDefinition("loop", "#loop", "ann")
+	net := harness.Network(srv, "autobrr", harness.None(), harness.Channel("#loop"))
+
+	inst := harness.Start(t, net, harness.Defs(def))
+	inst.WaitForMonitoring("#loop", 10*time.Second)
+
+	for _, guest := range []string{"Guest1", "Guest2"} {
+		srv.SendNickChange("autobrr", "autobrr", guest)
+		srv.SendNickChange(guest, guest, "autobrr")
+	}
+	require.False(t, inst.Handler.Stopped(), "expected two lost nicks to leave the network running")
+
+	srv.SendNickChange("autobrr", "autobrr", "Guest3")
+
+	inst.WaitForNetworkError("nick change loop", 5*time.Second)
+	inst.WaitForStopped(5 * time.Second)
+}

@@ -181,3 +181,32 @@ func TestStaleDisconnectCannotTripBreakerOnReplacement(t *testing.T) {
 	require.Equal(t, ircLive, h.clientState, "stale disconnect stopped the replacement client")
 	require.Len(t, h.shortSessionEnds, flappingStopThreshold-1, "stale disconnect changed breaker strikes")
 }
+
+func recordNickLoss(h *Handler, at time.Time) bool {
+	h.m.Lock()
+	defer h.m.Unlock()
+
+	return h.recordNickLossLocked(at)
+}
+
+func TestNickLossBreakerUsesRollingWindow(t *testing.T) {
+	h, _ := newTestHandler()
+	started := time.Date(2026, time.November, 7, 4, 0, 0, 0, time.UTC)
+
+	require.False(t, recordNickLoss(h, started))
+	require.False(t, recordNickLoss(h, started.Add(5*time.Minute)))
+	require.False(t, recordNickLoss(h, started.Add(nickLossWindow)), "a loss outside the window counted toward the breaker")
+	require.True(t, recordNickLoss(h, started.Add(nickLossWindow+time.Minute)), "breaker did not trip on three losses within the window")
+}
+
+func TestStopResetsNickLossBreaker(t *testing.T) {
+	h, _ := newTestHandler()
+	started := time.Date(2026, time.November, 7, 4, 0, 0, 0, time.UTC)
+
+	recordNickLoss(h, started)
+	recordNickLoss(h, started.Add(time.Minute))
+
+	h.Stop()
+
+	require.False(t, recordNickLoss(h, started.Add(2*time.Minute)), "losses from before a stop counted toward the breaker")
+}

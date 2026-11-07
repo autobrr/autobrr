@@ -164,6 +164,7 @@ type ChannelStateMachine struct {
 	// the grace timer elapses without a JOIN; see OnInviteBotResponse.
 	inviteResponded    bool
 	inviteRejectReason string
+	inviteNick         string // our nick when the last invite request went out
 
 	// tunable delays, immutable after construction (tests may set them before use)
 	inviteTimeout       time.Duration
@@ -293,6 +294,7 @@ func (sm *ChannelStateMachine) Reset() {
 	sm.joinAfterInvite = false
 	sm.inviteResponded = false
 	sm.inviteRejectReason = ""
+	sm.inviteNick = ""
 	sm.m.Unlock()
 
 	// broadcast outside the lock so the UI reflects the drop immediately
@@ -309,6 +311,9 @@ func (sm *ChannelStateMachine) handleAwaitingInvite() {
 		return
 	}
 
+	// read before taking sm.m: the handler lock is taken before sm.m elsewhere
+	nick := sm.handler.CurrentNick()
+
 	sm.m.Lock()
 	inviteCommand := sm.inviteCommand
 	if inviteCommand == "" {
@@ -322,6 +327,7 @@ func (sm *ChannelStateMachine) handleAwaitingInvite() {
 	// fresh attempt: forget any bot response recorded for a previous one
 	sm.inviteResponded = false
 	sm.inviteRejectReason = ""
+	sm.inviteNick = nick
 	gen := sm.inviteGen
 	attempt := sm.authAttempts
 	timeout := sm.inviteTimeout
@@ -521,6 +527,32 @@ func (sm *ChannelStateMachine) onInviteResponseTimeout(gen int) {
 
 	sm.log.Warn().Str("reason", reason).Msg("invite request rejected by bot; parking channel until credentials are fixed or an invite arrives")
 	sm.broadcastStateChange(ChannelStateInviteFailed)
+}
+
+// RetryRefusedInvite requests the invite again when a bot refused one we asked
+// for as another nick. A refusal for the same nick is about the credentials, and
+// asking again would only spam the bot.
+func (sm *ChannelStateMachine) RetryRefusedInvite(nick string) {
+	sm.m.RLock()
+	refusedNick := sm.inviteNick
+	refused := sm.state == ChannelStateInviteFailed
+	sm.m.RUnlock()
+
+	// compared outside sm.m: the handler lock is taken before sm.m elsewhere
+	if !refused || refusedNick == "" || sm.handler.identifiersEqual(refusedNick, nick) {
+		return
+	}
+
+	sm.m.Lock()
+	if sm.state != ChannelStateInviteFailed || sm.inviteNick != refusedNick {
+		sm.m.Unlock()
+		return
+	}
+	sm.state = ChannelStateJoining
+	sm.m.Unlock()
+
+	sm.log.Debug().Str("refused_nick", refusedNick).Str("nick", nick).Msg("invite was refused for another nick, requesting it again")
+	go sm.onStateEntry(ChannelStateJoining)
 }
 
 func (sm *ChannelStateMachine) OnNoSuchNick(nick string) {
