@@ -66,6 +66,7 @@ func withNickServAuth(h *Handler, account string) {
 		Password:  "hunter2",
 	}
 	h.identifyOutstanding = true
+	h.identifySentAt = time.Now()
 }
 
 func TestOnNoticeMatchesNickServCaseInsensitively(t *testing.T) {
@@ -820,6 +821,39 @@ func TestNickServNoticeRetriesIdentifyEarly(t *testing.T) {
 
 			assert.Equal(t, tt.wantRetry, strings.Contains(logs.String(), "error identifying with nickserv"), "unexpected identify attempt")
 			assert.Zero(t, h.failedNickServAttempts, "a NOTICE we were not waiting on must not count as a failed login")
+		})
+	}
+}
+
+// TestNickServGreetingAfterLostIdentify verifies that a greeting long after an
+// IDENTIFY sends a new one and does not count as a failed login, and that a
+// greeting right after an IDENTIFY waits for its answer.
+func TestNickServGreetingAfterLostIdentify(t *testing.T) {
+	const greeting = "This nickname is registered and protected. If it is your nick, type /msg NickServ IDENTIFY password. Otherwise, please choose a different nick."
+
+	tests := []struct {
+		name         string
+		sentAgo      time.Duration
+		wantIdentify bool
+		wantAttempts int
+	}{
+		{name: "just past the limit", sentAgo: identifyLostAfter, wantIdentify: true},
+		{name: "before the limit", sentAgo: identifyLostAfter - time.Second, wantAttempts: 1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h, _ := newTestHandler()
+			withNickServAuth(h, "test_bot")
+			withUnconnectedClient(h)
+			var logs strings.Builder
+			h.log = zerolog.New(&logs)
+			h.identifySentAt = time.Now().Add(-tt.sentAgo)
+
+			h.handleNickServ(nickServNotice("user_bot", greeting))
+
+			assert.Equal(t, tt.wantIdentify, strings.Contains(logs.String(), "error identifying with nickserv"), "unexpected identify attempt")
+			assert.Equal(t, tt.wantAttempts, h.failedNickServAttempts)
 		})
 	}
 }

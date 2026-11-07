@@ -312,6 +312,31 @@ func TestNickServIdentifiesAfterRegainingNick(t *testing.T) {
 	inst.WaitForMonitoring("#ns", 5*time.Second)
 }
 
+// TestNickServGreetingReplacesLostIdentify replays a services outage that loses
+// an IDENTIFY: NickServ never answers it, and greets the nick when it links again.
+func TestNickServGreetingReplacesLostIdentify(t *testing.T) {
+	var identifies atomic.Int32
+	srv := ircd.New(t, ircd.WithNickServScript(func(string, string) ([]string, bool) {
+		if identifies.Add(1) == 1 {
+			return nil, false
+		}
+		return []string{"Password accepted - you are now recognized."}, true
+	}))
+	srv.AddChannel("#ns", ircd.RegisteredOnly(), ircd.Announcer("ann"))
+
+	def := harness.MinimalDefinition("ns", "#ns", "ann")
+	net := harness.Network(srv, "autobrr", harness.NickServ("autobrr", "nspass"), harness.Channel("#ns"))
+
+	inst := harness.Start(t, net, harness.Defs(def))
+
+	require.Eventually(t, func() bool { return identifies.Load() == 1 }, 10*time.Second, 10*time.Millisecond, "IDENTIFY never reached NickServ")
+
+	time.Sleep(11 * time.Second)
+	srv.LinkNickServ()
+
+	inst.WaitForMonitoring("#ns", 5*time.Second)
+}
+
 // TestNoneAuthJoinsDirectly verifies the simplest path: no auth, direct join.
 func TestNoneAuthJoinsDirectly(t *testing.T) {
 	srv := ircd.New(t)
