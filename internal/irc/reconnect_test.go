@@ -480,3 +480,24 @@ func TestFallbackReconnectHonorsInterval(t *testing.T) {
 	assert.Equal(t, at, h.fallbackReconnectAt, "a new session must keep the limit")
 	assert.False(t, h.inviteOnlyOnFallback, "a new session must wait for its own refusal")
 }
+
+func TestInviteOnlyRetryReconnectsAfterSkippedRegain(t *testing.T) {
+	h, _ := newTestHandler()
+	h.client = &ircevent.Connection{}
+	refuse := func(nick string) {
+		h.handleJoinError(ircmsg.MakeMessage(nil, "srv", ircevent.ERR_INVITEONLYCHAN, nick, "#chan", "Cannot join channel (+i)"))
+	}
+
+	h.m.Lock()
+	h.fallbackReconnectAt = time.Now().Add(-time.Minute)
+	h.m.Unlock()
+	refuse("autobrr_0")
+	refuse("autobrr")
+	assert.True(t, time.Since(h.fallbackReconnectAt) >= time.Minute, "a refusal inside the limit must not reconnect")
+
+	h.m.Lock()
+	h.fallbackReconnectAt = time.Now().Add(-fallbackReconnectInterval)
+	h.m.Unlock()
+	refuse("autobrr")
+	assert.Less(t, time.Since(h.fallbackReconnectAt), time.Minute, "the channel retry after the limit must reconnect")
+}

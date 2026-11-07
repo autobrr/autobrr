@@ -1499,10 +1499,7 @@ func (h *Handler) onNick(client *ircevent.Connection, msg ircmsg.Message) {
 
 	h.m.Lock()
 	authenticated := h.authenticated || h.saslauthed
-	reconnect := h.inviteOnlyOnFallback && time.Since(h.fallbackReconnectAt) >= fallbackReconnectInterval
-	if reconnect {
-		h.fallbackReconnectAt = time.Now()
-	}
+	reconnect := h.fallbackReconnectDueLocked()
 	h.m.Unlock()
 
 	if reconnect {
@@ -1515,6 +1512,17 @@ func (h *Handler) onNick(client *ircevent.Connection, msg ircmsg.Message) {
 	if authenticated {
 		h.retryRefusedInvites(newNick)
 	}
+}
+
+// fallbackReconnectDueLocked reports whether this session got 473 on a fallback nick
+// and the last reconnect for it is old enough, and if so starts a new interval.
+// The caller must hold h.m.
+func (h *Handler) fallbackReconnectDueLocked() bool {
+	if !h.inviteOnlyOnFallback || time.Since(h.fallbackReconnectAt) < fallbackReconnectInterval {
+		return false
+	}
+	h.fallbackReconnectAt = time.Now()
+	return true
 }
 
 // recordNickLossLocked records that we were moved off our nick and reports
@@ -2122,10 +2130,14 @@ func (h *Handler) handleJoinError(msg ircmsg.Message) {
 
 	h.log.Warn().Str("channel", channel).Str("numeric", msg.Command).Str("reason", serverReason).Msg("channel join rejected")
 
+	var reconnectClient *ircevent.Connection
 	if msg.Command == ircevent.ERR_INVITEONLYCHAN {
 		h.m.Lock()
 		if !h.caseMapping.equal(msg.Params[0], h.network.Nick) {
 			h.inviteOnlyOnFallback = true
+		} else if h.fallbackReconnectDueLocked() {
+			// the nick came back inside the interval, so the channel retry does the reconnect
+			reconnectClient = h.client
 		}
 		h.m.Unlock()
 	}
@@ -2139,6 +2151,11 @@ func (h *Handler) handleJoinError(msg ircmsg.Message) {
 	// recovery, misrepresenting a healthy network as carrying stale errors).
 	h.setChannelError(channel, errMsg)
 	h.stateMachine.OnChannelError(channel, errMsg)
+
+	if reconnectClient != nil {
+		h.log.Info().Str("channel", channel).Msg("invite-only refusal after a refusal on a fallback nick, reconnecting")
+		reconnectClient.Reconnect()
+	}
 }
 
 // handleErrNoSuchNick listens for ircevent.ERR_NOSUCHNICK events
