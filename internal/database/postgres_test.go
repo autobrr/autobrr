@@ -149,6 +149,16 @@ func TestPostgresDSN(t *testing.T) {
 			},
 			wantErr: `postgres: extra param "sslmode" is already set by a dedicated setting`,
 		},
+		{
+			name: "extra params using the lib/pq alias of a dedicated setting",
+			args: args{
+				host:        "localhost",
+				port:        5432,
+				database:    "postgres",
+				extraParams: "database=other",
+			},
+			wantErr: `postgres: extra param "database" is already set by a dedicated setting`,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
