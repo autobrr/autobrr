@@ -1456,17 +1456,16 @@ func (repo *ReleaseRepo) DeleteReleaseProfileDuplicate(ctx context.Context, id i
 		return errors.Wrap(err, "error building SQL query")
 	}
 
-	_, err = repo.db.Handler.ExecContext(ctx, query, args...)
+	result, err := repo.db.Handler.ExecContext(ctx, query, args...)
 	if err != nil {
 		return errors.Wrap(err, "error executing delete query")
 	}
 
-	//deletedRows, err := result.RowsAffected()
-	//if err != nil {
-	//	return errors.Wrap(err, "error fetching rows affected")
-	//}
-	//
-	//repo.log.Debug().Msgf("deleted %d rows from release table", deletedRows)
+	if rowsAffected, err := result.RowsAffected(); err != nil {
+		return errors.Wrap(err, "error getting rows affected")
+	} else if rowsAffected == 0 {
+		return domain.ErrRecordNotFound
+	}
 
 	repo.log.Debug().Int64("id", id).Msg("deleted duplicate release profile")
 

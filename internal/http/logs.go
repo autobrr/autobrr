@@ -98,6 +98,10 @@ func (h logsHandler) files(w http.ResponseWriter, r *http.Request) {
 func (h logsHandler) downloadFile(w http.ResponseWriter, r *http.Request) {
 	if h.cfg.Config.LogPath == "" {
 		render.Status(r, http.StatusNotFound)
+		render.JSON(w, r, errorResponse{
+			Message: "log file path is not configured",
+			Status:  http.StatusNotFound,
+		})
 		return
 	}
 

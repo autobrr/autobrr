@@ -27,5 +27,7 @@ var (
 	ErrIRCNetworkHandlerNotFound      = errors.New("could not find network handler")
 	ErrIRCChannelNotFound             = errors.New("could not find channel")
 	ErrIRCChannelNoAnnounceProcessor  = errors.New("channel has no announce processor")
+	ErrMatrixRoomNotFound             = errors.New("room not found")
 	ErrInvalidAPIKeyScopes            = errors.New("invalid api key scopes")
+	ErrDownloadClientNotFound         = errors.New("download client not found")
 )

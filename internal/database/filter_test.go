@@ -448,6 +448,59 @@ func TestFilterRepo_Find(t *testing.T) {
 			_ = repo.Delete(ctx, filters[0].ID)
 		})
 
+		t.Run(fmt.Sprintf("Find_Filters_MultipleIndexers [%s]", dbType), func(t *testing.T) {
+			first, err := indexerRepo.Store(ctx, indexerMockData)
+			require.NoError(t, err)
+
+			secondData := getMockIndexer()
+			secondData.Name = "indexer2"
+			secondData.Identifier = "indexer2"
+			second, err := indexerRepo.Store(ctx, secondData)
+			require.NoError(t, err)
+
+			unmatchedData := getMockIndexer()
+			unmatchedData.Name = "indexer3"
+			unmatchedData.Identifier = "indexer3"
+			unmatched, err := indexerRepo.Store(ctx, unmatchedData)
+			require.NoError(t, err)
+
+			connections := map[string][]*domain.Indexer{
+				"Filter First":     {first},
+				"Filter Second":    {second},
+				"Filter Both":      {first, second},
+				"Filter Unmatched": {unmatched},
+			}
+
+			var filterIDs []int
+			for name, indexers := range connections {
+				filter := getMockFilter()
+				filter.Name = name
+				require.NoError(t, repo.Store(ctx, filter))
+				filterIDs = append(filterIDs, filter.ID)
+
+				for _, indexer := range indexers {
+					require.NoError(t, repo.StoreIndexerConnection(ctx, filter.ID, int(indexer.ID)))
+				}
+			}
+
+			filters, err := repo.Find(ctx, domain.FilterQueryParams{
+				Filters: struct{ Indexers []string }{Indexers: []string{"indexer1", "indexer2"}},
+			})
+			require.NoError(t, err)
+
+			var names []string
+			for _, filter := range filters {
+				names = append(names, filter.Name)
+			}
+			assert.Equal(t, []string{"Filter Both", "Filter First", "Filter Second"}, names)
+
+			for _, id := range filterIDs {
+				_ = repo.Delete(ctx, id)
+			}
+			for _, indexer := range []*domain.Indexer{first, second, unmatched} {
+				_ = indexerRepo.Delete(ctx, int(indexer.ID))
+			}
+		})
 	}
 }
 
