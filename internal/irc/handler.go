@@ -133,6 +133,7 @@ type Handler struct {
 	haveDisconnected bool
 	shortSessionEnds []time.Time
 	nickLosses       []time.Time
+	requestedNick    string // set by NickChange until the server acknowledges it
 	authenticated    bool
 	saslauthed       bool
 
@@ -1456,10 +1457,17 @@ func (h *Handler) onNick(client *ircevent.Connection, msg ircmsg.Message) {
 		// stays unanswered authenticate would send no new one
 		h.resetIdentifyForm()
 
+		// a nick edited in the config is acknowledged before SetNetwork lands, so
+		// it would otherwise look like being moved off the nick
+		requested := h.requestedNick != "" && h.caseMapping.equal(newNick, h.requestedNick)
+		if requested {
+			h.requestedNick = ""
+		}
+
 		wasPreferred := h.caseMapping.equal(oldNick, h.network.Nick)
 		isPreferred := h.caseMapping.equal(newNick, h.network.Nick)
 		regained = !wasPreferred && isPreferred
-		if wasPreferred && !isPreferred {
+		if wasPreferred && !isPreferred && !requested {
 			nickLoop = h.recordNickLossLocked(time.Now())
 		}
 	}
@@ -2462,6 +2470,7 @@ func (h *Handler) resetSessionLocked() {
 	h.authenticated = false
 	h.saslauthed = false
 	h.failedNickServAttempts = 0
+	h.requestedNick = ""
 	h.resetIdentifyForm()
 }
 
@@ -2497,6 +2506,10 @@ func (h *Handler) unlearnIdentifyForm() {
 // NickChange sets a new nick for our user
 func (h *Handler) NickChange(nick string) error {
 	h.log.Debug().Str("nick", nick).Msg("NICK change")
+
+	h.m.Lock()
+	h.requestedNick = nick
+	h.m.Unlock()
 
 	if client := h.getClient(); client != nil {
 		client.SetNick(nick)

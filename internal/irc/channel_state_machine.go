@@ -263,6 +263,13 @@ func (sm *ChannelStateMachine) Start() {
 		return
 	}
 
+	// a live channel edit can park the channel before the login completes, on a
+	// fallback nick the bot refused
+	if sm.CurrentState() == ChannelStateInviteFailed {
+		sm.RetryRefusedInvite(sm.handler.CurrentNick())
+		return
+	}
+
 	sm.m.RLock()
 	hasInvite := sm.inviteCommand != ""
 	sm.m.RUnlock()

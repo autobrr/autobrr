@@ -712,3 +712,30 @@ func TestNickLossLoopStopsNetwork(t *testing.T) {
 	inst.WaitForNetworkError("nick change loop", 5*time.Second)
 	inst.WaitForStopped(5 * time.Second)
 }
+
+// TestRequestedNickChangesDoNotStopNetwork verifies nick edits made in the
+// config are not counted as losses: the server acknowledges the new nick before
+// the handler holds the edited config, so it looks like being moved off the nick.
+func TestRequestedNickChangesDoNotStopNetwork(t *testing.T) {
+	srv := ircd.New(t)
+	srv.AddChannel("#edit", ircd.Announcer("ann"))
+
+	def := harness.MinimalDefinition("edit", "#edit", "ann")
+	net := harness.Network(srv, "autobrr", harness.None(), harness.Channel("#edit"))
+
+	inst := harness.Start(t, net, harness.Defs(def))
+	inst.WaitForMonitoring("#edit", 10*time.Second)
+
+	for _, edited := range []string{"autobrr1", "autobrr2", "autobrr3"} {
+		require.NoError(t, inst.Handler.NickChange(edited))
+		srv.SendNickChange("autobrr", "autobrr", edited)
+		require.Eventually(t, func() bool { return inst.Handler.CurrentNick() == edited }, 5*time.Second, 10*time.Millisecond)
+
+		require.NoError(t, inst.Handler.NickChange("autobrr"))
+		srv.SendNickChange(edited, edited, "autobrr")
+		require.Eventually(t, func() bool { return inst.Handler.CurrentNick() == "autobrr" }, 5*time.Second, 10*time.Millisecond)
+	}
+
+	time.Sleep(time.Second)
+	require.False(t, inst.Handler.Stopped(), "expected requested nick changes to leave the network running")
+}
