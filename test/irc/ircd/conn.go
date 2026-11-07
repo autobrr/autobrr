@@ -108,6 +108,10 @@ func (c *conn) handle(msg ircmsg.Message) (quit bool) {
 		c.handleCap(msg)
 	case "NICK":
 		if len(msg.Params) > 0 {
+			if strings.EqualFold(msg.Params[0], c.srv.heldNick) {
+				c.numeric(433, msg.Params[0], "Nickname is already in use")
+				return false
+			}
 			c.setNick(msg.Params[0])
 		}
 		c.tryRegister()
@@ -369,6 +373,19 @@ func (c *conn) handleMessage(msg ircmsg.Message, notice bool) {
 // handleNickServ implements a minimal NickServ that accepts IDENTIFY and marks
 // the client authenticated, both via a recognisable NOTICE and a +r user mode.
 func (c *conn) handleNickServ(text string) {
+	if script := c.srv.nickServScript; script != nil {
+		nick := c.getNick()
+		replies, identified := script(nick, text)
+		for _, reply := range replies {
+			c.sendf(":NickServ!services@%s NOTICE %s :%s", serverName, nick, reply)
+		}
+		if identified {
+			c.account = nick
+			c.sendf(":%s MODE %s +r", serverName, nick)
+		}
+		return
+	}
+
 	fields := strings.Fields(text)
 	if len(fields) < 2 || !strings.EqualFold(fields[0], "IDENTIFY") {
 		return

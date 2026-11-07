@@ -529,7 +529,6 @@ func (h *Handler) connect(connectGen uint64) (err error) {
 	}
 	h.client = client
 	h.cancelConnect = cancel
-	h.failedNickServAttempts = 0
 	h.resetSessionLocked()
 	h.m.Unlock()
 
@@ -842,7 +841,6 @@ func (h *Handler) stop() *ircevent.Connection {
 	h.m.Lock()
 	h.connectedSince = time.Time{}
 	h.haveDisconnected = false
-	h.failedNickServAttempts = 0
 	h.resetFlappingBreakerLocked()
 	h.resetSessionLocked()
 	h.currentNick = ""
@@ -1435,6 +1433,9 @@ func (h *Handler) onNick(client *ircevent.Connection, msg ircmsg.Message) {
 	ours := h.client == client && (h.isOurCurrentNickLocked(oldNick) || h.isOurCurrentNickLocked(newNick))
 	if ours {
 		h.currentNick = newNick
+		// an IDENTIFY sent as the old nick says nothing about this one, and while it
+		// stays unanswered authenticate would send no new one
+		h.resetIdentifyForm()
 	}
 	h.m.Unlock()
 
@@ -2367,6 +2368,7 @@ func (h *Handler) escalateIdentify() {
 func (h *Handler) resetSessionLocked() {
 	h.authenticated = false
 	h.saslauthed = false
+	h.failedNickServAttempts = 0
 	h.resetIdentifyForm()
 }
 

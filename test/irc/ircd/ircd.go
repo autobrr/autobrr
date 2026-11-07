@@ -62,6 +62,11 @@ type Server struct {
 	nickServOffline bool
 	nickServMisses  int
 
+	// nickServScript replaces the default NickServ, which accepts every IDENTIFY.
+	nickServScript NickServScript
+
+	heldNick string // taken by a client we do not model
+
 	closed chan struct{}
 	wg     sync.WaitGroup
 }
@@ -72,6 +77,23 @@ type Option func(*Server)
 // WithAccount registers an account name/password usable for SASL and NickServ.
 func WithAccount(name, password string) Option {
 	return func(s *Server) { s.accounts[strings.ToLower(name)] = password }
+}
+
+// NickServScript answers a message to NickServ from the client on nick. It returns
+// the NOTICE texts to send back and whether the client is now identified.
+type NickServScript func(nick, text string) (replies []string, identified bool)
+
+// WithNickServScript replaces the default NickServ, for services that reject or
+// ignore an IDENTIFY.
+func WithNickServScript(script NickServScript) Option {
+	return func(s *Server) { s.nickServScript = script }
+}
+
+// NickHeld answers a NICK for nick with 433 (ERR_NICKNAMEINUSE), like a server
+// that still holds the previous connection of the client. SendNickChange can
+// still move a client onto it.
+func NickHeld(nick string) Option {
+	return func(s *Server) { s.heldNick = nick }
 }
 
 // RequireValidSASL makes SASL logins fail unless they match a registered
