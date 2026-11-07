@@ -94,7 +94,8 @@ checkForUpdates = true
 #postgresSocket = "/run/postgresql"
 #
 # Optional: extra libpq connection parameters in URL query syntax,
-# separated by "&".
+# separated by "&". A key that one of the settings above already sets
+# is an error; set it there instead.
 #
 #postgresExtraParams = "connect_timeout=10&application_name=autobrr"
 
