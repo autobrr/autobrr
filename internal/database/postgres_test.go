@@ -159,6 +159,36 @@ func TestPostgresDSN(t *testing.T) {
 			},
 			wantErr: `postgres: extra param "database" is already set by a dedicated setting`,
 		},
+		{
+			name: "extra param name with whitespace",
+			args: args{
+				host:        "localhost",
+				port:        5432,
+				database:    "postgres",
+				extraParams: "dbname%20=other",
+			},
+			wantErr: `postgres: invalid extra param name "dbname "`,
+		},
+		{
+			name: "extra param name with an equals sign",
+			args: args{
+				host:        "localhost",
+				port:        5432,
+				database:    "postgres",
+				extraParams: "dbname%3D=other",
+			},
+			wantErr: `postgres: invalid extra param name "dbname="`,
+		},
+		{
+			name: "empty extra param name",
+			args: args{
+				host:        "localhost",
+				port:        5432,
+				database:    "postgres",
+				extraParams: "=other",
+			},
+			wantErr: `postgres: invalid extra param name ""`,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
