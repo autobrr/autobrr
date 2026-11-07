@@ -7,6 +7,7 @@ package irc_test
 
 import (
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -275,6 +276,40 @@ func TestNickServLinkRetriesIdentifyEarly(t *testing.T) {
 	var status domain.IrcNetworkWithHealth
 	inst.Handler.ReportStatus(&status)
 	require.Empty(t, status.ConnectionErrors, "expected the status to clear once identified")
+}
+
+// TestNickServIdentifiesAfterRegainingNick replays a reconnect that lands on a
+// fallback nick while the server still holds the old connection. NickServ rejects
+// the bare IDENTIFY and never answers the account form, so that IDENTIFY stays
+// outstanding when the client gets its nick back. The silence is an assumption:
+// the logs of the outage do not show what NickServ sent.
+func TestNickServIdentifiesAfterRegainingNick(t *testing.T) {
+	var accountFormSent atomic.Bool
+	srv := ircd.New(t, ircd.NickHeld("autobrr"), ircd.WithNickServScript(func(nick, text string) ([]string, bool) {
+		switch {
+		case nick == "autobrr" && text == "IDENTIFY nspass":
+			return []string{"Password accepted - you are now recognized."}, true
+		case nick == "autobrr":
+			return nil, false
+		case len(strings.Fields(text)) == 2:
+			return []string{"Nick " + nick + " isn't registered."}, false
+		default:
+			accountFormSent.Store(true)
+			return nil, false
+		}
+	}))
+	srv.AddChannel("#ns", ircd.RegisteredOnly(), ircd.Announcer("ann"))
+
+	def := harness.MinimalDefinition("ns", "#ns", "ann")
+	net := harness.Network(srv, "autobrr", harness.NickServ("autobrr", "nspass"), harness.Channel("#ns"))
+
+	inst := harness.Start(t, net, harness.Defs(def))
+
+	require.Eventually(t, accountFormSent.Load, 10*time.Second, 10*time.Millisecond, "the account form of IDENTIFY never reached NickServ")
+
+	srv.SendNickChange("autobrr_0", "autobrr_0", "autobrr")
+
+	inst.WaitForMonitoring("#ns", 5*time.Second)
 }
 
 // TestNoneAuthJoinsDirectly verifies the simplest path: no auth, direct join.
