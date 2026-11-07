@@ -1073,8 +1073,6 @@ func TestRelease_ParseString(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			r := &Release{
 				ID:                          tt.fields.ID,
-				FilterStatus:                tt.fields.FilterStatus,
-				Rejections:                  tt.fields.Rejections,
 				Indexer:                     tt.fields.Indexer,
 				FilterName:                  tt.fields.FilterName,
 				Protocol:                    tt.fields.Protocol,

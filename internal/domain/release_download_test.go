@@ -92,8 +92,6 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 
 	type fields struct {
 		ID                          int64
-		FilterStatus                ReleaseFilterStatus
-		Rejections                  []string
 		Indexer                     IndexerMinimal
 		FilterName                  string
 		Protocol                    ReleaseProtocol
@@ -239,8 +237,6 @@ func TestRelease_DownloadTorrentFile(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			r := &Release{
 				ID:                          tt.fields.ID,
-				FilterStatus:                tt.fields.FilterStatus,
-				Rejections:                  tt.fields.Rejections,
 				Indexer:                     tt.fields.Indexer,
 				FilterName:                  tt.fields.FilterName,
 				Protocol:                    tt.fields.Protocol,

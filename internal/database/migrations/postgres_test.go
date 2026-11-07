@@ -559,6 +559,22 @@ func TestRunMigrationTest_Postgres(t *testing.T) {
 			SetupData:           setupPlaintextAPIKeys,
 			ValidateResult:      validateAPIKeysHashed,
 		},
+		{
+			Name:                "release table v2 renames columns and fills indexer ids",
+			MigrationIndex:      94,
+			MigrationsUntilName: "94_timestamps_to_timestamptz",
+			MigrationToRun:      "95_release_table_v2",
+			SetupData:           setupReleaseBeforeTableV2,
+			ValidateResult:      validateReleaseTableV2,
+		},
+		{
+			Name:                "release duplicate keys backfilled for grabbed releases",
+			MigrationIndex:      95,
+			MigrationsUntilName: "95_release_table_v2",
+			MigrationToRun:      "96_release_backfill_duplicate_keys",
+			SetupData:           setupReleaseKeysBackfill,
+			ValidateResult:      validateReleaseKeysBackfill,
+		},
 	}
 
 	for _, tc := range tests {

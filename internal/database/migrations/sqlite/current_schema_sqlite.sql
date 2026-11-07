@@ -363,54 +363,68 @@ CREATE TABLE action
 
 CREATE TABLE "release"
 (
-    id               INTEGER PRIMARY KEY,
-    filter_status    TEXT,
-    rejections       TEXT []   DEFAULT '{}' NOT NULL,
-    indexer          TEXT,
-    filter           TEXT,
-    protocol         TEXT,
-    implementation   TEXT,
-    timestamp        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    announce_type    TEXT      DEFAULT 'NEW',
-    info_url         TEXT,
-    download_url     TEXT,
-    group_id         TEXT,
-    torrent_id       TEXT,
-    torrent_name     TEXT,
-    normalized_hash  TEXT,
-    size             INTEGER,
-    title            TEXT,
-    sub_title        TEXT,
-    category         TEXT,
-    season           INTEGER,
-    episode          INTEGER,
-    year             INTEGER,
-    month            INTEGER,
-    day              INTEGER,
-    resolution       TEXT,
-    source           TEXT,
-    codec            TEXT,
-    container        TEXT,
-    hdr              TEXT,
-    audio            TEXT,
-    audio_channels   TEXT,
-    release_group    TEXT,
-    region           TEXT,
-    language         TEXT,
-    edition          TEXT,
-    cut              TEXT,
-    hybrid           BOOLEAN,
-    proper           BOOLEAN,
-    repack           BOOLEAN,
-    website          TEXT,
-    media_processing TEXT,
-    type             TEXT,
-    origin           TEXT,
-    tags             TEXT []   DEFAULT '{}' NOT NULL,
-    uploader         TEXT,
-    pre_time         TEXT,
-    other            TEXT []   DEFAULT '{}' NOT NULL,
-    filter_id        INTEGER
+    id                     INTEGER PRIMARY KEY,
+    indexer                TEXT,
+    filter                 TEXT,
+    protocol               TEXT,
+    implementation         TEXT,
+    timestamp              TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    announce_type          TEXT      DEFAULT 'NEW',
+    info_url               TEXT,
+    download_url           TEXT,
+    group_id               TEXT,
+    external_id            TEXT,
+    release_name           TEXT,
+    normalized_hash        TEXT,
+    size                   INTEGER,
+    title                  TEXT,
+    sub_title              TEXT,
+    category               TEXT,
+    season                 INTEGER,
+    episode                INTEGER,
+    year                   INTEGER,
+    month                  INTEGER,
+    day                    INTEGER,
+    resolution             TEXT,
+    source                 TEXT,
+    codec                  TEXT,
+    container              TEXT,
+    dynamic_range          TEXT,
+    audio                  TEXT,
+    audio_channels         TEXT,
+    release_group          TEXT,
+    region                 TEXT,
+    language               TEXT,
+    edition                TEXT,
+    cut                    TEXT,
+    hybrid                 BOOLEAN,
+    proper                 BOOLEAN,
+    repack                 BOOLEAN,
+    website                TEXT,
+    media_processing       TEXT,
+    type                   TEXT,
+    origin                 TEXT,
+    tags                   TEXT []   DEFAULT '{}' NOT NULL,
+    uploader               TEXT,
+    pre_time               TEXT,
+    other                  TEXT []   DEFAULT '{}' NOT NULL,
+    indexer_id             INTEGER,
+    name_key               TEXT      DEFAULT '' NOT NULL,
+    title_key              TEXT      DEFAULT '' NOT NULL,
+    sub_title_key          TEXT      DEFAULT '' NOT NULL,
+    categories             TEXT []   DEFAULT '{}' NOT NULL,
+    indexer_flags          TEXT []   DEFAULT '{}' NOT NULL,
+    download_volume_factor REAL,
+    upload_volume_factor   REAL,
+    publish_time           TIMESTAMP,
+    id_imdb                TEXT,
+    id_tmdb                INTEGER,
+    id_tvdb                INTEGER,
+    id_igdb                INTEGER,
+    info_hash              TEXT,
+    trace_id               TEXT,
+    metadata               TEXT,
+    filter_id              INTEGER
                                             REFERENCES filter
                                                 ON DELETE SET NULL
 );
@@ -424,8 +438,14 @@ CREATE INDEX release_indexer_index
 CREATE INDEX release_timestamp_index
     ON "release" (timestamp DESC);
 
-CREATE INDEX release_torrent_name_index
-    ON "release" (torrent_name);
+CREATE INDEX release_release_name_index
+    ON "release" (release_name);
+
+CREATE INDEX release_name_key_index
+    ON "release" (name_key);
+
+CREATE INDEX release_title_key_year_index
+    ON "release" (title_key, year);
 
 CREATE INDEX release_normalized_hash_index
     ON "release" (normalized_hash);
@@ -463,9 +483,6 @@ CREATE INDEX release_codec_index
 CREATE INDEX release_container_index
     ON "release" (container);
 
-CREATE INDEX release_hdr_index
-    ON "release" (hdr);
-
 CREATE INDEX release_audio_index
     ON "release" (audio);
 
@@ -502,9 +519,6 @@ CREATE INDEX release_cut_index
 CREATE INDEX release_hybrid_index
     ON "release" (hybrid);
 
-CREATE INDEX release_filter_status_index
-    ON "release" (filter_status);
-
 CREATE TABLE release_action_status
 (
     id         INTEGER PRIMARY KEY,
@@ -535,8 +549,8 @@ CREATE INDEX release_action_status_status_index
 CREATE INDEX release_action_status_timestamp_status_index
     ON release_action_status (timestamp, status);
 
-CREATE INDEX release_action_status_release_id_index
-    ON release_action_status (release_id);
+CREATE INDEX release_action_status_release_id_status_index
+    ON release_action_status (release_id, status);
 
 CREATE INDEX release_action_status_filter_id_status_timestamp_index
     ON release_action_status (filter_id, status, timestamp);

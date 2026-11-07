@@ -711,6 +711,32 @@ func TestRunMigrationTest_SQLite(t *testing.T) {
 			},
 			want: "",
 		},
+		{
+			name:   "release table v2 renames columns and fills indexer ids",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "release table v2 renames columns and fills indexer ids",
+				MigrationIndex:      105,
+				MigrationsUntilName: "105_release_action_status_filter_window_index",
+				MigrationToRun:      "106_release_table_v2",
+				SetupData:           setupReleaseBeforeTableV2,
+				ValidateResult:      validateReleaseTableV2,
+			},
+			want: "",
+		},
+		{
+			name:   "release duplicate keys backfilled for grabbed releases",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "release duplicate keys backfilled for grabbed releases",
+				MigrationIndex:      106,
+				MigrationsUntilName: "106_release_table_v2",
+				MigrationToRun:      "107_release_backfill_duplicate_keys",
+				SetupData:           setupReleaseKeysBackfill,
+				ValidateResult:      validateReleaseKeysBackfill,
+			},
+			want: "",
+		},
 	}
 
 	for _, tt := range tests {

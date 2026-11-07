@@ -67,8 +67,6 @@ func TestRSSSource_toRelease(t *testing.T) {
 			}},
 			want: &domain.Release{
 				ID:                              0,
-				FilterStatus:                    "PENDING",
-				Rejections:                      []string{},
 				Indexer:                         domain.IndexerMinimal{Name: "Mock Feed", Identifier: "mock-feed", IdentifierExternal: "Mock Indexer"},
 				FilterName:                      "",
 				Protocol:                        "torrent",
@@ -156,8 +154,6 @@ func TestRSSSource_toRelease(t *testing.T) {
 			}},
 			want: &domain.Release{
 				ID:                              0,
-				FilterStatus:                    "PENDING",
-				Rejections:                      []string{},
 				Indexer:                         domain.IndexerMinimal{Name: "Mock Feed", Identifier: "mock-feed", IdentifierExternal: "Mock Indexer"},
 				FilterName:                      "",
 				Protocol:                        "torrent",
@@ -245,8 +241,6 @@ func TestRSSSource_toRelease(t *testing.T) {
 			}},
 			want: &domain.Release{
 				ID:                              0,
-				FilterStatus:                    "PENDING",
-				Rejections:                      []string{},
 				Indexer:                         domain.IndexerMinimal{Name: "Mock Feed", Identifier: "mock-feed", IdentifierExternal: "Mock Indexer"},
 				FilterName:                      "",
 				Protocol:                        "torrent",
@@ -337,8 +331,6 @@ func TestRSSSource_toRelease(t *testing.T) {
 			}},
 			want: &domain.Release{
 				ID:                              0,
-				FilterStatus:                    "PENDING",
-				Rejections:                      []string{},
 				Indexer:                         domain.IndexerMinimal{Name: "Mock Feed", Identifier: "mock-feed", IdentifierExternal: "Mock Indexer"},
 				FilterName:                      "",
 				Protocol:                        "torrent",
@@ -423,8 +415,6 @@ func TestRSSSource_toRelease(t *testing.T) {
 			}},
 			want: &domain.Release{
 				ID:                              0,
-				FilterStatus:                    "PENDING",
-				Rejections:                      []string{},
 				Indexer:                         domain.IndexerMinimal{Name: "Mock Feed", Identifier: "mock-feed", IdentifierExternal: "Mock Indexer"},
 				FilterName:                      "",
 				Protocol:                        "torrent",

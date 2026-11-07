@@ -43,8 +43,8 @@ INSERT INTO filter_external (name, filter_id, enabled, type, exec_cmd) VALUES ('
 INSERT INTO filter_indexer (filter_id, indexer_id) VALUES (1, 1);
 INSERT INTO client (name, type, enabled, host, port, tls, settings) VALUES ('qbit', 'QBITTORRENT', TRUE, 'localhost', 8080, FALSE, '{}');
 INSERT INTO action (name, type, enabled, filter_id, client_id) VALUES ('push', 'QBITTORRENT', TRUE, 1, 1);
-INSERT INTO "release" (filter_status, rejections, indexer, filter, protocol, implementation, timestamp, torrent_name, size, title, filter_id)
-VALUES ('FILTER_APPROVED', '{"size too big"}', 'ggn', 'filter one', 'torrent', 'IRC', '2026-10-21T10:11:12+02:00', 'That.Show.S01E01.1080p.WEB-DL-GRP', 1234, 'That Show', 1);
+INSERT INTO "release" (indexer, filter, protocol, implementation, timestamp, release_name, size, title, categories, filter_id)
+VALUES ('ggn', 'filter one', 'torrent', 'IRC', '2026-10-21T10:11:12+02:00', 'That.Show.S01E01.1080p.WEB-DL-GRP', 1234, 'That Show', '{TV,5000}', 1);
 INSERT INTO release_action_status (status, action, action_id, type, client, filter, filter_id, rejections, timestamp, release_id)
 VALUES ('PUSH_APPROVED', 'push', 1, 'QBITTORRENT', 'qbit', 'filter one', 1, '{}', '2026-10-21T10:11:13+02:00', 1);
 INSERT INTO release_cleanup_job (name, enabled, schedule, older_than, last_run) VALUES ('cleanup', TRUE, '0 * * * *', 24, '2026-10-20T00:00:00Z');
