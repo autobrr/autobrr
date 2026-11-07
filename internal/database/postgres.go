@@ -62,10 +62,13 @@ func PostgresDSN(host string, port int, user, pass, database, socket, sslMode, e
 	}
 
 	var kvs []string
+	emitted := map[string]bool{}
 	add := func(key, value string) {
-		if value != "" {
-			kvs = append(kvs, key+"="+quoteDSNValue(value))
+		if value == "" {
+			return
 		}
+		emitted[key] = true
+		kvs = append(kvs, key+"="+quoteDSNValue(value))
 	}
 
 	if socket != "" {
@@ -87,6 +90,9 @@ func PostgresDSN(host string, port int, user, pass, database, socket, sslMode, e
 			return "", errors.Wrap(err, "could not parse extra params")
 		}
 		for _, key := range slices.Sorted(maps.Keys(values)) {
+			if emitted[key] {
+				return "", errors.New("postgres: extra param %q is already set by a dedicated setting", key)
+			}
 			add(key, values.Get(key))
 		}
 	}
