@@ -131,6 +131,7 @@ type Handler struct {
 	identifyEscalated   bool
 	identifyFormLearned identifyForm
 	identifyOutstanding bool
+	identifySentAt      time.Time
 	identifyRetries     int    // IDENTIFYs this connection sent while NickServ was absent
 	identifyRetryGen    uint64 // bumped to cancel a scheduled identify retry
 
@@ -1153,6 +1154,12 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 		"please choose a different nick",
 		"choose a different nick",
 	) {
+		if h.identifyLost() {
+			h.log.Debug().Msg("NickServ greeted us long after our IDENTIFY, sending it again")
+			h.NickServIdentify()
+			return
+		}
+
 		h.authenticate()
 
 		h.m.Lock()
@@ -2180,6 +2187,7 @@ func (h *Handler) NickServIdentify() error {
 
 	command := h.identifyCommandLocked()
 	h.identifyOutstanding = true
+	h.identifySentAt = time.Now()
 	h.m.Unlock()
 
 	if err := h.Send("PRIVMSG", "NickServ", command); err != nil {
@@ -2191,6 +2199,19 @@ func (h *Handler) NickServIdentify() error {
 	}
 
 	return nil
+}
+
+const identifyLostAfter = 10 * time.Second
+
+// identifyLost reports whether a NickServ greeting means the outstanding IDENTIFY
+// will get no answer. Services greet an unidentified nick when they link, and an
+// IDENTIFY sent before that link went down with the old one. A greeting soon
+// after an IDENTIFY is the normal order at connect, and its answer is on the way.
+func (h *Handler) identifyLost() bool {
+	h.m.RLock()
+	defer h.m.RUnlock()
+
+	return h.identifyOutstanding && time.Since(h.identifySentAt) >= identifyLostAfter
 }
 
 // handleNickServAbsent schedules another IDENTIFY after the outstanding one got
@@ -2258,6 +2279,7 @@ func (h *Handler) retryIdentify(gen uint64) {
 	client := h.client
 	command := h.identifyCommandLocked()
 	h.identifyOutstanding = true
+	h.identifySentAt = time.Now()
 	h.m.Unlock()
 
 	if err := client.Send("PRIVMSG", "NickServ", command); err != nil {
