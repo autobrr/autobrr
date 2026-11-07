@@ -62,7 +62,7 @@ jobs:
           package-manager-cache: false
 
       - name: Set up pnpm
-        uses: pnpm/action-setup@v6.1.0
+        uses: pnpm/action-setup@v6.1.1
         with:
           package_json_file: web/package.json
 
