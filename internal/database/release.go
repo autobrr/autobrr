@@ -981,6 +981,7 @@ type statsWindow struct {
 	now    time.Time
 	cutoff time.Time
 	arg    any
+	sqlite bool
 }
 
 func (repo *ReleaseRepo) statsWindow(days int) statsWindow {
@@ -989,9 +990,11 @@ func (repo *ReleaseRepo) statsWindow(days int) statsWindow {
 		w.cutoff = w.now.AddDate(0, 0, -(days - 1)).Truncate(24 * time.Hour)
 		w.arg = w.cutoff
 		if repo.db.Driver == "sqlite" {
-			// raw string compare keeps the timestamp index usable and is exact at
-			// midnight boundaries for both timestamp formats found in old databases
-			w.arg = w.cutoff.Format("2006-01-02 15:04:05")
+			// raw string compare keeps the timestamp index usable, but stored rows
+			// carry their own offset, so prefilter a day early (offsets are at most
+			// 14h) and let apply do the exact UTC compare
+			w.sqlite = true
+			w.arg = w.cutoff.AddDate(0, 0, -1).Format("2006-01-02 15:04:05")
 		}
 	}
 	return w
@@ -999,7 +1002,11 @@ func (repo *ReleaseRepo) statsWindow(days int) statsWindow {
 
 func (w statsWindow) apply(qb sq.SelectBuilder, column string) sq.SelectBuilder {
 	if w.days > 0 {
-		return qb.Where(sq.GtOrEq{column: w.arg})
+		qb = qb.Where(sq.GtOrEq{column: w.arg})
+		if w.sqlite {
+			qb = qb.Where(sq.Expr("strftime('%Y-%m-%d %H:%M:%S', "+column+") >= ?", w.cutoff.Format("2006-01-02 15:04:05")))
+		}
+		return qb
 	}
 	return qb
 }
@@ -1038,19 +1045,19 @@ func minDateKey[T any](m map[string]*T) string {
 
 func (repo *ReleaseRepo) statsDayExpr() string {
 	if repo.db.Driver == "sqlite" {
-		// substr instead of strftime: both timestamp formats found in old
-		// databases share the YYYY-MM-DD HH prefix, and skipping per-row date
-		// parsing roughly halves the scan cost on large tables
-		return "substr(timestamp, 1, 10)"
+		// strftime normalizes the stored offset to UTC for both the RFC3339 and the
+		// legacy space-separated forms, so buckets match Postgres (timestamptz).
+		// substr returned the raw local hour/day, which broke the dashboard charts.
+		return "strftime('%Y-%m-%d', timestamp)"
 	}
-	return "to_char(timestamp, 'YYYY-MM-DD')"
+	return "to_char(timestamp AT TIME ZONE 'UTC', 'YYYY-MM-DD')"
 }
 
 func (repo *ReleaseRepo) statsHourExpr() string {
 	if repo.db.Driver == "sqlite" {
-		return "CAST(substr(timestamp, 12, 2) AS INTEGER)"
+		return "CAST(strftime('%H', timestamp) AS INTEGER)"
 	}
-	return "EXTRACT(HOUR FROM timestamp)::int"
+	return "EXTRACT(HOUR FROM timestamp AT TIME ZONE 'UTC')::int"
 }
 
 func (repo *ReleaseRepo) statsQueryRows(ctx context.Context, qb sq.SelectBuilder, scan func(rows *sql.Rows) error) error {
