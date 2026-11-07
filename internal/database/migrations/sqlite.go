@@ -11,7 +11,7 @@ import (
 	"github.com/rs/zerolog"
 )
 
-//go:generate go run generate_migrations.go
+//go:generate go run -tags generate ./codegen
 
 func SQLiteMigrations(db *sql.DB, logger zerolog.Logger) *migrator.Migrator {
 	migrate := migrator.NewMigrate(

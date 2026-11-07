@@ -16,33 +16,47 @@ import (
 )
 
 func main() {
-	//migrationDir := "internal/database/migrations/sqlite"
-	migrationDir := "../sqlite"
-	//outputFile := "internal/database/migrations/sqlite.go"
-	outputFile := "../sqlite.go"
+	migrationDir := "sqlite"
+	outputFile := "sqlite.go"
 
-	// Read all .sql files from the migration directory
 	files, err := filepath.Glob(filepath.Join(migrationDir, "*.sql"))
 	if err != nil {
 		panic(fmt.Sprintf("Failed to read migration files: %v", err))
 	}
 
-	// Sort files by migration ID (numeric part before underscore)
+	// a .code file holds the name of a Go RunTx function and keeps the
+	// migration in its numbered slot instead of after the generated block
+	codeFiles, err := filepath.Glob(filepath.Join(migrationDir, "*.code"))
+	if err != nil {
+		panic(fmt.Sprintf("Failed to read code migration files: %v", err))
+	}
+
+	files = append(files, codeFiles...)
+
 	slices.SortFunc(files, func(a, b string) int {
 		return cmp.Compare(extractMigrationID(filepath.Base(a)), extractMigrationID(filepath.Base(b)))
 	})
 
 	fmt.Printf("Found %d files\n", len(files))
 
-	// Generate the migration entries
 	var migrations []string
 	for _, file := range files {
 		filename := filepath.Base(file)
-		name := strings.TrimSuffix(filename, ".sql")
-		if name == "current_schema_sqlite" {
+
+		if name, ok := strings.CutSuffix(filename, ".code"); ok {
+			fn, err := os.ReadFile(file)
+			if err != nil {
+				panic(fmt.Sprintf("Failed to read code migration %s: %v", filename, err))
+			}
+
+			migrations = append(migrations, fmt.Sprintf(`	migrate.AddMigration(&migrator.Migration{Name: "%s", RunTx: %s})`, name, strings.TrimSpace(string(fn))))
 			continue
 		}
-		//migrations = append(migrations, fmt.Sprintf(`	migrate.AddMigration(&migrator.Migration{Name: "%s", File: "%s"})`, name, filename))
+
+		if strings.TrimSuffix(filename, ".sql") == "current_schema_sqlite" {
+			continue
+		}
+
 		migrations = append(migrations, fmt.Sprintf(`	migrate.AddFileMigration("%s")`, filename))
 	}
 
