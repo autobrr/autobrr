@@ -79,7 +79,7 @@ type notificationService interface {
 
 type releaseRepo interface {
 	CheckSmartEpisodeCanDownload(ctx context.Context, p *domain.SmartEpisodeParams) (bool, error)
-	CheckIsDuplicateRelease(ctx context.Context, profile *domain.DuplicateReleaseProfile, release *domain.Release) (bool, error)
+	FindDuplicate(ctx context.Context, profile *domain.DuplicateReleaseProfile, release *domain.Release) (*domain.DuplicateMatch, error)
 }
 
 type Service struct {
@@ -640,14 +640,14 @@ func (s *Service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 		release.SkipDuplicateProfileID = f.DuplicateHandling.ID
 		release.SkipDuplicateProfileName = f.DuplicateHandling.Name
 
-		isDuplicate, err := s.CheckIsDuplicateRelease(ctx, f.DuplicateHandling, release)
+		match, err := s.releaseRepo.FindDuplicate(ctx, f.DuplicateHandling, release)
 		if err != nil {
 			return false, errors.Wrap(err, "error finding duplicate handle")
 		}
 
-		if isDuplicate {
-			l.Debug().Str("profile", f.DuplicateHandling.Name).Msg("rejected release as duplicate with profile")
-			f.RejectReasons.Add("duplicate", "duplicate", "not duplicate")
+		if match != nil {
+			l.Debug().Str("profile", f.DuplicateHandling.Name).Int64("duplicate_of", match.ReleaseID).Msg("rejected release as duplicate with profile")
+			f.RejectReasons.Add("duplicate", fmt.Sprintf("duplicate of release %d %s", match.ReleaseID, match.ReleaseName), "not duplicate")
 
 			// let it continue so external filters can trigger checks
 			//return false, nil
@@ -940,10 +940,6 @@ func (s *Service) AdditionalRecordLabelCheck(ctx context.Context, f *domain.Filt
 
 func (s *Service) CheckSmartEpisodeCanDownload(ctx context.Context, params *domain.SmartEpisodeParams) (bool, error) {
 	return s.releaseRepo.CheckSmartEpisodeCanDownload(ctx, params)
-}
-
-func (s *Service) CheckIsDuplicateRelease(ctx context.Context, profile *domain.DuplicateReleaseProfile, release *domain.Release) (bool, error) {
-	return s.releaseRepo.CheckIsDuplicateRelease(ctx, profile, release)
 }
 
 func (s *Service) RunExternalFilters(ctx context.Context, f *domain.Filter, externalFilters []domain.FilterExternal, release *domain.Release) (ok bool, err error) {

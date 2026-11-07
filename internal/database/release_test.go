@@ -1748,12 +1748,16 @@ func TestReleaseRepo_CheckIsDuplicateRelease(t *testing.T) {
 				compareRel := domain.NewRelease(mockIndexer)
 				compareRel.ParseString(tt.fields.releaseTitle)
 
+				// stored field profiles get media_processing from the explicit flags migration
+				profile := *tt.fields.profile
+				profile.MediaProcessing = !profile.ReleaseName
+
 				// Execute
-				isDuplicate, err := releaseRepo.CheckIsDuplicateRelease(ctx, tt.fields.profile, compareRel)
+				match, err := releaseRepo.FindDuplicate(ctx, &profile, compareRel)
 
 				// Verify
 				require.NoError(t, err)
-				assert.Equal(t, tt.isDuplicate, isDuplicate)
+				assert.Equal(t, tt.isDuplicate, match != nil)
 
 				// Cleanup
 				_ = releaseRepo.Delete(ctx, &domain.DeleteReleaseRequest{OlderThan: 0})
@@ -2199,5 +2203,154 @@ func TestReleaseRepo_StoreTableV2Columns(t *testing.T) {
 			assert.True(t, rls.PublishDate.Equal(publishTime.V))
 			assert.JSONEq(t, `{"record_label":"Label"}`, metadata.V)
 		})
+	}
+}
+
+func TestReleaseRepo_FindDuplicate(t *testing.T) {
+	ctx := t.Context()
+
+	exact := &domain.DuplicateReleaseProfile{Name: "Exact release", ReleaseName: true, Hash: true}
+	movie := &domain.DuplicateReleaseProfile{Name: "Movie", Title: true, Year: true, Resolution: true, MediaProcessing: true}
+	tv := &domain.DuplicateReleaseProfile{Name: "TV", Title: true, Year: true, Month: true, Day: true, Season: true, Episode: true, MediaProcessing: true}
+
+	animeEpisode := func(n int) string {
+		return fmt.Sprintf("[SubsPlease] Ascendance of a Bookworm: Adopted Daughter of an Archduke - %02d  [2026][Web][MKV][h264][1080p][AAC 2.0][Softsubs (SubsPlease)]", n)
+	}
+
+	var animeHistory []string
+	for n := 2; n <= 22; n++ {
+		animeHistory = append(animeHistory, animeEpisode(n))
+	}
+
+	tests := []struct {
+		name        string
+		stored      []string
+		release     string
+		profile     *domain.DuplicateReleaseProfile
+		isDuplicate bool
+	}{
+		{name: "2705_next_episode", stored: animeHistory, release: animeEpisode(23), profile: exact},
+		{name: "2705_same_episode", stored: animeHistory, release: animeEpisode(22), profile: exact, isDuplicate: true},
+		{name: "2029_other_session_exact", stored: []string{"Formula1.2025.Round04.Bahrain.FP2.SKY.F1TV.WEB-DL.1080p.h264.English-MWR"}, release: "Formula1.2025.Round04.Bahrain.FP1.SKY.F1TV.WEB-DL.1080p.h264.English-MWR", profile: exact},
+		{name: "2029_other_round_exact", stored: []string{"Formula1.2025.Round04.Bahrain.FP2.SKY.F1TV.WEB-DL.1080p.h264.English-MWR"}, release: "Formula1.2025.Round05.Saudi.Arabia.Race.SKY.F1TV.WEB-DL.1080p.h264.English-MWR", profile: exact},
+		{name: "2029_other_session_tv", stored: []string{"Formula1.2025.Round04.Bahrain.FP2.SKY.F1TV.WEB-DL.1080p.h264.English-MWR"}, release: "Formula1.2025.Round04.Bahrain.FP1.SKY.F1TV.WEB-DL.1080p.h264.English-MWR", profile: tv},
+		{name: "2029_same_session_spaces", stored: []string{"Formula1.2025.Round04.Bahrain.FP2.SKY.F1TV.WEB-DL.1080p.h264.English-MWR"}, release: "Formula1 2025 Round04 Bahrain FP2 SKY F1TV WEB-DL 1080p h264 English-MWR", profile: exact, isDuplicate: true},
+		{name: "2702_colon_title", stored: []string{"Franchise: Example Show S02E05 1080p AMZN WEB-DL DD+ 5 1 H 264-RG1"}, release: "Franchise Example Show S02E05 1080p WEB H264-RG2", profile: tv, isDuplicate: true},
+		{name: "2702_colon_title_reverse", stored: []string{"Franchise Example Show S02E05 1080p WEB H264-RG2"}, release: "Franchise: Example Show S02E05 1080p AMZN WEB-DL DD+ 5 1 H 264-RG1", profile: tv, isDuplicate: true},
+		{name: "remake_us_uk", stored: []string{"The.Office.UK.S01E01.720p.WEB-DL-GRP"}, release: "The.Office.US.S01E01.720p.WEB-DL-GRP", profile: tv},
+		{name: "remake_us_untagged", stored: []string{"The.Office.S01E01.720p.WEB-DL-GRP"}, release: "The.Office.US.S01E01.720p.WEB-DL-GRP", profile: tv},
+		{name: "spin_off", stored: []string{"9-1-1.Lone.Star.S05E01.1080p.WEB.h264-GRP"}, release: "9-1-1.S05E01.1080p.WEB.h264-GRP", profile: tv},
+		{name: "sign_language", stored: []string{"Siren.The.Voices.of.Shelley.Beattie.2026.1080p.AMZN.WEB-DL.DDP5.1.H.264-Kitsune"}, release: "Siren.The.Voices.of.Shelley.Beattie.2026.with.ASL.1080p.AMZN.WEB-DL.DDP5.1.H.264-Kitsune", profile: movie},
+		{name: "movie_not_episode", stored: []string{"Show.2023.S01E01.1080p.WEB.H264-GRP"}, release: "Show.2023.1080p.BluRay.x264-GRP2", profile: movie},
+		{name: "remux_not_encode", stored: []string{"Movie.Title.2024.1080p.BluRay.x264-GRP"}, release: "Movie.Title.2024.1080p.BluRay.REMUX.AVC.DTS-HD.MA.5.1-GRP2", profile: movie},
+		{name: "2017_other_group_not_repack", stored: []string{"Show.S01E01.1080p.WEB.H264-FLUX"}, release: "Show.S01E01.1080p.WEB.H264-SuccessfulCrab", profile: &domain.DuplicateReleaseProfile{Title: true, Season: true, Episode: true, Repack: true, MediaProcessing: true}, isDuplicate: true},
+		{name: "2017_other_group_repack", stored: []string{"Show.S01E01.REPACK.1080p.WEB.H264-FLUX"}, release: "Show.S01E01.REPACK.1080p.WEB.H264-SuccessfulCrab", profile: &domain.DuplicateReleaseProfile{Title: true, Season: true, Episode: true, Repack: true, MediaProcessing: true}},
+		{name: "2017_same_group_repack", stored: []string{"Show.S01E01.REPACK.1080p.WEB.H264-FLUX"}, release: "Show.S01E01.REPACK.1080p.WEB.H264-FLUX", profile: &domain.DuplicateReleaseProfile{Title: true, Season: true, Episode: true, Repack: true, MediaProcessing: true}, isDuplicate: true},
+		{name: "release_name_only_profile_unrelated", stored: []string{"Some.Other.Movie.2020.1080p.BluRay.x264-GRP"}, release: "Totally.Different.Show.S01E01.720p.WEB.H264-XYZ", profile: &domain.DuplicateReleaseProfile{ReleaseName: true}},
+		{name: "anchorless_profile", stored: []string{"Show.S01E01.1080p.WEB.H264-GRP"}, release: "Show.S01E01.1080p.WEB.H264-GRP", profile: &domain.DuplicateReleaseProfile{Season: true, Episode: true}},
+	}
+
+	for dbType, testDb := range testDBs {
+		log := setupLoggerForTest()
+		repo := NewReleaseRepo(log, testDb.db)
+		filterRepo := NewFilterRepo(log, testDb.db)
+		actionRepo := NewActionRepo(log, testDb.db)
+
+		filter := getMockFilterDuplicates()
+		require.NoError(t, filterRepo.Store(ctx, filter))
+
+		action := &domain.Action{Name: "Test", Type: domain.ActionTypeTest, Enabled: true, FilterID: filter.ID}
+		require.NoError(t, actionRepo.Store(ctx, action))
+
+		indexer := domain.IndexerMinimal{Name: "Mock", Identifier: "mock-find-duplicate"}
+
+		for _, tt := range tests {
+			t.Run(fmt.Sprintf("%s [%s]", tt.name, dbType), func(t *testing.T) {
+				t.Cleanup(func() {
+					_ = repo.Delete(context.Background(), &domain.DeleteReleaseRequest{Indexers: []string{indexer.Identifier}})
+				})
+
+				for _, name := range tt.stored {
+					rls := domain.NewRelease(indexer)
+					rls.ParseString(name)
+					rls.FilterID = filter.ID
+					require.NoError(t, repo.Store(ctx, rls))
+
+					require.NoError(t, repo.StoreReleaseActionStatus(ctx, &domain.ReleaseActionStatus{
+						Status:     domain.ReleasePushStatusApproved,
+						Action:     action.Name,
+						ActionID:   int64(action.ID),
+						Type:       action.Type,
+						FilterID:   int64(filter.ID),
+						Rejections: []string{},
+						ReleaseID:  rls.ID,
+						Timestamp:  time.Now(),
+					}))
+				}
+
+				rls := domain.NewRelease(indexer)
+				rls.ParseString(tt.release)
+
+				match, err := repo.FindDuplicate(ctx, tt.profile, rls)
+				require.NoError(t, err)
+				assert.Equal(t, tt.isDuplicate, match != nil, "match: %+v", match)
+			})
+		}
+
+		_ = actionRepo.Delete(ctx, &domain.DeleteActionRequest{ActionId: action.ID})
+		_ = filterRepo.Delete(ctx, filter.ID)
+	}
+}
+
+func TestReleaseRepo_CheckSmartEpisodeTitleKey(t *testing.T) {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		log := setupLoggerForTest()
+		repo := NewReleaseRepo(log, testDb.db)
+		filterRepo := NewFilterRepo(log, testDb.db)
+		actionRepo := NewActionRepo(log, testDb.db)
+
+		filter := getMockFilterDuplicates()
+		require.NoError(t, filterRepo.Store(ctx, filter))
+
+		action := &domain.Action{Name: "Test", Type: domain.ActionTypeTest, Enabled: true, FilterID: filter.ID}
+		require.NoError(t, actionRepo.Store(ctx, action))
+
+		indexer := domain.IndexerMinimal{Name: "Mock", Identifier: "mock-smart-episode"}
+
+		for _, name := range []string{"9-1-1.Lone.Star.S05E01.1080p.WEB.h264-GRP", "Franchise: Example Show S02E05 1080p WEB H264-RG1"} {
+			rls := domain.NewRelease(indexer)
+			rls.ParseString(name)
+			rls.FilterID = filter.ID
+			require.NoError(t, repo.Store(ctx, rls))
+
+			require.NoError(t, repo.StoreReleaseActionStatus(ctx, &domain.ReleaseActionStatus{
+				Status:     domain.ReleasePushStatusApproved,
+				Action:     action.Name,
+				ActionID:   int64(action.ID),
+				Type:       action.Type,
+				FilterID:   int64(filter.ID),
+				Rejections: []string{},
+				ReleaseID:  rls.ID,
+				Timestamp:  time.Now(),
+			}))
+		}
+
+		t.Run(fmt.Sprintf("Spin_Off_Does_Not_Block [%s]", dbType), func(t *testing.T) {
+			canDownload, err := repo.CheckSmartEpisodeCanDownload(ctx, &domain.SmartEpisodeParams{Title: "9-1-1", Season: 4, Episode: 10})
+			require.NoError(t, err)
+			assert.True(t, canDownload)
+		})
+
+		t.Run(fmt.Sprintf("Punctuation_Still_Blocks [%s]", dbType), func(t *testing.T) {
+			canDownload, err := repo.CheckSmartEpisodeCanDownload(ctx, &domain.SmartEpisodeParams{Title: "Franchise Example Show", Season: 2, Episode: 4})
+			require.NoError(t, err)
+			assert.False(t, canDownload)
+		})
+
+		_ = repo.Delete(ctx, &domain.DeleteReleaseRequest{Indexers: []string{indexer.Identifier}})
+		_ = actionRepo.Delete(ctx, &domain.DeleteActionRequest{ActionId: action.ID})
+		_ = filterRepo.Delete(ctx, filter.ID)
 	}
 }

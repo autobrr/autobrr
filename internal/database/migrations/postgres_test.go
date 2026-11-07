@@ -575,6 +575,14 @@ func TestRunMigrationTest_Postgres(t *testing.T) {
 			SetupData:           setupReleaseKeysBackfill,
 			ValidateResult:      validateReleaseKeysBackfill,
 		},
+		{
+			Name:                "duplicate profiles mapped to explicit flags",
+			MigrationIndex:      96,
+			MigrationsUntilName: "96_release_backfill_duplicate_keys",
+			MigrationToRun:      "97_duplicate_profiles_explicit_flags",
+			SetupData:           setupLegacyDuplicateProfiles,
+			ValidateResult:      validateDuplicateProfilesMapped,
+		},
 	}
 
 	for _, tc := range tests {
