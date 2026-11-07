@@ -5,6 +5,7 @@ package irc
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -180,4 +181,263 @@ func TestStaleDisconnectCannotTripBreakerOnReplacement(t *testing.T) {
 	require.Same(t, replacement, h.client, "stale disconnect stopped the replacement client")
 	require.Equal(t, ircLive, h.clientState, "stale disconnect stopped the replacement client")
 	require.Len(t, h.shortSessionEnds, flappingStopThreshold-1, "stale disconnect changed breaker strikes")
+}
+
+func TestFlappingBreakerHalfOpenRecovery(t *testing.T) {
+	initial := time.Date(2026, time.October, 19, 12, 0, 0, 0, time.UTC)
+	clock := newMockClock(initial)
+
+	h, _ := newTestHandler()
+	h.clock = clock
+	h.runFn = func() error { return nil }
+	h.stateMachine.currentState = StateFullyOperational
+
+	for i := range flappingStopThreshold - 1 {
+		recordSessionEnd(h, time.Second, initial.Add(time.Duration(i)*time.Second))
+	}
+	h.m.Lock()
+	h.connectedSince = initial.Add(4 * time.Second)
+	h.m.Unlock()
+	h.onDisconnect(ircmsg.Message{})
+
+	require.True(t, h.Stopped(), "network should be stopped after flapping")
+	h.m.RLock()
+	require.Equal(t, flappingInitialCooldown, h.flappingCooldown)
+	require.Equal(t, initial.Add(flappingInitialCooldown), h.flappingRetryAt)
+	h.m.RUnlock()
+
+	clock.Advance(flappingInitialCooldown + 10*time.Second)
+
+	h.m.RLock()
+	require.True(t, h.halfOpenAttempt, "halfOpenAttempt should be true after cooldown expires")
+	h.m.RUnlock()
+
+	h.m.Lock()
+	h.clientState = ircLive
+	client := &ircevent.Connection{}
+	h.client = client
+	h.connectedSince = clock.Now()
+	h.m.Unlock()
+	h.onConnect(client, ircmsg.Message{})
+
+	clock.Advance(flappingSessionMinLifetime)
+
+	h.m.RLock()
+	defer h.m.RUnlock()
+	require.False(t, h.halfOpenAttempt, "halfOpenAttempt should be cleared after surviving")
+	require.Equal(t, flappingInitialCooldown, h.flappingCooldown, "cooldown should be reset to initial")
+	require.True(t, h.flappingRetryAt.IsZero(), "retryAt should be zero")
+	require.Empty(t, h.shortSessionEnds, "breaker strikes should be empty")
+}
+
+func TestFlappingBreakerBackoffOnRepeatedFailure(t *testing.T) {
+	initial := time.Date(2026, time.October, 19, 12, 0, 0, 0, time.UTC)
+	clock := newMockClock(initial)
+
+	h, _ := newTestHandler()
+	h.clock = clock
+	h.runFn = func() error { return nil }
+	h.stateMachine.currentState = StateFullyOperational
+
+	for i := range flappingStopThreshold - 1 {
+		recordSessionEnd(h, time.Second, initial.Add(time.Duration(i)*time.Second))
+	}
+	h.m.Lock()
+	h.connectedSince = initial.Add(4 * time.Second)
+	h.m.Unlock()
+	h.onDisconnect(ircmsg.Message{})
+
+	h.m.RLock()
+	require.Equal(t, flappingInitialCooldown, h.flappingCooldown)
+	h.m.RUnlock()
+
+	clock.Advance(flappingInitialCooldown + time.Second)
+	h.m.RLock()
+	require.True(t, h.halfOpenAttempt)
+	h.m.RUnlock()
+
+	client1 := &ircevent.Connection{}
+	h.m.Lock()
+	h.clientState = ircLive
+	h.client = client1
+	h.connectedSince = clock.Now()
+	h.m.Unlock()
+	clock.Advance(10 * time.Second)
+	h.onClientDisconnect(client1, ircmsg.Message{})
+
+	h.m.RLock()
+	require.Equal(t, 30*time.Minute, h.flappingCooldown)
+	h.m.RUnlock()
+
+	clock.Advance(30*time.Minute + time.Second)
+	h.m.RLock()
+	require.True(t, h.halfOpenAttempt)
+	h.m.RUnlock()
+
+	client2 := &ircevent.Connection{}
+	h.m.Lock()
+	h.clientState = ircLive
+	h.client = client2
+	h.connectedSince = clock.Now()
+	h.m.Unlock()
+	clock.Advance(10 * time.Second)
+	h.onClientDisconnect(client2, ircmsg.Message{})
+
+	h.m.RLock()
+	require.Equal(t, flappingMaxCooldown, h.flappingCooldown)
+	h.m.RUnlock()
+}
+
+func TestFlappingBreakerStopCancelsTimer(t *testing.T) {
+	initial := time.Date(2026, time.October, 19, 12, 0, 0, 0, time.UTC)
+	clock := newMockClock(initial)
+
+	h, _ := newTestHandler()
+	h.clock = clock
+	h.runFn = func() error { return nil }
+	h.stateMachine.currentState = StateFullyOperational
+
+	for i := range flappingStopThreshold - 1 {
+		recordSessionEnd(h, time.Second, initial.Add(time.Duration(i)*time.Second))
+	}
+	h.m.Lock()
+	h.connectedSince = initial.Add(4 * time.Second)
+	h.m.Unlock()
+	h.onDisconnect(ircmsg.Message{})
+
+	h.m.RLock()
+	require.NotNil(t, h.flappingRetryTimer)
+	h.m.RUnlock()
+
+	h.Stop()
+
+	h.m.RLock()
+	require.Nil(t, h.flappingRetryTimer, "retry timer should be cleared on Stop()")
+	require.False(t, h.halfOpenAttempt, "halfOpenAttempt should be false")
+	require.Equal(t, flappingInitialCooldown, h.flappingCooldown, "cooldown should reset to initial")
+	h.m.RUnlock()
+
+	clock.Advance(2 * time.Hour)
+	h.m.RLock()
+	require.False(t, h.halfOpenAttempt)
+	h.m.RUnlock()
+}
+
+func TestFlappingBreakerHalfOpenRunFailureBacksOff(t *testing.T) {
+	initial := time.Date(2026, time.October, 19, 12, 0, 0, 0, time.UTC)
+	clock := newMockClock(initial)
+
+	h, _ := newTestHandler()
+	h.clock = clock
+	h.stateMachine.currentState = StateFullyOperational
+
+	for i := range flappingStopThreshold - 1 {
+		recordSessionEnd(h, time.Second, initial.Add(time.Duration(i)*time.Second))
+	}
+	h.m.Lock()
+	h.connectedSince = initial.Add(4 * time.Second)
+	h.m.Unlock()
+	h.onDisconnect(ircmsg.Message{})
+
+	h.m.RLock()
+	require.Equal(t, flappingInitialCooldown, h.flappingCooldown)
+	h.m.RUnlock()
+
+	done := make(chan struct{})
+	h.runFn = func() error {
+		defer close(done)
+		return errors.New("dial tcp: connection refused")
+	}
+
+	clock.Advance(flappingInitialCooldown + time.Second)
+
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("timeout waiting for runFn")
+	}
+
+	require.Eventually(t, func() bool {
+		h.m.RLock()
+		defer h.m.RUnlock()
+		return !h.halfOpenAttempt && h.flappingRetryTimer != nil
+	}, time.Second, 10*time.Millisecond)
+
+	h.m.RLock()
+	defer h.m.RUnlock()
+	require.Equal(t, 30*time.Minute, h.flappingCooldown, "cooldown should double after failed run")
+}
+
+func TestFlappingBreakerHalfOpenRunFailurePreservesManualStop(t *testing.T) {
+	initial := time.Date(2026, time.October, 19, 12, 0, 0, 0, time.UTC)
+	clock := newMockClock(initial)
+
+	h, _ := newTestHandler()
+	h.clock = clock
+	h.stateMachine.currentState = StateFullyOperational
+
+	for i := range flappingStopThreshold - 1 {
+		recordSessionEnd(h, time.Second, initial.Add(time.Duration(i)*time.Second))
+	}
+	h.m.Lock()
+	h.connectedSince = initial.Add(4 * time.Second)
+	h.m.Unlock()
+	h.onDisconnect(ircmsg.Message{})
+
+	started := make(chan struct{})
+	unblock := make(chan struct{})
+	done := make(chan struct{})
+	h.halfOpenDone = func() { close(done) }
+	h.runFn = func() error {
+		close(started)
+		<-unblock
+		return errors.New("dial failed")
+	}
+
+	clock.Advance(flappingInitialCooldown + time.Second)
+
+	<-started
+	h.Stop()
+	close(unblock)
+
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("timeout waiting for half-open reconnect completion")
+	}
+
+	h.m.RLock()
+	defer h.m.RUnlock()
+	require.Nil(t, h.flappingRetryTimer, "flapping retry timer must NOT be re-armed after manual Stop")
+	require.False(t, h.halfOpenAttempt)
+}
+
+func TestFlappingBreakerStaleTimerCallbackIgnoredAfterStop(t *testing.T) {
+	initial := time.Date(2026, time.October, 19, 12, 0, 0, 0, time.UTC)
+	clock := newMockClock(initial)
+
+	h, _ := newTestHandler()
+	h.clock = clock
+	h.stateMachine.currentState = StateFullyOperational
+
+	for i := range flappingStopThreshold - 1 {
+		recordSessionEnd(h, time.Second, initial.Add(time.Duration(i)*time.Second))
+	}
+	h.m.Lock()
+	h.connectedSince = initial.Add(4 * time.Second)
+	h.m.Unlock()
+	h.onDisconnect(ircmsg.Message{})
+
+	h.m.RLock()
+	staleGen := h.flappingRetryGen
+	h.m.RUnlock()
+
+	h.Stop()
+
+	h.tryHalfOpenReconnect(staleGen)
+
+	h.m.RLock()
+	defer h.m.RUnlock()
+	require.False(t, h.halfOpenAttempt, "stale timer callback must not trigger half-open attempt")
+	require.Equal(t, ircStopped, h.clientState)
 }
