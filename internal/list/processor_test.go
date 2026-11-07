@@ -36,8 +36,18 @@ func TestService_getProcessorMissingClient(t *testing.T) {
 	}
 
 	_, err := s.getProcessor(t.Context(), &domain.List{Type: domain.ListTypeRadarr, ClientID: 1})
-	assert.Error(t, err)
+	assert.ErrorIs(t, err, domain.ErrDownloadClientNotFound)
 	assert.NotErrorIs(t, err, domain.ErrRecordNotFound)
+}
+
+func TestService_refreshAllSkipsMissingClient(t *testing.T) {
+	s := &Service{
+		log:           zerolog.Nop(),
+		downloaderSvc: &mockDownloaderService{err: domain.ErrRecordNotFound},
+	}
+
+	err := s.refreshAll(t.Context(), []*domain.List{{Name: "orphaned", Type: domain.ListTypeRadarr, ClientID: 1, Enabled: true}})
+	assert.NoError(t, err)
 }
 
 func TestService_getProcessor(t *testing.T) {
