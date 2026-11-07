@@ -170,6 +170,16 @@ func TestPostgresDSN(t *testing.T) {
 			wantErr: `postgres: invalid extra param name "dbname "`,
 		},
 		{
+			name: "extra param name with a newline",
+			args: args{
+				host:        "localhost",
+				port:        5432,
+				database:    "postgres",
+				extraParams: "dbname%0A=other",
+			},
+			wantErr: `postgres: invalid extra param name "dbname\n"`,
+		},
+		{
 			name: "extra param name with an equals sign",
 			args: args{
 				host:        "localhost",
