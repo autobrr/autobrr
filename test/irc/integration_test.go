@@ -778,3 +778,25 @@ func TestRegainingNickWithoutRefusalKeepsConnection(t *testing.T) {
 	time.Sleep(3 * time.Second)
 	require.Equal(t, 1, srv.JoinCount("#open"), "expected no reconnect and no second join")
 }
+
+// TestRegainingNickAfterRefusedChannelJoinedKeepsConnection verifies that a refused
+// channel that joins later, here through a server join on the fallback nick, needs
+// no reconnect when the nick comes back.
+func TestRegainingNickAfterRefusedChannelJoinedKeepsConnection(t *testing.T) {
+	srv := ircd.New(t, ircd.NickHeld("autobrr"), ircd.JoinOnConnect("autobrr", "#auto"))
+	srv.AddChannel("#auto", ircd.InviteOnly(), ircd.Announcer("ann"))
+
+	def := harness.MinimalDefinition("auto", "#auto", "ann")
+	net := harness.Network(srv, "autobrr", harness.None(), harness.Channel("#auto"))
+
+	inst := harness.Start(t, net, harness.Defs(def))
+	inst.WaitForState("#auto", "Error", 15*time.Second)
+
+	srv.ForceJoin("autobrr_0", "#auto")
+	inst.WaitForMonitoring("#auto", 10*time.Second)
+
+	srv.SendNickChange("autobrr_0", "autobrr_0", "autobrr")
+
+	time.Sleep(3 * time.Second)
+	require.Equal(t, 1, srv.JoinCount("#auto"), "expected no reconnect and no second server join")
+}

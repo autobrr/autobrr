@@ -133,12 +133,13 @@ type Handler struct {
 	haveDisconnected bool
 	shortSessionEnds []time.Time
 	nickLosses       []time.Time
-	// set when a JOIN got 473 on a fallback nick: some servers join the client at
-	// connect only when it connects on its own nick, and a JOIN never opens the channel
-	inviteOnlyOnFallback bool
-	requestedNick        string // set by NickChange until the server acknowledges it
-	authenticated        bool
-	saslauthed           bool
+	// channels whose JOIN got 473 on a fallback nick and that have not joined since:
+	// some servers join the client at connect only when it connects on its own nick,
+	// and a JOIN never opens the channel
+	refusedOnFallback map[string]bool
+	requestedNick     string // set by NickChange until the server acknowledges it
+	authenticated     bool
+	saslauthed        bool
 
 	identifyAttempt     identifyForm
 	identifyEscalated   bool
@@ -1493,8 +1494,8 @@ func (h *Handler) onNick(client *ircevent.Connection, msg ircmsg.Message) {
 
 	h.m.Lock()
 	authenticated := h.authenticated || h.saslauthed
-	reconnect := h.inviteOnlyOnFallback
-	h.inviteOnlyOnFallback = false
+	reconnect := len(h.refusedOnFallback) > 0
+	h.refusedOnFallback = nil
 	h.m.Unlock()
 
 	if reconnect {
@@ -1956,6 +1957,10 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 	// check if channel is valid and if not lets part
 	ircChannel, key, found := h.getChannel(channel)
 	if found {
+		h.m.Lock()
+		delete(h.refusedOnFallback, key)
+		h.m.Unlock()
+
 		if sm := ircChannel.StateMachine(); sm != nil {
 			sm.OnJoinSuccess()
 		}
@@ -2114,10 +2119,13 @@ func (h *Handler) handleJoinError(msg ircmsg.Message) {
 
 	h.log.Warn().Str("channel", channel).Str("numeric", msg.Command).Str("reason", serverReason).Msg("channel join rejected")
 
-	if msg.Command == ircevent.ERR_INVITEONLYCHAN {
+	if _, key, found := h.getChannel(channel); found && msg.Command == ircevent.ERR_INVITEONLYCHAN {
 		h.m.Lock()
 		if !h.caseMapping.equal(msg.Params[0], h.network.Nick) {
-			h.inviteOnlyOnFallback = true
+			if h.refusedOnFallback == nil {
+				h.refusedOnFallback = map[string]bool{}
+			}
+			h.refusedOnFallback[key] = true
 		}
 		h.m.Unlock()
 	}
@@ -2490,7 +2498,7 @@ func (h *Handler) resetSessionLocked() {
 	h.saslauthed = false
 	h.failedNickServAttempts = 0
 	h.requestedNick = ""
-	h.inviteOnlyOnFallback = false
+	h.refusedOnFallback = nil
 	h.resetIdentifyForm()
 }
 
