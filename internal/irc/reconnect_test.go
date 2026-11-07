@@ -16,6 +16,7 @@ import (
 	"github.com/autobrr/autobrr/internal/events"
 
 	"github.com/alphadose/haxmap"
+	"github.com/ergochat/irc-go/ircevent"
 	"github.com/ergochat/irc-go/ircmsg"
 	"github.com/r3labs/sse/v2"
 	"github.com/rs/zerolog"
@@ -447,4 +448,35 @@ func TestStaleRunDoesNotTakeOverRestart(t *testing.T) {
 	require.Eventually(t, func() bool { return h.stateMachine.GetState() == StateJoiningChannels }, 3*time.Second, 50*time.Millisecond)
 
 	h.Stop()
+}
+
+func TestFallbackReconnectHonorsInterval(t *testing.T) {
+	h, _ := newTestHandler()
+	h.client = &ircevent.Connection{}
+
+	regain := func(sinceLast time.Duration) time.Time {
+		h.m.Lock()
+		h.currentNick = "autobrr_0"
+		h.inviteOnlyOnFallback = true
+		h.fallbackReconnectAt = time.Now().Add(-sinceLast)
+		last := h.fallbackReconnectAt
+		h.m.Unlock()
+
+		h.onNick(h.client, ircmsg.Message{Source: "autobrr_0!user@host", Command: "NICK", Params: []string{"autobrr"}})
+
+		return last
+	}
+
+	last := regain(time.Minute)
+	assert.Equal(t, last, h.fallbackReconnectAt, "a regain inside the limit must not reconnect")
+
+	last = regain(fallbackReconnectInterval + time.Minute)
+	assert.True(t, h.fallbackReconnectAt.After(last), "a regain after the limit must reconnect")
+
+	at := h.fallbackReconnectAt
+	h.m.Lock()
+	h.resetSessionLocked()
+	h.m.Unlock()
+	assert.Equal(t, at, h.fallbackReconnectAt, "a new session must keep the limit")
+	assert.False(t, h.inviteOnlyOnFallback, "a new session must wait for its own refusal")
 }
