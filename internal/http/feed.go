@@ -147,16 +147,28 @@ func (h feedHandler) caps(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h feedHandler) update(w http.ResponseWriter, r *http.Request) {
+	feedID, err := parseURLParamInt(r, "feedID")
+	if err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
+
 	var data *domain.Feed
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	err := h.service.Update(r.Context(), data)
-	if err != nil {
+	if data == nil {
+		h.encoder.BadRequestErr(w, errors.New("feed is required"))
+		return
+	}
+
+	data.ID = feedID
+
+	if err := h.service.Update(r.Context(), data); err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
-			h.encoder.NotFoundErr(w, errors.New("could not find feed with id %d", data.ID))
+			h.encoder.NotFoundErr(w, errors.New("could not find feed with id %d", feedID))
 			return
 		}
 

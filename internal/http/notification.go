@@ -118,15 +118,28 @@ func (h notificationHandler) findByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h notificationHandler) update(w http.ResponseWriter, r *http.Request) {
+	notificationID, err := parseURLParamInt(r, "notificationID")
+	if err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
+
 	var data *domain.Notification
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
+	if data == nil {
+		h.encoder.BadRequestErr(w, errors.New("notification is required"))
+		return
+	}
+
+	data.ID = notificationID
+
 	if err := h.service.Update(r.Context(), data); err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
-			h.encoder.NotFoundErr(w, errors.New("notification with id %d not found", data.ID))
+			h.encoder.NotFoundErr(w, errors.New("notification with id %d not found", notificationID))
 			return
 		}
 		if errors.Is(err, domain.ErrNotificationBuiltin) || errors.Is(err, domain.ErrNotificationInvalid) {

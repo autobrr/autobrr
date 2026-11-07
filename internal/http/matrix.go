@@ -97,7 +97,12 @@ func (h matrixHandler) getMessageHistory(w http.ResponseWriter, r *http.Request)
 
 	messages, err := h.service.GetMessageHistory(r.Context(), int64(networkID), room)
 	if err != nil {
-		h.encoder.NotFoundErr(w, err)
+		if errors.Is(err, domain.ErrMatrixRoomNotFound) {
+			h.encoder.NotFoundErr(w, err)
+			return
+		}
+
+		h.encoder.Error(w, err)
 		return
 	}
 

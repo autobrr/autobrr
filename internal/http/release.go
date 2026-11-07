@@ -90,7 +90,7 @@ func (h releaseHandler) Routes(r chi.Router) {
 		r.With(read).Get("/", h.findReleaseProfileDuplicate)
 		r.With(write).Post("/", h.storeReleaseProfileDuplicate)
 
-		r.With(write).Delete("/{profileId}", h.deleteReleaseProfileDuplicate)
+		r.With(write).Delete("/{profileID}", h.deleteReleaseProfileDuplicate)
 	})
 
 	r.Route("/cleanup-jobs", func(r chi.Router) {
@@ -352,13 +352,18 @@ func (h releaseHandler) findReleaseProfileDuplicate(w http.ResponseWriter, r *ht
 }
 
 func (h releaseHandler) deleteReleaseProfileDuplicate(w http.ResponseWriter, r *http.Request) {
-	profileId, err := parseURLParamInt(r, "profileId")
+	profileID, err := parseURLParamInt(r, "profileID")
 	if err != nil {
 		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
-	if err := h.service.DeleteReleaseProfileDuplicate(r.Context(), int64(profileId)); err != nil {
+	if err := h.service.DeleteReleaseProfileDuplicate(r.Context(), int64(profileID)); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("duplicate release profile with id %d not found", profileID))
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}
@@ -415,15 +420,28 @@ func (h releaseHandler) storeCleanupJob(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h releaseHandler) updateCleanupJob(w http.ResponseWriter, r *http.Request) {
+	jobID, err := parseURLParamInt(r, "jobID")
+	if err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
+
 	var data *domain.ReleaseCleanupJob
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
+	if data == nil {
+		h.encoder.BadRequestErr(w, errors.New("cleanup job is required"))
+		return
+	}
+
+	data.ID = jobID
+
 	if err := h.service.UpdateCleanupJob(r.Context(), data); err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
-			h.encoder.NotFoundErr(w, errors.New("could not find cleanup job with id %d", data.ID))
+			h.encoder.NotFoundErr(w, errors.New("could not find cleanup job with id %d", jobID))
 			return
 		}
 

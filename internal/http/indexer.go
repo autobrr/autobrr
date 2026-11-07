@@ -90,15 +90,23 @@ func (h indexerHandler) store(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h indexerHandler) update(w http.ResponseWriter, r *http.Request) {
+	indexerID, err := parseURLParamInt(r, "indexerID")
+	if err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
+
 	var data domain.Indexer
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
+	data.ID = int64(indexerID)
+
 	if err := h.service.Update(r.Context(), &data); err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
-			h.encoder.NotFoundErr(w, errors.New("indexer with id %d not found", data.ID))
+			h.encoder.NotFoundErr(w, errors.New("indexer with id %d not found", indexerID))
 			return
 		}
 		if errors.Is(err, domain.ErrIndexerArchived) {

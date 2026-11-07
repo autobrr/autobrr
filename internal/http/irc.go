@@ -160,11 +160,19 @@ func (h ircHandler) storeNetwork(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ircHandler) updateNetwork(w http.ResponseWriter, r *http.Request) {
+	networkID, err := parseURLParamInt(r, "networkID")
+	if err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
+
 	var data domain.IrcNetwork
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
+
+	data.ID = int64(networkID)
 
 	if err := data.Auth.Validate(); err != nil {
 		h.encoder.BadRequestErr(w, err)
@@ -173,7 +181,7 @@ func (h ircHandler) updateNetwork(w http.ResponseWriter, r *http.Request) {
 
 	if err := h.service.UpdateNetwork(r.Context(), &data); err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
-			h.encoder.NotFoundErr(w, errors.New("network with id %d not found", data.ID))
+			h.encoder.NotFoundErr(w, errors.New("network with id %d not found", networkID))
 			return
 		}
 

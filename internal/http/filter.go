@@ -217,6 +217,12 @@ func (h filterHandler) store(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h filterHandler) update(w http.ResponseWriter, r *http.Request) {
+	filterID, err := parseURLParamInt(r, "filterID")
+	if err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
+
 	var data *domain.Filter
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
@@ -228,9 +234,11 @@ func (h filterHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	data.ID = filterID
+
 	if err := h.service.Update(r.Context(), data); err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
-			h.encoder.NotFoundErr(w, errors.New("filter with id %d not found", data.ID))
+			h.encoder.NotFoundErr(w, errors.New("filter with id %d not found", filterID))
 			return
 		}
 

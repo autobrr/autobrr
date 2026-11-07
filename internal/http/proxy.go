@@ -69,11 +69,19 @@ func (h proxyHandler) store(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h proxyHandler) update(w http.ResponseWriter, r *http.Request) {
+	proxyID, err := parseURLParamInt(r, "proxyID")
+	if err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
+
 	var data domain.Proxy
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
+
+	data.ID = int64(proxyID)
 
 	if err := h.service.Update(r.Context(), &data); err != nil {
 		if errors.Is(err, domain.ErrUpdateFailed) {
