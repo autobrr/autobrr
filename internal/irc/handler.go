@@ -79,10 +79,6 @@ const (
 	nickLossWindow        = time.Hour
 )
 
-// fallbackReconnectInterval bounds the reconnects made to get a server join that
-// a fallback nick missed, in case the server keeps holding the nick.
-const fallbackReconnectInterval = 15 * time.Minute
-
 // restartQuitTimeout bounds how long a restart waits for the server to close the
 // old connection after QUIT before connecting again.
 const restartQuitTimeout = 3 * time.Second
@@ -140,7 +136,6 @@ type Handler struct {
 	// set when a JOIN got 473 on a fallback nick: some servers join the client at
 	// connect only when it connects on its own nick, and a JOIN never opens the channel
 	inviteOnlyOnFallback bool
-	fallbackReconnectAt  time.Time
 	requestedNick        string // set by NickChange until the server acknowledges it
 	authenticated        bool
 	saslauthed           bool
@@ -862,7 +857,6 @@ func (h *Handler) stop() *ircevent.Connection {
 	h.haveDisconnected = false
 	h.resetFlappingBreakerLocked()
 	h.nickLosses = nil
-	h.fallbackReconnectAt = time.Time{}
 	h.resetSessionLocked()
 	h.currentNick = ""
 	client := h.client
@@ -1499,7 +1493,8 @@ func (h *Handler) onNick(client *ircevent.Connection, msg ircmsg.Message) {
 
 	h.m.Lock()
 	authenticated := h.authenticated || h.saslauthed
-	reconnect := h.fallbackReconnectDueLocked()
+	reconnect := h.inviteOnlyOnFallback
+	h.inviteOnlyOnFallback = false
 	h.m.Unlock()
 
 	if reconnect {
@@ -1512,17 +1507,6 @@ func (h *Handler) onNick(client *ircevent.Connection, msg ircmsg.Message) {
 	if authenticated {
 		h.retryRefusedInvites(newNick)
 	}
-}
-
-// fallbackReconnectDueLocked reports whether this session got 473 on a fallback nick
-// and the last reconnect for it is old enough, and if so starts a new interval.
-// The caller must hold h.m.
-func (h *Handler) fallbackReconnectDueLocked() bool {
-	if !h.inviteOnlyOnFallback || time.Since(h.fallbackReconnectAt) < fallbackReconnectInterval {
-		return false
-	}
-	h.fallbackReconnectAt = time.Now()
-	return true
 }
 
 // recordNickLossLocked records that we were moved off our nick and reports
@@ -2130,14 +2114,10 @@ func (h *Handler) handleJoinError(msg ircmsg.Message) {
 
 	h.log.Warn().Str("channel", channel).Str("numeric", msg.Command).Str("reason", serverReason).Msg("channel join rejected")
 
-	var reconnectClient *ircevent.Connection
 	if msg.Command == ircevent.ERR_INVITEONLYCHAN {
 		h.m.Lock()
 		if !h.caseMapping.equal(msg.Params[0], h.network.Nick) {
 			h.inviteOnlyOnFallback = true
-		} else if h.fallbackReconnectDueLocked() {
-			// the nick came back inside the interval, so the channel retry does the reconnect
-			reconnectClient = h.client
 		}
 		h.m.Unlock()
 	}
@@ -2151,11 +2131,6 @@ func (h *Handler) handleJoinError(msg ircmsg.Message) {
 	// recovery, misrepresenting a healthy network as carrying stale errors).
 	h.setChannelError(channel, errMsg)
 	h.stateMachine.OnChannelError(channel, errMsg)
-
-	if reconnectClient != nil {
-		h.log.Info().Str("channel", channel).Msg("invite-only refusal after a refusal on a fallback nick, reconnecting")
-		reconnectClient.Reconnect()
-	}
 }
 
 // handleErrNoSuchNick listens for ircevent.ERR_NOSUCHNICK events
