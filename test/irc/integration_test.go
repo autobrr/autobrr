@@ -739,3 +739,42 @@ func TestRequestedNickChangesDoNotStopNetwork(t *testing.T) {
 	time.Sleep(time.Second)
 	require.False(t, inst.Handler.Stopped(), "expected requested nick changes to leave the network running")
 }
+
+// TestReconnectsForServerJoinAfterRegainingNick replays the Norbits reconnect: the
+// server joins a client to its invite-only channel only when the client connects
+// on its own nick. A reconnect lands on a fallback nick while the server holds the
+// old connection, the JOIN gets 473, and getting the nick back must reconnect,
+// because a JOIN on the regained nick is still refused.
+func TestReconnectsForServerJoinAfterRegainingNick(t *testing.T) {
+	srv := ircd.New(t, ircd.NickHeld("autobrr"), ircd.JoinOnConnect("autobrr", "#auto"))
+	srv.AddChannel("#auto", ircd.InviteOnly(), ircd.Announcer("ann"))
+
+	def := harness.MinimalDefinition("auto", "#auto", "ann")
+	net := harness.Network(srv, "autobrr", harness.None(), harness.Channel("#auto"))
+
+	inst := harness.Start(t, net, harness.Defs(def))
+	inst.WaitForState("#auto", "Error", 15*time.Second)
+
+	srv.SendNickChange("autobrr_0", "autobrr_0", "autobrr")
+
+	inst.WaitForMonitoring("#auto", 30*time.Second)
+	require.Equal(t, 1, srv.JoinCount("#auto"), "expected the server join at connect to be the only join")
+}
+
+// TestRegainingNickWithoutRefusalKeepsConnection verifies that getting the nick
+// back reconnects only after an invite-only refusal on the fallback nick.
+func TestRegainingNickWithoutRefusalKeepsConnection(t *testing.T) {
+	srv := ircd.New(t, ircd.NickHeld("autobrr"))
+	srv.AddChannel("#open", ircd.Announcer("ann"))
+
+	def := harness.MinimalDefinition("open", "#open", "ann")
+	net := harness.Network(srv, "autobrr", harness.None(), harness.Channel("#open"))
+
+	inst := harness.Start(t, net, harness.Defs(def))
+	inst.WaitForMonitoring("#open", 10*time.Second)
+
+	srv.SendNickChange("autobrr_0", "autobrr_0", "autobrr")
+
+	time.Sleep(3 * time.Second)
+	require.Equal(t, 1, srv.JoinCount("#open"), "expected no reconnect and no second join")
+}

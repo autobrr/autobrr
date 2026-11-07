@@ -79,6 +79,10 @@ const (
 	nickLossWindow        = time.Hour
 )
 
+// fallbackReconnectInterval bounds the reconnects made to get a server join that
+// a fallback nick missed, in case the server keeps holding the nick.
+const fallbackReconnectInterval = 15 * time.Minute
+
 // restartQuitTimeout bounds how long a restart waits for the server to close the
 // old connection after QUIT before connecting again.
 const restartQuitTimeout = 3 * time.Second
@@ -133,9 +137,13 @@ type Handler struct {
 	haveDisconnected bool
 	shortSessionEnds []time.Time
 	nickLosses       []time.Time
-	requestedNick    string // set by NickChange until the server acknowledges it
-	authenticated    bool
-	saslauthed       bool
+	// set when a JOIN got 473 on a fallback nick: some servers join the client at
+	// connect only when it connects on its own nick, and a JOIN never opens the channel
+	inviteOnlyOnFallback bool
+	fallbackReconnectAt  time.Time
+	requestedNick        string // set by NickChange until the server acknowledges it
+	authenticated        bool
+	saslauthed           bool
 
 	identifyAttempt     identifyForm
 	identifyEscalated   bool
@@ -854,6 +862,7 @@ func (h *Handler) stop() *ircevent.Connection {
 	h.haveDisconnected = false
 	h.resetFlappingBreakerLocked()
 	h.nickLosses = nil
+	h.fallbackReconnectAt = time.Time{}
 	h.resetSessionLocked()
 	h.currentNick = ""
 	client := h.client
@@ -1488,9 +1497,19 @@ func (h *Handler) onNick(client *ircevent.Connection, msg ircmsg.Message) {
 		return
 	}
 
-	h.m.RLock()
+	h.m.Lock()
 	authenticated := h.authenticated || h.saslauthed
-	h.m.RUnlock()
+	reconnect := h.inviteOnlyOnFallback && time.Since(h.fallbackReconnectAt) >= fallbackReconnectInterval
+	if reconnect {
+		h.fallbackReconnectAt = time.Now()
+	}
+	h.m.Unlock()
+
+	if reconnect {
+		h.log.Info().Str("nick", newNick).Msg("regained nick after an invite-only refusal on a fallback nick, reconnecting")
+		client.Reconnect()
+		return
+	}
 
 	// unauthenticated, the channels have not started yet and join once we are
 	if authenticated {
@@ -2103,6 +2122,14 @@ func (h *Handler) handleJoinError(msg ircmsg.Message) {
 
 	h.log.Warn().Str("channel", channel).Str("numeric", msg.Command).Str("reason", serverReason).Msg("channel join rejected")
 
+	if msg.Command == ircevent.ERR_INVITEONLYCHAN {
+		h.m.Lock()
+		if !h.caseMapping.equal(msg.Params[0], h.network.Nick) {
+			h.inviteOnlyOnFallback = true
+		}
+		h.m.Unlock()
+	}
+
 	// A JOIN rejection is channel-scoped: record it on the channel (deduped and
 	// cleared when the channel recovers) and let it gate network health via the
 	// channel. It must NOT go into the network-level connectionErrors bucket, which
@@ -2471,6 +2498,7 @@ func (h *Handler) resetSessionLocked() {
 	h.saslauthed = false
 	h.failedNickServAttempts = 0
 	h.requestedNick = ""
+	h.inviteOnlyOnFallback = false
 	h.resetIdentifyForm()
 }
 
