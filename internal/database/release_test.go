@@ -2084,6 +2084,10 @@ func TestReleaseRepo_DeleteReleaseProfileDuplicate(t *testing.T) {
 			require.NoError(t, err)
 
 			require.NoError(t, repo.DeleteReleaseProfileDuplicate(ctx, 1000))
+
+			var count int
+			require.NoError(t, testDb.db.Handler.QueryRowContext(ctx, "SELECT COUNT(*) FROM release_profile_duplicate WHERE id = 1000").Scan(&count))
+			assert.Zero(t, count)
 		})
 
 		t.Run(fmt.Sprintf("Delete_Missing [%s]", dbType), func(t *testing.T) {

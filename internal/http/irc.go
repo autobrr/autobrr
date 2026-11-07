@@ -166,9 +166,14 @@ func (h ircHandler) updateNetwork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var data domain.IrcNetwork
+	var data *domain.IrcNetwork
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
+		return
+	}
+
+	if data == nil {
+		h.encoder.BadRequestErr(w, errors.New("network is required"))
 		return
 	}
 
@@ -179,7 +184,7 @@ func (h ircHandler) updateNetwork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.service.UpdateNetwork(r.Context(), &data); err != nil {
+	if err := h.service.UpdateNetwork(r.Context(), data); err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
 			h.encoder.NotFoundErr(w, errors.New("network with id %d not found", networkID))
 			return

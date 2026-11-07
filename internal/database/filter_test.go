@@ -466,6 +466,7 @@ func TestFilterRepo_Find(t *testing.T) {
 
 			connections := map[string][]*domain.Indexer{
 				"Filter First":     {first},
+				"Filter Second":    {second},
 				"Filter Both":      {first, second},
 				"Filter Unmatched": {unmatched},
 			}
@@ -491,7 +492,7 @@ func TestFilterRepo_Find(t *testing.T) {
 			for _, filter := range filters {
 				names = append(names, filter.Name)
 			}
-			assert.Equal(t, []string{"Filter Both", "Filter First"}, names)
+			assert.Equal(t, []string{"Filter Both", "Filter First", "Filter Second"}, names)
 
 			for _, id := range filterIDs {
 				_ = repo.Delete(ctx, id)

@@ -22,10 +22,22 @@ import (
 
 type mockDownloaderService struct {
 	instance *downloader.Instance
+	err      error
 }
 
 func (m *mockDownloaderService) GetInstance(_ context.Context, _ int32) (*downloader.Instance, error) {
-	return m.instance, nil
+	return m.instance, m.err
+}
+
+func TestService_getProcessorMissingClient(t *testing.T) {
+	s := &Service{
+		log:           zerolog.Nop(),
+		downloaderSvc: &mockDownloaderService{err: domain.ErrRecordNotFound},
+	}
+
+	_, err := s.getProcessor(t.Context(), &domain.List{Type: domain.ListTypeRadarr, ClientID: 1})
+	assert.Error(t, err)
+	assert.NotErrorIs(t, err, domain.ErrRecordNotFound)
 }
 
 func TestService_getProcessor(t *testing.T) {

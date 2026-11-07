@@ -29,6 +29,11 @@ type processorBase struct {
 func (s *Service) getClientInstance[T any](ctx context.Context, clientID int) (*T, error) {
 	instance, err := s.downloaderSvc.GetInstance(ctx, int32(clientID))
 	if err != nil {
+		// deleting a client keeps its lists, so a bare ErrRecordNotFound here would read as a missing list
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			return nil, errors.Errorf("could not find download client: %d", clientID)
+		}
+
 		return nil, err
 	}
 

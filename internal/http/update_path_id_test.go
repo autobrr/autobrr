@@ -179,6 +179,9 @@ func TestUpdateHandlers_RejectNullBody(t *testing.T) {
 	r := chi.NewRouter()
 	r.Use(asCaller(testUser))
 	r.Route("/feeds", newFeedHandler(encoder{}, updateIDFeedService{id: &got}).Routes)
+	r.Route("/indexer", newIndexerHandler(encoder{}, updateIDIndexerService{id: &got}, nil).Routes)
+	r.Route("/proxy", newProxyHandler(encoder{}, updateIDProxyService{id: &got}).Routes)
+	r.Route("/irc", newIrcHandler(encoder{}, nil, updateIDIrcService{id: &got}).Routes)
 	r.Route("/lists", newListHandler(encoder{}, updateIDListService{id: &got}).Routes)
 	r.Route("/notification", newNotificationHandler(encoder{}, updateIDNotificationService{id: &got}).Routes)
 	r.Route("/release", newReleaseHandler(encoder{}, updateIDReleaseService{id: &got}).Routes)
@@ -189,6 +192,9 @@ func TestUpdateHandlers_RejectNullBody(t *testing.T) {
 		path   string
 	}{
 		{method: http.MethodPut, path: "/feeds/1"},
+		{method: http.MethodPut, path: "/indexer/1"},
+		{method: http.MethodPut, path: "/proxy/1"},
+		{method: http.MethodPut, path: "/irc/network/1"},
 		{method: http.MethodPut, path: "/lists/1"},
 		{method: http.MethodPut, path: "/notification/1"},
 		{method: http.MethodPut, path: "/release/cleanup-jobs/1"},
@@ -205,4 +211,6 @@ func TestUpdateHandlers_RejectNullBody(t *testing.T) {
 			assert.Equal(t, http.StatusBadRequest, rec.Code, rec.Body.String())
 		})
 	}
+
+	assert.Zero(t, got, "a null body reached a service")
 }
