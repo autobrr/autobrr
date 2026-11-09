@@ -279,7 +279,7 @@
       "cleanupJobEnabled": "zapnut",
       "cleanupJobDisabled": "vypnut",
       "duplicateFieldTitles": {
-        "releaseName": "Název releasu",
+        "releaseName": "Normalizovaný název releasu",
         "hash": "Normalizovaný hash názvu releasu. Použijte s názvem releasu pro identické shody",
         "title": "Zanalyzovaný název",
         "subTitle": "Zanalyzovaný podnázev, jako např. název epizody",
@@ -292,14 +292,17 @@
         "codec": "Kodek",
         "container": "Kontejner",
         "dynamicRange": "Dynamický rozsah (HDR,DV)",
-        "audio": "Audio formáty",
+        "audio": "Zvukové formáty a kanály",
         "season": "Sezóna",
         "episode": "Epizoda",
         "website": "Webová stránka/Služba",
         "proper": "Scénový proper",
         "repack": "Scénový repack",
         "edition": "Edice (např. Collectors Edition) a Cut (např. Directors Cut)",
-        "language": "Jazyk a Region"
+        "language": "Jazyk a Region",
+        "protocol": "Stejný protokol",
+        "mediaProcessing": "Rozlišuje REMUX a enkódy",
+        "hybrid": "Hybridní verze"
       },
       "noDuplicateProfiles": "Žádné duplikátní profily releasů",
       "addNewProfile": "Přidat nový profil releasu",
@@ -978,6 +981,8 @@
         "title": "Duplikátní profil",
         "added": "Profil byl přidán",
         "addFailed": "Profil nebyl přidán",
+        "updated": "Profil byl aktualizován",
+        "deleteWarning": "Filtry, které tento profil používají, přestanou přeskakovat duplikáty.",
         "deleted": "Profil {{name}} byl odstraněn!",
         "fields": {
           "name": "Název",
@@ -1002,19 +1007,24 @@
           "repack": "Scénový repack",
           "edition": "Edice",
           "hybrid": "Hybridní verze",
-          "language": "Jazyk"
+          "language": "Jazyk",
+          "protocol": "Protokol",
+          "mediaProcessing": "Zpracování médií"
         },
         "descriptions": {
-          "releaseName": "Plný název releasu",
+          "releaseName": "Porovná název releasu bez ohledu na velikost písmen, interpunkci a mezery. Ostatní přepínače se pak ignorují",
           "hash": "Normalizovaný hash názvu releasu. Použijte s názvem releasu pro identické shody",
-          "title": "Zdetekovaný název",
+          "title": "Rozpoznaný název bez ohledu na velikost písmen, diakritiku a interpunkci",
           "subTitle": "Zanalyzovaný podnázev, jako např. název epizody",
           "dailyReleases": "Pro denní releasy",
           "group": "Skupina",
           "website": "Služby jako AMZN/HULU/NF",
           "dynamicRange": "Dynamický rozsah (HDR,DV atd.)",
           "edition": "Edice a Cut",
-          "language": "Jazyk a Region"
+          "language": "Jazyk a Region",
+          "protocol": "Shoda jen u releasů se stejným protokolem (torrent nebo usenet)",
+          "mediaProcessing": "Rozlišuje REMUX a enkódy",
+          "audio": "Zvukové formáty a kanály"
         }
       },
       "cleanupJob": {

@@ -50,7 +50,6 @@ type releaseRepo interface {
 	StoreDuplicateProfile(ctx context.Context, profile *domain.DuplicateReleaseProfile) error
 	FindDuplicateReleaseProfiles(ctx context.Context) ([]*domain.DuplicateReleaseProfile, error)
 	DeleteReleaseProfileDuplicate(ctx context.Context, id int64) error
-	CheckIsDuplicateRelease(ctx context.Context, profile *domain.DuplicateReleaseProfile, release *domain.Release) (bool, error)
 
 	releaseCleanupJobRepo
 }

@@ -1,0 +1,24 @@
+-- duplicate checks look releases up by name_key or (title_key, year) now, and release search uses LIKE
+DROP INDEX IF EXISTS release_title_index;
+DROP INDEX IF EXISTS release_sub_title_index;
+DROP INDEX IF EXISTS release_season_index;
+DROP INDEX IF EXISTS release_episode_index;
+DROP INDEX IF EXISTS release_year_index;
+DROP INDEX IF EXISTS release_month_index;
+DROP INDEX IF EXISTS release_day_index;
+DROP INDEX IF EXISTS release_resolution_index;
+DROP INDEX IF EXISTS release_source_index;
+DROP INDEX IF EXISTS release_codec_index;
+DROP INDEX IF EXISTS release_container_index;
+DROP INDEX IF EXISTS release_audio_index;
+DROP INDEX IF EXISTS release_audio_channels_index;
+DROP INDEX IF EXISTS release_release_group_index;
+DROP INDEX IF EXISTS release_language_index;
+DROP INDEX IF EXISTS release_proper_index;
+DROP INDEX IF EXISTS release_repack_index;
+DROP INDEX IF EXISTS release_website_index;
+DROP INDEX IF EXISTS release_media_processing_index;
+DROP INDEX IF EXISTS release_region_index;
+DROP INDEX IF EXISTS release_edition_index;
+DROP INDEX IF EXISTS release_cut_index;
+DROP INDEX IF EXISTS release_hybrid_index;

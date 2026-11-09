@@ -68,3 +68,13 @@ func TestTitleKey(t *testing.T) {
 	assert.Empty(t, TitleKey(""))
 	assert.Empty(t, TitleKey("!!"))
 }
+
+func TestDuplicateReleaseProfile_Validate(t *testing.T) {
+	t.Parallel()
+
+	assert.NoError(t, (&DuplicateReleaseProfile{Name: "Exact", ReleaseName: true}).Validate())
+	assert.NoError(t, (&DuplicateReleaseProfile{Name: "TV", Title: true, Season: true, Episode: true}).Validate())
+	assert.Error(t, (&DuplicateReleaseProfile{Name: "Hash", Hash: true}).Validate())
+	assert.Error(t, (&DuplicateReleaseProfile{Name: "Episodes", Season: true, Episode: true}).Validate())
+	assert.Error(t, (&DuplicateReleaseProfile{ReleaseName: true}).Validate())
+}

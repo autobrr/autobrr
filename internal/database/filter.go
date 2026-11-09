@@ -536,6 +536,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			"rdp.language",
 			"rdp.hybrid",
 			"rdp.protocol",
+			"rdp.media_processing",
 		).
 		From("filter f").
 		Join("filter_indexer fi ON f.id = fi.filter_id").
@@ -570,7 +571,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 		var releaseProfileDuplicateID, rdpId sql.NullInt64
 
 		var rdpName sql.NullString
-		var rdpRelName, rdpHash, rdpTitle, rdpSubTitle, rdpYear, rdpMonth, rdpDay, rdpSource, rdpResolution, rdpCodec, rdpContainer, rdpDynRange, rdpAudio, rdpGroup, rdpSeason, rdpEpisode, rdpWebsite, rdpProper, rdpRepack, rdpEdition, rdpLanguage, rdpHybrid, rdpProtocol sql.NullBool
+		var rdpRelName, rdpHash, rdpTitle, rdpSubTitle, rdpYear, rdpMonth, rdpDay, rdpSource, rdpResolution, rdpCodec, rdpContainer, rdpDynRange, rdpAudio, rdpGroup, rdpSeason, rdpEpisode, rdpWebsite, rdpProper, rdpRepack, rdpEdition, rdpLanguage, rdpHybrid, rdpProtocol, rdpMediaProcessing sql.NullBool
 
 		err := rows.Scan(
 			&f.ID,
@@ -670,6 +671,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 			&rdpLanguage,
 			&rdpHybrid,
 			&rdpProtocol,
+			&rdpMediaProcessing,
 		)
 		if err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
@@ -724,31 +726,32 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 		// the filter pointing at nothing
 		if rdpId.Valid {
 			profile := domain.DuplicateReleaseProfile{
-				ID:           rdpId.Int64,
-				Name:         rdpName.String,
-				Protocol:     rdpProtocol.Bool,
-				ReleaseName:  rdpRelName.Bool,
-				Hash:         rdpHash.Bool,
-				Title:        rdpTitle.Bool,
-				SubTitle:     rdpSubTitle.Bool,
-				Year:         rdpYear.Bool,
-				Month:        rdpMonth.Bool,
-				Day:          rdpDay.Bool,
-				Source:       rdpSource.Bool,
-				Resolution:   rdpResolution.Bool,
-				Codec:        rdpCodec.Bool,
-				Container:    rdpContainer.Bool,
-				DynamicRange: rdpDynRange.Bool,
-				Audio:        rdpAudio.Bool,
-				Group:        rdpGroup.Bool,
-				Season:       rdpSeason.Bool,
-				Episode:      rdpEpisode.Bool,
-				Website:      rdpWebsite.Bool,
-				Proper:       rdpProper.Bool,
-				Repack:       rdpRepack.Bool,
-				Edition:      rdpEdition.Bool,
-				Language:     rdpLanguage.Bool,
-				Hybrid:       rdpHybrid.Bool,
+				ID:              rdpId.Int64,
+				Name:            rdpName.String,
+				Protocol:        rdpProtocol.Bool,
+				ReleaseName:     rdpRelName.Bool,
+				Hash:            rdpHash.Bool,
+				Title:           rdpTitle.Bool,
+				SubTitle:        rdpSubTitle.Bool,
+				Year:            rdpYear.Bool,
+				Month:           rdpMonth.Bool,
+				Day:             rdpDay.Bool,
+				Source:          rdpSource.Bool,
+				Resolution:      rdpResolution.Bool,
+				Codec:           rdpCodec.Bool,
+				Container:       rdpContainer.Bool,
+				DynamicRange:    rdpDynRange.Bool,
+				Audio:           rdpAudio.Bool,
+				Group:           rdpGroup.Bool,
+				Season:          rdpSeason.Bool,
+				Episode:         rdpEpisode.Bool,
+				Website:         rdpWebsite.Bool,
+				Proper:          rdpProper.Bool,
+				Repack:          rdpRepack.Bool,
+				Edition:         rdpEdition.Bool,
+				Language:        rdpLanguage.Bool,
+				Hybrid:          rdpHybrid.Bool,
+				MediaProcessing: rdpMediaProcessing.Bool,
 			}
 			f.DuplicateHandling = &profile
 		}

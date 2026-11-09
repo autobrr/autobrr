@@ -279,7 +279,7 @@
     "cleanupJobEnabled": "aktiviert",
     "cleanupJobDisabled": "deaktiviert",
     "duplicateFieldTitles": {
-      "releaseName": "Releasename",
+      "releaseName": "Normalisierter Releasename",
       "hash": "Normalisierter Hash des Releasenamens. Mit Releasename für exakten Treffer verwenden",
       "title": "Geparster Titel",
       "subTitle": "Geparster Untertitel wie Episodenname",
@@ -292,14 +292,17 @@
       "codec": "Codec",
       "container": "Container",
       "dynamicRange": "Dynamikumfang (HDR, DV usw.)",
-      "audio": "Audioformate",
+      "audio": "Audioformate und Kanäle",
       "season": "Staffel",
       "episode": "Folge",
       "website": "Website/Dienst",
       "proper": "Scene Proper",
       "repack": "Scene Repack",
       "edition": "Edition (z.B. Collector's Edition) und Schnitt (z.B. Director's Cut)",
-      "language": "Sprache und Region"
+      "language": "Sprache und Region",
+      "protocol": "Gleiches Protokoll",
+      "mediaProcessing": "REMUX und Encodes unterscheiden",
+      "hybrid": "Hybridversion"
     },
     "noDuplicateProfiles": "Keine Releaseduplikatprofile",
     "addNewProfile": "Neues Profil hinzufügen",
@@ -978,6 +981,8 @@
       "title": "Duplikatprofil",
       "added": "Profil wurde hinzugefügt",
       "addFailed": "Profil konnte nicht hinzugefügt werden",
+      "updated": "Profil wurde aktualisiert",
+      "deleteWarning": "Filter, die dieses Profil verwenden, überspringen keine Duplikate mehr.",
       "deleted": "Profil {{name}} wurde gelöscht!",
       "fields": {
         "name": "Name",
@@ -1002,19 +1007,24 @@
         "repack": "Repack",
         "edition": "Edition",
         "hybrid": "Hybridversion",
-        "language": "Sprache"
+        "language": "Sprache",
+        "protocol": "Protokoll",
+        "mediaProcessing": "Medienverarbeitung"
       },
       "descriptions": {
-        "releaseName": "Vollständiger Releasename",
+        "releaseName": "Vergleicht den Releasenamen ohne Groß-/Kleinschreibung, Satzzeichen und Leerzeichen. Andere Schalter werden dann ignoriert",
         "hash": "Normalisierter Hash des Releasenamens. Mit Releasename für exakten Treffer verwenden",
-        "title": "Geparster Titel",
+        "title": "Erkannter Titel ohne Groß-/Kleinschreibung, Akzente und Satzzeichen",
         "subTitle": "Geparster Untertitel wie Episodenname",
         "dailyReleases": "Für tägliche Releases",
         "group": "Releasegruppe",
         "website": "Dienste wie AMZN/HULU/NF",
         "dynamicRange": "Dynamikumfang (HDR, DV usw.)",
         "edition": "Edition und Schnitt",
-        "language": "Sprache und Region"
+        "language": "Sprache und Region",
+        "protocol": "Nur Releases mit demselben Protokoll vergleichen (Torrent oder Usenet)",
+        "mediaProcessing": "REMUX und Encodes unterscheiden",
+        "audio": "Audioformate und Kanäle"
       }
     },
     "cleanupJob": {

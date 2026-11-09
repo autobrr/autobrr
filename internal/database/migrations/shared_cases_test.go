@@ -340,3 +340,43 @@ func validateReleaseKeysBackfill(db *sql.DB, t *testing.T) {
 		3: {},
 	}, got)
 }
+
+func setupLegacyDuplicateProfiles(db *sql.DB) error {
+	_, err := db.Exec(`INSERT INTO release_profile_duplicate (id, name, release_name, hash, title, year, resolution, season) VALUES
+		(10, 'name and hash', TRUE, TRUE, FALSE, FALSE, FALSE, FALSE),
+		(11, 'hash only', FALSE, TRUE, FALSE, FALSE, FALSE, FALSE),
+		(12, 'name only', TRUE, FALSE, FALSE, FALSE, FALSE, FALSE),
+		(13, 'no flags', FALSE, FALSE, FALSE, FALSE, FALSE, FALSE),
+		(14, 'fields', FALSE, FALSE, TRUE, TRUE, TRUE, FALSE),
+		(15, 'name and fields', TRUE, FALSE, TRUE, FALSE, FALSE, TRUE)`)
+
+	return err
+}
+
+func validateDuplicateProfilesMapped(db *sql.DB, t *testing.T) {
+	rows, err := db.Query(`SELECT id, release_name, media_processing FROM release_profile_duplicate WHERE id >= 10 ORDER BY id`)
+	require.NoError(t, err)
+	defer rows.Close()
+
+	type flags struct {
+		releaseName, mediaProcessing bool
+	}
+
+	got := map[int]flags{}
+	for rows.Next() {
+		var id int
+		var f flags
+		require.NoError(t, rows.Scan(&id, &f.releaseName, &f.mediaProcessing))
+		got[id] = f
+	}
+	require.NoError(t, rows.Err())
+
+	assert.Equal(t, map[int]flags{
+		10: {releaseName: true},
+		11: {releaseName: true},
+		12: {releaseName: true},
+		13: {releaseName: true},
+		14: {mediaProcessing: true},
+		15: {mediaProcessing: true},
+	}, got)
+}

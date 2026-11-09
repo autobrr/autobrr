@@ -279,7 +279,7 @@
     "cleanupJobEnabled": "启用",
     "cleanupJobDisabled": "禁用",
     "duplicateFieldTitles": {
-      "releaseName": "发布名称",
+      "releaseName": "规范化的发布名称",
       "hash": "发布名称标准化后的哈希。与发布名称一起使用可实现精确匹配",
       "title": "解析后的标题",
       "subTitle": "解析后的副标题，例如剧集名称",
@@ -292,14 +292,17 @@
       "codec": "编码",
       "container": "容器",
       "dynamicRange": "动态范围（HDR、DV）",
-      "audio": "音频格式",
+      "audio": "音频格式和声道",
       "season": "季号",
       "episode": "集号",
       "website": "网站/服务",
       "proper": "Scene proper",
       "repack": "Scene repack",
       "edition": "版本（例如 Collectors Edition）和剪辑版本（例如 Directors Cut）",
-      "language": "语言和地区"
+      "language": "语言和地区",
+      "protocol": "相同协议",
+      "mediaProcessing": "区分 REMUX 与压制版本",
+      "hybrid": "混合版本"
     },
     "noDuplicateProfiles": "暂无重复发布配置",
     "addNewProfile": "新增配置",
@@ -978,6 +981,8 @@
       "title": "重复发布配置",
       "added": "配置已添加",
       "addFailed": "配置添加失败",
+      "updated": "配置已更新",
+      "deleteWarning": "使用此配置的过滤器将不再跳过重复项。",
       "deleted": "配置 {{name}} 已删除！",
       "fields": {
         "name": "名称",
@@ -1002,19 +1007,24 @@
         "repack": "Repack",
         "edition": "版本",
         "hybrid": "混合版本",
-        "language": "语言"
+        "language": "语言",
+        "protocol": "协议",
+        "mediaProcessing": "媒体处理"
       },
       "descriptions": {
-        "releaseName": "完整发布名称",
+        "releaseName": "比较发布名称，忽略大小写、标点和空格。启用后其他开关将被忽略",
         "hash": "发布名称的规范化哈希。配合“发布名称”可实现精确匹配",
-        "title": "解析后的标题",
+        "title": "解析出的标题，忽略大小写、重音和标点",
         "subTitle": "解析后的副标题，例如剧集名称",
         "dailyReleases": "适用于日报类发布",
         "group": "发布小组",
         "website": "如 AMZN/HULU/NF 等服务平台",
         "dynamicRange": "动态范围（HDR、DV 等）",
         "edition": "版本和剪辑版",
-        "language": "语言和地区"
+        "language": "语言和地区",
+        "protocol": "仅匹配相同协议的发布（torrent 或 usenet）",
+        "mediaProcessing": "区分 REMUX 与压制版本",
+        "audio": "音频格式和声道"
       }
     },
     "cleanupJob": {

@@ -737,6 +737,19 @@ func TestRunMigrationTest_SQLite(t *testing.T) {
 			},
 			want: "",
 		},
+		{
+			name:   "duplicate profiles mapped to explicit flags",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "duplicate profiles mapped to explicit flags",
+				MigrationIndex:      107,
+				MigrationsUntilName: "107_release_backfill_duplicate_keys",
+				MigrationToRun:      "108_duplicate_profiles_explicit_flags",
+				SetupData:           setupLegacyDuplicateProfiles,
+				ValidateResult:      validateDuplicateProfilesMapped,
+			},
+			want: "",
+		},
 	}
 
 	for _, tt := range tests {
