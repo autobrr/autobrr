@@ -114,6 +114,7 @@ type Release struct {
 	IsDuplicate                        bool                  `json:"-"`
 	SkipDuplicateProfileID             int64                 `json:"-"`
 	SkipDuplicateProfileName           string                `json:"-"`
+	DuplicateInFlight                  bool                  `json:"-"` // rejected only because a duplicate or newer episode is still being pushed
 	FilterID                           int                   `json:"-"`
 	Filter                             *Filter               `json:"-"`
 	ActionStatus                       []ReleaseActionStatus `json:"action_status"`

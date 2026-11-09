@@ -120,6 +120,7 @@ func PostgresMigrations(db *sql.DB, logger zerolog.Logger) *migrator.Migrator {
 	migrate.AddMigration(postgres.Migration96)
 	migrate.AddFileMigration("97_duplicate_profiles_explicit_flags.sql")
 	migrate.AddFileMigration("98_release_drop_unused_indexes.sql")
+	migrate.AddFileMigration("99_release_action_status_reject_tried_client_orphans.sql")
 
 	return migrate
 }

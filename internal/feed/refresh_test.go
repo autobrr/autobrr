@@ -237,6 +237,85 @@ func TestRefreshJob_RunE(t *testing.T) {
 	}
 }
 
+// inFlightReleaseSvc rejects the named releases the way processFilters does when a duplicate of
+// them is still being pushed, and reports the names it was handed.
+type inFlightReleaseSvc struct {
+	inFlight map[string]bool
+	got      chan []string
+}
+
+func (r *inFlightReleaseSvc) ProcessMultipleFromIndexer(_ context.Context, releases []*domain.Release, _ domain.IndexerMinimal) error {
+	names := make([]string, 0, len(releases))
+	for _, rls := range releases {
+		rls.DuplicateInFlight = r.inFlight[rls.TorrentName]
+		names = append(names, rls.TorrentName)
+	}
+
+	r.got <- names
+
+	return nil
+}
+
+// An item rejected while its duplicate was being pushed is checked again by the next run, even
+// though it is cached and the feed shows only cached items, so pagination stops on page 1.
+func TestRefreshJob_Run_retriesInFlightDuplicates(t *testing.T) {
+	now := time.Now()
+
+	src := &stubSource{res: &fetchResult{entries: []entry{newEntry("pushed", now), newEntry("in-flight", now), newEntry("rejected", now)}}}
+	cacheRepo := &recordingCacheRepo{}
+	releaseSvc := &inFlightReleaseSvc{inFlight: map[string]bool{"in-flight": true}, got: make(chan []string, 1)}
+
+	j := &refreshJob{
+		log:        zerolog.Nop(),
+		feed:       &domain.Feed{ID: 4},
+		src:        src,
+		repo:       &recordingFeedRepo{},
+		cacheRepo:  cacheRepo,
+		releaseSvc: releaseSvc,
+	}
+
+	handed := func() []string {
+		t.Helper()
+
+		select {
+		case names := <-releaseSvc.got:
+			return names
+		case <-time.After(time.Second):
+			t.Fatal("releases were not handed to the release service")
+			return nil
+		}
+	}
+
+	retried := func() bool {
+		j.retryMu.Lock()
+		defer j.retryMu.Unlock()
+
+		return len(j.retry) > 0
+	}
+
+	require.NoError(t, j.Run(t.Context()))
+	assert.Equal(t, []string{"rejected", "in-flight", "pushed"}, handed(), "oldest first")
+	require.Eventually(t, retried, time.Second, time.Millisecond)
+
+	// every item is cached now, so the fetch stops at the first one
+	src.res = &fetchResult{entries: []entry{newEntry("newer", now), newEntry("pushed", now), newEntry("in-flight", now)}}
+	cacheRepo.existing = map[string]bool{"pushed": true, "in-flight": true, "rejected": true}
+	releaseSvc.inFlight = nil
+
+	require.NoError(t, j.Run(t.Context()))
+	assert.Equal(t, []string{"in-flight", "newer"}, handed())
+	require.Never(t, retried, 50*time.Millisecond, time.Millisecond, "an item rejected for another reason is not retried")
+
+	cacheRepo.existing["newer"] = true
+
+	require.NoError(t, j.Run(t.Context()))
+	select {
+	case names := <-releaseSvc.got:
+		t.Fatalf("nothing new to process, got %v", names)
+	case <-time.After(50 * time.Millisecond):
+	}
+}
+
 func TestRefreshJob_RunE_processOrder(t *testing.T) {
 	now := time.Now()
 

@@ -1485,19 +1485,21 @@ func (repo *ReleaseRepo) DeleteReleaseProfileDuplicate(ctx context.Context, id i
 	return nil
 }
 
-func (repo *ReleaseRepo) CheckSmartEpisodeCanDownload(ctx context.Context, p *domain.SmartEpisodeParams) (bool, error) {
+// CheckSmartEpisodeCanDownload reports whether no newer episode of the show was grabbed. When one
+// was, inFlight reports whether every newer episode is still being pushed.
+func (repo *ReleaseRepo) CheckSmartEpisodeCanDownload(ctx context.Context, p *domain.SmartEpisodeParams) (canDownload bool, inFlight bool, err error) {
 	titleKey := domain.TitleKey(p.Title)
 	if titleKey == "" {
-		return true, nil
+		return true, false, nil
 	}
 
 	queryBuilder := repo.db.squirrel.
-		Select("COUNT(*)").
+		Select("COUNT(*)", "COUNT(CASE WHEN ras.status = 'PUSH_APPROVED' THEN 1 END)").
 		From("release r").
 		LeftJoin("release_action_status ras ON r.id = ras.release_id").
 		Where(sq.And{
 			sq.Eq{"r.title_key": titleKey},
-			sq.Eq{"ras.status": "PUSH_APPROVED"},
+			sq.Eq{"ras.status": []string{"PUSH_APPROVED", "PENDING"}},
 		})
 
 	if p.Proper {
@@ -1536,32 +1538,32 @@ func (repo *ReleaseRepo) CheckSmartEpisodeCanDownload(ctx context.Context, p *do
 	} else {
 		/* No support for this scenario today. Specifically multi-part specials.
 		 * The Database presently does not have Subtitle as a field, but is coming at a future date. */
-		return true, nil
+		return true, false, nil
 	}
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
-		return false, errors.Wrap(err, "error building query")
+		return false, false, errors.Wrap(err, "error building query")
 	}
 
 	repo.log.Trace().Str("method", "CheckSmartEpisodeCanDownload").Str("query", query).Interface("args", args).Msg("executing query")
 
 	row := repo.db.Handler.QueryRowContext(ctx, query, args...)
 	if err := row.Err(); err != nil {
-		return false, err
+		return false, false, err
 	}
 
-	var count int
+	var count, approved int
 
-	if err := row.Scan(&count); err != nil {
-		return false, err
+	if err := row.Scan(&count, &approved); err != nil {
+		return false, false, err
 	}
 
 	if count > 0 {
-		return false, nil
+		return false, approved == 0, nil
 	}
 
-	return true, nil
+	return true, false, nil
 }
 
 func (repo *ReleaseRepo) UpdateBaseURL(ctx context.Context, indexer string, oldBaseURL, newBaseURL string) error {
@@ -1614,8 +1616,9 @@ func (repo *ReleaseRepo) UpdateBaseURL(ctx context.Context, indexer string, oldB
 	return nil
 }
 
-// FindDuplicate returns the grabbed release that release duplicates under the profile, or nil.
-// Stored keys narrow the candidates through an index and profile.Matches decides.
+// FindDuplicate returns the grabbed or in-flight release that release duplicates under the
+// profile, or nil. A grabbed match wins over an in-flight one. Stored keys narrow the candidates
+// through an index and profile.Matches decides.
 func (repo *ReleaseRepo) FindDuplicate(ctx context.Context, profile *domain.DuplicateReleaseProfile, release *domain.Release) (*domain.DuplicateMatch, error) {
 	if !profile.ReleaseName && !profile.Title {
 		repo.log.Warn().Int64("profile_id", profile.ID).Str("profile", profile.Name).Msg("duplicate profile compares neither release name nor title, skipping check")
@@ -1652,9 +1655,10 @@ func (repo *ReleaseRepo) FindDuplicate(ctx context.Context, profile *domain.Dupl
 			"COALESCE(r.proper, FALSE)",
 			"COALESCE(r.repack, FALSE)",
 			"r.other",
+			"EXISTS (SELECT 1 FROM release_action_status ras WHERE ras.release_id = r.id AND ras.status = 'PUSH_APPROVED')",
 		).
 		From("release r").
-		Where("EXISTS (SELECT 1 FROM release_action_status ras WHERE ras.release_id = r.id AND ras.status = 'PUSH_APPROVED')").
+		Where("EXISTS (SELECT 1 FROM release_action_status ras WHERE ras.release_id = r.id AND ras.status IN ('PUSH_APPROVED', 'PENDING'))").
 		OrderBy("r.id DESC")
 
 	if release.ID != 0 {
@@ -1707,9 +1711,12 @@ func (repo *ReleaseRepo) FindDuplicate(ctx context.Context, profile *domain.Dupl
 
 	defer rows.Close()
 
+	var inFlight *domain.DuplicateMatch
+
 	for rows.Next() {
 		var candidate domain.Release
 		var codec, dynamicRange, language, audio, cut, edition string
+		var approved bool
 
 		if err := rows.Scan(
 			&candidate.ID,
@@ -1740,6 +1747,7 @@ func (repo *ReleaseRepo) FindDuplicate(ctx context.Context, profile *domain.Dupl
 			&candidate.Proper,
 			&candidate.Repack,
 			pq.Array(&candidate.Other),
+			&approved,
 		); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
@@ -1751,10 +1759,18 @@ func (repo *ReleaseRepo) FindDuplicate(ctx context.Context, profile *domain.Dupl
 		candidate.Cut = strings.Split(cut, ",")
 		candidate.Edition = strings.Split(edition, ",")
 
-		if profile.Matches(release, &candidate) {
-			repo.log.Debug().Int64("profile_id", profile.ID).Str("profile", profile.Name).Int64("duplicate_of", candidate.ID).Str("duplicate_name", candidate.TorrentName).Msg("found duplicate release")
+		if !profile.Matches(release, &candidate) {
+			continue
+		}
 
+		repo.log.Debug().Int64("profile_id", profile.ID).Str("profile", profile.Name).Int64("duplicate_of", candidate.ID).Str("duplicate_name", candidate.TorrentName).Bool("in_flight", !approved).Msg("found duplicate release")
+
+		if approved {
 			return &domain.DuplicateMatch{ReleaseID: candidate.ID, ReleaseName: candidate.TorrentName}, nil
+		}
+
+		if inFlight == nil {
+			inFlight = &domain.DuplicateMatch{ReleaseID: candidate.ID, ReleaseName: candidate.TorrentName, InFlight: true}
 		}
 	}
 
@@ -1762,7 +1778,35 @@ func (repo *ReleaseRepo) FindDuplicate(ctx context.Context, profile *domain.Dupl
 		return nil, errors.Wrap(err, "row error")
 	}
 
-	return nil, nil
+	return inFlight, nil
+}
+
+// FailPendingActionStatuses marks every PENDING action status as PUSH_ERROR. It runs at startup,
+// when no push can still be in flight, so a push interrupted by a restart stops counting as a
+// grab and no longer blocks its duplicates.
+func (repo *ReleaseRepo) FailPendingActionStatuses(ctx context.Context) (int64, error) {
+	queryBuilder := repo.db.squirrel.
+		Update("release_action_status").
+		Set("status", domain.ReleasePushStatusErr).
+		Set("rejections", pq.Array([]string{"interrupted by restart"})).
+		Where(sq.Eq{"status": domain.ReleasePushStatusPending})
+
+	query, args, err := queryBuilder.ToSql()
+	if err != nil {
+		return 0, errors.Wrap(err, "error building query")
+	}
+
+	result, err := repo.db.Handler.ExecContext(ctx, query, args...)
+	if err != nil {
+		return 0, errors.Wrap(err, "error executing query")
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return 0, errors.Wrap(err, "error getting rows affected")
+	}
+
+	return rowsAffected, nil
 }
 
 func (r *ReleaseRepo) ListCleanupJobs(ctx context.Context) ([]*domain.ReleaseCleanupJob, error) {

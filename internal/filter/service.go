@@ -78,7 +78,7 @@ type notificationService interface {
 }
 
 type releaseRepo interface {
-	CheckSmartEpisodeCanDownload(ctx context.Context, p *domain.SmartEpisodeParams) (bool, error)
+	CheckSmartEpisodeCanDownload(ctx context.Context, p *domain.SmartEpisodeParams) (canDownload bool, inFlight bool, err error)
 	FindDuplicate(ctx context.Context, profile *domain.DuplicateReleaseProfile, release *domain.Release) (*domain.DuplicateMatch, error)
 }
 
@@ -603,56 +603,31 @@ func (s *Service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 		return false, nil
 	}
 
-	// smartEpisode check
 	if f.SmartEpisode {
-		params := &domain.SmartEpisodeParams{
-			Title:   release.Title,
-			Season:  release.Season,
-			Episode: release.Episode,
-			Year:    release.Year,
-			Month:   release.Month,
-			Day:     release.Day,
-			Repack:  release.Repack,
-			Proper:  release.Proper,
-			Group:   release.Group,
-		}
-		canDownloadShow, err := s.CheckSmartEpisodeCanDownload(ctx, params)
+		ok, err := s.checkSmartEpisode(ctx, f, release)
 		if err != nil {
-			l.Trace().Msg("failed smart episode check")
+			l.Error().Err(err).Msg("could not run smart episode check")
 			return false, nil
 		}
 
-		if !canDownloadShow {
+		if !ok {
 			l.Trace().Msg("failed smart episode check")
-			if params.IsDailyEpisode() {
-				f.RejectReasons.Add("smart episode", fmt.Sprintf("not new (%s) daily: %d-%d-%d", release.Title, release.Year, release.Month, release.Day), fmt.Sprintf("expected newer than (%s) daily: %d-%d-%d", release.Title, release.Year, release.Month, release.Day))
-			} else {
-				f.RejectReasons.Add("smart episode", fmt.Sprintf("not new (%s) season: %d ep: %d", release.Title, release.Season, release.Episode), fmt.Sprintf("expected newer than (%s) season: %d ep: %d", release.Title, release.Season, release.Episode))
-			}
 			return false, nil
 		}
 	}
 
-	// check duplicates
+	duplicateInFlight := false
+
 	if f.DuplicateHandling != nil {
 		l.Debug().Str("profile", f.DuplicateHandling.Name).Msg("check is duplicate with profile")
 
-		release.SkipDuplicateProfileID = f.DuplicateHandling.ID
-		release.SkipDuplicateProfileName = f.DuplicateHandling.Name
-
-		match, err := s.releaseRepo.FindDuplicate(ctx, f.DuplicateHandling, release)
+		match, err := s.checkDuplicate(ctx, f, release)
 		if err != nil {
-			return false, errors.Wrap(err, "error finding duplicate handle")
+			return false, err
 		}
 
-		if match != nil {
-			l.Debug().Str("profile", f.DuplicateHandling.Name).Int64("duplicate_of", match.ReleaseID).Msg("rejected release as duplicate with profile")
-			f.RejectReasons.Add("duplicate", fmt.Sprintf("duplicate of release %d %s", match.ReleaseID, match.ReleaseName), "not duplicate")
-
-			// let it continue so external filters can trigger checks
-			//return false, nil
-			release.IsDuplicate = true
-		}
+		// let it continue so external filters can trigger checks
+		duplicateInFlight = match != nil && match.InFlight
 	}
 
 	// if matched, do additional size check if needed, attach actions and return the filter
@@ -721,7 +696,109 @@ func (s *Service) CheckFilter(ctx context.Context, f *domain.Filter, release *do
 		}
 	}
 
+	if duplicateInFlight && f.RejectReasons.Len() == 1 {
+		release.DuplicateInFlight = true
+	}
+
 	return true, nil
+}
+
+// CheckClaim re-runs the checks that depend on what other pushes have grabbed: the download
+// limit, smart episode and the duplicate lookup. The release service calls it while it holds the
+// claim lock, after CheckFilter passed, so a release grabbed in the meantime is seen.
+func (s *Service) CheckClaim(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error) {
+	if f.IsMaxDownloadsLimitEnabled() {
+		if err := s.repo.GetFilterDownloadCount(ctx, f); err != nil {
+			return false, err
+		}
+
+		if !f.CheckMaxDownloads() {
+			return false, nil
+		}
+	}
+
+	if f.SmartEpisode {
+		ok, err := s.checkSmartEpisode(ctx, f, release)
+		if err != nil || !ok {
+			return false, err
+		}
+	}
+
+	if f.DuplicateHandling != nil {
+		match, err := s.checkDuplicate(ctx, f, release)
+		if err != nil {
+			return false, err
+		}
+
+		if match != nil {
+			release.DuplicateInFlight = match.InFlight
+			return false, nil
+		}
+	}
+
+	return true, nil
+}
+
+// checkSmartEpisode reports whether the release is newer than every grabbed or in-flight episode
+// of the show, and adds the smart episode rejection when it is not. A release blocked only by
+// episodes still being pushed is marked DuplicateInFlight.
+func (s *Service) checkSmartEpisode(ctx context.Context, f *domain.Filter, release *domain.Release) (bool, error) {
+	params := &domain.SmartEpisodeParams{
+		Title:   release.Title,
+		Season:  release.Season,
+		Episode: release.Episode,
+		Year:    release.Year,
+		Month:   release.Month,
+		Day:     release.Day,
+		Repack:  release.Repack,
+		Proper:  release.Proper,
+		Group:   release.Group,
+	}
+
+	canDownloadShow, inFlight, err := s.CheckSmartEpisodeCanDownload(ctx, params)
+	if err != nil {
+		return false, err
+	}
+
+	if canDownloadShow {
+		return true, nil
+	}
+
+	release.DuplicateInFlight = inFlight
+
+	if params.IsDailyEpisode() {
+		f.RejectReasons.Add("smart episode", fmt.Sprintf("not new (%s) daily: %d-%d-%d", release.Title, release.Year, release.Month, release.Day), fmt.Sprintf("expected newer than (%s) daily: %d-%d-%d", release.Title, release.Year, release.Month, release.Day))
+	} else {
+		f.RejectReasons.Add("smart episode", fmt.Sprintf("not new (%s) season: %d ep: %d", release.Title, release.Season, release.Episode), fmt.Sprintf("expected newer than (%s) season: %d ep: %d", release.Title, release.Season, release.Episode))
+	}
+
+	return false, nil
+}
+
+// checkDuplicate looks the release up with the filter's duplicate profile and, on a match, marks
+// the release as a duplicate and adds the rejection.
+func (s *Service) checkDuplicate(ctx context.Context, f *domain.Filter, release *domain.Release) (*domain.DuplicateMatch, error) {
+	release.SkipDuplicateProfileID = f.DuplicateHandling.ID
+	release.SkipDuplicateProfileName = f.DuplicateHandling.Name
+
+	match, err := s.releaseRepo.FindDuplicate(ctx, f.DuplicateHandling, release)
+	if err != nil {
+		return nil, errors.Wrap(err, "error finding duplicate handle")
+	}
+
+	if match == nil {
+		return nil, nil
+	}
+
+	reason := fmt.Sprintf("duplicate of release %d %s", match.ReleaseID, match.ReleaseName)
+	if match.InFlight {
+		reason = fmt.Sprintf("duplicate of release %d %s being pushed", match.ReleaseID, match.ReleaseName)
+	}
+
+	f.RejectReasons.Add("duplicate", reason, "not duplicate")
+	release.IsDuplicate = true
+
+	return match, nil
 }
 
 // AdditionalSizeCheck performs additional out-of-band checks to determine the
@@ -938,7 +1015,7 @@ func (s *Service) AdditionalRecordLabelCheck(ctx context.Context, f *domain.Filt
 	return true, nil
 }
 
-func (s *Service) CheckSmartEpisodeCanDownload(ctx context.Context, params *domain.SmartEpisodeParams) (bool, error) {
+func (s *Service) CheckSmartEpisodeCanDownload(ctx context.Context, params *domain.SmartEpisodeParams) (canDownload bool, inFlight bool, err error) {
 	return s.releaseRepo.CheckSmartEpisodeCanDownload(ctx, params)
 }
 

@@ -7,6 +7,7 @@ import (
 	"context"
 	"slices"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -44,6 +45,11 @@ type refreshJob struct {
 	// hasFetched is set once a run has cached its first page, whose items bound the next run's
 	// pagination even though feed.LastRun is still the snapshot from scheduling
 	hasFetched bool
+
+	// retry holds the items rejected only because a duplicate of them was still being pushed.
+	// They are cached, and pagination stops at cached items, so the next run adds them itself.
+	retryMu sync.Mutex
+	retry   []entry
 }
 
 func (j *refreshJob) Run(ctx context.Context) error {
@@ -52,8 +58,11 @@ func (j *refreshJob) Run(ctx context.Context) error {
 		return err
 	}
 
+	entries = append(j.takeRetries(), entries...)
+
 	now := time.Now()
 	releases := make([]*domain.Release, 0, len(entries))
+	sources := make(map[*domain.Release]entry, len(entries))
 
 	for _, e := range entries {
 		if j.feed.MaxAge > 0 && e.pubDate.After(minPubDate) && !isNewerThanMaxAge(j.feed.MaxAge, e.pubDate, now) {
@@ -61,7 +70,10 @@ func (j *refreshJob) Run(ctx context.Context) error {
 			continue
 		}
 
-		releases = append(releases, e.release())
+		rls := e.release()
+		sources[rls] = e
+
+		releases = append(releases, rls)
 	}
 
 	if len(releases) == 0 {
@@ -75,9 +87,47 @@ func (j *refreshJob) Run(ctx context.Context) error {
 
 	j.log.Debug().Int("items_count", len(releases)).Msg("found new items to process")
 
-	go j.releaseSvc.ProcessMultipleFromIndexer(context.WithoutCancel(ctx), releases, j.feed.Indexer)
+	go func() {
+		_ = j.releaseSvc.ProcessMultipleFromIndexer(context.WithoutCancel(ctx), releases, j.feed.Indexer)
+
+		j.retryInFlightDuplicates(releases, sources)
+	}()
 
 	return nil
+}
+
+// retryInFlightDuplicates queues the items rejected only because a duplicate of them was still
+// being pushed, so the next run checks them again: they are pushed if that push failed and
+// rejected as a plain duplicate if it went through. The queue lives in memory; after a restart
+// the interrupted push is failed and its rejected copies are not checked again.
+func (j *refreshJob) retryInFlightDuplicates(releases []*domain.Release, sources map[*domain.Release]entry) {
+	var retry []entry
+	for _, rls := range releases {
+		if !rls.DuplicateInFlight {
+			continue
+		}
+
+		j.log.Debug().Str("item", rls.TorrentName).Msg("rejected while a duplicate was being pushed, checking again next run")
+		retry = append(retry, sources[rls])
+	}
+
+	if len(retry) == 0 {
+		return
+	}
+
+	j.retryMu.Lock()
+	j.retry = append(j.retry, retry...)
+	j.retryMu.Unlock()
+}
+
+func (j *refreshJob) takeRetries() []entry {
+	j.retryMu.Lock()
+	defer j.retryMu.Unlock()
+
+	retry := j.retry
+	j.retry = nil
+
+	return retry
 }
 
 // maxPages fetches a single page when the cache holds no boundary from a previous run, so a

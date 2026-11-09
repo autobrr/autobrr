@@ -60,6 +60,11 @@ func (s *Service) runQbittorrent(ctx context.Context, action *domain.Action, rel
 
 	if release.HasMagnetUri() {
 		if _, err = client.AddTorrentFromUrlCtx(ctx, release.MagnetURI, options); err != nil {
+			if s.qbittorrentHasTorrent(ctx, client, err, release.TorrentHash) {
+				l.Warn().Str("hash", release.TorrentHash).Str("client", cfg.Name).Msg("torrent already exists in client")
+				return nil, nil
+			}
+
 			return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.MagnetURI, cfg.Name)
 		}
 
@@ -73,36 +78,23 @@ func (s *Service) runQbittorrent(ctx context.Context, action *domain.Action, rel
 	}
 
 	if _, err = client.AddTorrentFromMemoryCtx(ctx, release.TorrentDataRawBytes, options); err != nil {
+		if s.qbittorrentHasTorrent(ctx, client, err, release.TorrentHash) {
+			l.Warn().Str("hash", release.TorrentHash).Str("client", cfg.Name).Msg("torrent already exists in client")
+			return nil, nil
+		}
+
 		return nil, errors.Wrap(err, "could not add torrent %s to client: %s", release.TorrentName, cfg.Name)
 	}
+
+	// the torrent is in the client from here on, so later errors are logged and the push still
+	// counts as approved
 
 	if release.TorrentHash != "" {
 		// check if torrent queueing is enabled if priority is set
 		switch action.PriorityLayout {
 		case domain.PriorityLayoutMax, domain.PriorityLayoutMin:
-			prefs, err := client.GetAppPreferencesCtx(ctx)
-			if err != nil {
-				return nil, errors.Wrap(err, "could not get application preferences from client: '%s'", cfg.Name)
-			}
-			// enable queueing if it's disabled
-			if !prefs.QueueingEnabled {
-				if err := client.SetPreferencesQueueingEnabled(true); err != nil {
-					return nil, errors.Wrap(err, "could not enable torrent queueing")
-				}
-				l.Trace().Str("client", cfg.Name).Msg("torrent queueing was disabled, now enabled in client")
-			}
-			// set priority if queueing is enabled
-			if action.PriorityLayout == domain.PriorityLayoutMax {
-				if err := client.SetMaxPriorityCtx(ctx, []string{release.TorrentHash}); err != nil {
-					return nil, errors.Wrap(err, "could not set torrent %s to max priority", release.TorrentHash)
-				}
-				l.Debug().Str("hash", release.TorrentHash).Str("client", cfg.Name).Msg("torrent set to max priority in client")
-
-			} else { // domain.PriorityLayoutMin
-				if err := client.SetMinPriorityCtx(ctx, []string{release.TorrentHash}); err != nil {
-					return nil, errors.Wrap(err, "could not set torrent %s to min priority", release.TorrentHash)
-				}
-				l.Debug().Str("hash", release.TorrentHash).Str("client", cfg.Name).Msg("torrent set to min priority in client")
+			if err := s.qbittorrentSetPriority(ctx, client, action.PriorityLayout, release.TorrentHash); err != nil {
+				l.Warn().Err(err).Str("hash", release.TorrentHash).Str("client", cfg.Name).Msg("torrent added to client but could not set priority")
 			}
 
 		case domain.PriorityLayoutDefault:
@@ -116,9 +108,11 @@ func (s *Service) runQbittorrent(ctx context.Context, action *domain.Action, rel
 	}
 
 	if !action.Paused && !action.ReAnnounceSkip && release.TorrentHash != "" {
+		interval, maxAttempts := action.ReannounceSchedule(0)
+
 		opts := qbittorrent.ReannounceOptions{
-			Interval:        int(action.ReAnnounceInterval),
-			MaxAttempts:     int(action.ReAnnounceMaxAttempts),
+			Interval:        interval,
+			MaxAttempts:     maxAttempts,
 			DeleteOnFailure: action.ReAnnounceDelete,
 		}
 
@@ -127,13 +121,67 @@ func (s *Service) runQbittorrent(ctx context.Context, action *domain.Action, rel
 				return []string{fmt.Sprintf("re-announce took too long for hash: %s", release.TorrentHash)}, nil
 			}
 
-			return nil, errors.Wrap(err, "could not reannounce torrent: %s", release.TorrentHash)
+			l.Warn().Err(err).Str("hash", release.TorrentHash).Str("client", cfg.Name).Msg("torrent added to client but re-announce failed")
 		}
 	}
 
 	l.Info().Str("hash", release.TorrentHash).Str("client", cfg.Name).Msg("release successfully added to client")
 
 	return nil, nil
+}
+
+// qbittorrentHasTorrent reports whether a failed add failed because the client already holds the
+// torrent. qBittorrent 5.2 answers a duplicate add with 409, which go-qbittorrent maps to the same
+// error as an invalid torrent file, so the hash lookup tells them apart.
+func (s *Service) qbittorrentHasTorrent(ctx context.Context, client *qbittorrent.Client, addErr error, hash string) bool {
+	if hash == "" || !errors.Is(addErr, qbittorrent.ErrTorrentAddFailed) {
+		return false
+	}
+
+	torrents, err := client.GetTorrentsCtx(ctx, qbittorrent.TorrentFilterOptions{Hashes: []string{hash}})
+	if err != nil {
+		zerolog.Ctx(ctx).Error().Err(err).Str("hash", hash).Msg("could not look up torrent in client after failed add")
+		return false
+	}
+
+	return len(torrents) > 0
+}
+
+// qbittorrentSetPriority moves the torrent to the top or bottom of the queue, enabling queueing
+// in the client first if it is off.
+func (s *Service) qbittorrentSetPriority(ctx context.Context, client *qbittorrent.Client, layout domain.PriorityLayout, hash string) error {
+	l := zerolog.Ctx(ctx)
+
+	prefs, err := client.GetAppPreferencesCtx(ctx)
+	if err != nil {
+		return errors.Wrap(err, "could not get application preferences from client")
+	}
+
+	if !prefs.QueueingEnabled {
+		if err := client.SetPreferencesQueueingEnabled(true); err != nil {
+			return errors.Wrap(err, "could not enable torrent queueing")
+		}
+
+		l.Trace().Msg("torrent queueing was disabled, now enabled in client")
+	}
+
+	if layout == domain.PriorityLayoutMax {
+		if err := client.SetMaxPriorityCtx(ctx, []string{hash}); err != nil {
+			return errors.Wrap(err, "could not set torrent %s to max priority", hash)
+		}
+
+		l.Debug().Str("hash", hash).Msg("torrent set to max priority in client")
+
+		return nil
+	}
+
+	if err := client.SetMinPriorityCtx(ctx, []string{hash}); err != nil {
+		return errors.Wrap(err, "could not set torrent %s to min priority", hash)
+	}
+
+	l.Debug().Str("hash", hash).Msg("torrent set to min priority in client")
+
+	return nil
 }
 
 func (s *Service) prepareQbitOptions(action *domain.Action) (map[string]string, error) {

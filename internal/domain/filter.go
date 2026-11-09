@@ -467,13 +467,7 @@ func (f *Filter) CheckFilter(r *Release) (*RejectionReasons, bool) {
 	f.RejectReasons = NewRejectionReasons()
 
 	// Max downloads check. If reached return early so other filters can be checked as quick as possible.
-	if f.IsMaxDownloadsLimitEnabled() && !f.checkMaxDownloads() {
-		msg := fmt.Sprintf("reached %d per %s", f.MaxDownloads, f.MaxDownloadsUnit)
-		if period := f.MaxDownloadsPeriodNormalized(); period > 1 {
-			msg = fmt.Sprintf("reached %d per %d %s", f.MaxDownloads, period, f.MaxDownloadsUnit)
-		}
-
-		f.RejectReasons.Addf("max downloads", "[%[1]s] %[3]s", f.Downloads.String(), msg)
+	if !f.CheckMaxDownloads() {
 		return f.RejectReasons, false
 	}
 
@@ -775,12 +769,25 @@ func (f *Filter) IsMaxDownloadsLimitEnabled() bool {
 	return f.MaxDownloads > 0 && f.MaxDownloadsUnit != ""
 }
 
-func (f *Filter) checkMaxDownloads() bool {
-	if f.Downloads == nil {
-		return false
+// CheckMaxDownloads reports whether the filter is below its download limit from the loaded
+// Downloads, and adds the max downloads rejection when it is not.
+func (f *Filter) CheckMaxDownloads() bool {
+	if !f.IsMaxDownloadsLimitEnabled() {
+		return true
 	}
 
-	return f.Downloads.PeriodCount < f.MaxDownloads
+	if f.Downloads != nil && f.Downloads.PeriodCount < f.MaxDownloads {
+		return true
+	}
+
+	msg := fmt.Sprintf("reached %d per %s", f.MaxDownloads, f.MaxDownloadsUnit)
+	if period := f.MaxDownloadsPeriodNormalized(); period > 1 {
+		msg = fmt.Sprintf("reached %d per %d %s", f.MaxDownloads, period, f.MaxDownloadsUnit)
+	}
+
+	f.RejectReasons.Addf("max downloads", "[%[1]s] %[3]s", f.Downloads.String(), msg)
+
+	return false
 }
 
 // checkSizeFilter compares the filter size limits to a release's size if it is
