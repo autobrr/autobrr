@@ -108,7 +108,7 @@ func (c *conn) handle(msg ircmsg.Message) (quit bool) {
 		c.handleCap(msg)
 	case "NICK":
 		if len(msg.Params) > 0 {
-			if strings.EqualFold(msg.Params[0], c.srv.heldNick) {
+			if c.srv.nickHeld(msg.Params[0]) {
 				c.numeric(433, msg.Params[0], "Nickname is already in use")
 				return false
 			}
@@ -235,6 +235,10 @@ func (c *conn) tryRegister() {
 	c.sendf(":%s 372 %s :- in-process test ircd", serverName, nick)
 	c.sendf(":%s 376 %s :End of /MOTD command.", serverName, nick)
 
+	if c.srv.joinOnConnectNick != "" && strings.EqualFold(nick, c.srv.joinOnConnectNick) {
+		c.srv.ForceJoin(nick, c.srv.joinOnConnectChannel)
+	}
+
 	// modelled ban: registration succeeds, then the server K-Line/G-Lines us with a
 	// 465 and closes the link. Sending it post-welcome (rather than rejecting at
 	// registration) means the handler's Connect() succeeds and the 465 is delivered
@@ -269,6 +273,10 @@ func (c *conn) joinOne(name, key string) {
 	nick := c.getNick()
 
 	c.srv.mu.Lock()
+	if ch.members[strings.ToLower(nick)] == c {
+		c.srv.mu.Unlock()
+		return // servers ignore a JOIN for a channel the client is already in
+	}
 	badKey := ch.key != "" && key != ch.key
 	needInvite := ch.inviteOnly && !ch.invited[strings.ToLower(nick)]
 	needReg := ch.regOnly && c.account == ""

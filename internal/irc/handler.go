@@ -133,9 +133,13 @@ type Handler struct {
 	haveDisconnected bool
 	shortSessionEnds []time.Time
 	nickLosses       []time.Time
-	requestedNick    string // set by NickChange until the server acknowledges it
-	authenticated    bool
-	saslauthed       bool
+	// channels whose JOIN got 473 on a fallback nick and that have not joined since:
+	// some servers join the client at connect only when it connects on its own nick,
+	// and a JOIN never opens the channel
+	refusedOnFallback map[string]bool
+	requestedNick     string // set by NickChange until the server acknowledges it
+	authenticated     bool
+	saslauthed        bool
 
 	identifyAttempt     identifyForm
 	identifyEscalated   bool
@@ -1488,9 +1492,24 @@ func (h *Handler) onNick(client *ircevent.Connection, msg ircmsg.Message) {
 		return
 	}
 
-	h.m.RLock()
+	h.m.Lock()
 	authenticated := h.authenticated || h.saslauthed
-	h.m.RUnlock()
+	refused := h.refusedOnFallback
+	h.refusedOnFallback = nil
+	h.m.Unlock()
+
+	reconnect := false
+	for key := range refused {
+		if channel, found := h.channels.Get(key); found && channel.IsEnabled() {
+			reconnect = true
+		}
+	}
+
+	if reconnect {
+		h.log.Info().Str("nick", newNick).Msg("regained nick after an invite-only refusal on a fallback nick, reconnecting")
+		client.Reconnect()
+		return
+	}
 
 	// unauthenticated, the channels have not started yet and join once we are
 	if authenticated {
@@ -1945,6 +1964,10 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 	// check if channel is valid and if not lets part
 	ircChannel, key, found := h.getChannel(channel)
 	if found {
+		h.m.Lock()
+		delete(h.refusedOnFallback, key)
+		h.m.Unlock()
+
 		if sm := ircChannel.StateMachine(); sm != nil {
 			sm.OnJoinSuccess()
 		}
@@ -2102,6 +2125,17 @@ func (h *Handler) handleJoinError(msg ircmsg.Message) {
 	}
 
 	h.log.Warn().Str("channel", channel).Str("numeric", msg.Command).Str("reason", serverReason).Msg("channel join rejected")
+
+	if _, key, found := h.getChannel(channel); found && msg.Command == ircevent.ERR_INVITEONLYCHAN {
+		h.m.Lock()
+		if !h.caseMapping.equal(msg.Params[0], h.network.Nick) {
+			if h.refusedOnFallback == nil {
+				h.refusedOnFallback = map[string]bool{}
+			}
+			h.refusedOnFallback[key] = true
+		}
+		h.m.Unlock()
+	}
 
 	// A JOIN rejection is channel-scoped: record it on the channel (deduped and
 	// cleared when the channel recovers) and let it gate network health via the
@@ -2471,6 +2505,7 @@ func (h *Handler) resetSessionLocked() {
 	h.saslauthed = false
 	h.failedNickServAttempts = 0
 	h.requestedNick = ""
+	h.refusedOnFallback = nil
 	h.resetIdentifyForm()
 }
 

@@ -67,6 +67,8 @@ type Server struct {
 
 	heldNick string // taken by a client we do not model
 
+	joinOnConnectNick, joinOnConnectChannel string
+
 	closed chan struct{}
 	wg     sync.WaitGroup
 }
@@ -91,9 +93,22 @@ func WithNickServScript(script NickServScript) Option {
 
 // NickHeld answers a NICK for nick with 433 (ERR_NICKNAMEINUSE), like a server
 // that still holds the previous connection of the client. SendNickChange can
-// still move a client onto it.
+// still move a client onto it, and that ends the hold.
 func NickHeld(nick string) Option {
 	return func(s *Server) { s.heldNick = nick }
+}
+
+func (s *Server) nickHeld(nick string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return strings.EqualFold(nick, s.heldNick)
+}
+
+// JoinOnConnect has the server join a client to channel when it registers as
+// nick, bypassing +i, like a network that joins its users at connect. A client
+// that registers on another nick and later takes nick is not joined.
+func JoinOnConnect(nick, channel string) Option {
+	return func(s *Server) { s.joinOnConnectNick, s.joinOnConnectChannel = nick, channel }
 }
 
 // RequireValidSASL makes SASL logins fail unless they match a registered
@@ -421,6 +436,9 @@ func (s *Server) SendNickChange(nick, sourceNick, newNick string) {
 		}
 	}
 	c.setNick(newNick)
+	if strings.EqualFold(newNick, s.heldNick) {
+		s.heldNick = ""
+	}
 	s.mu.Unlock()
 
 	c.sendf(":%s!%s NICK :%s", sourceNick, userHost, newNick)
