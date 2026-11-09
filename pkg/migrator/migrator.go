@@ -249,6 +249,11 @@ func (m *Migrator) BeginTx() (*sql.Tx, error) {
 	return m.db.BeginTx(context.Background(), nil)
 }
 
+// Migrations returns the registered migrations in the order they run.
+func (m *Migrator) Migrations() []*Migration {
+	return m.migrations
+}
+
 func (m *Migrator) TotalMigrations() int {
 	return len(m.migrations)
 }
@@ -622,7 +627,7 @@ func (m *Migrator) readFile(filename string) ([]byte, error) {
 	return data, nil
 }
 
-func (m *Migrator) migrateInitialSchema() error {
+func (m *Migrator) migrateInitialSchema() (err error) {
 	if m.initialSchema == "" && m.initialSchemaFile != "" {
 		data, err := m.readFile(m.initialSchemaFile)
 		if err != nil {
@@ -653,7 +658,7 @@ func (m *Migrator) migrateInitialSchema() error {
 		return errors.Wrap(err, "error applying base schema migration")
 	}
 
-	if err := m.updateSchemaVersions(tx, m.migrations); err != nil {
+	if err = m.updateSchemaVersions(tx, m.migrations); err != nil {
 		return errors.Wrap(err, "error updating migration versions")
 	}
 
@@ -662,7 +667,7 @@ func (m *Migrator) migrateInitialSchema() error {
 	return err
 }
 
-func (m *Migrator) migrate(migrationNumber int, migration *Migration) error {
+func (m *Migrator) migrate(migrationNumber int, migration *Migration) (err error) {
 	if migration.Name == "" {
 		return errors.New("migration must have a name")
 	}
@@ -709,7 +714,8 @@ func (m *Migrator) migrate(migrationNumber int, migration *Migration) error {
 		m.logger.Info().Str("migration", migration.Name).Str("file", migration.File).Msg("applying migration from file")
 
 		// handle file based migration
-		data, err := m.readFile(migration.File)
+		var data []byte
+		data, err = m.readFile(migration.File)
 		if err != nil {
 			return errors.Wrapf(err, "could not read migration from file: %s", migration.File)
 		}

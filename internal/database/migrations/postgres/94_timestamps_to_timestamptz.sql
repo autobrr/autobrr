@@ -1,0 +1,54 @@
+-- naive timestamps drop the offset of what Go writes; existing values are read in the session time zone
+
+ALTER TABLE users
+    ALTER COLUMN created_at TYPE TIMESTAMPTZ,
+    ALTER COLUMN updated_at TYPE TIMESTAMPTZ;
+
+ALTER TABLE proxy
+    ALTER COLUMN created_at TYPE TIMESTAMPTZ,
+    ALTER COLUMN updated_at TYPE TIMESTAMPTZ;
+
+ALTER TABLE notification
+    ALTER COLUMN created_at TYPE TIMESTAMPTZ,
+    ALTER COLUMN updated_at TYPE TIMESTAMPTZ;
+
+ALTER TABLE indexer
+    ALTER COLUMN created_at TYPE TIMESTAMPTZ,
+    ALTER COLUMN updated_at TYPE TIMESTAMPTZ,
+    ALTER COLUMN archived_at TYPE TIMESTAMPTZ;
+
+ALTER TABLE indexer_deprecation
+    ALTER COLUMN deprecated_at TYPE TIMESTAMPTZ;
+
+ALTER TABLE irc_network
+    ALTER COLUMN connected_since TYPE TIMESTAMPTZ,
+    ALTER COLUMN created_at TYPE TIMESTAMPTZ,
+    ALTER COLUMN updated_at TYPE TIMESTAMPTZ;
+
+ALTER TABLE filter
+    ALTER COLUMN created_at TYPE TIMESTAMPTZ,
+    ALTER COLUMN updated_at TYPE TIMESTAMPTZ;
+
+ALTER TABLE filter_notification
+    ALTER COLUMN created_at TYPE TIMESTAMPTZ;
+
+ALTER TABLE feed
+    ALTER COLUMN last_run TYPE TIMESTAMPTZ,
+    ALTER COLUMN created_at TYPE TIMESTAMPTZ,
+    ALTER COLUMN updated_at TYPE TIMESTAMPTZ;
+
+ALTER TABLE feed_cache
+    ALTER COLUMN ttl TYPE TIMESTAMPTZ;
+
+ALTER TABLE api_key
+    ALTER COLUMN created_at TYPE TIMESTAMPTZ;
+
+ALTER TABLE list
+    ALTER COLUMN last_refresh_time TYPE TIMESTAMPTZ,
+    ALTER COLUMN created_at TYPE TIMESTAMPTZ,
+    ALTER COLUMN updated_at TYPE TIMESTAMPTZ;
+
+ALTER TABLE release_cleanup_job
+    ALTER COLUMN last_run TYPE TIMESTAMPTZ,
+    ALTER COLUMN created_at TYPE TIMESTAMPTZ,
+    ALTER COLUMN updated_at TYPE TIMESTAMPTZ;

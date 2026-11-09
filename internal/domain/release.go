@@ -42,8 +42,6 @@ import (
 type Release struct {
 	ID                                 int64                 `json:"id"`
 	TraceID                            string                `json:"-"`
-	FilterStatus                       ReleaseFilterStatus   `json:"filter_status"`
-	Rejections                         []string              `json:"rejections"`
 	Indexer                            IndexerMinimal        `json:"indexer"`
 	FilterName                         string                `json:"filter"`
 	Protocol                           ReleaseProtocol       `json:"protocol"`
@@ -124,6 +122,49 @@ type Release struct {
 	MetaTVDB                           int                   `json:"-"`
 	MetaIGDB                           int                   `json:"-"`
 	PublishDate                        time.Time             `json:"-"` // zero for IRC announces, which carry no publish date
+	IndexerFlags                       []string              `json:"-"`
+}
+
+// ReleaseMetadata holds parsed release details that have no column of their own.
+type ReleaseMetadata struct {
+	Artists     string `json:"artists,omitempty"`
+	RecordLabel string `json:"record_label,omitempty"`
+	LogScore    int    `json:"log_score,omitempty"`
+	HasLog      bool   `json:"has_log,omitempty"`
+	HasCue      bool   `json:"has_cue,omitempty"`
+	AudioFormat string `json:"audio_format,omitempty"`
+	Bitrate     string `json:"bitrate,omitempty"`
+	Seeders     int    `json:"seeders,omitempty"`
+	Leechers    int    `json:"leechers,omitempty"`
+}
+
+// Metadata returns the release details stored in the metadata column.
+func (r *Release) Metadata() ReleaseMetadata {
+	return ReleaseMetadata{
+		Artists:     r.Artists,
+		RecordLabel: r.RecordLabel,
+		LogScore:    r.LogScore,
+		HasLog:      r.HasLog,
+		HasCue:      r.HasCue,
+		AudioFormat: r.AudioFormat,
+		Bitrate:     r.Bitrate,
+		Seeders:     r.Seeders,
+		Leechers:    r.Leechers,
+	}
+}
+
+// DownloadVolumeFactor returns the share of the size the indexer counts as downloaded. It
+// reports false when the release is not freeleech, since most announces only say when it is.
+func (r *Release) DownloadVolumeFactor() (float64, bool) {
+	if !r.Freeleech {
+		return 0, false
+	}
+
+	if r.FreeleechPercent <= 0 || r.FreeleechPercent > 100 {
+		return 0, true
+	}
+
+	return float64(100-r.FreeleechPercent) / 100, true
 }
 
 // Hash return md5 hashed normalized release name
@@ -559,16 +600,6 @@ func (j *ReleaseCleanupJob) Validate() error {
 	return nil
 }
 
-type ReleaseFilterStatus string
-
-const (
-	ReleaseStatusFilterApproved ReleaseFilterStatus = "FILTER_APPROVED"
-	ReleaseStatusFilterPending  ReleaseFilterStatus = "PENDING"
-
-	// ReleaseStatusFilterRejected is no longer written on new rejections, but old databases still contain it
-	ReleaseStatusFilterRejected ReleaseFilterStatus = "FILTER_REJECTED"
-)
-
 type ReleaseProtocol string
 
 const (
@@ -671,8 +702,6 @@ func NewRelease(indexer IndexerMinimal) *Release {
 	r := &Release{
 		TraceID:        NewTraceID(),
 		Indexer:        indexer,
-		FilterStatus:   ReleaseStatusFilterPending,
-		Rejections:     []string{},
 		Protocol:       ReleaseProtocolTorrent,
 		Implementation: ReleaseImplementationIRC,
 		Timestamp:      time.Now(),

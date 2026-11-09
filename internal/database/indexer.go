@@ -7,7 +7,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -470,7 +469,7 @@ func (r *IndexerRepo) upsertDeprecation(ctx context.Context, exec contextExecer,
 	queryBuilder := r.db.squirrel.
 		Insert("indexer_deprecation").
 		Columns("identifier", "name", "reason", "issue_url", "alias_of", "deprecated_at").
-		Values(d.Identifier, d.Name, d.Reason, d.IssueURL, toNullString(d.AliasOf), d.DeprecatedAt.Format(time.RFC3339)).
+		Values(d.Identifier, d.Name, d.Reason, d.IssueURL, toNullString(d.AliasOf), d.DeprecatedAt).
 		Suffix("ON CONFLICT (identifier) DO UPDATE SET name = EXCLUDED.name, reason = EXCLUDED.reason, issue_url = EXCLUDED.issue_url, alias_of = EXCLUDED.alias_of, deprecated_at = EXCLUDED.deprecated_at")
 
 	query, args, err := queryBuilder.ToSql()

@@ -16,33 +16,46 @@ import (
 )
 
 func main() {
-	//migrationDir := "internal/database/migrations/sqlite"
-	migrationDir := "../sqlite"
-	//outputFile := "internal/database/migrations/sqlite.go"
-	outputFile := "../sqlite.go"
+	migrationDir := "sqlite"
+	outputFile := "sqlite.go"
 
-	// Read all .sql files from the migration directory
 	files, err := filepath.Glob(filepath.Join(migrationDir, "*.sql"))
 	if err != nil {
 		panic(fmt.Sprintf("Failed to read migration files: %v", err))
 	}
 
-	// Sort files by migration ID (numeric part before underscore)
+	// a Go migration exports Migration<N> from the sqlite package and keeps its numbered
+	// slot instead of landing after the generated block
+	goFiles, err := filepath.Glob(filepath.Join(migrationDir, "*.go"))
+	if err != nil {
+		panic(fmt.Sprintf("Failed to read Go migration files: %v", err))
+	}
+
+	for _, file := range goFiles {
+		if !strings.HasSuffix(file, "_test.go") {
+			files = append(files, file)
+		}
+	}
+
 	slices.SortFunc(files, func(a, b string) int {
 		return cmp.Compare(extractMigrationID(filepath.Base(a)), extractMigrationID(filepath.Base(b)))
 	})
 
 	fmt.Printf("Found %d files\n", len(files))
 
-	// Generate the migration entries
 	var migrations []string
 	for _, file := range files {
 		filename := filepath.Base(file)
-		name := strings.TrimSuffix(filename, ".sql")
-		if name == "current_schema_sqlite" {
+
+		if strings.HasSuffix(filename, ".go") {
+			migrations = append(migrations, fmt.Sprintf(`	migrate.AddMigration(sqlite.Migration%d)`, extractMigrationID(filename)))
 			continue
 		}
-		//migrations = append(migrations, fmt.Sprintf(`	migrate.AddMigration(&migrator.Migration{Name: "%s", File: "%s"})`, name, filename))
+
+		if strings.TrimSuffix(filename, ".sql") == "current_schema_sqlite" {
+			continue
+		}
+
 		migrations = append(migrations, fmt.Sprintf(`	migrate.AddFileMigration("%s")`, filename))
 	}
 

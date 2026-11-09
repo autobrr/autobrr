@@ -521,8 +521,6 @@ func (s *Service) processFilters(ctx context.Context, filters []*domain.Filter, 
 
 		// save release here to only save those with rejections from actions instead of all releases
 		if release.ID == 0 {
-			release.FilterStatus = domain.ReleaseStatusFilterApproved
-
 			if err = s.Store(subCtx, release); err != nil {
 				l.Error().Err(err).Interface("release_data", release).Msg("release.processFilters: error writing release to database")
 				return err

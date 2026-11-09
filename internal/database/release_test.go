@@ -6,6 +6,8 @@
 package database
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
 	"testing"
 	"time"
@@ -13,14 +15,13 @@ import (
 	"github.com/autobrr/autobrr/internal/domain"
 
 	"github.com/autobrr/rls"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func getMockRelease() *domain.Release {
 	return &domain.Release{
-		FilterStatus: domain.ReleaseStatusFilterApproved,
-		Rejections:   []string{"test", "not-a-match"},
 		Indexer: domain.IndexerMinimal{
 			ID:         0,
 			Name:       "BTN",
@@ -547,15 +548,14 @@ func TestReleaseRepo_Get(t *testing.T) {
 			assert.Equal(t, mockData.Other, release.Other)
 
 			episode := &domain.Release{
-				Rejections: []string{},
-				Timestamp:  time.Now(),
-				Title:      "Example Show",
-				Season:     4,
-				Episode:    7,
-				Type:       rls.Episode,
-				Tags:       []string{},
-				Other:      []string{},
-				FilterID:   createdFilters[0].ID,
+				Timestamp: time.Now(),
+				Title:     "Example Show",
+				Season:    4,
+				Episode:   7,
+				Type:      rls.Episode,
+				Tags:      []string{},
+				Other:     []string{},
+				FilterID:  createdFilters[0].ID,
 			}
 
 			err = repo.Store(ctx, episode)
@@ -566,7 +566,7 @@ func TestReleaseRepo_Get(t *testing.T) {
 				Set("year", nil).
 				Set("resolution", nil).
 				Set("codec", nil).
-				Set("hdr", nil).
+				Set("dynamic_range", nil).
 				Set("audio", nil).
 				Set("language", nil).
 				Set("cut", nil).
@@ -2093,6 +2093,111 @@ func TestReleaseRepo_DeleteReleaseProfileDuplicate(t *testing.T) {
 		t.Run(fmt.Sprintf("Delete_Missing [%s]", dbType), func(t *testing.T) {
 			err := repo.DeleteReleaseProfileDuplicate(ctx, 999999)
 			assert.ErrorIs(t, err, domain.ErrRecordNotFound)
+		})
+	}
+}
+
+func TestReleaseRepo_DuplicateProfileRoundTrip(t *testing.T) {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		log := setupLoggerForTest()
+		repo := NewReleaseRepo(log, testDb.db)
+		filterRepo := NewFilterRepo(log, testDb.db)
+		indexerRepo := NewIndexerRepo(log, testDb.db)
+
+		t.Run(fmt.Sprintf("Loads_Flags_And_Clears_On_Delete [%s]", dbType), func(t *testing.T) {
+			profile := &domain.DuplicateReleaseProfile{Name: "round trip", Protocol: true, Title: true, Hybrid: true}
+			require.NoError(t, repo.StoreDuplicateProfile(ctx, profile))
+			require.NotZero(t, profile.ID)
+
+			indexerMock := getMockIndexer()
+			indexerMock.Identifier = "round-trip-indexer"
+			indexer, err := indexerRepo.Store(ctx, indexerMock)
+			require.NoError(t, err)
+
+			filter := getMockFilter()
+			filter.ReleaseProfileDuplicateID = profile.ID
+			require.NoError(t, filterRepo.Store(ctx, filter))
+			require.NoError(t, filterRepo.StoreIndexerConnection(ctx, filter.ID, int(indexer.ID)))
+
+			t.Cleanup(func() {
+				_ = filterRepo.Delete(context.Background(), filter.ID)
+				_ = indexerRepo.Delete(context.Background(), int(indexer.ID))
+			})
+
+			filters, err := filterRepo.FindByIndexerIdentifier(ctx, indexer.Identifier)
+			require.NoError(t, err)
+			require.Len(t, filters, 1)
+			require.NotNil(t, filters[0].DuplicateHandling)
+			assert.True(t, filters[0].DuplicateHandling.Title)
+			assert.True(t, filters[0].DuplicateHandling.Hybrid)
+			assert.True(t, filters[0].DuplicateHandling.Protocol)
+
+			require.NoError(t, repo.DeleteReleaseProfileDuplicate(ctx, profile.ID))
+
+			filters, err = filterRepo.FindByIndexerIdentifier(ctx, indexer.Identifier)
+			require.NoError(t, err)
+			require.Len(t, filters, 1)
+			assert.Nil(t, filters[0].DuplicateHandling)
+			assert.Zero(t, filters[0].ReleaseProfileDuplicateID)
+		})
+	}
+}
+
+func TestReleaseRepo_StoreTableV2Columns(t *testing.T) {
+	ctx := t.Context()
+
+	for dbType, testDb := range testDBs {
+		repo := NewReleaseRepo(setupLoggerForTest(), testDb.db)
+
+		t.Run(fmt.Sprintf("Stores_Keys_And_Metadata [%s]", dbType), func(t *testing.T) {
+			rls := domain.NewRelease(domain.IndexerMinimal{ID: 42, Identifier: "mock-v2", Name: "Mock"})
+			rls.ParseString("Franchise: Example Show S02E05 1080p AMZN WEB-DL DDP5.1 H.264-RG1")
+			rls.SubTitle = "The Pilot"
+			rls.Categories = []string{"TV", "5000"}
+			rls.Freeleech = true
+			rls.FreeleechPercent = 50
+			rls.MetaIMDB = "tt0123456"
+			rls.MetaTVDB = 98765
+			rls.PublishDate = time.Date(2026, 11, 7, 10, 0, 0, 0, time.UTC)
+			rls.RecordLabel = "Label"
+			rls.IndexerFlags = []string{"VIP"}
+
+			require.NoError(t, repo.Store(ctx, rls))
+
+			t.Cleanup(func() {
+				_ = repo.Delete(context.Background(), &domain.DeleteReleaseRequest{Indexers: []string{"mock-v2"}})
+			})
+
+			var (
+				nameKey, titleKey, subTitleKey, traceID string
+				indexerID                               int64
+				categories, indexerFlags                []string
+				downloadFactor                          sql.Null[float64]
+				imdb                                    sql.Null[string]
+				tvdb, tmdb                              sql.Null[int64]
+				publishTime                             sql.Null[time.Time]
+				metadata                                sql.Null[string]
+			)
+
+			row := testDb.db.Handler.QueryRowContext(ctx, `SELECT name_key, title_key, sub_title_key, trace_id, indexer_id, categories, indexer_flags, download_volume_factor, id_imdb, id_tvdb, id_tmdb, publish_time, metadata FROM "release" WHERE id = $1`, rls.ID)
+			require.NoError(t, row.Scan(&nameKey, &titleKey, &subTitleKey, &traceID, &indexerID, pq.Array(&categories), pq.Array(&indexerFlags), &downloadFactor, &imdb, &tvdb, &tmdb, &publishTime, &metadata))
+
+			assert.Equal(t, domain.NameKey(rls.TorrentName), nameKey)
+			assert.Equal(t, "franchiseexampleshow", titleKey)
+			assert.Equal(t, "thepilot", subTitleKey)
+			assert.Equal(t, rls.TraceID, traceID)
+			assert.Equal(t, int64(42), indexerID)
+			assert.Equal(t, []string{"TV", "5000"}, categories)
+			assert.Equal(t, []string{"VIP"}, indexerFlags)
+			assert.Equal(t, sql.Null[float64]{V: 0.5, Valid: true}, downloadFactor)
+			assert.Equal(t, sql.Null[string]{V: "tt0123456", Valid: true}, imdb)
+			assert.Equal(t, sql.Null[int64]{V: 98765, Valid: true}, tvdb)
+			assert.False(t, tmdb.Valid)
+			require.True(t, publishTime.Valid)
+			assert.True(t, rls.PublishDate.Equal(publishTime.V))
+			assert.JSONEq(t, `{"record_label":"Label"}`, metadata.V)
 		})
 	}
 }

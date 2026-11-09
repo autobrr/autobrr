@@ -6,6 +6,7 @@ package migrations
 import (
 	"database/sql"
 
+	"github.com/autobrr/autobrr/internal/database/migrations/postgres"
 	"github.com/autobrr/autobrr/pkg/migrator"
 
 	"github.com/rs/zerolog"
@@ -113,6 +114,10 @@ func PostgresMigrations(db *sql.DB, logger zerolog.Logger) *migrator.Migrator {
 	migrate.AddFileMigration("90_add_action_ratio_group.sql")
 	migrate.AddFileMigration("91_api_key_add_id_and_hash_key.sql")
 	migrate.AddFileMigration("92_create_matrix_tables.sql")
+	migrate.AddFileMigration("93_duplicate_profiles_fix_id_sequence.sql")
+	migrate.AddFileMigration("94_timestamps_to_timestamptz.sql")
+	migrate.AddFileMigration("95_release_table_v2.sql")
+	migrate.AddMigration(postgres.Migration96)
 
 	return migrate
 }

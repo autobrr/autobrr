@@ -60,25 +60,42 @@ func (f *Filter) MaxDownloadsPeriodNormalized() int {
 	return f.MaxDownloadsPeriod
 }
 
-// DownloadPeriod returns the rolling window size and its unit keyword, with
-// WEEK folded into days. Callers must handle FilterMaxDownloadsEver separately.
-func (f *Filter) DownloadPeriod() (int, string) {
-	period := f.MaxDownloadsPeriodNormalized()
+// DownloadWindowStart returns when the filter's current download window began:
+// the most recent calendar boundary in now's location for FIXED windows, and
+// now minus the period for ROLLING windows. Weeks start on Monday.
+func (f *Filter) DownloadWindowStart(now time.Time) time.Time {
+	if f.MaxDownloadsWindowType == FilterMaxDownloadsWindowRolling {
+		period := f.MaxDownloadsPeriodNormalized()
+
+		switch f.MaxDownloadsUnit {
+		case FilterMaxDownloadsMinute:
+			return now.Add(-time.Duration(period) * time.Minute)
+		case FilterMaxDownloadsHour:
+			return now.Add(-time.Duration(period) * time.Hour)
+		case FilterMaxDownloadsWeek:
+			return now.AddDate(0, 0, -7*period)
+		case FilterMaxDownloadsMonth:
+			return now.AddDate(0, -period, 0)
+		}
+
+		return now.AddDate(0, 0, -period)
+	}
+
+	year, month, day := now.Date()
 
 	switch f.MaxDownloadsUnit {
 	case FilterMaxDownloadsMinute:
-		return period, "minutes"
+		return time.Date(year, month, day, now.Hour(), now.Minute(), 0, 0, now.Location())
 	case FilterMaxDownloadsHour:
-		return period, "hours"
-	case FilterMaxDownloadsDay:
-		return period, "days"
+		return time.Date(year, month, day, now.Hour(), 0, 0, 0, now.Location())
 	case FilterMaxDownloadsWeek:
-		return period * 7, "days"
+		sinceMonday := (int(now.Weekday()) + 6) % 7
+		return time.Date(year, month, day-sinceMonday, 0, 0, 0, 0, now.Location())
 	case FilterMaxDownloadsMonth:
-		return period, "months"
+		return time.Date(year, month, 1, 0, 0, 0, 0, now.Location())
 	}
 
-	return 1, "days"
+	return time.Date(year, month, day, 0, 0, 0, 0, now.Location())
 }
 
 type SmartEpisodeParams struct {

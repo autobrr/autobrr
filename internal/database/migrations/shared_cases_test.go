@@ -271,3 +271,72 @@ func validateAPIKeysHashed(db *sql.DB, t *testing.T) {
 	_, err = db.Exec(`INSERT INTO api_key (name, key_hash) VALUES ('duplicate', 'mock-hash')`)
 	assert.Error(t, err, "key hashes must be unique")
 }
+
+func setupReleaseBeforeTableV2(db *sql.DB) error {
+	if _, err := db.Exec(`INSERT INTO indexer (id, identifier, implementation, name, enabled) VALUES (5, 'btn', 'irc', 'BTN', TRUE)`); err != nil {
+		return err
+	}
+
+	_, err := db.Exec(`INSERT INTO "release" (id, filter_status, indexer, torrent_name, torrent_id, hdr) VALUES
+		(1, 'FILTER_APPROVED', 'btn', 'That.Show.S01E01.1080p.WEB-DL-GRP', '123', 'DV,HDR'),
+		(2, 'FILTER_APPROVED', 'removed-tracker', 'Other.Show.S01E01.1080p.WEB-DL-GRP', '', '')`)
+
+	return err
+}
+
+func validateReleaseTableV2(db *sql.DB, t *testing.T) {
+	var name, externalID, dynamicRange string
+	var indexerID sql.NullInt64
+
+	require.NoError(t, db.QueryRow(`SELECT release_name, external_id, dynamic_range, indexer_id FROM "release" WHERE id = 1`).Scan(&name, &externalID, &dynamicRange, &indexerID))
+	assert.Equal(t, "That.Show.S01E01.1080p.WEB-DL-GRP", name)
+	assert.Equal(t, "123", externalID)
+	assert.Equal(t, "DV,HDR", dynamicRange)
+	assert.Equal(t, sql.NullInt64{Int64: 5, Valid: true}, indexerID)
+
+	require.NoError(t, db.QueryRow(`SELECT indexer_id FROM "release" WHERE id = 2`).Scan(&indexerID))
+	assert.False(t, indexerID.Valid, "an indexer that no longer exists leaves indexer_id empty")
+}
+
+func setupReleaseKeysBackfill(db *sql.DB) error {
+	_, err := db.Exec(`INSERT INTO "release" (id, release_name, title, sub_title) VALUES
+		(1, '[SubsPlease] Frieren - 05 (1080p) [A1B2C3D4].mkv', 'Frieren: Beyond Journey''s End', ''),
+		(2, 'Franchise: Example Show S02E05 1080p WEB H264-RG1', 'Franchise: Example Show', 'The Pilot'),
+		(3, 'Never.Pushed.S01E01.1080p.WEB-DL-GRP', 'Never Pushed', '')`)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.Exec(`INSERT INTO release_action_status (status, action, type, release_id, rejections) VALUES
+		('PUSH_APPROVED', 'push', 'QBITTORRENT', 1, '{}'),
+		('PUSH_REJECTED', 'push', 'QBITTORRENT', 2, '{}'),
+		('PUSH_APPROVED', 'arr', 'RADARR', 2, '{}'),
+		('PUSH_ERROR', 'push', 'QBITTORRENT', 3, '{}')`)
+
+	return err
+}
+
+func validateReleaseKeysBackfill(db *sql.DB, t *testing.T) {
+	rows, err := db.Query(`SELECT id, name_key, title_key, sub_title_key FROM "release" ORDER BY id`)
+	require.NoError(t, err)
+	defer rows.Close()
+
+	type keys struct {
+		name, title, subTitle string
+	}
+
+	got := map[int]keys{}
+	for rows.Next() {
+		var id int
+		var k keys
+		require.NoError(t, rows.Scan(&id, &k.name, &k.title, &k.subTitle))
+		got[id] = k
+	}
+	require.NoError(t, rows.Err())
+
+	assert.Equal(t, map[int]keys{
+		1: {name: domain.NameKey("[SubsPlease] Frieren - 05 (1080p) [A1B2C3D4].mkv"), title: "frierenbeyondjourneysend"},
+		2: {name: domain.NameKey("Franchise: Example Show S02E05 1080p WEB H264-RG1"), title: "franchiseexampleshow", subTitle: "thepilot"},
+		3: {},
+	}, got)
+}

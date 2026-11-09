@@ -5,8 +5,6 @@
 
 interface Release {
   id: number;
-  filter_status: string;
-  rejections: string[];
   indexer: IndexerMinimal;
   filter: string;
   protocol: string;

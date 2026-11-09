@@ -3,8 +3,8 @@ CREATE TABLE users
     id         SERIAL PRIMARY KEY,
     username   TEXT NOT NULL,
     password   TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (username)
 );
 
@@ -18,8 +18,8 @@ CREATE TABLE proxy
     auth_user  TEXT,
     auth_pass  TEXT,
     timeout    INTEGER,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE notification
@@ -47,8 +47,8 @@ CREATE TABLE notification
     priority     INTEGER   DEFAULT 0,
     method       TEXT,
     headers      TEXT,
-    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at   TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at   TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 -- every install gets one built-in notification; the partial unique index keeps it a singleton
@@ -71,10 +71,10 @@ CREATE TABLE indexer
     settings            TEXT,
     use_proxy           BOOLEAN   DEFAULT FALSE,
     proxy_id            INTEGER,
-    created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at          TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     archived            BOOLEAN NOT NULL DEFAULT FALSE,
-    archived_at         TIMESTAMP,
+    archived_at         TIMESTAMPTZ,
     FOREIGN KEY (proxy_id) REFERENCES proxy (id) ON DELETE SET NULL,
     UNIQUE (identifier)
 );
@@ -93,7 +93,7 @@ CREATE TABLE indexer_deprecation
     reason        TEXT,
     issue_url     TEXT,
     alias_of      TEXT,
-    deprecated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    deprecated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE irc_network
@@ -115,11 +115,11 @@ CREATE TABLE irc_network
     bouncer_addr    TEXT,
     bot_mode        BOOLEAN   DEFAULT FALSE,
     connected       BOOLEAN,
-    connected_since TIMESTAMP,
+    connected_since TIMESTAMPTZ,
     use_proxy       BOOLEAN   DEFAULT FALSE,
     proxy_id        INTEGER,
-    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at      TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (proxy_id) REFERENCES proxy (id) ON DELETE SET NULL,
     UNIQUE (server, port, nick)
 );
@@ -174,6 +174,8 @@ VALUES (1, 'Exact release', 'f', 't', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 'f
         'f', 'f'),
        (3, 'TV', 'f', 'f', 'f', 't', 'f', 't', 't', 't', 'f', 'f', 'f', 'f', 'f', 'f', 'f', 't', 't', 'f', 'f', 'f',
         'f', 'f');
+
+SELECT setval(pg_get_serial_sequence('release_profile_duplicate', 'id'), (SELECT MAX(id) FROM release_profile_duplicate));
 
 CREATE TABLE filter
 (
@@ -243,8 +245,8 @@ CREATE TABLE filter
     except_tags_match_logic      TEXT,
     origins                      TEXT[]    DEFAULT '{}',
     except_origins               TEXT[]    DEFAULT '{}',
-    created_at                   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at                   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at                   TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at                   TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     min_seeders                  INTEGER   DEFAULT 0,
     max_seeders                  INTEGER   DEFAULT 0,
     min_leechers                 INTEGER   DEFAULT 0,
@@ -296,7 +298,7 @@ CREATE TABLE filter_notification
     filter_id       INTEGER NOT NULL,
     notification_id INTEGER NOT NULL,
     events          TEXT[]  NOT NULL DEFAULT '{}',
-    created_at      TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
+    created_at      TIMESTAMPTZ        DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (filter_id, notification_id),
     FOREIGN KEY (filter_id) REFERENCES filter (id) ON DELETE CASCADE,
     FOREIGN KEY (notification_id) REFERENCES notification (id) ON DELETE CASCADE
@@ -363,65 +365,79 @@ CREATE TABLE action
 
 CREATE TABLE "release"
 (
-    id                SERIAL PRIMARY KEY,
-    filter_status     TEXT,
-    rejections        TEXT[]      DEFAULT '{}' NOT NULL,
-    indexer           TEXT,
-    filter            TEXT,
-    protocol          TEXT,
-    implementation    TEXT,
-    timestamp         TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    announce_type     TEXT        DEFAULT 'NEW',
-    info_url          TEXT,
-    download_url      TEXT,
-    group_id          TEXT,
-    torrent_id        TEXT,
-    torrent_name      TEXT,
-    normalized_hash   TEXT,
-    size              BIGINT,
-    raw               TEXT,
-    title             TEXT,
-    sub_title         TEXT,
-    category          TEXT,
-    season            INTEGER,
-    episode           INTEGER,
-    year              INTEGER,
-    month             INTEGER,
-    day               INTEGER,
-    resolution        TEXT,
-    source            TEXT,
-    codec             TEXT,
-    container         TEXT,
-    hdr               TEXT,
-    audio             TEXT,
-    audio_channels    TEXT,
-    release_group     TEXT,
-    region            TEXT,
-    language          TEXT,
-    edition           TEXT,
-    cut               TEXT,
-    unrated           BOOLEAN,
-    hybrid            BOOLEAN,
-    proper            BOOLEAN,
-    repack            BOOLEAN,
-    website           TEXT,
-    media_processing  TEXT,
-    artists           TEXT[]      DEFAULT '{}' NOT NULL,
-    type              TEXT,
-    format            TEXT,
-    quality           TEXT,
-    log_score         INTEGER,
-    has_log           BOOLEAN,
-    has_cue           BOOLEAN,
-    is_scene          BOOLEAN,
-    origin            TEXT,
-    tags              TEXT[]      DEFAULT '{}' NOT NULL,
-    freeleech         BOOLEAN,
-    freeleech_percent INTEGER,
-    uploader          TEXT,
-    pre_time          TEXT,
-    other             TEXT[]      DEFAULT '{}' NOT NULL,
-    filter_id         INTEGER
+    id                     SERIAL PRIMARY KEY,
+    indexer                TEXT,
+    filter                 TEXT,
+    protocol               TEXT,
+    implementation         TEXT,
+    timestamp              TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    announce_type          TEXT        DEFAULT 'NEW',
+    info_url               TEXT,
+    download_url           TEXT,
+    group_id               TEXT,
+    external_id            TEXT,
+    release_name           TEXT,
+    normalized_hash        TEXT,
+    size                   BIGINT,
+    raw                    TEXT,
+    title                  TEXT,
+    sub_title              TEXT,
+    category               TEXT,
+    season                 INTEGER,
+    episode                INTEGER,
+    year                   INTEGER,
+    month                  INTEGER,
+    day                    INTEGER,
+    resolution             TEXT,
+    source                 TEXT,
+    codec                  TEXT,
+    container              TEXT,
+    dynamic_range          TEXT,
+    audio                  TEXT,
+    audio_channels         TEXT,
+    release_group          TEXT,
+    region                 TEXT,
+    language               TEXT,
+    edition                TEXT,
+    cut                    TEXT,
+    unrated                BOOLEAN,
+    hybrid                 BOOLEAN,
+    proper                 BOOLEAN,
+    repack                 BOOLEAN,
+    website                TEXT,
+    media_processing       TEXT,
+    artists                TEXT[]      DEFAULT '{}' NOT NULL,
+    type                   TEXT,
+    format                 TEXT,
+    quality                TEXT,
+    log_score              INTEGER,
+    has_log                BOOLEAN,
+    has_cue                BOOLEAN,
+    is_scene               BOOLEAN,
+    origin                 TEXT,
+    tags                   TEXT[]      DEFAULT '{}' NOT NULL,
+    freeleech              BOOLEAN,
+    freeleech_percent      INTEGER,
+    uploader               TEXT,
+    pre_time               TEXT,
+    other                  TEXT[]      DEFAULT '{}' NOT NULL,
+    indexer_id             INTEGER,
+    name_key               TEXT        DEFAULT '' NOT NULL,
+    title_key              TEXT        DEFAULT '' NOT NULL,
+    sub_title_key          TEXT        DEFAULT '' NOT NULL,
+    categories             TEXT[]      DEFAULT '{}' NOT NULL,
+    indexer_flags          TEXT[]      DEFAULT '{}' NOT NULL,
+    download_volume_factor REAL,
+    upload_volume_factor   REAL,
+    publish_time           TIMESTAMPTZ,
+    id_imdb                TEXT,
+    id_tmdb                INTEGER,
+    id_tvdb                INTEGER,
+    id_igdb                INTEGER,
+    info_hash              TEXT,
+    trace_id               TEXT,
+    metadata               TEXT,
+    filter_id              INTEGER
         CONSTRAINT release_filter_id_fk
             REFERENCES filter
             ON DELETE SET NULL
@@ -436,8 +452,14 @@ CREATE INDEX release_indexer_index
 CREATE INDEX release_timestamp_index
     ON "release" (timestamp DESC);
 
-CREATE INDEX release_torrent_name_index
-    ON "release" (torrent_name);
+CREATE INDEX release_release_name_index
+    ON "release" (release_name);
+
+CREATE INDEX release_name_key_index
+    ON "release" (name_key);
+
+CREATE INDEX release_title_key_year_index
+    ON "release" (title_key, year);
 
 CREATE INDEX release_normalized_hash_index
     ON "release" (normalized_hash);
@@ -475,9 +497,6 @@ CREATE INDEX release_codec_index
 CREATE INDEX release_container_index
     ON "release" (container);
 
-CREATE INDEX release_hdr_index
-    ON "release" (hdr);
-
 CREATE INDEX release_audio_index
     ON "release" (audio);
 
@@ -514,9 +533,6 @@ CREATE INDEX release_cut_index
 CREATE INDEX release_hybrid_index
     ON "release" (hybrid);
 
-CREATE INDEX release_filter_status_index
-    ON "release" (filter_status);
-
 
 CREATE TABLE release_action_status
 (
@@ -538,8 +554,8 @@ CREATE TABLE release_action_status
     FOREIGN KEY (filter_id) REFERENCES "filter" (id) ON DELETE SET NULL
 );
 
-CREATE INDEX release_action_status_release_id_index
-    ON release_action_status (release_id);
+CREATE INDEX release_action_status_release_id_status_index
+    ON release_action_status (release_id, status);
 
 CREATE INDEX release_action_status_status_index
     ON release_action_status (status);
@@ -569,10 +585,10 @@ CREATE TABLE feed
     tls_skip_verify BOOLEAN DEFAULT FALSE,
     settings        TEXT,
     indexer_id      INTEGER,
-    last_run        TIMESTAMP,
+    last_run        TIMESTAMPTZ,
     last_run_data   TEXT,
-    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at      TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (indexer_id) REFERENCES indexer (id) ON DELETE SET NULL
 );
 
@@ -581,7 +597,7 @@ CREATE TABLE feed_cache
     feed_id INTEGER NOT NULL,
     key     TEXT,
     value   TEXT,
-    ttl     TIMESTAMP,
+    ttl     TIMESTAMPTZ,
     FOREIGN KEY (feed_id) REFERENCES feed (id) ON DELETE cascade
 );
 
@@ -594,7 +610,7 @@ CREATE TABLE api_key
     name       TEXT,
     key_hash   TEXT NOT NULL UNIQUE,
     scopes     TEXT[]    DEFAULT '{}' NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE list
@@ -614,11 +630,11 @@ CREATE TABLE list
     include_alternate_titles BOOLEAN,
     include_year             BOOLEAN   DEFAULT FALSE,
     skip_clean_sanitize      BOOLEAN   DEFAULT FALSE,
-    last_refresh_time        TIMESTAMP,
+    last_refresh_time        TIMESTAMPTZ,
     last_refresh_status      TEXT,
     last_refresh_data        TEXT,
-    created_at               TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at               TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at               TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at               TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (client_id) REFERENCES client (id) ON DELETE SET NULL
 );
 
@@ -649,11 +665,11 @@ CREATE TABLE release_cleanup_job
     older_than INTEGER NOT NULL,
     indexers TEXT,
     statuses TEXT,
-    last_run TIMESTAMP,
+    last_run TIMESTAMPTZ,
     last_run_status TEXT,
     last_run_data TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE notification_inbox

@@ -6,7 +6,6 @@ package database
 import (
 	"context"
 	"database/sql"
-	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -369,7 +368,7 @@ func (r *IrcRepo) UpdateNetwork(ctx context.Context, network *domain.IrcNetwork)
 		Set("bot_mode", network.BotMode).
 		Set("use_proxy", network.UseProxy).
 		Set("proxy_id", toNullInt64(network.ProxyId)).
-		Set("updated_at", time.Now().Format(time.RFC3339)).
+		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
 		Where(sq.Eq{"id": network.ID})
 
 	query, args, err := queryBuilder.ToSql()
@@ -389,7 +388,7 @@ func (r *IrcRepo) ToggleNetworkEnabled(ctx context.Context, id int64, enabled bo
 	queryBuilder := r.db.squirrel.
 		Update("irc_network").
 		Set("enabled", enabled).
-		Set("updated_at", time.Now().Format(time.RFC3339)).
+		Set("updated_at", sq.Expr("CURRENT_TIMESTAMP")).
 		Where(sq.Eq{"id": id})
 
 	query, args, err := queryBuilder.ToSql()

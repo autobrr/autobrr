@@ -63,6 +63,11 @@ func (db *DB) openSQLite() error {
 		"_pragma=cache_size(-64000)",
 
 		"_pragma=page_size(4096)",
+
+		// Bind every time.Time as UTC in one layout so stored timestamps sort as text
+		// and range predicates can use an index.
+		"_time_format=sqlite",
+		"_timezone=UTC",
 	}
 
 	if os.Getenv("IS_TEST_ENV") == "true" {

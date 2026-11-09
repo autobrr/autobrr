@@ -698,6 +698,45 @@ func TestRunMigrationTest_SQLite(t *testing.T) {
 			},
 			want: "",
 		},
+		{
+			name:   "timestamps rewritten to UTC",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "timestamps rewritten to UTC",
+				MigrationIndex:      103,
+				MigrationsUntilName: "103_duplicate_profiles_clear_deleted_references",
+				MigrationToRun:      "104_timestamps_to_utc",
+				SetupData:           setupLegacyTimestamps,
+				ValidateResult:      validateTimestampsUTC,
+			},
+			want: "",
+		},
+		{
+			name:   "release table v2 renames columns and fills indexer ids",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "release table v2 renames columns and fills indexer ids",
+				MigrationIndex:      105,
+				MigrationsUntilName: "105_release_action_status_filter_window_index",
+				MigrationToRun:      "106_release_table_v2",
+				SetupData:           setupReleaseBeforeTableV2,
+				ValidateResult:      validateReleaseTableV2,
+			},
+			want: "",
+		},
+		{
+			name:   "release duplicate keys backfilled for grabbed releases",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "release duplicate keys backfilled for grabbed releases",
+				MigrationIndex:      106,
+				MigrationsUntilName: "106_release_table_v2",
+				MigrationToRun:      "107_release_backfill_duplicate_keys",
+				SetupData:           setupReleaseKeysBackfill,
+				ValidateResult:      validateReleaseKeysBackfill,
+			},
+			want: "",
+		},
 	}
 
 	for _, tt := range tests {
@@ -756,4 +795,47 @@ func TestFullMigrationSequenceSQLite(t *testing.T) {
 	//
 	//expectedVersion := len(database.sqliteMigrations)
 	//assert.Equal(t, expectedVersion, version, "Should be at latest migration version")
+}
+
+func setupLegacyTimestamps(db *sql.DB) error {
+	for i, ts := range []string{
+		"2026-07-27T01:00:00+02:00",
+		"2026-07-26T23:00:00Z",
+		"2026-07-26 23:00:00",
+		"2026-07-27 01:00:00 +0200 CEST",
+		"2026-07-27 01:00:00.5 +0200 CEST m=+12.000000001",
+		"2026-07-27 01:00:00+02:00",
+		"not a timestamp",
+	} {
+		if _, err := db.Exec(`INSERT INTO "release" (id, torrent_name, timestamp) VALUES (?, 'rls', ?)`, i+1, ts); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func validateTimestampsUTC(db *sql.DB, t *testing.T) {
+	rows, err := db.Query(`SELECT id, CAST(timestamp AS TEXT) FROM "release" ORDER BY id`)
+	require.NoError(t, err)
+	defer rows.Close()
+
+	got := map[int]string{}
+	for rows.Next() {
+		var id int
+		var ts string
+		require.NoError(t, rows.Scan(&id, &ts))
+		got[id] = ts
+	}
+	require.NoError(t, rows.Err())
+
+	assert.Equal(t, map[int]string{
+		1: "2026-07-26 23:00:00+00:00",
+		2: "2026-07-26 23:00:00+00:00",
+		3: "2026-07-26 23:00:00",
+		4: "2026-07-26 23:00:00+00:00",
+		5: "2026-07-26 23:00:00.5+00:00",
+		6: "2026-07-26 23:00:00+00:00",
+		7: "not a timestamp",
+	}, got)
 }
