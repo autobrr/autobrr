@@ -47,16 +47,16 @@ func (repo *ReleaseRepo) Store(ctx context.Context, r *domain.Release) error {
 		Insert("release").
 		Columns("filter_status", "rejections", "indexer", "filter", "protocol", "implementation", "timestamp", "announce_type", "group_id", "torrent_id", "info_url", "download_url", "torrent_name", "normalized_hash", "size", "title", "sub_title", "category", "season", "episode", "year", "month", "day", "resolution", "source", "codec", "container", "hdr", "audio", "audio_channels", "release_group", "proper", "repack", "region", "language", "cut", "edition", "hybrid", "media_processing", "website", "type", "origin", "tags", "uploader", "pre_time", "other", "filter_id").
 		Values(r.FilterStatus, pq.Array(r.Rejections), r.Indexer.Identifier, r.FilterName, r.Protocol, r.Implementation, r.Timestamp.Format(time.RFC3339), r.AnnounceType, r.GroupID, r.TorrentID, r.InfoURL, r.DownloadURL, r.TorrentName, r.NormalizedHash, r.Size, r.Title, r.SubTitle, r.Category, r.Season, r.Episode, r.Year, r.Month, r.Day, r.Resolution, r.Source, codecStr, r.Container, hdrStr, audioStr, r.AudioChannels, r.Group, r.Proper, r.Repack, r.Region, languageStr, cutStr, editionStr, r.Hybrid, r.MediaProcessing, r.Website, r.Type.String(), r.Origin, pq.Array(r.Tags), r.Uploader, r.PreTime, pq.Array(r.Other), r.FilterID).
-		Suffix("RETURNING id").RunWith(repo.db.Handler)
+		Suffix("RETURNING id")
 
-	q, args, err := queryBuilder.ToSql()
+	query, args, err := queryBuilder.ToSql()
 	if err != nil {
 		return errors.Wrap(err, "error building query")
 	}
 
-	repo.log.Debug().Str("query", q).Interface("args", args).Msg("store release")
+	repo.log.Debug().Str("query", query).Interface("args", args).Msg("store release")
 
-	if err := queryBuilder.QueryRowContext(ctx).Scan(&r.ID); err != nil {
+	if err := repo.db.QueryRowPrepared(ctx, query, args, &r.ID); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
@@ -76,7 +76,7 @@ func (repo *ReleaseRepo) Update(ctx context.Context, r *domain.Release) error {
 		return errors.Wrap(err, "error building query")
 	}
 
-	if _, err = repo.db.Handler.ExecContext(ctx, query, args...); err != nil {
+	if _, err = repo.db.ExecPrepared(ctx, query, args...); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
 
@@ -100,7 +100,7 @@ func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, status *d
 			return errors.Wrap(err, "error building query")
 		}
 
-		if _, err = repo.db.Handler.ExecContext(ctx, query, args...); err != nil {
+		if _, err = repo.db.ExecPrepared(ctx, query, args...); err != nil {
 			return errors.Wrap(err, "error executing query")
 		}
 
@@ -109,9 +109,14 @@ func (repo *ReleaseRepo) StoreReleaseActionStatus(ctx context.Context, status *d
 			Insert("release_action_status").
 			Columns("status", "action", "action_id", "type", "client", "filter", "filter_id", "rejections", "timestamp", "release_id").
 			Values(status.Status, status.Action, status.ActionID, status.Type, status.Client, status.Filter, status.FilterID, pq.Array(status.Rejections), status.Timestamp.Format(time.RFC3339), status.ReleaseID).
-			Suffix("RETURNING id").RunWith(repo.db.Handler)
+			Suffix("RETURNING id")
 
-		if err := queryBuilder.QueryRowContext(ctx).Scan(&status.ID); err != nil {
+		query, args, err := queryBuilder.ToSql()
+		if err != nil {
+			return errors.Wrap(err, "error building query")
+		}
+
+		if err := repo.db.QueryRowPrepared(ctx, query, args, &status.ID); err != nil {
 			return errors.Wrap(err, "error executing query")
 		}
 	}

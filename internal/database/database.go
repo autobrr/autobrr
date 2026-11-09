@@ -50,6 +50,8 @@ type DB struct {
 	DSN    string
 
 	squirrel sq.StatementBuilderType
+
+	stmts *statementCache
 }
 
 func NewDB(cfg *domain.Config, log zerolog.Logger) (*DB, error) {
@@ -127,6 +129,8 @@ func (db *DB) Open() error {
 		}
 	}
 
+	db.stmts = newStatementCache(db.Handler)
+
 	return nil
 }
 
@@ -148,6 +152,12 @@ func (db *DB) Migrate() error {
 
 func (db *DB) Close() error {
 	db.log.Debug().Msg("closing database..")
+
+	if db.stmts != nil {
+		if err := db.stmts.close(); err != nil {
+			db.log.Error().Err(err).Msg("could not close prepared statements")
+		}
+	}
 
 	switch db.Driver {
 	case DriverSQLite:
