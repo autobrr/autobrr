@@ -96,3 +96,74 @@ func readCapRequests(t *testing.T, ln net.Listener) map[string]bool {
 	t.Fatal("client closed the connection before USER")
 	return nil
 }
+
+func TestConnectRegistersWhetherBouncerAcksOrNaksChathistory(t *testing.T) {
+	t.Parallel()
+
+	for _, reply := range []string{"ACK", "NAK"} {
+		t.Run(reply, func(t *testing.T) {
+			t.Parallel()
+
+			ln, err := net.Listen("tcp", "127.0.0.1:0")
+			require.NoError(t, err)
+			t.Cleanup(func() { ln.Close() })
+
+			network := domain.IrcNetwork{
+				ID:          1,
+				Name:        "caps",
+				Server:      "irc.example.test",
+				Port:        6667,
+				Nick:        "bot",
+				Enabled:     true,
+				UseBouncer:  true,
+				BouncerAddr: ln.Addr().String(),
+			}
+
+			h := NewHandler(zerolog.Nop(), noopEventBus{}, &mockSSEServer{}, network, nil, nil, nil)
+			go func() { _ = h.Run() }()
+			t.Cleanup(h.Stop)
+
+			go serveBouncerRegistration(ln, reply)
+
+			live := func() bool {
+				h.m.RLock()
+				defer h.m.RUnlock()
+				return h.clientState == ircLive
+			}
+			assert.True(t, waitFor(live, 5*time.Second), "registration did not finish after the bouncer sent %s", reply)
+		})
+	}
+}
+
+// serveBouncerRegistration answers each CAP REQ with reply and ends registration after CAP END.
+func serveBouncerRegistration(ln net.Listener, reply string) {
+	conn, err := ln.Accept()
+	if err != nil {
+		return
+	}
+	defer conn.Close()
+
+	scanner := bufio.NewScanner(conn)
+	for scanner.Scan() {
+		msg, err := ircmsg.ParseLine(scanner.Text())
+		if err != nil || msg.Command != "CAP" || len(msg.Params) == 0 {
+			continue
+		}
+
+		var out string
+		switch msg.Params[0] {
+		case "LS":
+			out = ":bnc CAP * LS :draft/chathistory"
+			if reply == "NAK" {
+				out = ":bnc CAP * LS :"
+			}
+		case "REQ":
+			out = ":bnc CAP * " + reply + " :" + msg.Params[1]
+		case "END":
+			out = ":bnc 001 bot :welcome\r\n:bnc 376 bot :End of /MOTD command"
+		}
+		if _, err := conn.Write([]byte(out + "\r\n")); err != nil {
+			return
+		}
+	}
+}
