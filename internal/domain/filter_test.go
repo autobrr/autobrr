@@ -2614,6 +2614,7 @@ func Test_checkFreeleechPercent(t *testing.T) {
 		{value: 50, filter: "75-100,50", want: true},
 		{value: 80, filter: "25-50,75-100", want: true},
 		{value: 60, filter: "25-50,75-100", want: false},
+		{value: 80, filter: "25-50-75,80", want: false},
 	}
 	for _, tt := range tests {
 		assert.Equalf(t, tt.want, checkFreeleechPercent(tt.value, tt.filter), "checkFreeleechPercent(%v, %v)", tt.value, tt.filter)

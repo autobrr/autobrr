@@ -1203,9 +1203,9 @@ func checkFreeleechPercent(announcePercent int, filterPercent string) bool {
 						return true
 					}
 				}
-			}
 
-			continue
+				continue
+			}
 		}
 
 		filterPercentInt, err := strconv.ParseInt(filter, 10, 32)
