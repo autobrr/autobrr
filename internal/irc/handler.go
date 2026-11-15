@@ -351,7 +351,8 @@ func (h *Handler) connect(connectGen uint64) (err error) {
 
 	addr := fmt.Sprintf("%s:%d", network.Server, network.Port)
 
-	if network.UseBouncer && network.BouncerAddr != "" {
+	viaBouncer := network.UseBouncer && network.BouncerAddr != ""
+	if viaBouncer {
 		addr = network.BouncerAddr
 	}
 
@@ -388,6 +389,12 @@ func (h *Handler) connect(connectGen uint64) (err error) {
 		QuitMessage:   "bye from autobrr",
 		Debug:         true,
 		Log:           subLogger,
+	}
+
+	if viaBouncer {
+		// soju replays the messages a client missed unless it enables draft/chathistory,
+		// and autobrr would act on those old announces as new releases
+		client.RequestCaps = append(client.RequestCaps, "draft/chathistory")
 	}
 
 	if network.UseProxy && network.ProxyId != 0 {
