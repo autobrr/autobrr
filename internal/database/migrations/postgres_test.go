@@ -559,6 +559,30 @@ func TestRunMigrationTest_Postgres(t *testing.T) {
 			SetupData:           setupPlaintextAPIKeys,
 			ValidateResult:      validateAPIKeysHashed,
 		},
+		{
+			Name:                "Anthelion IRC network migration: not migrated",
+			MigrationIndex:      92,
+			MigrationsUntilName: "92_create_matrix_tables",
+			MigrationToRun:      "93_irc_update_anthelion_network",
+			SetupData:           setupAnthelionNotMigrated,
+			ValidateResult:      validateAnthelionNotMigrated,
+		},
+		{
+			Name:                "Anthelion IRC network migration: already migrated",
+			MigrationIndex:      92,
+			MigrationsUntilName: "92_create_matrix_tables",
+			MigrationToRun:      "93_irc_update_anthelion_network",
+			SetupData:           setupAnthelionAlreadyMigrated,
+			ValidateResult:      validateAnthelionAlreadyMigrated,
+		},
+		{
+			Name:                "Anthelion IRC network migration: not used",
+			MigrationIndex:      92,
+			MigrationsUntilName: "92_create_matrix_tables",
+			MigrationToRun:      "93_irc_update_anthelion_network",
+			SetupData:           setupAnthelionNotUsed,
+			ValidateResult:      validateAnthelionNotUsed,
+		},
 	}
 
 	for _, tc := range tests {

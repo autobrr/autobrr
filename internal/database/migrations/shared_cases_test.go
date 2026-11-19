@@ -169,6 +169,151 @@ func validateNordicBytesNotUsed(db *sql.DB, t *testing.T) {
 	assert.Equal(t, 1, channels)
 }
 
+func setupAnthelionNotMigrated(db *sql.DB) error {
+	if _, err := db.Exec(insertIrcNetwork + `
+		(1, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, 'server_pw', 'user|bot_a',
+		 'SASL_PLAIN', 'acct_a', 'secret_a', 'Sauron bot #ant-announce user_a key_a', TRUE, 'znc.local:6697', TRUE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(2, TRUE, 'Nebulance', 'irc.nebulance.io', 6667, FALSE, FALSE, '', 'user|bot_b',
+		 'NONE', '', '', '', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(3, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, '', 'user|bot_b',
+		 'NONE', '', '', '', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(4, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, '', 'user|bot_c',
+		 'NONE', '', '', '', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(5, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, '', 'user|bot_d',
+		 'NICKSERV', 'acct_d', 'secret_d', '', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00')`); err != nil {
+		return err
+	}
+
+	_, err := db.Exec(`INSERT INTO irc_channel (id, enabled, name, password, detached, network_id) VALUES
+		(1, TRUE, '#ant-announce', 'chan_pw', FALSE, 1),
+		(2, TRUE, '#nbl-announce', '', FALSE, 1),
+		(3, FALSE, '#ANT-Announce', '', TRUE, 2),
+		(4, TRUE, '#ant-announce', '', FALSE, 3),
+		(5, TRUE, '#nbl-announce', '', FALSE, 4)`)
+
+	return err
+}
+
+func validateAnthelionNotMigrated(db *sql.DB, t *testing.T) {
+	var name, pass string
+	var port int
+	var tls, botMode, useBouncer bool
+	var mechanism, account, password, inviteCommand, bouncerAddr string
+
+	err := db.QueryRow(`SELECT name, port, tls, pass, bot_mode, auth_mechanism, auth_account, auth_password, invite_command, use_bouncer, bouncer_addr FROM irc_network WHERE server = 'irc.anthelion.me' AND nick = 'user|bot_a'`).
+		Scan(&name, &port, &tls, &pass, &botMode, &mechanism, &account, &password, &inviteCommand, &useBouncer, &bouncerAddr)
+	require.NoError(t, err)
+	assert.Equal(t, "Anthelion", name)
+	assert.Equal(t, 6697, port)
+	assert.True(t, tls)
+	assert.True(t, botMode)
+	assert.Equal(t, "Sauron bot #ant-announce user_a key_a", inviteCommand)
+	assert.Empty(t, pass, "Nebulance server password must not be sent to Anthelion")
+	assert.Equal(t, "NONE", mechanism, "Nebulance credentials must not be sent to Anthelion")
+	assert.Empty(t, account)
+	assert.Empty(t, password)
+	assert.False(t, useBouncer, "the bouncer still points at Nebulance")
+	assert.Equal(t, "znc.local:6697", bouncerAddr)
+
+	var chanPassword string
+	err = db.QueryRow(`SELECT password FROM irc_channel WHERE network_id = (SELECT id FROM irc_network WHERE server = 'irc.anthelion.me' AND nick = 'user|bot_a') AND name = '#ant-announce'`).Scan(&chanPassword)
+	require.NoError(t, err)
+	assert.Equal(t, "chan_pw", chanPassword)
+
+	// user|bot_b had two nebulance rows; one is carried over so UNIQUE (server, port, nick) holds,
+	// and the enabled channel wins over the disabled one on the lower id.
+	var enabled, detached bool
+	err = db.QueryRow(`SELECT n.port, n.tls, c.enabled, c.detached FROM irc_network n JOIN irc_channel c ON c.network_id = n.id WHERE n.server = 'irc.anthelion.me' AND n.nick = 'user|bot_b' AND c.name = '#ant-announce'`).
+		Scan(&port, &tls, &enabled, &detached)
+	require.NoError(t, err)
+	assert.Equal(t, 6697, port)
+	assert.True(t, tls)
+	assert.True(t, enabled)
+	assert.False(t, detached)
+
+	var count int
+	err = db.QueryRow(`SELECT COUNT(*) FROM irc_network WHERE server = 'irc.anthelion.me'`).Scan(&count)
+	require.NoError(t, err)
+	assert.Equal(t, 2, count)
+
+	err = db.QueryRow(`SELECT COUNT(*) FROM irc_network WHERE id IN (2, 3)`).Scan(&count)
+	require.NoError(t, err)
+	assert.Equal(t, 0, count, "nebulance rows only used by Anthelion must be removed")
+
+	err = db.QueryRow(`SELECT name FROM irc_channel WHERE network_id = 1`).Scan(&name)
+	require.NoError(t, err, "shared nebulance row must keep its other channels and nothing else")
+	assert.Equal(t, "#nbl-announce", name)
+
+	err = db.QueryRow(`SELECT COUNT(*) FROM irc_channel WHERE network_id = 4 AND name = '#nbl-announce'`).Scan(&count)
+	require.NoError(t, err)
+	assert.Equal(t, 1, count, "other nebulance rows must not be touched")
+
+	err = db.QueryRow(`SELECT auth_account FROM irc_network WHERE id = 5`).Scan(&account)
+	require.NoError(t, err, "a nebulance row that was already empty must be kept")
+	assert.Equal(t, "acct_d", account)
+}
+
+func setupAnthelionAlreadyMigrated(db *sql.DB) error {
+	if _, err := db.Exec(insertIrcNetwork + `
+		(1, TRUE, 'Anthelion', 'irc.anthelion.me', 6697, TRUE, FALSE, '', 'user|bot_x',
+		 'NONE', '', '', '', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(2, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, '', 'user|bot_a',
+		 'NONE', '', '', '', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(3, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, '', 'user|bot_b',
+		 'NONE', '', '', '', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00')`); err != nil {
+		return err
+	}
+
+	_, err := db.Exec(`INSERT INTO irc_channel (id, enabled, name, password, detached, network_id) VALUES
+		(1, TRUE, '#ant-announce', '', FALSE, 1),
+		(2, TRUE, '#ant-announce', '', FALSE, 2),
+		(3, TRUE, '#nbl-announce', '', FALSE, 2),
+		(4, TRUE, '#ant-announce', '', FALSE, 3)`)
+
+	return err
+}
+
+func validateAnthelionAlreadyMigrated(db *sql.DB, t *testing.T) {
+	var networks, channels int
+	err := db.QueryRow(`SELECT (SELECT COUNT(*) FROM irc_network), (SELECT COUNT(*) FROM irc_channel)`).Scan(&networks, &channels)
+	require.NoError(t, err)
+	assert.Equal(t, 3, networks, "an existing Anthelion network must skip the whole migration")
+	assert.Equal(t, 4, channels)
+}
+
+func setupAnthelionNotUsed(db *sql.DB) error {
+	if _, err := db.Exec(insertIrcNetwork + `
+		(1, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, '', 'user|bot_a',
+		 'NONE', '', '', '', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(2, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, '', 'user|bot_b',
+		 'NONE', '', '', '', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00')`); err != nil {
+		return err
+	}
+
+	_, err := db.Exec(`INSERT INTO irc_channel (id, enabled, name, password, detached, network_id) VALUES
+		(1, TRUE, '#nbl-announce', '', FALSE, 1)`)
+
+	return err
+}
+
+func validateAnthelionNotUsed(db *sql.DB, t *testing.T) {
+	var networks, channels int
+	err := db.QueryRow(`SELECT (SELECT COUNT(*) FROM irc_network), (SELECT COUNT(*) FROM irc_channel)`).Scan(&networks, &channels)
+	require.NoError(t, err)
+	assert.Equal(t, 2, networks, "nothing must change without Anthelion, including empty nebulance rows")
+	assert.Equal(t, 1, channels)
+}
+
 func setupBuiltinNotificationExisting(db *sql.DB) error {
 	_, err := db.Exec(`INSERT INTO notification (name, type, enabled, events, webhook)
 		VALUES ('Discord', 'DISCORD', TRUE, '{PUSH_APPROVED}', 'https://discord.example/hook')`)
