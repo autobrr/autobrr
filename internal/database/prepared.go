@@ -9,13 +9,12 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/pkg/errors"
-
-	"github.com/lib/pq"
 )
 
 // QueryPrepared runs query through a cached prepared statement, falling back to
-// a plain query when it can not be prepared. Only use it for a static SQL shape:
-// every distinct query string stays prepared for the life of the process.
+// a plain query when it can not be prepared or the database has no statement
+// cache (Postgres). Only use it for a static SQL shape: every distinct query
+// string stays prepared for the life of the process.
 //
 // Never call it while holding a transaction on the same goroutine, SQLite has a
 // single connection.
@@ -33,14 +32,9 @@ func (db *DB) QueryPrepared(ctx context.Context, query string, args ...any) (row
 		return db.Handler.QueryContext(ctx, query, args...)
 	}
 
-	rows, err = stmt.QueryContext(ctx, args...)
-	if err != nil && db.isStalePreparedStatement(err) {
-		return db.Handler.QueryContext(ctx, query, args...)
-	}
-
 	prepared = true
 
-	return rows, err
+	return stmt.QueryContext(ctx, args...)
 }
 
 // QueryRowPrepared is QueryPrepared for a query returning a single row, scanned
@@ -82,14 +76,9 @@ func (db *DB) ExecPrepared(ctx context.Context, query string, args ...any) (resu
 		return db.Handler.ExecContext(ctx, query, args...)
 	}
 
-	result, err = stmt.ExecContext(ctx, args...)
-	if err != nil && db.isStalePreparedStatement(err) {
-		return db.Handler.ExecContext(ctx, query, args...)
-	}
-
 	prepared = true
 
-	return result, err
+	return stmt.ExecContext(ctx, args...)
 }
 
 func (db *DB) statement(ctx context.Context, query string) (*sql.Stmt, error) {
@@ -103,31 +92,6 @@ func (db *DB) statement(ctx context.Context, query string) (*sql.Stmt, error) {
 	}
 
 	return stmt, err
-}
-
-// isStalePreparedStatement reports whether a named prepared statement did not
-// survive a pooler in transaction mode, such as PgBouncer without
-// max_prepared_statements. It routes the execution to a different server
-// connection than the prepare, which only fails here, at execution time: the
-// name is missing (26000), or lib/pq's per-connection names ("1", "2", ...)
-// collide with another client's statement taking a different number of
-// parameters (08P01). The cache is turned off for the rest of the process, and
-// the failed call is safe to retry unprepared since the statement never ran.
-func (db *DB) isStalePreparedStatement(err error) bool {
-	pqErr, ok := errors.AsType[*pq.Error](err)
-	if !ok {
-		return false
-	}
-
-	if pqErr.Code != "26000" && pqErr.Code != "42P05" && pqErr.Code != "08P01" {
-		return false
-	}
-
-	if db.stmts.disable() {
-		db.log.Warn().Err(err).Msg("prepared statements do not survive this connection pooler, disabling the statement cache")
-	}
-
-	return true
 }
 
 // logPrepared keeps args at trace level only, release inserts bind download

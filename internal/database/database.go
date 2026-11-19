@@ -123,13 +123,17 @@ func (db *DB) Open() error {
 			return errors.Wrap(err, "could not open sqlite db connection")
 		}
 
+		// SQLite only: lib/pq names statements "1", "2", ... per connection, so
+		// behind a Postgres transaction pooler that does not track prepared
+		// statements a cached statement can bind to another client's statement of
+		// the same name and run its SQL instead
+		db.stmts = newStatementCache(db.Handler)
+
 	case DriverPostgres:
 		if err := db.openPostgres(); err != nil {
 			return errors.Wrap(err, "could not open postgres db connection")
 		}
 	}
-
-	db.stmts = newStatementCache(db.Handler)
 
 	return nil
 }

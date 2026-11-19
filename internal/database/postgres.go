@@ -34,7 +34,7 @@ func (db *DB) openPostgres() error {
 	}
 
 	// database/sql keeps only 2 idle connections by default, so an announce burst
-	// opens a new backend per query and re-prepares the cached statements on each.
+	// opens and tears down a backend per query.
 	db.Handler.SetMaxOpenConns(postgresMaxConns)
 	db.Handler.SetMaxIdleConns(postgresMaxConns)
 	db.Handler.SetConnMaxIdleTime(postgresConnMaxIdleTime)

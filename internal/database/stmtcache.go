@@ -83,7 +83,7 @@ func (c *statementCache) get(ctx context.Context, query string) (*sql.Stmt, erro
 	c.m.Lock()
 	defer c.m.Unlock()
 
-	// close or disable may have run while preparing outside the lock
+	// close may have run while preparing outside the lock
 	if c.disabled.Load() {
 		_ = stmt.Close()
 		return nil, errStatementCacheDisabled
@@ -102,12 +102,6 @@ func (c *statementCache) get(ctx context.Context, query string) (*sql.Stmt, erro
 	c.stmts[query] = stmt
 
 	return stmt, nil
-}
-
-// disable stops handing out statements for the rest of the process. Statements
-// already handed out stay open, a goroutine may still be running one.
-func (c *statementCache) disable() bool {
-	return c.disabled.CompareAndSwap(false, true)
 }
 
 func (c *statementCache) close() error {
