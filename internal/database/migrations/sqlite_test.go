@@ -698,6 +698,45 @@ func TestRunMigrationTest_SQLite(t *testing.T) {
 			},
 			want: "",
 		},
+		{
+			name:   "Anthelion IRC network migration: not migrated",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "Anthelion IRC network migration: not migrated",
+				MigrationIndex:      102,
+				MigrationsUntilName: "102_create_matrix_tables",
+				MigrationToRun:      "103_irc_update_anthelion_network",
+				SetupData:           setupAnthelionNotMigrated,
+				ValidateResult:      validateAnthelionNotMigrated,
+			},
+			want: "",
+		},
+		{
+			name:   "Anthelion IRC network migration: already migrated",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "Anthelion IRC network migration: already migrated",
+				MigrationIndex:      102,
+				MigrationsUntilName: "102_create_matrix_tables",
+				MigrationToRun:      "103_irc_update_anthelion_network",
+				SetupData:           setupAnthelionAlreadyMigrated,
+				ValidateResult:      validateAnthelionAlreadyMigrated,
+			},
+			want: "",
+		},
+		{
+			name:   "Anthelion IRC network migration: not used",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "Anthelion IRC network migration: not used",
+				MigrationIndex:      102,
+				MigrationsUntilName: "102_create_matrix_tables",
+				MigrationToRun:      "103_irc_update_anthelion_network",
+				SetupData:           setupAnthelionNotUsed,
+				ValidateResult:      validateAnthelionNotUsed,
+			},
+			want: "",
+		},
 	}
 
 	for _, tt := range tests {
