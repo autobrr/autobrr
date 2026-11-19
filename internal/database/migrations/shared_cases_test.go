@@ -171,8 +171,8 @@ func validateNordicBytesNotUsed(db *sql.DB, t *testing.T) {
 
 func setupAnthelionNotMigrated(db *sql.DB) error {
 	if _, err := db.Exec(insertIrcNetwork + `
-		(1, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, '', 'user|bot_a',
-		 'SASL_PLAIN', 'acct_a', 'secret_a', 'Sauron bot #ant-announce user_a key_a', FALSE, '', TRUE, FALSE, NULL,
+		(1, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, 'server_pw', 'user|bot_a',
+		 'SASL_PLAIN', 'acct_a', 'secret_a', 'Sauron bot #ant-announce user_a key_a', TRUE, 'znc.local:6697', TRUE, FALSE, NULL,
 		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
 		(2, TRUE, 'Nebulance', 'irc.nebulance.io', 6667, FALSE, FALSE, '', 'user|bot_b',
 		 'NONE', '', '', '', FALSE, '', FALSE, FALSE, NULL,
@@ -182,6 +182,9 @@ func setupAnthelionNotMigrated(db *sql.DB) error {
 		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
 		(4, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, '', 'user|bot_c',
 		 'NONE', '', '', '', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(5, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, '', 'user|bot_d',
+		 'NICKSERV', 'acct_d', 'secret_d', '', FALSE, '', FALSE, FALSE, NULL,
 		 '2025-01-01 00:00:00', '2025-01-01 00:00:00')`); err != nil {
 		return err
 	}
@@ -197,37 +200,41 @@ func setupAnthelionNotMigrated(db *sql.DB) error {
 }
 
 func validateAnthelionNotMigrated(db *sql.DB, t *testing.T) {
-	var name string
+	var name, pass string
 	var port int
-	var tls, botMode bool
-	var mechanism, account, password, inviteCommand string
+	var tls, botMode, useBouncer bool
+	var mechanism, account, password, inviteCommand, bouncerAddr string
 
-	err := db.QueryRow(`SELECT name, port, tls, bot_mode, auth_mechanism, auth_account, auth_password, invite_command FROM irc_network WHERE server = 'irc.anthelion.me' AND nick = 'user|bot_a'`).
-		Scan(&name, &port, &tls, &botMode, &mechanism, &account, &password, &inviteCommand)
+	err := db.QueryRow(`SELECT name, port, tls, pass, bot_mode, auth_mechanism, auth_account, auth_password, invite_command, use_bouncer, bouncer_addr FROM irc_network WHERE server = 'irc.anthelion.me' AND nick = 'user|bot_a'`).
+		Scan(&name, &port, &tls, &pass, &botMode, &mechanism, &account, &password, &inviteCommand, &useBouncer, &bouncerAddr)
 	require.NoError(t, err)
 	assert.Equal(t, "Anthelion", name)
 	assert.Equal(t, 6697, port)
 	assert.True(t, tls)
 	assert.True(t, botMode)
-	assert.Equal(t, "SASL_PLAIN", mechanism)
-	assert.Equal(t, "acct_a", account)
-	assert.Equal(t, "secret_a", password)
 	assert.Equal(t, "Sauron bot #ant-announce user_a key_a", inviteCommand)
+	assert.Empty(t, pass, "Nebulance server password must not be sent to Anthelion")
+	assert.Equal(t, "NONE", mechanism, "Nebulance credentials must not be sent to Anthelion")
+	assert.Empty(t, account)
+	assert.Empty(t, password)
+	assert.False(t, useBouncer, "the bouncer still points at Nebulance")
+	assert.Equal(t, "znc.local:6697", bouncerAddr)
 
 	var chanPassword string
 	err = db.QueryRow(`SELECT password FROM irc_channel WHERE network_id = (SELECT id FROM irc_network WHERE server = 'irc.anthelion.me' AND nick = 'user|bot_a') AND name = '#ant-announce'`).Scan(&chanPassword)
 	require.NoError(t, err)
 	assert.Equal(t, "chan_pw", chanPassword)
 
-	// user|bot_b had two nebulance rows; only the lowest id is carried over so UNIQUE (server, port, nick) holds.
+	// user|bot_b had two nebulance rows; one is carried over so UNIQUE (server, port, nick) holds,
+	// and the enabled channel wins over the disabled one on the lower id.
 	var enabled, detached bool
 	err = db.QueryRow(`SELECT n.port, n.tls, c.enabled, c.detached FROM irc_network n JOIN irc_channel c ON c.network_id = n.id WHERE n.server = 'irc.anthelion.me' AND n.nick = 'user|bot_b' AND c.name = '#ant-announce'`).
 		Scan(&port, &tls, &enabled, &detached)
 	require.NoError(t, err)
 	assert.Equal(t, 6697, port)
-	assert.True(t, tls, "new network must use TLS even if the nebulance row did not")
-	assert.False(t, enabled)
-	assert.True(t, detached)
+	assert.True(t, tls)
+	assert.True(t, enabled)
+	assert.False(t, detached)
 
 	var count int
 	err = db.QueryRow(`SELECT COUNT(*) FROM irc_network WHERE server = 'irc.anthelion.me'`).Scan(&count)
@@ -245,6 +252,10 @@ func validateAnthelionNotMigrated(db *sql.DB, t *testing.T) {
 	err = db.QueryRow(`SELECT COUNT(*) FROM irc_channel WHERE network_id = 4 AND name = '#nbl-announce'`).Scan(&count)
 	require.NoError(t, err)
 	assert.Equal(t, 1, count, "other nebulance rows must not be touched")
+
+	err = db.QueryRow(`SELECT auth_account FROM irc_network WHERE id = 5`).Scan(&account)
+	require.NoError(t, err, "a nebulance row that was already empty must be kept")
+	assert.Equal(t, "acct_d", account)
 }
 
 func setupAnthelionAlreadyMigrated(db *sql.DB) error {
@@ -271,23 +282,11 @@ func setupAnthelionAlreadyMigrated(db *sql.DB) error {
 }
 
 func validateAnthelionAlreadyMigrated(db *sql.DB, t *testing.T) {
-	var count int
-	err := db.QueryRow(`SELECT COUNT(*) FROM irc_network WHERE server = 'irc.anthelion.me'`).Scan(&count)
+	var networks, channels int
+	err := db.QueryRow(`SELECT (SELECT COUNT(*) FROM irc_network), (SELECT COUNT(*) FROM irc_channel)`).Scan(&networks, &channels)
 	require.NoError(t, err)
-	assert.Equal(t, 1, count, "an existing Anthelion network must not get a duplicate")
-
-	err = db.QueryRow(`SELECT COUNT(*) FROM irc_channel WHERE network_id = 1`).Scan(&count)
-	require.NoError(t, err)
-	assert.Equal(t, 1, count)
-
-	var name string
-	err = db.QueryRow(`SELECT name FROM irc_channel WHERE network_id = 2`).Scan(&name)
-	require.NoError(t, err)
-	assert.Equal(t, "#nbl-announce", name)
-
-	err = db.QueryRow(`SELECT COUNT(*) FROM irc_network WHERE id = 3`).Scan(&count)
-	require.NoError(t, err)
-	assert.Equal(t, 0, count, "stale nebulance row must be removed")
+	assert.Equal(t, 3, networks, "an existing Anthelion network must skip the whole migration")
+	assert.Equal(t, 4, channels)
 }
 
 func setupAnthelionNotUsed(db *sql.DB) error {
