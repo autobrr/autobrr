@@ -32,6 +32,7 @@ The backend follows a layered architecture with clear separation of concerns:
 - **`cmd/`**: Application entry points
   - `autobrr/main.go`: cobra root; bare `autobrr` runs `serve`, subcommands live in `internal/cli/`
   - `autobrrctl/main.go`: legacy admin CLI, kept until it is deprecated; new admin commands go in `internal/cli/`
+  - `autobrr-desktop/`: Windows tray build around `application.Run`, with a self-updater (`selfupdate.go`) that swaps in the exe from the release zip; Win32-only code (error dialog, single-instance lock, start on login, logoff/shutdown handling) lives in `platform_windows.go` and only cross-compiles off Windows
 
 - **`internal/`**: Core application logic organized by domain
   - **Domain layer** (`internal/domain/`): Core business entities. It holds no repository or service interfaces - each consumer declares a small unexported interface listing only the methods it calls, and constructors return concrete `*Service` structs
@@ -101,6 +102,7 @@ Applies to Go and TypeScript alike. Excessive low-value comments are the most co
 - `make test` runs the untagged Go suite. Database and other integration tests carry `//go:build integration` next to the code they test and run with `go test -tags=integration ./...`; Postgres is embedded (downloaded on first run), so no Docker is needed
 - IRC integration tests in `test/irc/`, run with `go test -tags=irc_integration_test ./test/irc/...` (in-process ircd, no Docker) - see `test/irc/README.md`
 - Browser end-to-end tests in `test/e2e/`, run with `go test -tags=e2e ./test/e2e/...` (needs a built `web/dist` and a Playwright browser) - see `test/e2e/README.md`
+- Pipeline simulation in `test/simulation/`, run with `make test/simulation`: the real binary against mock IRC/RSS/Torznab indexers, qBittorrent, Sonarr, Radarr and Discord, diffing every push and notification against the filters' expected outcome - see `test/simulation/README.md`
 - Build-tagged packages are invisible to a plain `go list ./...`; pass the tag to tooling that discovers packages first
 - Frontend tests in `web/test/`, run with `pnpm --dir web test` (Vitest + Testing Library in jsdom; prefer these over Go e2e tests for frontend-only behavior)
 - Mock indexer server available in `test/mockindexer/`

@@ -69,7 +69,7 @@ func Start(t testing.TB, network domain.IrcNetwork, defs []*domain.IndexerDefini
 		Releases: newReleaseSink(),
 	}
 
-	inst.Handler = irc.NewHandler(log, bus, inst.sse, network, defs, inst.Releases)
+	inst.Handler = irc.NewHandler(log, bus, inst.sse, network, defs, inst.Releases, enabledIndexers{})
 
 	if err := inst.Handler.Run(); err != nil && !o.AllowRunError {
 		t.Fatalf("harness: handler.Run: %v", err)
@@ -250,6 +250,12 @@ func (m *sseCapture) lastError(channel string) string {
 	}
 	return last
 }
+
+// enabledIndexers reports every indexer as enabled.
+type enabledIndexers struct{}
+
+// IsEnabled implements the handler's indexerService.
+func (enabledIndexers) IsEnabled(string) bool { return true }
 
 // ---- release sink ----
 

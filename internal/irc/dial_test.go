@@ -44,7 +44,7 @@ func TestStopAbortsProxyConnect(t *testing.T) {
 		Proxy:    &domain.Proxy{ID: 1, Name: "http", Enabled: true, Type: domain.ProxyTypeHTTP, Addr: "http://" + ln.Addr().String()},
 	}
 
-	h := NewHandler(zerolog.Nop(), noopEventBus{}, &mockSSEServer{}, network, nil, nil)
+	h := NewHandler(zerolog.Nop(), noopEventBus{}, &mockSSEServer{}, network, nil, nil, nil)
 
 	runErr := make(chan error, 1)
 	go func() { runErr <- h.Run() }()

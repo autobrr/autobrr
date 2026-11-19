@@ -269,3 +269,25 @@ func TestService_ConcurrentIRCLookup(t *testing.T) {
 
 	require.Len(t, service.GetIndexersByIRCNetwork("irc.example.test"), 1)
 }
+
+func TestService_IsEnabledFollowsToggle(t *testing.T) {
+	repo := &stubIndexerRepo{current: &domain.Indexer{ID: 1, Name: "mock", Identifier: "mock", Implementation: domain.IndexerImplementationIRC, Enabled: true, Settings: map[string]string{}}}
+	service := NewService(zerolog.Nop(), &stubEventBus{}, nil, repo, nil, nil)
+	service.definitions["mock"] = domain.IndexerDefinition{
+		Identifier:     "mock",
+		Implementation: domain.IndexerImplementationIRC,
+		IRC:            &domain.IndexerIRCV2{Server: "irc.example.test"},
+	}
+
+	_, err := service.Store(t.Context(), *repo.current)
+	require.NoError(t, err)
+	assert.True(t, service.IsEnabled("mock"))
+
+	require.NoError(t, service.ToggleEnabled(t.Context(), 1, false))
+	assert.False(t, service.IsEnabled("mock"))
+
+	require.NoError(t, service.ToggleEnabled(t.Context(), 1, true))
+	assert.True(t, service.IsEnabled("mock"))
+
+	assert.False(t, service.IsEnabled("unknown"))
+}

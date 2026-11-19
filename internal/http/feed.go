@@ -42,20 +42,24 @@ func newFeedHandler(encoder encoder, service feedService) *feedHandler {
 }
 
 func (h feedHandler) Routes(r chi.Router) {
-	r.Get("/", h.find)
-	r.Post("/", h.store)
-	r.Post("/test", h.test)
-	r.Post("/caps", h.caps)
+	read := requireScope(domain.APIResourceFeeds, domain.APIAccessRead)
+	invoke := requireScope(domain.APIResourceFeeds, domain.APIAccessInvoke)
+	write := requireScope(domain.APIResourceFeeds, domain.APIAccessWrite)
+
+	r.With(read).Get("/", h.find)
+	r.With(write).Post("/", h.store)
+	r.With(write).Post("/test", h.test)
+	r.With(write).Post("/caps", h.caps)
 
 	r.Route("/{feedID}", func(r chi.Router) {
-		r.Get("/", h.findByID)
-		r.Put("/", h.update)
-		r.Delete("/", h.delete)
-		r.Delete("/cache", h.deleteCache)
-		r.Patch("/enabled", h.toggleEnabled)
-		r.Get("/latest", h.latestRun)
-		r.Post("/forcerun", h.forceRun)
-		r.Get("/caps", h.capsByID)
+		r.With(read).Get("/", h.findByID)
+		r.With(write).Put("/", h.update)
+		r.With(write).Delete("/", h.delete)
+		r.With(write).Delete("/cache", h.deleteCache)
+		r.With(write).Patch("/enabled", h.toggleEnabled)
+		r.With(read).Get("/latest", h.latestRun)
+		r.With(invoke).Post("/forcerun", h.forceRun)
+		r.With(read).Get("/caps", h.capsByID)
 	})
 }
 
@@ -143,16 +147,28 @@ func (h feedHandler) caps(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h feedHandler) update(w http.ResponseWriter, r *http.Request) {
+	feedID, err := parseURLParamInt(r, "feedID")
+	if err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
+
 	var data *domain.Feed
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	err := h.service.Update(r.Context(), data)
-	if err != nil {
+	if data == nil {
+		h.encoder.BadRequestErr(w, errors.New("feed is required"))
+		return
+	}
+
+	data.ID = feedID
+
+	if err := h.service.Update(r.Context(), data); err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
-			h.encoder.NotFoundErr(w, errors.New("could not find feed with id %d", data.ID))
+			h.encoder.NotFoundErr(w, errors.New("could not find feed with id %d", feedID))
 			return
 		}
 

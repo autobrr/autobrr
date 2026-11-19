@@ -7,13 +7,13 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/autobrr/autobrr/internal/config"
+	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/internal/logger"
 
 	"github.com/dustin/go-humanize"
@@ -30,8 +30,10 @@ func newLogsHandler(cfg *config.AppConfig) *logsHandler {
 }
 
 func (h logsHandler) Routes(r chi.Router) {
-	r.Get("/files", h.files)
-	r.Get("/files/{logFile}", h.downloadFile)
+	read := requireScope(domain.APIResourceLogs, domain.APIAccessRead)
+
+	r.With(read).Get("/files", h.files)
+	r.With(read).Get("/files/{logFile}", h.downloadFile)
 }
 
 func (h logsHandler) files(w http.ResponseWriter, r *http.Request) {
@@ -45,7 +47,7 @@ func (h logsHandler) files(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logsDir := path.Dir(h.cfg.Config.LogPath)
+	logsDir := filepath.Dir(h.cfg.Config.LogPath)
 
 	// check if dir exists before walkDir
 	if _, err := os.Stat(logsDir); os.IsNotExist(err) {
@@ -54,7 +56,11 @@ func (h logsHandler) files(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var walk = func(path string, d fs.DirEntry, err error) error {
+		// downloads read from logsDir itself, so nested files could not be fetched
 		if d.IsDir() {
+			if path != logsDir {
+				return fs.SkipDir
+			}
 			return nil
 		}
 
@@ -92,10 +98,14 @@ func (h logsHandler) files(w http.ResponseWriter, r *http.Request) {
 func (h logsHandler) downloadFile(w http.ResponseWriter, r *http.Request) {
 	if h.cfg.Config.LogPath == "" {
 		render.Status(r, http.StatusNotFound)
+		render.JSON(w, r, errorResponse{
+			Message: "log file path is not configured",
+			Status:  http.StatusNotFound,
+		})
 		return
 	}
 
-	logsDir := path.Dir(h.cfg.Config.LogPath)
+	logsDir := filepath.Dir(h.cfg.Config.LogPath)
 
 	// check if dir exists before walkDir
 	if _, err := os.Stat(logsDir); os.IsNotExist(err) {
@@ -109,10 +119,12 @@ func (h logsHandler) downloadFile(w http.ResponseWriter, r *http.Request) {
 
 	logFile := chi.URLParam(r, "logFile")
 
-	if !strings.Contains(logFile, ".log") {
+	// a bare name only: Windows decodes %5C to a separator that filepath.Join
+	// follows, which would reach files outside the log directory
+	if strings.ContainsAny(logFile, `/\`) || logFile != filepath.Base(logFile) || filepath.Ext(logFile) != ".log" {
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, errorResponse{
-			Message: "invalid log file. Must have .log extension",
+			Message: "invalid log file. Must be a .log file in the log directory",
 			Status:  http.StatusBadRequest,
 		})
 		return

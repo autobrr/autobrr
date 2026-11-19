@@ -13,7 +13,7 @@ import {
   FeedKeys,
   FilterKeys,
   IndexerKeys,
-  IrcKeys, ListKeys, LogKeys, NotificationKeys, ProxyKeys,
+  IrcKeys, ListKeys, LogKeys, MatrixKeys, NotificationKeys, ProxyKeys,
   ReleaseKeys, ReleaseProfileDuplicateKeys,
   SettingsKeys
 } from "@api/query_keys";
@@ -134,6 +134,29 @@ export const IrcQueryOptions = () =>
     // SSE STATE/HEALTH events drive instant updates; poll as a fallback so the
     // list self-heals if an event is missed (e.g. during an SSE reconnect).
     refetchInterval: 5000
+  });
+
+export const MatrixQueryOptions = () =>
+  queryOptions({
+    queryKey: MatrixKeys.lists(),
+    queryFn: () => APIClient.matrix.list(),
+    refetchOnWindowFocus: false,
+    refetchInterval: 5000
+  });
+
+export const MatrixNetworkQueryOptions = (id: number, refetchInterval: number | false) =>
+  queryOptions({
+    queryKey: MatrixKeys.detail(id),
+    queryFn: () => APIClient.matrix.getByID(id),
+    refetchOnWindowFocus: false,
+    refetchInterval: refetchInterval
+  });
+
+export const MatrixRoomHistoryQueryOptions = (networkId: number, room: string) =>
+  queryOptions({
+    queryKey: MatrixKeys.roomHistory(networkId, room),
+    queryFn: () => APIClient.matrix.getRoomHistory(networkId, room),
+    refetchOnWindowFocus: false
   });
 
 export const FeedsQueryOptions = () =>

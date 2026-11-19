@@ -43,20 +43,23 @@ func newIndexerHandler(encoder encoder, service indexerService, ircSvc ircServic
 }
 
 func (h indexerHandler) Routes(r chi.Router) {
-	r.Get("/schema", h.getSchema)
-	r.Post("/", h.store)
-	r.Get("/", h.getAll)
-	r.Get("/options", h.list)
-	r.Get("/deprecations", h.deprecations)
-	r.Delete("/deprecations/{indexerID}", h.deleteArchived)
+	read := requireScope(domain.APIResourceIndexers, domain.APIAccessRead)
+	write := requireScope(domain.APIResourceIndexers, domain.APIAccessWrite)
+
+	r.With(read).Get("/schema", h.getSchema)
+	r.With(write).Post("/", h.store)
+	r.With(read).Get("/", h.getAll)
+	r.With(read).Get("/options", h.list)
+	r.With(read).Get("/deprecations", h.deprecations)
+	r.With(write).Delete("/deprecations/{indexerID}", h.deleteArchived)
 
 	r.Route("/{indexerID}", func(r chi.Router) {
-		r.Get("/", h.findByID)
-		r.Put("/", h.update)
-		r.Delete("/", h.delete)
-		r.Post("/api/test", h.testApi)
+		r.With(read).Get("/", h.findByID)
+		r.With(write).Put("/", h.update)
+		r.With(write).Delete("/", h.delete)
+		r.With(write).Post("/api/test", h.testApi)
 
-		r.Patch("/enabled", h.toggleEnabled)
+		r.With(write).Patch("/enabled", h.toggleEnabled)
 	})
 }
 
@@ -87,15 +90,28 @@ func (h indexerHandler) store(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h indexerHandler) update(w http.ResponseWriter, r *http.Request) {
-	var data domain.Indexer
+	indexerID, err := parseURLParamInt(r, "indexerID")
+	if err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
+
+	var data *domain.Indexer
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	if err := h.service.Update(r.Context(), &data); err != nil {
+	if data == nil {
+		h.encoder.BadRequestErr(w, errors.New("indexer is required"))
+		return
+	}
+
+	data.ID = int64(indexerID)
+
+	if err := h.service.Update(r.Context(), data); err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
-			h.encoder.NotFoundErr(w, errors.New("indexer with id %d not found", data.ID))
+			h.encoder.NotFoundErr(w, errors.New("indexer with id %d not found", indexerID))
 			return
 		}
 		if errors.Is(err, domain.ErrIndexerArchived) {

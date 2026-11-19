@@ -4,6 +4,7 @@
 package indexer
 
 import (
+	"maps"
 	"os"
 	"path/filepath"
 	"strings"
@@ -40,12 +41,16 @@ func TestIndexerYamlExpectations(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, d := range s.definitions {
-		if d.IRC == nil {
-			continue
+		channels := map[string]*domain.IndexerIRCV2Channel{}
+		if d.IRC != nil {
+			maps.Copy(channels, d.IRC.ChannelsMap)
+		}
+		if d.Matrix != nil {
+			maps.Copy(channels, d.Matrix.RoomsMap)
 		}
 
 		t.Run(d.Name, func(t *testing.T) {
-			for channelName, channel := range d.IRC.ChannelsMap {
+			for channelName, channel := range channels {
 				for _, parseLine := range channel.Parse.Lines {
 					for _, test := range parseLine.Tests {
 						parseOutput := map[string]string{}

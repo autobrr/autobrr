@@ -685,6 +685,58 @@ func TestRunMigrationTest_SQLite(t *testing.T) {
 			},
 			want: "",
 		},
+		{
+			name:   "api key migration hashes existing keys and adds ids",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "api key migration hashes existing keys and adds ids",
+				MigrationIndex:      100,
+				MigrationsUntilName: "100_add_action_ratio_group",
+				MigrationToRun:      "101_api_key_add_id_and_hash_key",
+				SetupData:           setupPlaintextAPIKeys,
+				ValidateResult:      validateAPIKeysHashed,
+			},
+			want: "",
+		},
+		{
+			name:   "Anthelion IRC network migration: not migrated",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "Anthelion IRC network migration: not migrated",
+				MigrationIndex:      102,
+				MigrationsUntilName: "102_create_matrix_tables",
+				MigrationToRun:      "103_irc_update_anthelion_network",
+				SetupData:           setupAnthelionNotMigrated,
+				ValidateResult:      validateAnthelionNotMigrated,
+			},
+			want: "",
+		},
+		{
+			name:   "Anthelion IRC network migration: already migrated",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "Anthelion IRC network migration: already migrated",
+				MigrationIndex:      102,
+				MigrationsUntilName: "102_create_matrix_tables",
+				MigrationToRun:      "103_irc_update_anthelion_network",
+				SetupData:           setupAnthelionAlreadyMigrated,
+				ValidateResult:      validateAnthelionAlreadyMigrated,
+			},
+			want: "",
+		},
+		{
+			name:   "Anthelion IRC network migration: not used",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "Anthelion IRC network migration: not used",
+				MigrationIndex:      102,
+				MigrationsUntilName: "102_create_matrix_tables",
+				MigrationToRun:      "103_irc_update_anthelion_network",
+				SetupData:           setupAnthelionNotUsed,
+				ValidateResult:      validateAnthelionNotUsed,
+			},
+			want: "",
+		},
 	}
 
 	for _, tt := range tests {

@@ -54,51 +54,55 @@ func newReleaseHandler(encoder encoder, service releaseService) *releaseHandler 
 }
 
 func (h releaseHandler) Routes(r chi.Router) {
-	r.Get("/", h.findReleases)
-	r.Get("/recent", h.findRecentReleases)
-	r.Get("/stats", h.getStats)
-	r.Get("/stats/activity", h.statsHandler(func(ctx context.Context, days int) (any, error) {
+	read := requireScope(domain.APIResourceReleases, domain.APIAccessRead)
+	invoke := requireScope(domain.APIResourceReleases, domain.APIAccessInvoke)
+	write := requireScope(domain.APIResourceReleases, domain.APIAccessWrite)
+
+	r.With(read).Get("/", h.findReleases)
+	r.With(read).Get("/recent", h.findRecentReleases)
+	r.With(read).Get("/stats", h.getStats)
+	r.With(read).Get("/stats/activity", h.statsHandler(func(ctx context.Context, days int) (any, error) {
 		return h.service.StatsActivity(ctx, days)
 	}))
-	r.Get("/stats/volume", h.statsHandler(func(ctx context.Context, days int) (any, error) {
+	r.With(read).Get("/stats/volume", h.statsHandler(func(ctx context.Context, days int) (any, error) {
 		return h.service.StatsVolume(ctx, days)
 	}))
-	r.Get("/stats/heatmap", h.statsHandler(func(ctx context.Context, days int) (any, error) {
+	r.With(read).Get("/stats/heatmap", h.statsHandler(func(ctx context.Context, days int) (any, error) {
 		return h.service.StatsHeatmap(ctx, days)
 	}))
-	r.Get("/stats/indexers", h.statsHandler(func(ctx context.Context, days int) (any, error) {
+	r.With(read).Get("/stats/indexers", h.statsHandler(func(ctx context.Context, days int) (any, error) {
 		return h.service.StatsTopIndexers(ctx, days)
 	}))
-	r.Get("/stats/filters", h.statsHandler(func(ctx context.Context, days int) (any, error) {
+	r.With(read).Get("/stats/filters", h.statsHandler(func(ctx context.Context, days int) (any, error) {
 		return h.service.StatsTopFilters(ctx, days)
 	}))
-	r.Get("/indexers", h.getIndexerOptions)
-	r.Delete("/", h.deleteReleases)
+	r.With(read).Get("/indexers", h.getIndexerOptions)
+	r.With(write).Delete("/", h.deleteReleases)
 
 	//r.Post("/process", h.retryAction)
 
 	r.Route("/{releaseID}", func(r chi.Router) {
-		r.Get("/", h.getReleaseByID)
-		r.Post("/actions/{actionStatusID}/retry", h.retryAction)
+		r.With(read).Get("/", h.getReleaseByID)
+		r.With(invoke).Post("/actions/{actionStatusID}/retry", h.retryAction)
 	})
 
 	r.Route("/profiles/duplicate", func(r chi.Router) {
-		r.Get("/", h.findReleaseProfileDuplicate)
-		r.Post("/", h.storeReleaseProfileDuplicate)
+		r.With(read).Get("/", h.findReleaseProfileDuplicate)
+		r.With(write).Post("/", h.storeReleaseProfileDuplicate)
 
-		r.Delete("/{profileId}", h.deleteReleaseProfileDuplicate)
+		r.With(write).Delete("/{profileID}", h.deleteReleaseProfileDuplicate)
 	})
 
 	r.Route("/cleanup-jobs", func(r chi.Router) {
-		r.Get("/", h.listCleanupJobs)
-		r.Post("/", h.storeCleanupJob)
+		r.With(read).Get("/", h.listCleanupJobs)
+		r.With(write).Post("/", h.storeCleanupJob)
 
 		r.Route("/{jobID}", func(r chi.Router) {
-			r.Get("/", h.getCleanupJob)
-			r.Put("/", h.updateCleanupJob)
-			r.Delete("/", h.deleteCleanupJob)
-			r.Patch("/enabled", h.toggleCleanupJobEnabled)
-			r.Post("/run", h.forceRunCleanupJob)
+			r.With(read).Get("/", h.getCleanupJob)
+			r.With(write).Put("/", h.updateCleanupJob)
+			r.With(write).Delete("/", h.deleteCleanupJob)
+			r.With(write).Patch("/enabled", h.toggleCleanupJobEnabled)
+			r.With(invoke).Post("/run", h.forceRunCleanupJob)
 		})
 	})
 }
@@ -348,13 +352,18 @@ func (h releaseHandler) findReleaseProfileDuplicate(w http.ResponseWriter, r *ht
 }
 
 func (h releaseHandler) deleteReleaseProfileDuplicate(w http.ResponseWriter, r *http.Request) {
-	profileId, err := parseURLParamInt(r, "profileId")
+	profileID, err := parseURLParamInt(r, "profileID")
 	if err != nil {
 		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
-	if err := h.service.DeleteReleaseProfileDuplicate(r.Context(), int64(profileId)); err != nil {
+	if err := h.service.DeleteReleaseProfileDuplicate(r.Context(), int64(profileID)); err != nil {
+		if errors.Is(err, domain.ErrRecordNotFound) {
+			h.encoder.NotFoundErr(w, errors.New("duplicate release profile with id %d not found", profileID))
+			return
+		}
+
 		h.encoder.Error(w, err)
 		return
 	}
@@ -411,15 +420,28 @@ func (h releaseHandler) storeCleanupJob(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h releaseHandler) updateCleanupJob(w http.ResponseWriter, r *http.Request) {
+	jobID, err := parseURLParamInt(r, "jobID")
+	if err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
+
 	var data *domain.ReleaseCleanupJob
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
+	if data == nil {
+		h.encoder.BadRequestErr(w, errors.New("cleanup job is required"))
+		return
+	}
+
+	data.ID = jobID
+
 	if err := h.service.UpdateCleanupJob(r.Context(), data); err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
-			h.encoder.NotFoundErr(w, errors.New("could not find cleanup job with id %d", data.ID))
+			h.encoder.NotFoundErr(w, errors.New("could not find cleanup job with id %d", jobID))
 			return
 		}
 

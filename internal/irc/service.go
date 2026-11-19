@@ -39,6 +39,12 @@ type ircRepo interface {
 
 type indexerService interface {
 	GetIndexersByIRCNetwork(server string) []*domain.IndexerDefinition
+
+	indexerStatus
+}
+
+type indexerStatus interface {
+	IsEnabled(identifier string) bool
 }
 
 type releaseService interface {
@@ -335,7 +341,7 @@ func (s *Service) startNetwork(network domain.IrcNetwork) {
 
 	definitions := s.indexerService.GetIndexersByIRCNetwork(network.Server)
 
-	handler := NewHandler(s.log, s.eventBus, s.sse, network, definitions, s.releaseService)
+	handler := NewHandler(s.log, s.eventBus, s.sse, network, definitions, s.releaseService, s.indexerService)
 
 	s.networkHandlers.Set(network.ID, handler)
 

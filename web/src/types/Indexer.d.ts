@@ -35,7 +35,7 @@ interface IndexerMinimal {
   identifier_external: string;
 }
 
-type IndexerImplementation = "irc" | "torznab" | "newznab" | "rss";
+type IndexerImplementation = "irc" | "matrix" | "torznab" | "newznab" | "rss";
 
 interface IndexerDefinition {
   id: number;
@@ -55,6 +55,7 @@ interface IndexerDefinition {
   proxy_id?: number;
   settings: IndexerSetting[];
   irc: IndexerIRC;
+  matrix?: IndexerMatrix;
   feed: IndexerFeed;
 }
 
@@ -90,6 +91,12 @@ interface IndexerIRCChannel {
   name: string;
   announcers: string[];
   parse: IndexerParse;
+}
+
+interface IndexerMatrix {
+  network: string;
+  homeserver: string;
+  rooms: IndexerIRCChannel[];
 }
 
 interface IndexerFeed {

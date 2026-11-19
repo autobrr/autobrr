@@ -7,6 +7,7 @@ package irc_test
 
 import (
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -275,6 +276,65 @@ func TestNickServLinkRetriesIdentifyEarly(t *testing.T) {
 	var status domain.IrcNetworkWithHealth
 	inst.Handler.ReportStatus(&status)
 	require.Empty(t, status.ConnectionErrors, "expected the status to clear once identified")
+}
+
+// TestNickServIdentifiesAfterRegainingNick replays a reconnect that lands on a
+// fallback nick while the server still holds the old connection. NickServ rejects
+// the bare IDENTIFY and never answers the account form, so that IDENTIFY stays
+// outstanding when the client gets its nick back. The silence is an assumption:
+// the logs of the outage do not show what NickServ sent.
+func TestNickServIdentifiesAfterRegainingNick(t *testing.T) {
+	var accountFormSent atomic.Bool
+	srv := ircd.New(t, ircd.NickHeld("autobrr"), ircd.WithNickServScript(func(nick, text string) ([]string, bool) {
+		switch {
+		case nick == "autobrr" && text == "IDENTIFY nspass":
+			return []string{"Password accepted - you are now recognized."}, true
+		case nick == "autobrr":
+			return nil, false
+		case len(strings.Fields(text)) == 2:
+			return []string{"Nick " + nick + " isn't registered."}, false
+		default:
+			accountFormSent.Store(true)
+			return nil, false
+		}
+	}))
+	srv.AddChannel("#ns", ircd.RegisteredOnly(), ircd.Announcer("ann"))
+
+	def := harness.MinimalDefinition("ns", "#ns", "ann")
+	net := harness.Network(srv, "autobrr", harness.NickServ("autobrr", "nspass"), harness.Channel("#ns"))
+
+	inst := harness.Start(t, net, harness.Defs(def))
+
+	require.Eventually(t, accountFormSent.Load, 10*time.Second, 10*time.Millisecond, "the account form of IDENTIFY never reached NickServ")
+
+	srv.SendNickChange("autobrr_0", "autobrr_0", "autobrr")
+
+	inst.WaitForMonitoring("#ns", 5*time.Second)
+}
+
+// TestNickServGreetingReplacesLostIdentify replays a services outage that loses
+// an IDENTIFY: NickServ never answers it, and greets the nick when it links again.
+func TestNickServGreetingReplacesLostIdentify(t *testing.T) {
+	var identifies atomic.Int32
+	srv := ircd.New(t, ircd.WithNickServScript(func(string, string) ([]string, bool) {
+		if identifies.Add(1) == 1 {
+			return nil, false
+		}
+		return []string{"Password accepted - you are now recognized."}, true
+	}))
+	srv.AddChannel("#ns", ircd.RegisteredOnly(), ircd.Announcer("ann"))
+
+	def := harness.MinimalDefinition("ns", "#ns", "ann")
+	net := harness.Network(srv, "autobrr", harness.NickServ("autobrr", "nspass"), harness.Channel("#ns"))
+
+	inst := harness.Start(t, net, harness.Defs(def))
+
+	require.Eventually(t, func() bool { return identifies.Load() == 1 }, 10*time.Second, 10*time.Millisecond, "IDENTIFY never reached NickServ")
+
+	time.Sleep(11 * time.Second)
+	srv.LinkNickServ()
+
+	inst.WaitForMonitoring("#ns", 5*time.Second)
 }
 
 // TestNoneAuthJoinsDirectly verifies the simplest path: no auth, direct join.
@@ -566,4 +626,196 @@ func TestInviteRejectThenLateForceJoinRecovers(t *testing.T) {
 	// the late force-join recovers the channel and the network returns to healthy
 	inst.WaitForMonitoring("#inv", 15*time.Second)
 	inst.WaitForHealthy(15 * time.Second)
+}
+
+// TestInviteRetriedAfterRegainingNick replays a reconnect that lands on a
+// fallback nick while the server still holds the old connection, on a network
+// whose invite bot refuses every nick but the configured one. The refusal parks
+// the channel, and getting the nick back must request the invite again.
+func TestInviteRetriedAfterRegainingNick(t *testing.T) {
+	srv := ircd.New(t, ircd.NickHeld("autobrr"))
+	srv.AddChannel("#inv", ircd.InviteOnly(), ircd.Announcer("Gatekeeper"))
+
+	var requests atomic.Int32
+	srv.AddBot("Gatekeeper", func(b *ircd.Bot, from, text string) {
+		requests.Add(1)
+		if from != "autobrr" {
+			b.Notice(from, from+" is not permitted to join #inv. You must be a bot.")
+			return
+		}
+		b.Invite(from, "#inv")
+	})
+
+	def := harness.InviteDefinition("inv", "#inv", "Gatekeeper", "Gatekeeper")
+	net := harness.Network(srv, "autobrr", harness.None(), harness.Channel("#inv"))
+	net.InviteCommand = inviteCmd
+
+	inst := harness.Start(t, net, harness.Defs(def))
+	inst.WaitForState("#inv", "InviteFailed", 15*time.Second)
+
+	srv.SendNickChange("autobrr_0", "autobrr_0", "autobrr")
+
+	inst.WaitForMonitoring("#inv", 10*time.Second)
+	require.EqualValues(t, 2, requests.Load(), "expected exactly one new invite request after regaining the nick")
+}
+
+// TestInviteRefusedOnOwnNickNotRetried verifies regaining the nick does not
+// request again an invite the bot refused for that same nick: the refusal is
+// about the credentials, and asking again only spams the bot.
+func TestInviteRefusedOnOwnNickNotRetried(t *testing.T) {
+	srv := ircd.New(t)
+	srv.AddChannel("#inv", ircd.InviteOnly(), ircd.Announcer("Gatekeeper"))
+
+	var requests atomic.Int32
+	srv.AddBot("Gatekeeper", func(b *ircd.Bot, from, text string) {
+		requests.Add(1)
+		b.Notice(from, "Invalid IRCKEY - request denied")
+	})
+
+	def := harness.InviteDefinition("inv", "#inv", "Gatekeeper", "Gatekeeper")
+	net := harness.Network(srv, "autobrr", harness.None(), harness.Channel("#inv"))
+	net.InviteCommand = inviteCmd
+
+	inst := harness.Start(t, net, harness.Defs(def))
+	inst.WaitForState("#inv", "InviteFailed", 15*time.Second)
+
+	srv.SendNickChange("autobrr", "autobrr", "Guest1")
+	srv.SendNickChange("Guest1", "Guest1", "autobrr")
+
+	time.Sleep(time.Second)
+	require.EqualValues(t, 1, requests.Load(), "expected no new invite request for a nick the bot already refused")
+	require.False(t, inst.Handler.Stopped(), "expected one lost nick to leave the network running")
+}
+
+// TestNickLossLoopStopsNetwork replays services that keep moving the client off
+// its nick while irc-go keeps taking it back. Every round sends another IDENTIFY
+// or invite request, and networks ban clients that do this, so the network must
+// stop with a reason instead of looping until it is banned.
+func TestNickLossLoopStopsNetwork(t *testing.T) {
+	srv := ircd.New(t)
+	srv.AddChannel("#loop", ircd.Announcer("ann"))
+
+	def := harness.MinimalDefinition("loop", "#loop", "ann")
+	net := harness.Network(srv, "autobrr", harness.None(), harness.Channel("#loop"))
+
+	inst := harness.Start(t, net, harness.Defs(def))
+	inst.WaitForMonitoring("#loop", 10*time.Second)
+
+	for _, guest := range []string{"Guest1", "Guest2"} {
+		srv.SendNickChange("autobrr", "autobrr", guest)
+		srv.SendNickChange(guest, guest, "autobrr")
+	}
+	require.False(t, inst.Handler.Stopped(), "expected two lost nicks to leave the network running")
+
+	srv.SendNickChange("autobrr", "autobrr", "Guest3")
+
+	inst.WaitForNetworkError("nick change loop", 5*time.Second)
+	inst.WaitForStopped(5 * time.Second)
+}
+
+// TestRequestedNickChangesDoNotStopNetwork verifies nick edits made in the
+// config are not counted as losses: the server acknowledges the new nick before
+// the handler holds the edited config, so it looks like being moved off the nick.
+func TestRequestedNickChangesDoNotStopNetwork(t *testing.T) {
+	srv := ircd.New(t)
+	srv.AddChannel("#edit", ircd.Announcer("ann"))
+
+	def := harness.MinimalDefinition("edit", "#edit", "ann")
+	net := harness.Network(srv, "autobrr", harness.None(), harness.Channel("#edit"))
+
+	inst := harness.Start(t, net, harness.Defs(def))
+	inst.WaitForMonitoring("#edit", 10*time.Second)
+
+	for _, edited := range []string{"autobrr1", "autobrr2", "autobrr3"} {
+		require.NoError(t, inst.Handler.NickChange(edited))
+		srv.SendNickChange("autobrr", "autobrr", edited)
+		require.Eventually(t, func() bool { return inst.Handler.CurrentNick() == edited }, 5*time.Second, 10*time.Millisecond)
+
+		require.NoError(t, inst.Handler.NickChange("autobrr"))
+		srv.SendNickChange(edited, edited, "autobrr")
+		require.Eventually(t, func() bool { return inst.Handler.CurrentNick() == "autobrr" }, 5*time.Second, 10*time.Millisecond)
+	}
+
+	time.Sleep(time.Second)
+	require.False(t, inst.Handler.Stopped(), "expected requested nick changes to leave the network running")
+}
+
+// TestReconnectsForServerJoinAfterRegainingNick replays the Norbits reconnect: the
+// server joins a client to its invite-only channel only when the client connects
+// on its own nick. A reconnect lands on a fallback nick while the server holds the
+// old connection, the JOIN gets 473, and getting the nick back must reconnect,
+// because a JOIN on the regained nick is still refused.
+func TestReconnectsForServerJoinAfterRegainingNick(t *testing.T) {
+	srv := ircd.New(t, ircd.NickHeld("autobrr"), ircd.JoinOnConnect("autobrr", "#auto"))
+	srv.AddChannel("#auto", ircd.InviteOnly(), ircd.Announcer("ann"))
+
+	def := harness.MinimalDefinition("auto", "#auto", "ann")
+	net := harness.Network(srv, "autobrr", harness.None(), harness.Channel("#auto"))
+
+	inst := harness.Start(t, net, harness.Defs(def))
+	inst.WaitForState("#auto", "Error", 15*time.Second)
+
+	srv.SendNickChange("autobrr_0", "autobrr_0", "autobrr")
+
+	inst.WaitForMonitoring("#auto", 30*time.Second)
+	require.Equal(t, 1, srv.JoinCount("#auto"), "expected the server join at connect to be the only join")
+}
+
+// TestRegainingNickWithoutRefusalKeepsConnection verifies that getting the nick
+// back reconnects only after an invite-only refusal on the fallback nick.
+func TestRegainingNickWithoutRefusalKeepsConnection(t *testing.T) {
+	srv := ircd.New(t, ircd.NickHeld("autobrr"))
+	srv.AddChannel("#open", ircd.Announcer("ann"))
+
+	def := harness.MinimalDefinition("open", "#open", "ann")
+	net := harness.Network(srv, "autobrr", harness.None(), harness.Channel("#open"))
+
+	inst := harness.Start(t, net, harness.Defs(def))
+	inst.WaitForMonitoring("#open", 10*time.Second)
+
+	srv.SendNickChange("autobrr_0", "autobrr_0", "autobrr")
+
+	time.Sleep(3 * time.Second)
+	require.Equal(t, 1, srv.JoinCount("#open"), "expected no reconnect and no second join")
+}
+
+// TestRegainingNickAfterRefusedChannelJoinedKeepsConnection verifies that a refused
+// channel that joins later, here through a server join on the fallback nick, needs
+// no reconnect when the nick comes back.
+func TestRegainingNickAfterRefusedChannelJoinedKeepsConnection(t *testing.T) {
+	srv := ircd.New(t, ircd.NickHeld("autobrr"), ircd.JoinOnConnect("autobrr", "#auto"))
+	srv.AddChannel("#auto", ircd.InviteOnly(), ircd.Announcer("ann"))
+
+	def := harness.MinimalDefinition("auto", "#auto", "ann")
+	net := harness.Network(srv, "autobrr", harness.None(), harness.Channel("#auto"))
+
+	inst := harness.Start(t, net, harness.Defs(def))
+	inst.WaitForState("#auto", "Error", 15*time.Second)
+
+	srv.ForceJoin("autobrr_0", "#auto")
+	inst.WaitForMonitoring("#auto", 10*time.Second)
+
+	srv.SendNickChange("autobrr_0", "autobrr_0", "autobrr")
+
+	time.Sleep(3 * time.Second)
+	require.Equal(t, 1, srv.JoinCount("#auto"), "expected no reconnect and no second server join")
+}
+
+// TestRegainingNickAfterRefusedChannelRemovedKeepsConnection verifies that a refused
+// channel that was removed since needs no reconnect when the nick comes back.
+func TestRegainingNickAfterRefusedChannelRemovedKeepsConnection(t *testing.T) {
+	srv := ircd.New(t, ircd.NickHeld("autobrr"), ircd.JoinOnConnect("autobrr", "#auto"))
+	srv.AddChannel("#auto", ircd.InviteOnly(), ircd.Announcer("ann"))
+
+	def := harness.MinimalDefinition("auto", "#auto", "ann")
+	net := harness.Network(srv, "autobrr", harness.None(), harness.Channel("#auto"))
+
+	inst := harness.Start(t, net, harness.Defs(def))
+	inst.WaitForState("#auto", "Error", 15*time.Second)
+
+	inst.Handler.RemoveChannel("#auto")
+	srv.SendNickChange("autobrr_0", "autobrr_0", "autobrr")
+
+	time.Sleep(3 * time.Second)
+	require.Zero(t, srv.JoinCount("#auto"), "expected no reconnect and no server join")
 }

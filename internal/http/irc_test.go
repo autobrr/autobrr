@@ -64,6 +64,13 @@ func (s *ircAuthValidationService) GetMessageHistory(context.Context, int64, str
 	return nil, nil
 }
 
+func withNetworkID(r *http.Request, networkID string) *http.Request {
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("networkID", networkID)
+
+	return r.WithContext(context.WithValue(r.Context(), chi.RouteCtxKey, rctx))
+}
+
 func TestIRCHandlerRejectsInvalidAuthBeforeService(t *testing.T) {
 	tests := []struct {
 		name string
@@ -83,7 +90,7 @@ func TestIRCHandlerRejectsInvalidAuthBeforeService(t *testing.T) {
 				if method == http.MethodPost {
 					handler.storeNetwork(recorder, request)
 				} else {
-					handler.updateNetwork(recorder, request)
+					handler.updateNetwork(recorder, withNetworkID(request, "1"))
 				}
 
 				assert.Equal(t, http.StatusBadRequest, recorder.Code, method)
@@ -116,7 +123,7 @@ func TestIRCHandlerAcceptsCompatibleAuth(t *testing.T) {
 				if method == http.MethodPost {
 					handler.storeNetwork(recorder, request)
 				} else {
-					handler.updateNetwork(recorder, request)
+					handler.updateNetwork(recorder, withNetworkID(request, "1"))
 				}
 
 				assert.Equal(t, http.StatusNoContent, recorder.Code, method)

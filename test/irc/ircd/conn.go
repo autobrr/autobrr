@@ -1,7 +1,7 @@
 // Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-//go:build irc_integration_test || e2e
+//go:build irc_integration_test || e2e || simulation
 
 package ircd
 
@@ -108,6 +108,10 @@ func (c *conn) handle(msg ircmsg.Message) (quit bool) {
 		c.handleCap(msg)
 	case "NICK":
 		if len(msg.Params) > 0 {
+			if c.srv.nickHeld(msg.Params[0]) {
+				c.numeric(433, msg.Params[0], "Nickname is already in use")
+				return false
+			}
 			c.setNick(msg.Params[0])
 		}
 		c.tryRegister()
@@ -231,6 +235,10 @@ func (c *conn) tryRegister() {
 	c.sendf(":%s 372 %s :- in-process test ircd", serverName, nick)
 	c.sendf(":%s 376 %s :End of /MOTD command.", serverName, nick)
 
+	if c.srv.joinOnConnectNick != "" && strings.EqualFold(nick, c.srv.joinOnConnectNick) {
+		c.srv.ForceJoin(nick, c.srv.joinOnConnectChannel)
+	}
+
 	// modelled ban: registration succeeds, then the server K-Line/G-Lines us with a
 	// 465 and closes the link. Sending it post-welcome (rather than rejecting at
 	// registration) means the handler's Connect() succeeds and the 465 is delivered
@@ -265,6 +273,10 @@ func (c *conn) joinOne(name, key string) {
 	nick := c.getNick()
 
 	c.srv.mu.Lock()
+	if ch.members[strings.ToLower(nick)] == c {
+		c.srv.mu.Unlock()
+		return // servers ignore a JOIN for a channel the client is already in
+	}
 	badKey := ch.key != "" && key != ch.key
 	needInvite := ch.inviteOnly && !ch.invited[strings.ToLower(nick)]
 	needReg := ch.regOnly && c.account == ""
@@ -369,6 +381,19 @@ func (c *conn) handleMessage(msg ircmsg.Message, notice bool) {
 // handleNickServ implements a minimal NickServ that accepts IDENTIFY and marks
 // the client authenticated, both via a recognisable NOTICE and a +r user mode.
 func (c *conn) handleNickServ(text string) {
+	if script := c.srv.nickServScript; script != nil {
+		nick := c.getNick()
+		replies, identified := script(nick, text)
+		for _, reply := range replies {
+			c.sendf(":NickServ!services@%s NOTICE %s :%s", serverName, nick, reply)
+		}
+		if identified {
+			c.account = nick
+			c.sendf(":%s MODE %s +r", serverName, nick)
+		}
+		return
+	}
+
 	fields := strings.Fields(text)
 	if len(fields) < 2 || !strings.EqualFold(fields[0], "IDENTIFY") {
 		return

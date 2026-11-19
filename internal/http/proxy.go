@@ -37,16 +37,19 @@ func newProxyHandler(encoder encoder, service proxyService) *proxyHandler {
 }
 
 func (h proxyHandler) Routes(r chi.Router) {
-	r.Get("/", h.list)
-	r.Post("/", h.store)
-	r.Post("/test", h.test)
+	read := requireScope(domain.APIResourceProxies, domain.APIAccessRead)
+	write := requireScope(domain.APIResourceProxies, domain.APIAccessWrite)
+
+	r.With(read).Get("/", h.list)
+	r.With(write).Post("/", h.store)
+	r.With(write).Post("/test", h.test)
 
 	r.Route("/{proxyID}", func(r chi.Router) {
-		r.Get("/", h.findByID)
-		r.Put("/", h.update)
-		r.Delete("/", h.delete)
+		r.With(read).Get("/", h.findByID)
+		r.With(write).Put("/", h.update)
+		r.With(write).Delete("/", h.delete)
 
-		r.Get("/usage", h.usage)
+		r.With(read).Get("/usage", h.usage)
 	})
 }
 
@@ -66,13 +69,26 @@ func (h proxyHandler) store(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h proxyHandler) update(w http.ResponseWriter, r *http.Request) {
-	var data domain.Proxy
+	proxyID, err := parseURLParamInt(r, "proxyID")
+	if err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
+
+	var data *domain.Proxy
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
-	if err := h.service.Update(r.Context(), &data); err != nil {
+	if data == nil {
+		h.encoder.BadRequestErr(w, errors.New("proxy is required"))
+		return
+	}
+
+	data.ID = int64(proxyID)
+
+	if err := h.service.Update(r.Context(), data); err != nil {
 		if errors.Is(err, domain.ErrUpdateFailed) {
 			h.encoder.StatusError(w, http.StatusBadRequest, err)
 			return

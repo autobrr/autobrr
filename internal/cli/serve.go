@@ -17,8 +17,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// pgoDuration is how long a --pgo run records before shutting itself down.
-// The release workflow relies on the process exiting on its own.
+// pgoDuration is how long a --pgo run records before shutting itself down, so
+// a profile can be recorded unattended.
 const pgoDuration = 5 * time.Second
 
 func CommandServe() *cobra.Command {

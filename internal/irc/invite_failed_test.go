@@ -384,3 +384,40 @@ func TestIsChannelTarget(t *testing.T) {
 		assert.Equalf(t, c.want, isChannelTarget(c.target), "isChannelTarget(%q)", c.target)
 	}
 }
+
+// TestStartRetriesInviteRefusedForAnotherNick covers a channel parked before the
+// login finished: a live channel edit can request the invite on a fallback nick,
+// and the join that follows the login must ask again when the nick differs.
+func TestStartRetriesInviteRefusedForAnotherNick(t *testing.T) {
+	tests := []struct {
+		name        string
+		refusedNick string
+		retried     bool
+	}{
+		{name: "refused for a fallback nick", refusedNick: "autobrr_0", retried: true},
+		{name: "refused for the current nick", refusedNick: "autobrr", retried: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h, _ := newTestHandler()
+			h.currentNick = "autobrr"
+			sm := addAwaitingInviteChannel(h, "#chan", "bot enter #chan key")
+
+			sm.m.Lock()
+			sm.state = ChannelStateInviteFailed
+			sm.inviteNick = tt.refusedNick
+			sm.m.Unlock()
+
+			sm.Start()
+
+			if tt.retried {
+				require.Truef(t, waitFor(func() bool { return sm.CurrentState() != ChannelStateInviteFailed }, time.Second), "expected the refused invite to be requested again, got %s", sm.CurrentState())
+				return
+			}
+
+			time.Sleep(50 * time.Millisecond)
+			require.Equal(t, ChannelStateInviteFailed, sm.CurrentState(), "expected a refusal for the current nick to stay parked")
+		})
+	}
+}

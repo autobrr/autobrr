@@ -1,7 +1,7 @@
 // Copyright (c) 2021 - 2025, Ludvig Lundgren and the autobrr contributors.
 // SPDX-License-Identifier: GPL-2.0-or-later
 
-//go:build irc_integration_test || e2e
+//go:build irc_integration_test || e2e || simulation
 
 // Package ircd is a minimal, in-process IRC server for autobrr's integration
 // tests. It implements just enough of the protocol for the ergochat/irc-go
@@ -62,6 +62,13 @@ type Server struct {
 	nickServOffline bool
 	nickServMisses  int
 
+	// nickServScript replaces the default NickServ, which accepts every IDENTIFY.
+	nickServScript NickServScript
+
+	heldNick string // taken by a client we do not model
+
+	joinOnConnectNick, joinOnConnectChannel string
+
 	closed chan struct{}
 	wg     sync.WaitGroup
 }
@@ -72,6 +79,36 @@ type Option func(*Server)
 // WithAccount registers an account name/password usable for SASL and NickServ.
 func WithAccount(name, password string) Option {
 	return func(s *Server) { s.accounts[strings.ToLower(name)] = password }
+}
+
+// NickServScript answers a message to NickServ from the client on nick. It returns
+// the NOTICE texts to send back and whether the client is now identified.
+type NickServScript func(nick, text string) (replies []string, identified bool)
+
+// WithNickServScript replaces the default NickServ, for services that reject or
+// ignore an IDENTIFY.
+func WithNickServScript(script NickServScript) Option {
+	return func(s *Server) { s.nickServScript = script }
+}
+
+// NickHeld answers a NICK for nick with 433 (ERR_NICKNAMEINUSE), like a server
+// that still holds the previous connection of the client. SendNickChange can
+// still move a client onto it, and that ends the hold.
+func NickHeld(nick string) Option {
+	return func(s *Server) { s.heldNick = nick }
+}
+
+func (s *Server) nickHeld(nick string) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return strings.EqualFold(nick, s.heldNick)
+}
+
+// JoinOnConnect has the server join a client to channel when it registers as
+// nick, bypassing +i, like a network that joins its users at connect. A client
+// that registers on another nick and later takes nick is not joined.
+func JoinOnConnect(nick, channel string) Option {
+	return func(s *Server) { s.joinOnConnectNick, s.joinOnConnectChannel = nick, channel }
 }
 
 // RequireValidSASL makes SASL logins fail unless they match a registered
@@ -399,6 +436,9 @@ func (s *Server) SendNickChange(nick, sourceNick, newNick string) {
 		}
 	}
 	c.setNick(newNick)
+	if strings.EqualFold(newNick, s.heldNick) {
+		s.heldNick = ""
+	}
 	s.mu.Unlock()
 
 	c.sendf(":%s!%s NICK :%s", sourceNick, userHost, newNick)

@@ -9,4 +9,5 @@ export { DownloaderAddForm, DownloaderUpdateForm } from "./settings/DownloaderFo
 export { IndexerAddForm, IndexerUpdateForm } from "./settings/IndexerForms";
 export { IrcNetworkAddForm, IrcNetworkUpdateForm } from "./settings/IrcForms";
 export { ListAddForm, ListUpdateForm } from "./settings/ListForms";
+export { MatrixLoginForm, MatrixNetworkAddForm, MatrixNetworkUpdateForm } from "./settings/MatrixForms";
 

@@ -65,7 +65,13 @@ test.each([
   { name: "logout", logout: () => vi.spyOn(APIClient.auth, "logout").mockResolvedValue(undefined as never) },
   { name: "logout with an expired session", logout: () => vi.spyOn(APIClient.auth, "logout").mockRejectedValue(new Error("Cookie expired or invalid.")) }
 ])("$name tells the login page not to start OIDC login", async ({ logout }) => {
-  AuthContext.set({ isLoggedIn: true, username: "admin", authMethod: "password" });
+  AuthContext.set({
+    isLoggedIn: true,
+    username: "admin",
+    authMethod: "password",
+    authMode: "builtin",
+    capabilities: { password_login: true, oidc_login: false, onboarding: true, account_management: true, api_key_management: true, proxy_guards: false }
+  });
   logout();
 
   const router = await renderApp();
@@ -75,4 +81,58 @@ test.each([
   await waitFor(() => expect(AuthContext.get().isLoggedIn).toBe(false));
   expect(router.state.location.pathname).toBe("/login");
   expect(consumeLoggedOut()).toBe(true);
+});
+
+test("modes without sessions or accounts hide account and logout", async () => {
+  AuthContext.set({
+    isLoggedIn: true,
+    username: "admin",
+    authMethod: "disabled",
+    authMode: "disabled",
+    capabilities: { password_login: false, oidc_login: false, onboarding: false, account_management: false, api_key_management: false, proxy_guards: true }
+  });
+
+  await renderApp();
+  fireEvent.click(screen.getByRole("button", { name: /open user menu/i }));
+
+  expect(await screen.findByText("Settings")).toBeTruthy();
+  expect(screen.queryByText("Account")).toBeNull();
+  expect(screen.queryByText("Log out")).toBeNull();
+});
+
+test("forward mode logs out through the proxy logout url", async () => {
+  AuthContext.set({
+    isLoggedIn: true,
+    username: "ze0s",
+    authMethod: "forward",
+    authMode: "forward",
+    logoutUrl: "https://auth.example.com/logout",
+    capabilities: { password_login: false, oidc_login: false, onboarding: false, account_management: false, api_key_management: true, proxy_guards: true }
+  });
+  const logout = vi.spyOn(APIClient.auth, "logout");
+
+  await renderApp();
+  fireEvent.click(screen.getByRole("button", { name: /open user menu/i }));
+
+  const link = await screen.findByRole("menuitem", { name: /log out/i });
+  expect(link.getAttribute("href")).toBe("https://auth.example.com/logout");
+  expect(fireEvent.click(link)).toBe(true);
+  expect(screen.queryByText("Account")).toBeNull();
+  expect(logout).not.toHaveBeenCalled();
+});
+
+test("forward mode without a logout url hides log out", async () => {
+  AuthContext.set({
+    isLoggedIn: true,
+    username: "ze0s",
+    authMethod: "forward",
+    authMode: "forward",
+    capabilities: { password_login: false, oidc_login: false, onboarding: false, account_management: false, api_key_management: true, proxy_guards: true }
+  });
+
+  await renderApp();
+  fireEvent.click(screen.getByRole("button", { name: /open user menu/i }));
+
+  expect(await screen.findByText("Settings")).toBeTruthy();
+  expect(screen.queryByText("Log out")).toBeNull();
 });

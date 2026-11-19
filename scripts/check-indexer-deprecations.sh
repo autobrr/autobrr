@@ -11,6 +11,12 @@ identifier_from_yaml() {
   sed -n 's/^identifier:[[:space:]]*//p' | head -n 1 | tr -d "'\""
 }
 
+declare -A active_identifiers=()
+for active_file in "${definitions_dir}"/*.yaml; do
+  identifier="$(identifier_from_yaml < "${active_file}")"
+  [[ -n "${identifier}" ]] && active_identifiers["${identifier}"]=1
+done
+
 require_active_or_tombstone() {
   local identifier="$1"
   local source_file="$2"
@@ -21,12 +27,9 @@ require_active_or_tombstone() {
     return
   fi
 
-  local active_file
-  for active_file in "${definitions_dir}"/*.yaml; do
-    if [[ "$(identifier_from_yaml < "${active_file}")" == "${identifier}" ]]; then
-      return
-    fi
-  done
+  if [[ -n "${active_identifiers[${identifier}]:-}" ]]; then
+    return
+  fi
 
   local tombstone="${deprecated_dir}/${identifier}.yaml"
   if [[ ! -f "${tombstone}" ]]; then

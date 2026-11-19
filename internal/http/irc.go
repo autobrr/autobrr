@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/irc"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	"github.com/go-chi/chi/v5"
@@ -47,24 +48,33 @@ func newIrcHandler(encoder encoder, sse *sse.Server, service ircService) *ircHan
 }
 
 func (h ircHandler) Routes(r chi.Router) {
-	r.Get("/", h.listNetworks)
-	r.Post("/", h.storeNetwork)
+	read := requireScope(domain.APIResourceIRC, domain.APIAccessRead)
+	invoke := requireScope(domain.APIResourceIRC, domain.APIAccessInvoke)
+	write := requireScope(domain.APIResourceIRC, domain.APIAccessWrite)
+
+	r.With(read).Get("/", h.listNetworks)
+	r.With(write).Post("/", h.storeNetwork)
 
 	r.Route("/network/{networkID}", func(r chi.Router) {
-		r.Get("/", h.getNetworkByID)
-		r.Put("/", h.updateNetwork)
-		r.Delete("/", h.deleteNetwork)
+		r.With(read).Get("/", h.getNetworkByID)
+		r.With(write).Put("/", h.updateNetwork)
+		r.With(write).Delete("/", h.deleteNetwork)
 
-		r.Post("/cmd", h.sendCmd)
-		r.Post("/channel", h.storeChannel)
-		r.Post("/restart", h.restartNetwork)
+		r.With(write).Post("/cmd", h.sendCmd)
+		r.With(write).Post("/channel", h.storeChannel)
+		r.With(invoke).Post("/restart", h.restartNetwork)
 
-		r.Get("/channel/{channel}/history", h.getMessageHistory)
+		r.With(read).Get("/channel/{channel}/history", h.getMessageHistory)
 
-		r.Post("/channel/{channel}/announce/process", h.announceProcess)
+		r.With(write).Post("/channel/{channel}/announce/process", h.announceProcess)
 	})
 
-	r.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
+	r.With(read).HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
+		// the SSE server also carries the logs and notifications streams, which the irc scope does not cover
+		if r.URL.Query().Get("stream") != irc.EventStreamKey {
+			h.encoder.BadRequestErr(w, errors.New("unsupported stream: '%s'", r.URL.Query().Get("stream")))
+			return
+		}
 
 		// inject CORS headers to bypass checks
 		h.sse.Headers = map[string]string{
@@ -150,20 +160,33 @@ func (h ircHandler) storeNetwork(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h ircHandler) updateNetwork(w http.ResponseWriter, r *http.Request) {
-	var data domain.IrcNetwork
+	networkID, err := parseURLParamInt(r, "networkID")
+	if err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
+
+	var data *domain.IrcNetwork
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
+
+	if data == nil {
+		h.encoder.BadRequestErr(w, errors.New("network is required"))
+		return
+	}
+
+	data.ID = int64(networkID)
 
 	if err := data.Auth.Validate(); err != nil {
 		h.encoder.BadRequestErr(w, err)
 		return
 	}
 
-	if err := h.service.UpdateNetwork(r.Context(), &data); err != nil {
+	if err := h.service.UpdateNetwork(r.Context(), data); err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
-			h.encoder.NotFoundErr(w, errors.New("network with id %d not found", data.ID))
+			h.encoder.NotFoundErr(w, errors.New("network with id %d not found", networkID))
 			return
 		}
 

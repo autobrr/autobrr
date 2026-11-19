@@ -206,7 +206,7 @@ func (s *Service) refreshAll(ctx context.Context, lists []*domain.List) error {
 		}
 
 		if err := s.refreshList(ctx, listItem); err != nil {
-			if errors.Is(err, domain.ErrRecordNotFound) {
+			if errors.Is(err, domain.ErrDownloadClientNotFound) {
 				s.log.Error().Str("type", string(listItem.Type)).Str("list", listItem.Name).Int("client_id", listItem.ClientID).Msg("client not found for list, skipping")
 				continue
 			}

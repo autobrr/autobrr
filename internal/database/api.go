@@ -6,7 +6,6 @@ package database
 import (
 	"context"
 	"database/sql"
-	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -33,29 +32,44 @@ func (r *APIRepo) Store(ctx context.Context, key *domain.APIKey) error {
 		Insert("api_key").
 		Columns(
 			"name",
-			"key",
+			"key_hash",
 			"scopes",
 		).
 		Values(
 			key.Name,
-			key.Key,
+			key.KeyHash,
 			pq.Array(key.Scopes),
 		).
-		Suffix("RETURNING created_at").RunWith(r.db.Handler)
+		Suffix("RETURNING id, created_at").RunWith(r.db.Handler)
 
-	var createdAt time.Time
-
-	if err := queryBuilder.QueryRowContext(ctx).Scan(&createdAt); err != nil {
+	if err := queryBuilder.QueryRowContext(ctx).Scan(&key.ID, &key.CreatedAt); err != nil {
 		return errors.Wrap(err, "error executing query")
 	}
-
-	key.CreatedAt = createdAt
 
 	return nil
 }
 
-func (r *APIRepo) Delete(ctx context.Context, key string) error {
-	queryBuilder := r.db.squirrel.Delete("api_key").Where(sq.Eq{"key": key})
+func (r *APIRepo) Update(ctx context.Context, key *domain.APIKey) error {
+	queryBuilder := r.db.squirrel.
+		Update("api_key").
+		Set("name", key.Name).
+		Set("scopes", pq.Array(key.Scopes)).
+		Where(sq.Eq{"id": key.ID}).
+		Suffix("RETURNING key_hash, created_at").RunWith(r.db.Handler)
+
+	if err := queryBuilder.QueryRowContext(ctx).Scan(&key.KeyHash, &key.CreatedAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.ErrRecordNotFound
+		}
+
+		return errors.Wrap(err, "error executing query")
+	}
+
+	return nil
+}
+
+func (r *APIRepo) Delete(ctx context.Context, id int) error {
+	queryBuilder := r.db.squirrel.Delete("api_key").Where(sq.Eq{"id": id})
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -67,15 +81,16 @@ func (r *APIRepo) Delete(ctx context.Context, key string) error {
 		return errors.Wrap(err, "error executing query")
 	}
 
-	r.log.Debug().Str("api_key", key).Msg("successfully deleted")
+	r.log.Debug().Int("api_key_id", id).Msg("successfully deleted")
 
 	return nil
 }
 
-func (r *APIRepo) GetAllAPIKeys(ctx context.Context) ([]domain.APIKey, error) {
+func (r *APIRepo) List(ctx context.Context) ([]domain.APIKey, error) {
 	queryBuilder := r.db.squirrel.
-		Select("name", "key", "scopes", "created_at").
-		From("api_key")
+		Select("id", "name", "key_hash", "scopes", "created_at").
+		From("api_key").
+		OrderBy("id")
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -95,7 +110,7 @@ func (r *APIRepo) GetAllAPIKeys(ctx context.Context) ([]domain.APIKey, error) {
 
 		var name sql.NullString
 
-		if err := rows.Scan(&name, &a.Key, pq.Array(&a.Scopes), &a.CreatedAt); err != nil {
+		if err := rows.Scan(&a.ID, &name, &a.KeyHash, pq.Array(&a.Scopes), &a.CreatedAt); err != nil {
 			return nil, errors.Wrap(err, "error scanning row")
 		}
 
@@ -104,14 +119,26 @@ func (r *APIRepo) GetAllAPIKeys(ctx context.Context) ([]domain.APIKey, error) {
 		keys = append(keys, a)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "error rows")
+	}
+
 	return keys, nil
 }
 
-func (r *APIRepo) GetKey(ctx context.Context, key string) (*domain.APIKey, error) {
+func (r *APIRepo) FindByID(ctx context.Context, id int) (*domain.APIKey, error) {
+	return r.findOne(ctx, sq.Eq{"id": id})
+}
+
+func (r *APIRepo) FindByKeyHash(ctx context.Context, keyHash string) (*domain.APIKey, error) {
+	return r.findOne(ctx, sq.Eq{"key_hash": keyHash})
+}
+
+func (r *APIRepo) findOne(ctx context.Context, where sq.Eq) (*domain.APIKey, error) {
 	queryBuilder := r.db.squirrel.
-		Select("name", "key", "scopes", "created_at").
+		Select("id", "name", "key_hash", "scopes", "created_at").
 		From("api_key").
-		Where(sq.Eq{"key": key})
+		Where(where)
 
 	query, args, err := queryBuilder.ToSql()
 	if err != nil {
@@ -127,7 +154,7 @@ func (r *APIRepo) GetKey(ctx context.Context, key string) (*domain.APIKey, error
 
 	var name sql.NullString
 
-	if err := row.Scan(&name, &apiKey.Key, pq.Array(&apiKey.Scopes), &apiKey.CreatedAt); err != nil {
+	if err := row.Scan(&apiKey.ID, &name, &apiKey.KeyHash, pq.Array(&apiKey.Scopes), &apiKey.CreatedAt); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrRecordNotFound
 		}

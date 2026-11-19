@@ -125,7 +125,7 @@ checkForUpdates = true
 # OIDC Redirect URL (e.g. http://localhost:7474/api/auth/oidc/callback)
 #oidcRedirectUrl = ""
 #
-# Disable Built In Login Form (only works when using external auth)
+# Disable password login, both the login form and POST /api/auth/login (requires oidcEnabled)
 #oidcDisableBuiltInLogin = false
 #
 # Redirect unauthenticated visitors to the OIDC provider (requires oidcEnabled)
@@ -180,10 +180,38 @@ checkForUpdates = true
 #authAllowedHosts = ["autobrr"]
 #
 # Header the reverse proxy overwrites on EVERY request with the end user's IP,
-# used for access logs while authentication is disabled. Only safe with a header
+# used for access logs in disabled and forward authentication modes. Only safe with a header
 # your proxy sets unconditionally (e.g. X-Real-IP with nginx real_ip, or
 # CF-Connecting-IP with Cloudflare); leave empty to log the proxy address instead.
 #authClientIPHeader = ""
+
+# Forward authentication
+#
+# For deployments where a reverse proxy authenticates every request (Authelia,
+# Authentik, or any forward_auth/auth_request setup) and passes the username on in
+# a header. Unlike disabled authentication, every request must carry the header,
+# and API keys and their management keep working. Cannot be combined with
+# authDisabled, oidcEnabled, oidcDisableBuiltInLogin, oidcAutoRedirect,
+# oidcAllowedSubject or oidcAllowedEmail.
+#
+# The proxy MUST overwrite this header on every request, never pass a client's
+# value through. Authelia: Remote-User, Authentik: X-authentik-username.
+#
+# Also requires authAllowedPeerCIDRs and corsAllowedOrigins as described above,
+# and every authAllowedPeerCIDRs entry must be a single proxy address (/32 or
+# /128): any allowlisted peer can send the header itself and log in as any user.
+#
+# Environment variable: AUTOBRR__AUTH_TRUSTED_USER_HEADER
+#authTrustedUserHeader = "Remote-User"
+#
+# Required. The only username accepted, exactly as the proxy sends it, including
+# case. Other users your proxy authenticates get 403.
+# Environment variable: AUTOBRR__AUTH_TRUSTED_USER
+#authTrustedUser = "ze0s"
+#
+# Optional. The proxy's logout URL, used by the log out button. Empty hides it.
+# Environment variable: AUTOBRR__AUTH_LOGOUT_URL
+#authLogoutURL = "https://auth.example.com/logout"
 
 # Trusted reverse proxies
 #
@@ -191,7 +219,7 @@ checkForUpdates = true
 # set, X-Forwarded-For is only believed from these peers and is read right to
 # left past them, so clients cannot spoof their IP to dodge login rate limits
 # or fill the logs with fake addresses. When unset, forwarded headers are
-# trusted from any peer. Only used while authentication is enabled.
+# trusted from any peer. Not used in disabled or forward authentication modes.
 #trustedProxies = ["127.0.0.1", "::1"]
 
 # Metrics
@@ -310,17 +338,38 @@ type AppConfig struct {
 	m      *sync.Mutex
 }
 
+// New loads the config at configPath. A config file it cannot read is logged
+// and the defaults are used; one it cannot decode exits.
 func New(configPath string) *AppConfig {
+	c, err := newAppConfig(configPath, false)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return c
+}
+
+// Load is New for callers that report a config error themselves, such as the
+// desktop build, which has no console for log.Fatal to print to. It also
+// returns read errors, such as a syntax error, rather than running on defaults
+// that the user did not choose.
+func Load(configPath string) (*AppConfig, error) {
+	return newAppConfig(configPath, true)
+}
+
+func newAppConfig(configPath string, strict bool) (*AppConfig, error) {
 	c := &AppConfig{
 		m: new(sync.Mutex),
 	}
 	c.defaults()
 	c.Config.ConfigPath = configPath
 
-	c.load(configPath)
+	if err := c.load(configPath, strict); err != nil {
+		return nil, err
+	}
 	c.loadFromEnv()
 
-	return c
+	return c, nil
 }
 
 func (c *AppConfig) defaults() {
@@ -362,6 +411,9 @@ func (c *AppConfig) defaults() {
 		AuthAllowedHosts:            []string{},
 		AuthClientIPHeader:          "",
 		TrustedProxies:              []string{},
+		AuthTrustedUserHeader:       "",
+		AuthTrustedUser:             "",
+		AuthLogoutURL:               "",
 	}
 }
 
@@ -557,6 +609,18 @@ func (c *AppConfig) loadFromEnv() {
 	if v := GetEnvStr("TRUSTED_PROXIES"); v != "" {
 		c.Config.TrustedProxies = splitEnvList(v)
 	}
+
+	if v := GetEnvStr("AUTH_TRUSTED_USER_HEADER"); v != "" {
+		c.Config.AuthTrustedUserHeader = v
+	}
+
+	if v := GetEnvStr("AUTH_TRUSTED_USER"); v != "" {
+		c.Config.AuthTrustedUser = v
+	}
+
+	if v := GetEnvStr("AUTH_LOGOUT_URL"); v != "" {
+		c.Config.AuthLogoutURL = v
+	}
 }
 
 // splitEnvList splits a comma or whitespace separated env var value into a
@@ -611,7 +675,7 @@ func validDatabaseType(v string) bool {
 	return slices.Contains(validDbTypes, v)
 }
 
-func (c *AppConfig) load(configPath string) {
+func (c *AppConfig) load(configPath string, strict bool) error {
 	viper.SetConfigType("toml")
 
 	// clean trailing slash from configPath
@@ -638,12 +702,22 @@ func (c *AppConfig) load(configPath string) {
 
 	// read config
 	if err := viper.ReadInConfig(); err != nil {
+		if strict {
+			return errors.Wrap(err, "could not read config file: %s", viper.ConfigFileUsed())
+		}
+
 		log.Printf("config read error: %q", err)
+
+		// viper keeps the values of an earlier successful read, so decoding
+		// now would not give the defaults
+		return nil
 	}
 
 	if err := viper.Unmarshal(c.Config); err != nil {
-		log.Fatalf("Could not unmarshal config file: %v: err %q", viper.ConfigFileUsed(), err)
+		return errors.Wrap(err, "could not unmarshal config file: %s", viper.ConfigFileUsed())
 	}
+
+	return nil
 }
 
 func (c *AppConfig) DynamicReload(log zerolog.Logger) {
@@ -700,7 +774,7 @@ func (c *AppConfig) processLines(lines []string) []string {
 			foundLineUpdate = true
 		}
 		if !foundLineLogLevel && strings.Contains(line, "logLevel =") {
-			lines[i] = fmt.Sprintf(`logLevel = "%s"`, c.Config.LogLevel)
+			lines[i] = "logLevel = " + tomlString(c.Config.LogLevel)
 			foundLineLogLevel = true
 		}
 		if !foundLineLogPath && strings.Contains(line, "logPath =") {
@@ -713,7 +787,7 @@ func (c *AppConfig) processLines(lines []string) []string {
 					lines[i] = `#logPath = ""`
 				}
 			} else {
-				lines[i] = fmt.Sprintf("logPath = \"%s\"", c.Config.LogPath)
+				lines[i] = "logPath = " + tomlString(c.Config.LogPath)
 			}
 			foundLineLogPath = true
 		}
@@ -733,7 +807,7 @@ func (c *AppConfig) processLines(lines []string) []string {
 		lines = append(lines, "#")
 		lines = append(lines, `# Options: "ERROR", "WARN", "INFO", "DEBUG", "TRACE"`)
 		lines = append(lines, "#")
-		lines = append(lines, fmt.Sprintf(`logLevel = "%s"`, c.Config.LogLevel))
+		lines = append(lines, "logLevel = "+tomlString(c.Config.LogLevel))
 	}
 
 	if !foundLineLogPath {
@@ -744,9 +818,31 @@ func (c *AppConfig) processLines(lines []string) []string {
 		if c.Config.LogPath == "" {
 			lines = append(lines, `#logPath = ""`)
 		} else {
-			lines = append(lines, fmt.Sprintf(`logPath = "%s"`, c.Config.LogPath))
+			lines = append(lines, "logPath = "+tomlString(c.Config.LogPath))
 		}
 	}
 
 	return lines
+}
+
+// tomlString quotes s as a TOML basic string. Windows paths need it: written
+// raw, the backslashes in C:\Users read as escape sequences and the file no
+// longer parses.
+func tomlString(s string) string {
+	var b strings.Builder
+	b.WriteByte('"')
+	for _, r := range s {
+		switch {
+		case r == '"' || r == '\\':
+			b.WriteByte('\\')
+			b.WriteRune(r)
+		case r < 0x20 || r == 0x7f:
+			fmt.Fprintf(&b, `\u%04X`, r)
+		default:
+			b.WriteRune(r)
+		}
+	}
+	b.WriteByte('"')
+
+	return b.String()
 }

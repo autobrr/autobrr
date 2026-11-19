@@ -22,9 +22,7 @@ type updateChecker interface {
 
 type Service struct {
 	log       zerolog.Logger
-	eventBus  eventBus
 	config    *domain.Config
-	version   string
 	updateSvc updateChecker
 
 	cron *cron.Cron
@@ -32,10 +30,9 @@ type Service struct {
 	m    sync.RWMutex
 }
 
-func NewService(log zerolog.Logger, bus eventBus, config *domain.Config, updateSvc updateChecker) *Service {
+func NewService(log zerolog.Logger, config *domain.Config, updateSvc updateChecker) *Service {
 	return &Service{
 		log:       log.With().Str("module", "scheduler").Logger(),
-		eventBus:  bus,
 		config:    config,
 		updateSvc: updateSvc,
 		cron: cron.New(cron.WithChain(
@@ -65,7 +62,7 @@ func (s *Service) addAppJobs(ctx context.Context) {
 	}
 
 	if s.config.CheckForUpdates {
-		updateCheckerJob := NewUpdateCheckerJob(s.log, s.eventBus, "app-check-updates", s.version, s.updateSvc)
+		updateCheckerJob := NewUpdateCheckerJob(s.log, "app-check-updates", s.updateSvc)
 
 		if id, err := s.ScheduleJob(updateCheckerJob, 2*time.Hour, "app-check-updates"); err != nil {
 			s.log.Error().Err(err).Int("job_id", id).Msg("error adding job")

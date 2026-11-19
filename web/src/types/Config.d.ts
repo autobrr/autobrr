@@ -4,7 +4,16 @@
  */
 
 type LogLevel = "DEBUG" | "INFO" | "WARN" | "ERROR" | "TRACE";
-type AuthMode = "builtin" | "oidc" | "disabled";
+type AuthMode = "builtin" | "oidc" | "forward" | "disabled";
+
+interface AuthCapabilities {
+  password_login: boolean;
+  oidc_login: boolean;
+  onboarding: boolean;
+  account_management: boolean;
+  api_key_management: boolean;
+  proxy_guards: boolean;
+}
 
 interface Config {
   config_dir: string;
@@ -19,6 +28,8 @@ interface Config {
   base_url: string;
   check_for_updates: boolean;
   auth_mode: AuthMode;
+  auth_capabilities: AuthCapabilities;
+  auth_logout_url?: string;
   version: string;
   commit: string;
   date: string;

@@ -47,7 +47,10 @@ func New(cfg *domain.Config, sseSrv sseServer) zerolog.Logger {
 		writers = append(writers, NewSSEWriter(sseSrv))
 	}
 
-	return zerolog.New(io.MultiWriter(writers...)).With().Timestamp().Stack().Logger()
+	// zerolog's fan-out keeps writing past a failed writer, io.MultiWriter
+	// stops at the first one. A Windows GUI build has no stderr and would
+	// otherwise lose the file and SSE output too.
+	return zerolog.New(zerolog.MultiLevelWriter(writers...)).With().Timestamp().Stack().Logger()
 }
 
 // SetLevel sets the level for every logger in the process. It is safe to call

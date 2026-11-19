@@ -6,6 +6,7 @@ package action
 import (
 	"context"
 	"encoding/base64"
+	"strings"
 
 	"github.com/autobrr/autobrr/internal/domain"
 	"github.com/autobrr/autobrr/pkg/errors"
@@ -187,6 +188,10 @@ func (s *Service) delugeV1(ctx context.Context, cfg *domain.Downloader, client *
 
 // delugeSetOrCreateTorrentLabel set torrent label if it exists or create label if it does not
 func delugeSetOrCreateTorrentLabel(ctx context.Context, plugin *deluge.LabelPlugin, clientName string, hash string, label string) error {
+	// Deluge lowercases new labels and only sets a label by its stored lowercase name,
+	// so a label with uppercase letters would be created but never set
+	label = strings.ToLower(label)
+
 	err := plugin.SetTorrentLabel(ctx, hash, label)
 	if err != nil {
 		// if label does not exist the client will throw an RPC error.

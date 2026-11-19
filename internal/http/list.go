@@ -36,14 +36,18 @@ func newListHandler(encoder encoder, service listService) *listHandler {
 }
 
 func (h listHandler) Routes(r chi.Router) {
-	r.Get("/", h.list)
-	r.Post("/", h.store)
-	r.Post("/refresh", h.refreshAll)
+	read := requireScope(domain.APIResourceLists, domain.APIAccessRead)
+	invoke := requireScope(domain.APIResourceLists, domain.APIAccessInvoke)
+	write := requireScope(domain.APIResourceLists, domain.APIAccessWrite)
+
+	r.With(read).Get("/", h.list)
+	r.With(write).Post("/", h.store)
+	r.With(invoke).Post("/refresh", h.refreshAll)
 
 	r.Route("/{listID}", func(r chi.Router) {
-		r.Post("/refresh", h.refreshList)
-		r.Put("/", h.update)
-		r.Delete("/", h.delete)
+		r.With(invoke).Post("/refresh", h.refreshList)
+		r.With(write).Put("/", h.update)
+		r.With(write).Delete("/", h.delete)
 	})
 }
 
@@ -73,15 +77,28 @@ func (h listHandler) store(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h listHandler) update(w http.ResponseWriter, r *http.Request) {
+	listID, err := parseURLParamInt(r, "listID")
+	if err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
+
 	var data *domain.List
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
+	if data == nil {
+		h.encoder.BadRequestErr(w, errors.New("list is required"))
+		return
+	}
+
+	data.ID = int64(listID)
+
 	if err := h.listSvc.Update(r.Context(), data); err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
-			h.encoder.NotFoundErr(w, errors.New("could not find list"))
+			h.encoder.NotFoundErr(w, errors.New("could not find list with id %d", listID))
 			return
 		}
 

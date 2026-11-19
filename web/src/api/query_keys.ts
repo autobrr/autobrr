@@ -72,7 +72,7 @@ export const ApiKeys = {
   all: ["api_keys"] as const,
   lists: () => [...ApiKeys.all, "list"] as const,
   details: () => [...ApiKeys.all, "detail"] as const,
-  detail: (id: string) => [...ApiKeys.details(), id] as const
+  detail: (id: number) => [...ApiKeys.details(), id] as const
 };
 
 export const DownloaderKeys = {
@@ -110,6 +110,14 @@ export const IrcKeys = {
   details: () => [...IrcKeys.all, "detail"] as const,
   detail: (id: number) => [...IrcKeys.details(), id] as const,
   channelHistory: (networkId: number, channel: string) => [...IrcKeys.all, "channel-history", networkId, channel] as const
+};
+
+export const MatrixKeys = {
+  all: ["matrix_networks"] as const,
+  lists: () => [...MatrixKeys.all, "list"] as const,
+  details: () => [...MatrixKeys.all, "detail"] as const,
+  detail: (id: number) => [...MatrixKeys.details(), id] as const,
+  roomHistory: (networkId: number, room: string) => [...MatrixKeys.all, "room-history", networkId, room] as const
 };
 
 export const NotificationKeys = {

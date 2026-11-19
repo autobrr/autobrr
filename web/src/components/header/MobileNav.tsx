@@ -16,7 +16,7 @@ import type { RightNavProps } from "./_shared";
 export const MobileNav = (props: RightNavProps) => {
   const { t } = useTranslation("common");
   const auth = AuthContext.get();
-  const authDisabled = auth.authMethod === 'disabled';
+  const showLogout = auth.capabilities?.password_login || auth.capabilities?.oidc_login;
 
   return (
     <DisclosurePanel className="border-b border-gray-300 dark:border-gray-700 md:hidden">
@@ -45,7 +45,15 @@ export const MobileNav = (props: RightNavProps) => {
             }}
           </Link>
         ))}
-        {!authDisabled && (
+        {auth.logoutUrl && (
+          <a
+            href={auth.logoutUrl}
+            className="w-full shadow-xs border bg-gray-100 border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-white block px-3 py-2 rounded-md text-base font-medium text-left cursor-pointer"
+          >
+            {t("userMenu.logout")}
+          </a>
+        )}
+        {showLogout && !auth.logoutUrl && (
           <button
             onClick={(e) => {
               e.preventDefault();

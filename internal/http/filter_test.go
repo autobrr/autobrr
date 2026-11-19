@@ -32,6 +32,7 @@ func TestFilterHandlerUpdateNotifications(t *testing.T) {
 	service := &filterNotificationServiceStub{}
 	handler := newFilterHandler(encoder{}, service)
 	router := chi.NewRouter()
+	router.Use(asCaller(testUser))
 	handler.Routes(router)
 
 	recorder := httptest.NewRecorder()
@@ -64,6 +65,7 @@ func TestFilterHandlerTestExternal(t *testing.T) {
 	service := &filterExternalTestServiceStub{}
 	handler := newFilterHandler(encoder{}, service)
 	router := chi.NewRouter()
+	router.Use(asCaller(testUser))
 	handler.Routes(router)
 
 	post := func(body string) *httptest.ResponseRecorder {

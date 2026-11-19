@@ -87,13 +87,17 @@ checkForUpdates = true
 #
 #postgresSSLMode = "disable"
 #
-# Optional
+# Optional: connect over a unix socket instead of host/port. This is the
+# directory holding the server's .s.PGSQL.<postgresPort> socket, not the
+# socket file itself.
 #
-#postgresSocket = "/run/socket.sock"
+#postgresSocket = "/run/postgresql"
 #
-# Optional
+# Optional: extra libpq connection parameters in URL query syntax,
+# separated by "&". A key that one of the settings above already sets
+# is an error; set it there instead.
 #
-#postgresExtraParams = "connect_timeout=10"
+#postgresExtraParams = "connect_timeout=10&application_name=autobrr"
 
 # OpenID Connect Configuration
 #

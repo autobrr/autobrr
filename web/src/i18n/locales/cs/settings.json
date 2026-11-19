@@ -21,6 +21,7 @@
       "logs": "Logy",
       "indexers": "Indexery",
       "irc": "IRC",
+      "matrix": "Matrix",
       "feeds": "Vlákna",
       "lists": "Listy",
       "clients": "Klienti",
@@ -199,6 +200,45 @@
       "accountHelp": "NickServ / SASL účet. Pro skupinové nicky zkuste hlavní.",
       "passwordSaslHelp": "NickServ / SASL heslo.",
       "chooseType": "Vybrat typ"
+    },
+    "matrix": {
+      "listTitle": "Matrix",
+      "listDescription": "Domovské servery Matrix a místnosti s oznámeními. Kliknutím na síť zobrazíte stav místností.",
+      "addNew": "Přidat nový",
+      "addNewNetwork": "Přidat novou síť",
+      "noNetworks": "Žádné sítě",
+      "noNetworksSubtitle": "Obvykle se nastavuje přes Indexery",
+      "enabled": "Povoleno",
+      "network": "Síť",
+      "homeserver": "Domovský server",
+      "user": "Uživatel",
+      "notLoggedIn": "Nepřihlášen",
+      "room": "Místnost",
+      "joinedSince": "Připojeno od",
+      "lastAnnounce": "Poslední oznámení",
+      "noRooms": "Žádné místnosti",
+      "networkDisabled": "Síť zakázána",
+      "networkUnhealthy": "Síť není v pořádku",
+      "connectedSince": "Připojeno od: {{time}}",
+      "toggleSuccess": "{{name}} byla úspěšně {{state}}.",
+      "enabledState": "povolena",
+      "disabledState": "zakázána",
+      "edit": "Upravit",
+      "login": "Přihlásit",
+      "logout": "Odhlásit",
+      "restart": "Restartovat",
+      "delete": "Smazat",
+      "loggedOut": "Odhlášeno z {{name}}",
+      "networkDeleted": "Síť {{name}} byla smazána",
+      "networkRestarted": "{{name}} byla úspěšně restartována",
+      "removeNetworkTitle": "Odebrat síť: {{name}}",
+      "removeNetworkText": "Opravdu chcete tuto síť odebrat? Tuto akci nelze vrátit zpět.",
+      "view": "Zobrazit",
+      "hide": "Skrýt",
+      "noMessages": "Od připojení sítě žádné zprávy",
+      "reprocessAnnounce": "Znovu zpracovat oznámení",
+      "announceReprocessed": "Oznámení odesláno ke zpracování!",
+      "announceReprocessFailed": "Oznámení nelze znovu zpracovat"
     },
     "releases": {
       "warningTitle": "Varování:",
@@ -513,6 +553,9 @@
       "createTitle": "Vytvořit API klíč",
       "description": "Přidat nový API klíč.",
       "created": "API klíč {{name}} byl přidán",
+      "createdTitle": "API klíč byl vytvořen",
+      "createdDescription": "Zkopírujte si klíč hned teď. Uloží se jen jeho hash, takže už ho znovu neuvidíte.",
+      "done": "Hotovo",
       "deleted": "API klíč {{name}} byl odstraněn",
       "name": "Jméno",
       "key": "Klíč",
@@ -527,7 +570,86 @@
       "createCta": "Vytvořit API klíč",
       "removeTitle": "Odstranit API klíč: {{name}}",
       "removeText": "Jste si jisti, že chcete odstranit tento API klíč? Tato akce je nevratná.",
-      "deleteKey": "Smazat klíč"
+      "deleteKey": "Smazat klíč",
+      "updated": "API klíč {{name}} byl aktualizován",
+      "updateTitle": "Upravit API klíč",
+      "updateDescription": "Upravte název a oprávnění tohoto API klíče.",
+      "save": "Uložit",
+      "editKey": "Upravit klíč",
+      "permissions": "Oprávnění",
+      "permissionsDescription": "Zvolte minimální oprávnění, která potřebujete. Správa API klíčů, uživatelů a konfigurace není pro API klíče dostupná.",
+      "permissionsRequired": "Přidejte alespoň jedno oprávnění",
+      "addPermissions": "Přidat oprávnění",
+      "selectPermissions": "Vyberte oprávnění",
+      "searchPermissions": "Hledat",
+      "noPermissions": "Zatím nebyla přidána žádná oprávnění.",
+      "noPermissionsFound": "Žádná oprávnění nenalezena",
+      "removePermission": "Odebrat oprávnění {{name}}",
+      "accessLabel": "Přístup:",
+      "access": {
+        "read": "Pouze čtení",
+        "invoke": "Pouze spouštění",
+        "write": "Čtení a zápis"
+      },
+      "accessShort": {
+        "read": "Čtení",
+        "invoke": "Spouštění",
+        "write": "Zápis"
+      },
+      "resources": {
+        "filters": {
+          "label": "Filtry",
+          "description": "Filtry a jejich akce."
+        },
+        "releases": {
+          "label": "Releasy",
+          "description": "Historie releasů, statistiky, úlohy čištění a opakování akcí."
+        },
+        "indexers": {
+          "label": "Indexery",
+          "description": "Indexery a jejich nastavení."
+        },
+        "irc": {
+          "label": "IRC",
+          "description": "IRC sítě, kanály a zpracování oznámení."
+        },
+        "matrix": {
+          "label": "Matrix",
+          "description": "Sítě Matrix, místnosti a přihlášení."
+        },
+        "feeds": {
+          "label": "Kanály",
+          "description": "RSS, Torznab a Newznab kanály."
+        },
+        "downloaders": {
+          "label": "Klienti pro stahování",
+          "description": "Klienti pro stahování a testy připojení."
+        },
+        "lists": {
+          "label": "Seznamy",
+          "description": "Seznamy, jejich obnovování a webhooky pro obnovu, např. ze Sonarru nebo Radarru."
+        },
+        "notifications": {
+          "label": "Oznámení",
+          "description": "Notifikační služby."
+        },
+        "proxies": {
+          "label": "Proxy",
+          "description": "Proxy a jejich testy."
+        },
+        "config": {
+          "label": "Konfigurace aplikace",
+          "description": "Nastavení aplikace, např. úroveň logování a kontrola aktualizací."
+        },
+        "logs": {
+          "label": "Logy",
+          "description": "Soubory logů a živý stream logů."
+        },
+        "updates": {
+          "label": "Aktualizace",
+          "description": "Kontrola nových verzí autobrr."
+        }
+      }
     },
       "notification": {
         "settings": "Nastavení",
@@ -738,6 +860,50 @@
         "passwordSaslHelp": "NickServ / SASL heslo.",
         "chooseType": "Vybrat typ"
       },
+      "matrix": {
+        "title": "Síť Matrix",
+        "name": "Název",
+        "enabled": "Povoleno",
+        "homeserver": "Domovský server",
+        "homeserverPlaceholder": "Např. https://matrix.example.org",
+        "homeserverHelp": "Základní URL domovského serveru Matrix.",
+        "rooms": "Místnosti",
+        "roomsDesc": "Místnosti se přidávají při nastavení indexerů Matrix. Neupravujte, pokud nevíte, co děláte.",
+        "roomPlaceholder": "#mistnost:server nebo !id:server",
+        "roomEnabled": "Povolit/zakázat místnost",
+        "invalidRoom": "Musí to být alias jako #mistnost:server nebo ID místnosti jako !id:server",
+        "addRoom": "Přidat místnost",
+        "noRooms": "Žádné místnosti!",
+        "remove": "Odebrat",
+        "required": "Povinné",
+        "added": "Síť Matrix přidána",
+        "addFailed": "Síť Matrix nelze přidat",
+        "updated": "{{name}} byla úspěšně aktualizována",
+        "updateFailed": "Síť Matrix nelze aktualizovat",
+        "deleted": "{{name}} byla smazána.",
+        "loginTitle": "Přihlásit: {{name}}",
+        "loginDescription": "Propojte autobrr se svým účtem Matrix pro příjem oznámení.",
+        "deviceLogin": "Přihlásit se v prohlížeči",
+        "deviceLoginDesc": "Spusťte přihlášení a potvrďte ho zobrazeným kódem na přihlašovací stránce domovského serveru.",
+        "startLogin": "Spustit přihlášení",
+        "enterCode": "Otevřete odkaz níže a zadejte tento kód:",
+        "waitingForApproval": "Čeká se na potvrzení. Stránka se aktualizuje sama.",
+        "loginSucceeded": "Přihlášen jako {{user}}. Síť se připojuje.",
+        "loginError": "Přihlášení selhalo: {{error}}",
+        "loginFailed": "Přihlášení nelze spustit",
+        "accessToken": "Přístupový token",
+        "accessTokenDesc": "Pro domovské servery bez přihlášení v prohlížeči. Vložte přístupový token, např. z Elementu v Nastavení > Nápověda a o aplikaci. Vložené tokeny se neobnovují.",
+        "saveToken": "Uložit token",
+        "tokenSaved": "Přístupový token pro {{name}} uložen",
+        "tokenFailed": "Domovský server přístupový token odmítl",
+        "close": "Zavřít",
+        "account": "Účet",
+        "accountDesc": "Přihlášení a odhlášení se projeví okamžitě, bez uložení.",
+        "authMethod": {
+          "OAUTH": "Přihlášení v prohlížeči",
+          "TOKEN": "Přístupový token"
+        }
+      },
       "indexer": {
         "title": "Indexer",
         "addTitle": "Přidat indexer",
@@ -766,6 +932,10 @@
         "rssDesc": "RSS kanál",
         "settingsIrcTitle": "IRC",
         "settingsIrcDesc": "Sítě a kanály jsou automaticky konfigurovány v pozadí.",
+        "settingsMatrixTitle": "Matrix",
+        "settingsMatrixDesc": "Síť Matrix a místnosti se nastaví automaticky. Po přidání indexeru se přihlaste v Nastavení > Matrix.",
+        "matrixLoginRequired": "Síť Matrix přidána. Přihlaste se v Nastavení > Matrix, abyste začali přijímat oznámení.",
+        "matrixAddFailed": "Indexer byl přidán, ale jeho síť Matrix {{name}} nelze vytvořit. Přidejte ji v Nastavení > Matrix.",
         "ircGuideTooltip": "Projděte si naši IRC příručku, pokud neznáte IRC.",
         "name": "Název",
         "url": "URL",

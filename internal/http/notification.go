@@ -43,22 +43,25 @@ func newNotificationHandler(encoder encoder, service notificationService) *notif
 }
 
 func (h notificationHandler) Routes(r chi.Router) {
-	r.Get("/", h.list)
-	r.Post("/", h.store)
-	r.Post("/test", h.test)
-	r.Get("/pushover/sounds", h.pushoverSounds)
+	read := requireScope(domain.APIResourceNotifications, domain.APIAccessRead)
+	write := requireScope(domain.APIResourceNotifications, domain.APIAccessWrite)
+
+	r.With(read).Get("/", h.list)
+	r.With(write).Post("/", h.store)
+	r.With(write).Post("/test", h.test)
+	r.With(read).Get("/pushover/sounds", h.pushoverSounds)
 
 	r.Route("/inbox", func(r chi.Router) {
-		r.Get("/", h.findInbox)
-		r.Delete("/", h.deleteInbox)
-		r.Post("/read", h.markInboxRead)
-		r.Post("/delete", h.deleteInboxMessages)
+		r.With(read).Get("/", h.findInbox)
+		r.With(write).Delete("/", h.deleteInbox)
+		r.With(write).Post("/read", h.markInboxRead)
+		r.With(write).Post("/delete", h.deleteInboxMessages)
 	})
 
 	r.Route("/{notificationID}", func(r chi.Router) {
-		r.Get("/", h.findByID)
-		r.Put("/", h.update)
-		r.Delete("/", h.delete)
+		r.With(read).Get("/", h.findByID)
+		r.With(write).Put("/", h.update)
+		r.With(write).Delete("/", h.delete)
 	})
 }
 
@@ -115,15 +118,28 @@ func (h notificationHandler) findByID(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h notificationHandler) update(w http.ResponseWriter, r *http.Request) {
+	notificationID, err := parseURLParamInt(r, "notificationID")
+	if err != nil {
+		h.encoder.BadRequestErr(w, err)
+		return
+	}
+
 	var data *domain.Notification
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
 
+	if data == nil {
+		h.encoder.BadRequestErr(w, errors.New("notification is required"))
+		return
+	}
+
+	data.ID = notificationID
+
 	if err := h.service.Update(r.Context(), data); err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
-			h.encoder.NotFoundErr(w, errors.New("notification with id %d not found", data.ID))
+			h.encoder.NotFoundErr(w, errors.New("notification with id %d not found", notificationID))
 			return
 		}
 		if errors.Is(err, domain.ErrNotificationBuiltin) || errors.Is(err, domain.ErrNotificationInvalid) {

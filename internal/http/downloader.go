@@ -37,16 +37,19 @@ func newDownloaderHandler(encoder encoder, service downloaderService) *downloade
 }
 
 func (h downloaderHandler) Routes(r chi.Router) {
-	r.Get("/", h.listDownloaders)
-	r.Post("/", h.store)
-	r.Put("/", h.update)
-	r.Post("/test", h.test)
+	read := requireScope(domain.APIResourceDownloaders, domain.APIAccessRead)
+	write := requireScope(domain.APIResourceDownloaders, domain.APIAccessWrite)
+
+	r.With(read).Get("/", h.listDownloaders)
+	r.With(write).Post("/", h.store)
+	r.With(write).Put("/", h.update)
+	r.With(write).Post("/test", h.test)
 
 	r.Route("/{clientID}", func(r chi.Router) {
-		r.Get("/", h.findByID)
-		r.Delete("/", h.delete)
+		r.With(read).Get("/", h.findByID)
+		r.With(write).Delete("/", h.delete)
 
-		r.Get("/arr/tags", h.findArrTagsByID)
+		r.With(read).Get("/arr/tags", h.findArrTagsByID)
 	})
 }
 
@@ -109,8 +112,12 @@ func (h downloaderHandler) store(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.service.Store(r.Context(), data)
-	if err != nil {
+	if data == nil {
+		h.encoder.BadRequestErr(w, errors.New("download client is required"))
+		return
+	}
+
+	if err := h.service.Store(r.Context(), data); err != nil {
 		h.encoder.Error(w, err)
 		return
 	}
@@ -122,6 +129,11 @@ func (h downloaderHandler) test(w http.ResponseWriter, r *http.Request) {
 	var data *domain.Downloader
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
+		return
+	}
+
+	if data == nil {
+		h.encoder.BadRequestErr(w, errors.New("download client is required"))
 		return
 	}
 
@@ -145,8 +157,12 @@ func (h downloaderHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.service.Update(r.Context(), data)
-	if err != nil {
+	if data == nil {
+		h.encoder.BadRequestErr(w, errors.New("download client is required"))
+		return
+	}
+
+	if err := h.service.Update(r.Context(), data); err != nil {
 		if errors.Is(err, domain.ErrRecordNotFound) {
 			h.encoder.NotFoundErr(w, errors.New("download client with id %d not found", data.ID))
 			return

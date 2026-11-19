@@ -83,3 +83,25 @@ func TestSetLevel(t *testing.T) {
 	assert.Contains(t, string(b), "kept")
 	assert.Contains(t, string(b), "kept after level change")
 }
+
+// A Windows GUI build has no console, so every write to os.Stderr fails. The
+// log file must still receive every line.
+func TestNew_FileStillWrittenWhenStderrFails(t *testing.T) {
+	dead, err := os.CreateTemp("", "autobrr-dead-stderr")
+	require.NoError(t, err)
+	require.NoError(t, dead.Close())
+	t.Cleanup(func() { _ = os.Remove(dead.Name()) })
+
+	stderr := os.Stderr
+	os.Stderr = dead
+	t.Cleanup(func() { os.Stderr = stderr })
+
+	logPath := tempLogPath(t)
+
+	log := New(&domain.Config{LogLevel: "INFO", LogPath: logPath}, nil)
+	log.Info().Msg("reaches the file")
+
+	b, err := os.ReadFile(logPath)
+	require.NoError(t, err)
+	assert.Contains(t, string(b), "reaches the file")
+}

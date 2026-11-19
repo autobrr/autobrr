@@ -66,6 +66,7 @@ func withNickServAuth(h *Handler, account string) {
 		Password:  "hunter2",
 	}
 	h.identifyOutstanding = true
+	h.identifySentAt = time.Now()
 }
 
 func TestOnNoticeMatchesNickServCaseInsensitively(t *testing.T) {
@@ -765,6 +766,28 @@ func TestNickServOfflineStatus(t *testing.T) {
 	assert.Empty(t, h.connectionErrors, "expected a reconnect to drop the old connection's status")
 }
 
+// TestReconnectForgetsFailedNickServAttempts verifies notices from an earlier
+// connection do not count toward stopping the network on the next one.
+func TestReconnectForgetsFailedNickServAttempts(t *testing.T) {
+	const protectedNotice = "This nickname is registered and protected. If it is your nick, type /msg NickServ IDENTIFY password. Otherwise, please choose a different nick."
+
+	h, _ := newTestHandler()
+	withNickServAuth(h, "test_bot")
+
+	h.handleNickServ(nickServNotice("user_bot", protectedNotice))
+	h.handleNickServ(nickServNotice("user_bot", protectedNotice))
+
+	require.Equal(t, 2, h.failedNickServAttempts)
+
+	h.onDisconnect(ircmsg.Message{Command: "DISCONNECT"})
+	assert.Zero(t, h.failedNickServAttempts)
+	h.identifyOutstanding = true
+
+	h.handleNickServ(nickServNotice("user_bot", protectedNotice))
+
+	assert.False(t, h.Stopped(), "expected one notice on a new connection to leave the network running")
+}
+
 // TestNickServNoticeRetriesIdentifyEarly verifies a NOTICE from NickServ sends a
 // scheduled retry right away: services are back, so waiting out the backoff
 // would only keep the network unauthenticated for up to 5 minutes longer.
@@ -798,6 +821,39 @@ func TestNickServNoticeRetriesIdentifyEarly(t *testing.T) {
 
 			assert.Equal(t, tt.wantRetry, strings.Contains(logs.String(), "error identifying with nickserv"), "unexpected identify attempt")
 			assert.Zero(t, h.failedNickServAttempts, "a NOTICE we were not waiting on must not count as a failed login")
+		})
+	}
+}
+
+// TestNickServGreetingAfterLostIdentify verifies that a greeting long after an
+// IDENTIFY sends a new one and does not count as a failed login, and that a
+// greeting right after an IDENTIFY waits for its answer.
+func TestNickServGreetingAfterLostIdentify(t *testing.T) {
+	const greeting = "This nickname is registered and protected. If it is your nick, type /msg NickServ IDENTIFY password. Otherwise, please choose a different nick."
+
+	tests := []struct {
+		name         string
+		sentAgo      time.Duration
+		wantIdentify bool
+		wantAttempts int
+	}{
+		{name: "just past the limit", sentAgo: identifyLostAfter, wantIdentify: true},
+		{name: "before the limit", sentAgo: identifyLostAfter - time.Second, wantAttempts: 1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h, _ := newTestHandler()
+			withNickServAuth(h, "test_bot")
+			withUnconnectedClient(h)
+			var logs strings.Builder
+			h.log = zerolog.New(&logs)
+			h.identifySentAt = time.Now().Add(-tt.sentAgo)
+
+			h.handleNickServ(nickServNotice("user_bot", greeting))
+
+			assert.Equal(t, tt.wantIdentify, strings.Contains(logs.String(), "error identifying with nickserv"), "unexpected identify attempt")
+			assert.Equal(t, tt.wantAttempts, h.failedNickServAttempts)
 		})
 	}
 }

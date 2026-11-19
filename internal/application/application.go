@@ -26,6 +26,7 @@ import (
 	"github.com/autobrr/autobrr/internal/irc"
 	"github.com/autobrr/autobrr/internal/list"
 	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/internal/matrix"
 	"github.com/autobrr/autobrr/internal/meta"
 	"github.com/autobrr/autobrr/internal/metrics"
 	"github.com/autobrr/autobrr/internal/notification"
@@ -59,6 +60,7 @@ type App struct {
 	sse           *sse.Server
 	eventBus      *events.EventBus
 	updateService *update.Service
+	ready         chan struct{}
 
 	db            *database.DB
 	httpServer    *http.Server
@@ -80,32 +82,47 @@ type App struct {
 	rlsDownloadService  *release.DownloadService
 	scheduler           *scheduler.Service
 	listService         *list.Service
+	matrixService       *matrix.Service
 	metricsManager      *metrics.Manager
 	proxyService        *proxy.Service
 	userService         *user.Service
 }
 
-// New loads the config and builds the parts that need no database. They exist
-// before Run so a host such as the tray can subscribe to events and check for
-// updates while the rest of the application starts.
+// New loads the config at configPath and returns NewFromConfig for it.
 func New(configPath string) *App {
-	cfg := config.New(configPath)
+	return NewFromConfig(config.New(configPath))
+}
 
+// NewFromConfig builds the parts that need no database. They exist before Run
+// so a host such as the tray can subscribe to events and check for updates
+// while the rest of the application starts. A host that needs different
+// defaults adjusts cfg before calling it, since the logger is built here.
+func NewFromConfig(cfg *config.AppConfig) *App {
 	serverEvents := sse.New()
+	serverEvents.Headers = map[string]string{
+		"Content-Type":      "text/event-stream",
+		"Cache-Control":     "no-cache",
+		"Connection":        "keep-alive",
+		"X-Accel-Buffering": "no",
+	}
 	serverEvents.CreateStreamWithOpts(logger.StreamLogs, sse.StreamOpts{MaxEntries: 1000, AutoReplay: true})
 	serverEvents.CreateStreamWithOpts("irc", sse.StreamOpts{MaxEntries: 0, AutoReplay: false, AutoStream: true})
+	serverEvents.CreateStreamWithOpts(matrix.EventStreamKey, sse.StreamOpts{MaxEntries: 0, AutoReplay: false, AutoStream: true})
 	serverEvents.CreateStreamWithOpts(notification.InboxStreamKey, sse.StreamOpts{MaxEntries: 0, AutoReplay: false})
 
 	log := logger.New(cfg.Config, serverEvents)
 
 	cfg.DynamicReload(log)
 
+	eventBus := events.NewEventBus(log)
+
 	return &App{
 		log:           log,
 		cfg:           cfg,
 		sse:           serverEvents,
-		eventBus:      events.NewEventBus(log),
-		updateService: update.NewUpdate(log, cfg.Config),
+		eventBus:      eventBus,
+		updateService: update.NewUpdate(log, eventBus, cfg.Config),
+		ready:         make(chan struct{}),
 	}
 }
 
@@ -142,6 +159,8 @@ func (app *App) Run(ctx context.Context) error {
 	started, err := app.startComponents(runCtx, app.components(fail))
 	if err != nil {
 		fail(err)
+	} else {
+		close(app.ready)
 	}
 
 	<-runCtx.Done()
@@ -221,6 +240,16 @@ func (app *App) components(fail context.CancelCauseFunc) []component {
 			},
 		},
 		component{
+			name:     "matrix",
+			optional: true,
+			start:    app.matrixService.StartHandlers,
+			stop: func(ctx context.Context) error {
+				app.matrixService.StopHandlers(ctx)
+
+				return nil
+			},
+		},
+		component{
 			name:     "feeds",
 			optional: true,
 			start: func(context.Context) error {
@@ -293,6 +322,12 @@ func (app *App) components(fail context.CancelCauseFunc) []component {
 	return components
 }
 
+// Ready is closed once every component has started and the web UI is serving.
+// It stays open when startup fails.
+func (app *App) Ready() <-chan struct{} {
+	return app.ready
+}
+
 // Config returns the loaded configuration.
 func (app *App) Config() *domain.Config {
 	return app.cfg.Config
@@ -330,12 +365,25 @@ func (app *App) setupResourceLimits() {
 func (app *App) checkAuthConfig() error {
 	cfg := app.cfg.Config
 
-	switch {
-	case cfg.IsAuthDisabled():
-		if err := cfg.ValidateAuthDisabledConfig(); err != nil {
-			return errors.Wrap(err, "authentication is disabled but the configuration is invalid")
-		}
+	if err := cfg.ValidateAuthConfig(); err != nil {
+		return errors.Wrap(err, "invalid configuration for %s authentication mode", cfg.AuthMode())
+	}
 
+	switch {
+	case cfg.AuthMode() == domain.AuthModeForward:
+		wildcardBind := cfg.Host == "" || cfg.Host == "0.0.0.0" || cfg.Host == "::"
+		app.log.Info().
+			Str("host", cfg.Host).
+			Int("port", cfg.Port).
+			Bool("wildcard_bind", wildcardBind).
+			Str("cors_allowed_origins", cfg.CorsAllowedOrigins).
+			Str("authTrustedUserHeader", cfg.AuthTrustedUserHeader).
+			Str("authTrustedUser", cfg.AuthTrustedUser).
+			Strs("authAllowedPeerCIDRs", cfg.AuthAllowedPeerCIDRs).
+			Strs("authAllowedHosts", cfg.AuthAllowedHosts).
+			Str("authClientIPHeader", cfg.AuthClientIPHeader).
+			Msg("forward authentication active: authTrustedUser is identified by authTrustedUserHeader, read only from peers in authAllowedPeerCIDRs. The reverse proxy must authenticate every request and overwrite that header.")
+	case cfg.AuthMode() == domain.AuthModeDisabled:
 		wildcardBind := cfg.Host == "" || cfg.Host == "0.0.0.0" || cfg.Host == "::"
 		app.log.Warn().
 			Str("host", cfg.Host).
@@ -354,16 +402,10 @@ func (app *App) checkAuthConfig() error {
 				}
 			}
 		}
-	case cfg.AuthDisabled && cfg.AuthDisabledAcknowledgement != domain.AuthDisabledAcknowledgementValue:
+	case cfg.AuthDisabled:
 		app.log.Warn().
 			Str("acknowledgement_value", domain.AuthDisabledAcknowledgementValue).
 			Msg("authDisabled is set but the acknowledgement is missing or invalid; authentication remains enabled. Set AUTOBRR__AUTH_DISABLED_ACKNOWLEDGEMENT (or authDisabledAcknowledgement) to acknowledgement_value to disable authentication.")
-	}
-
-	if !cfg.IsAuthDisabled() {
-		if _, err := cfg.ParseTrustedProxies(); err != nil {
-			return errors.Wrap(err, "invalid trustedProxies")
-		}
 	}
 
 	return nil
@@ -418,6 +460,7 @@ func (app *App) setup(ctx context.Context) error {
 		indexerRepo      = database.NewIndexerRepo(app.log, db)
 		ircRepo          = database.NewIrcRepo(app.log, db)
 		listRepo         = database.NewListRepo(app.log, db)
+		matrixRepo       = database.NewMatrixRepo(app.log, db)
 		notificationRepo = database.NewNotificationRepo(app.log, db)
 		inboxRepo        = database.NewNotificationInboxRepo(app.log, db)
 		releaseRepo      = database.NewReleaseRepo(app.log, db)
@@ -426,7 +469,7 @@ func (app *App) setup(ctx context.Context) error {
 	)
 
 	app.apiService = api.NewService(app.log, apikeyRepo)
-	app.scheduler = scheduler.NewService(app.log, app.eventBus, app.cfg.Config, app.updateService)
+	app.scheduler = scheduler.NewService(app.log, app.cfg.Config, app.updateService)
 	app.notificationService = notification.NewService(app.log, app.eventBus, app.sse, notificationRepo, inboxRepo, app.scheduler)
 	app.userService = user.NewService(userRepo)
 	app.authService = auth.NewService(app.log, app.userService)
@@ -439,6 +482,7 @@ func (app *App) setup(ctx context.Context) error {
 	app.filterService = filter.NewService(app.log, filterRepo, app.actionService, releaseRepo, app.indexerAPIService, app.indexerService, app.rlsDownloadService, app.notificationService)
 	app.releaseService = release.NewService(app.log, app.eventBus, releaseRepo, app.actionService, app.filterService, app.indexerService, app.scheduler)
 	app.ircService = irc.NewService(app.log, app.eventBus, app.sse, ircRepo, app.releaseService, app.indexerService, app.proxyService)
+	app.matrixService = matrix.NewService(app.log, app.sse, matrixRepo, app.releaseService, app.indexerService)
 	app.feedService = feed.NewService(app.log, app.eventBus, feedRepo, feedCacheRepo, app.releaseService, app.proxyService, app.scheduler)
 	app.listService = list.NewService(app.log, app.eventBus, listRepo, app.downloaderService, app.filterService, app.scheduler)
 	app.alertService = alert.NewService(app.log, app.eventBus, app.cfg.Config, app.sse, app.updateService, app.ircService, app.listService)
@@ -462,6 +506,7 @@ func (app *App) setup(ctx context.Context) error {
 		IndexerService:      app.indexerService,
 		IrcService:          app.ircService,
 		ListService:         app.listService,
+		MatrixService:       app.matrixService,
 		NotificationService: app.notificationService,
 		OIDCService:         oidcService,
 		ProxyService:        app.proxyService,

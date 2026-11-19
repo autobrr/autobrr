@@ -5,12 +5,16 @@
 
 """Generate the indexer and freeleech tables for the autobrr.com docs.
 
-Indexer definitions (v2) parse announces per IRC channel: every channel carries
-its own set of line patterns, and the release fields come from the named capture
-groups in those patterns plus the optional mappings that translate a captured
-value into other fields. Freeleech support is therefore derived from the groups
-and mappings of every channel of a definition, not from a definition-level vars
-list like it was in v1.
+Indexer definitions (v2) parse announces per IRC channel or Matrix room: every
+channel and room carries its own set of line patterns, and the release fields come
+from the named capture groups in those patterns plus the optional mappings that
+translate a captured value into other fields. Freeleech support is therefore
+derived from the groups and mappings of every channel and room of a definition,
+not from a definition-level vars list like it was in v1.
+
+The method column shows how autobrr gets releases from the indexer, taken from the
+definition's implementation rather than its supports list: announce indexers list
+rss there too, but autobrr only reads them over IRC or Matrix.
 """
 
 import argparse
@@ -27,6 +31,22 @@ INDEXERS_OUTPUT = "../autobrr.com/snippets/indexers.mdx"
 FREELEECH_OUTPUT = "../autobrr.com/snippets/freeleech.mdx"
 
 NAMED_GROUP_RE = re.compile(r"\(\?P<([A-Za-z_][A-Za-z0-9_]*)>")
+
+# definitions without an implementation are IRC, same as IndexerDefinition.Prepare
+METHODS = {
+    "": "IRC",
+    "irc": "IRC",
+    "matrix": "Matrix",
+    "rss": "RSS",
+    "torznab": "Torznab",
+    "newznab": "Newznab",
+}
+
+PROTOCOLS = {
+    "torrent": "Torrent",
+    "usenet": "Usenet",
+    "nzb": "Usenet",
+}
 
 
 def captured_vars(parse: Dict[str, Any]) -> Set[str]:
@@ -98,12 +118,22 @@ def parse_definition(file_path: str) -> Dict[str, Any]:
     if not isinstance(definition, dict):
         raise ValueError("definition is not a mapping")
 
-    supports = [s.lower() for s in definition.get("supports") or [] if isinstance(s, str)]
+    implementation = str(definition.get("implementation") or "").strip().lower()
+    method = METHODS.get(implementation)
+    if method is None:
+        raise ValueError(f"unknown implementation: {implementation!r}")
+
+    protocol_name = str(definition.get("protocol") or "").strip().lower()
+    protocol = PROTOCOLS.get(protocol_name)
+    if protocol is None:
+        raise ValueError(f"unknown protocol: {protocol_name!r}")
 
     freeleech = False
     freeleech_percent = False
 
-    for channel in ((definition.get("irc") or {}).get("channels") or []):
+    channels = ((definition.get("irc") or {}).get("channels") or []) + ((definition.get("matrix") or {}).get("rooms") or [])
+
+    for channel in channels:
         parse = (channel or {}).get("parse")
         if not parse:
             continue
@@ -115,7 +145,8 @@ def parse_definition(file_path: str) -> Dict[str, Any]:
     return {
         "name": str(definition.get("name") or "").strip(),
         "description": str(definition.get("description") or "").strip(),
-        "supports": supports,
+        "protocol": protocol,
+        "method": method,
         "freeleech": freeleech,
         "freeleechPercent": freeleech_percent,
     }
@@ -133,16 +164,14 @@ def generate_indexers_markdown(indexers: list) -> str:
     """Generate markdown for indexers table."""
     markdown = "<details>\n\n"
     markdown += "<summary>Click to view supported indexers</summary>\n\n"
-    markdown += "| Indexer | Description | IRC | RSS |\n"
-    markdown += "|---------|-------------|-----|-----|\n"
+    markdown += "| Indexer | Description | Protocol | Method |\n"
+    markdown += "|---------|-------------|----------|--------|\n"
 
     for indexer in indexers:
         name = escape_cell(indexer.get("name", ""))
         description = escape_cell(indexer.get("description", ""))
-        irc_support = get_feature_checkmark("irc" in indexer.get("supports", []))
-        rss_support = get_feature_checkmark("rss" in indexer.get("supports", []))
 
-        markdown += f"| {name} | {description} | {irc_support} | {rss_support} |\n"
+        markdown += f"| {name} | {description} | {indexer['protocol']} | {indexer['method']} |\n"
 
     markdown += "\n</details>"
     return markdown

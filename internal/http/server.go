@@ -44,18 +44,18 @@ type Server struct {
 	authAllowedPeerPrefixes []netip.Prefix
 
 	// trustedProxyPrefixes is parsed once at startup from config.TrustedProxies
-	// and only used while auth is enabled.
+	// and not used in modes with ProxyGuards.
 	trustedProxyPrefixes []netip.Prefix
 
 	// authAllowedOrigins, authAllowedHosts and authFrameAncestors are derived once
 	// at startup from config.CorsAllowedOrigins and config.AuthAllowedHosts, and
-	// only enforced while auth is disabled.
+	// only enforced in modes with ProxyGuards.
 	authAllowedOrigins map[string]struct{}
 	authAllowedHosts   map[string]struct{}
 	authFrameAncestors string
 
 	// healthCheckPaths holds the exact resolved paths (base URL included) that are
-	// reachable from loopback while auth is disabled.
+	// reachable from loopback in modes with ProxyGuards.
 	healthCheckPaths []string
 
 	actionService       actionService
@@ -68,6 +68,7 @@ type Server struct {
 	indexerService      indexerService
 	ircService          ircService
 	listService         listService
+	matrixService       matrixService
 	notificationService notificationService
 	oidcService         oidcService
 	proxyService        proxyService
@@ -97,6 +98,7 @@ type Deps struct {
 	IndexerService      indexerService
 	IrcService          ircService
 	ListService         listService
+	MatrixService       matrixService
 	NotificationService notificationService
 	OIDCService         oidcService
 	ProxyService        proxyService
@@ -144,6 +146,7 @@ func NewServer(deps Deps) *Server {
 		indexerService:      deps.IndexerService,
 		ircService:          deps.IrcService,
 		listService:         deps.ListService,
+		matrixService:       deps.MatrixService,
 		notificationService: deps.NotificationService,
 		oidcService:         deps.OIDCService,
 		proxyService:        deps.ProxyService,
@@ -155,16 +158,16 @@ func NewServer(deps Deps) *Server {
 		srv.allowedOrigins = strings.Split(deps.Config.Config.CorsAllowedOrigins, ",")
 	}
 
-	if deps.Config.Config.IsAuthDisabled() {
+	if deps.Config.Config.AuthCapabilities().ProxyGuards {
 		prefixes, err := deps.Config.Config.ParseAuthAllowedPeerCIDRs()
 		if err != nil {
-			srv.log.Error().Err(err).Msg("auth disabled: invalid authAllowedPeerCIDRs, denying all requests")
+			srv.log.Error().Err(err).Msg("proxy guard: invalid authAllowedPeerCIDRs, denying all requests")
 		} else {
 			srv.authAllowedPeerPrefixes = prefixes
 		}
 
 		if err := srv.buildAuthAllowlists(); err != nil {
-			srv.log.Error().Err(err).Msg("auth disabled: invalid corsAllowedOrigins or authAllowedHosts, denying requests by hostname")
+			srv.log.Error().Err(err).Msg("proxy guard: invalid corsAllowedOrigins or authAllowedHosts, denying requests by hostname")
 		}
 	} else if len(deps.Config.Config.TrustedProxies) > 0 {
 		prefixes, err := deps.Config.Config.ParseTrustedProxies()
@@ -212,7 +215,7 @@ func (s *Server) limiterKey(r *http.Request) string {
 }
 
 // buildAuthAllowlists derives the origin and host allowlists and the
-// frame-ancestors policy enforced while auth is disabled.
+// frame-ancestors policy enforced in modes with ProxyGuards.
 func (s *Server) buildAuthAllowlists() error {
 	origins, err := s.config.Config.ParseAuthAllowedOrigins()
 	if err != nil {
@@ -339,7 +342,7 @@ func (s *Server) Handler() http.Handler {
 	r.Use(s.RequireAuthDisabledIPAllowlist)
 	r.Use(s.RequireAuthDisabledAllowedHost)
 	r.Use(s.RestrictAuthDisabledFraming)
-	if s.config.Config.IsAuthDisabled() {
+	if s.config.Config.AuthCapabilities().ProxyGuards {
 		// RealIP rewrites r.RemoteAddr from forwarded headers it trusts from any
 		// peer, so it stays off in this mode. If the operator names the header their
 		// proxy overwrites, resolve the client IP from it into the request context
@@ -371,50 +374,7 @@ func (s *Server) Handler() http.Handler {
 	r.Use(c.Handler)
 	r.Use(s.sessionMiddleware)
 
-	encoder := newEncoder(s.log)
-
-	// Create a separate router for API
-	apiRouter := chi.NewRouter()
-	// API only, so cross-site navigations to the web shell keep working. Framing
-	// is limited separately by RestrictAuthDisabledFraming.
-	apiRouter.Use(s.RejectUntrustedBrowserRequests)
-	apiRouter.Route("/auth", newAuthHandler(encoder, s.log, s, s.config.Config, s.sessionManager, s.authService, s.oidcService).Routes)
-	apiRouter.Route("/healthz", newHealthHandler(encoder, s.db).Routes)
-	apiRouter.Group(func(r chi.Router) {
-		r.Group(func(r chi.Router) {
-			r.Use(s.IsAuthenticated)
-
-			r.Route("/actions", newActionHandler(encoder, s.actionService).Routes)
-			r.Route("/alerts", newAlertHandler(encoder, s.alertService).Routes)
-			r.Route("/config", newConfigHandler(encoder, s.buildInfo, s.config).Routes)
-			r.Route("/downloaders", newDownloaderHandler(encoder, s.downloaderService).Routes)
-			r.Route("/filters", newFilterHandler(encoder, s.filterService).Routes)
-			r.Route("/feeds", newFeedHandler(encoder, s.feedService).Routes)
-			r.Route("/irc", newIrcHandler(encoder, s.sse, s.ircService).Routes)
-			r.Route("/indexer", newIndexerHandler(encoder, s.indexerService, s.ircService).Routes)
-			r.Route("/lists", newListHandler(encoder, s.listService).Routes)
-			r.Route("/keys", newAPIKeyHandler(encoder, s.apiService, s.config.Config).Routes)
-			r.Route("/logs", newLogsHandler(s.config).Routes)
-			r.Route("/notification", newNotificationHandler(encoder, s.notificationService).Routes)
-			r.Route("/proxy", newProxyHandler(encoder, s.proxyService).Routes)
-			r.Route("/release", newReleaseHandler(encoder, s.releaseService).Routes)
-			r.Route("/updates", newUpdateHandler(encoder, s.updateService).Routes)
-			r.Route("/webhook", newWebhookHandler(encoder, s.listService).Routes)
-
-			r.HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
-
-				// inject CORS headers to bypass checks
-				s.sse.Headers = map[string]string{
-					"Content-Type":      "text/event-stream",
-					"Cache-Control":     "no-cache",
-					"Connection":        "keep-alive",
-					"X-Accel-Buffering": "no",
-				}
-
-				s.sse.ServeHTTP(w, r)
-			})
-		})
-	})
+	apiRouter := s.apiRoutes()
 
 	routeBaseURL := "/"
 
@@ -458,4 +418,55 @@ func (s *Server) Handler() http.Handler {
 	r.Mount(routeBaseURL+"api", apiRouter)
 
 	return r
+}
+
+// apiRoutes builds the router mounted under /api. Every route behind IsAuthenticated declares the scope an API key
+// needs with requireScope, or requireUser for routes keys can never use.
+func (s *Server) apiRoutes() chi.Router {
+	encoder := newEncoder(s.log)
+
+	apiRouter := chi.NewRouter()
+	// API only, so cross-site navigations to the web shell keep working. Framing
+	// is limited separately by RestrictAuthDisabledFraming.
+	apiRouter.Use(s.RejectUntrustedBrowserRequests)
+	apiRouter.Route("/auth", newAuthHandler(encoder, s.log, s, s.config.Config, s.sessionManager, s.authService, s.oidcService).Routes)
+	apiRouter.Route("/healthz", newHealthHandler(encoder, s.db).Routes)
+	apiRouter.Group(func(r chi.Router) {
+		r.Group(func(r chi.Router) {
+			r.Use(s.IsAuthenticated)
+
+			r.Route("/actions", newActionHandler(encoder, s.actionService).Routes)
+			r.Route("/alerts", newAlertHandler(encoder, s.alertService).Routes)
+			r.Route("/config", newConfigHandler(encoder, s.buildInfo, s.config).Routes)
+			r.Route("/downloaders", newDownloaderHandler(encoder, s.downloaderService).Routes)
+			r.Route("/filters", newFilterHandler(encoder, s.filterService).Routes)
+			r.Route("/feeds", newFeedHandler(encoder, s.feedService).Routes)
+			r.Route("/irc", newIrcHandler(encoder, s.sse, s.ircService).Routes)
+			r.Route("/indexer", newIndexerHandler(encoder, s.indexerService, s.ircService).Routes)
+			r.Route("/lists", newListHandler(encoder, s.listService).Routes)
+			r.Route("/matrix", newMatrixHandler(encoder, s.sse, s.matrixService).Routes)
+			r.Route("/keys", newAPIKeyHandler(encoder, s.log, s.apiService, s.config.Config).Routes)
+			r.Route("/logs", newLogsHandler(s.config).Routes)
+			r.Route("/notification", newNotificationHandler(encoder, s.notificationService).Routes)
+			r.Route("/proxy", newProxyHandler(encoder, s.proxyService).Routes)
+			r.Route("/release", newReleaseHandler(encoder, s.releaseService).Routes)
+			r.Route("/updates", newUpdateHandler(encoder, s.updateService).Routes)
+			r.Route("/webhook", newWebhookHandler(encoder, s.listService).Routes)
+
+			r.With(requireStreamAccess).HandleFunc("/events", func(w http.ResponseWriter, r *http.Request) {
+
+				// inject CORS headers to bypass checks
+				s.sse.Headers = map[string]string{
+					"Content-Type":      "text/event-stream",
+					"Cache-Control":     "no-cache",
+					"Connection":        "keep-alive",
+					"X-Accel-Buffering": "no",
+				}
+
+				s.sse.ServeHTTP(w, r)
+			})
+		})
+	})
+
+	return apiRouter
 }

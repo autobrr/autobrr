@@ -7,6 +7,7 @@ import {
   BarsArrowDownIcon,
   BellIcon,
   ChatBubbleLeftRightIcon,
+  ChatBubbleOvalLeftEllipsisIcon,
   CogIcon,
   FolderArrowDownIcon,
   GlobeAltIcon,
@@ -34,6 +35,7 @@ const subNavigation: NavTabType[] = [
   { labelKey: "nav.logs", href: "/settings/logs", icon: Square3Stack3DIcon },
   { labelKey: "nav.indexers", href: "/settings/indexers", icon: KeyIcon },
   { labelKey: "nav.irc", href: "/settings/irc", icon: ChatBubbleLeftRightIcon },
+  { labelKey: "nav.matrix", href: "/settings/matrix", icon: ChatBubbleOvalLeftEllipsisIcon },
   { labelKey: "nav.feeds", href: "/settings/feeds", icon: RssIcon },
   { labelKey: "nav.lists", href: "/settings/lists", icon: BarsArrowDownIcon },
   { labelKey: "nav.clients", href: "/settings/clients", icon: FolderArrowDownIcon },
@@ -106,12 +108,9 @@ function SidebarNav({ subNavigation }: SidebarNavProps) {
 export function Settings() {
   const { t } = useTranslation("settings");
   const auth = AuthContext.get();
-  const authDisabled = auth.authMethod === 'disabled';
-
-  // Account settings (username/password) are meaningless when built-in auth is disabled.
-  const visibleNavigation = authDisabled
-    ? subNavigation.filter((item) => item.href !== "/settings/account")
-    : subNavigation;
+  const visibleNavigation = auth.capabilities?.account_management
+    ? subNavigation
+    : subNavigation.filter((item) => item.href !== "/settings/account");
 
   return (
     <main>

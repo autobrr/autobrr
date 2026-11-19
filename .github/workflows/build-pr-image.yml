@@ -62,7 +62,7 @@ jobs:
           package-manager-cache: false
 
       - name: Set up pnpm
-        uses: pnpm/action-setup@v6.1.0
+        uses: pnpm/action-setup@v6.1.1
         with:
           package_json_file: web/package.json
 
@@ -84,11 +84,6 @@ jobs:
       - name: Build web frontend
         working-directory: web
         run: CI= pnpm run build
-
-      # ci.Dockerfile builds with -pgo=cpu.pprof; there is no combined profile
-      # on this path and go build accepts an empty one.
-      - name: Provide empty PGO profile
-        run: touch cpu.pprof
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v4

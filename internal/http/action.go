@@ -35,13 +35,16 @@ func newActionHandler(encoder encoder, service actionService) *actionHandler {
 }
 
 func (h actionHandler) Routes(r chi.Router) {
-	r.Get("/", h.getActions)
-	r.Post("/", h.storeAction)
+	read := requireScope(domain.APIResourceFilters, domain.APIAccessRead)
+	write := requireScope(domain.APIResourceFilters, domain.APIAccessWrite)
+
+	r.With(read).Get("/", h.getActions)
+	r.With(write).Post("/", h.storeAction)
 
 	r.Route("/{actionID}", func(r chi.Router) {
-		r.Delete("/", h.deleteAction)
-		r.Put("/", h.updateAction)
-		r.Patch("/toggleEnabled", h.toggleActionEnabled)
+		r.With(write).Delete("/", h.deleteAction)
+		r.With(write).Put("/", h.updateAction)
+		r.With(write).Patch("/toggleEnabled", h.toggleActionEnabled)
 	})
 }
 
@@ -59,6 +62,11 @@ func (h actionHandler) storeAction(w http.ResponseWriter, r *http.Request) {
 	var data *domain.Action
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
+		return
+	}
+
+	if data == nil {
+		h.encoder.BadRequestErr(w, errors.New("action is required"))
 		return
 	}
 
@@ -81,6 +89,11 @@ func (h actionHandler) updateAction(w http.ResponseWriter, r *http.Request) {
 	var data *domain.Action
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		h.encoder.Error(w, err)
+		return
+	}
+
+	if data == nil {
+		h.encoder.BadRequestErr(w, errors.New("action is required"))
 		return
 	}
 

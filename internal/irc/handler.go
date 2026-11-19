@@ -71,6 +71,14 @@ const (
 	flappingWindow             = 15 * time.Minute
 )
 
+// Services move a client that does not identify off a registered nick, and
+// irc-go takes it back on every keepalive. Each round sends another IDENTIFY or
+// invite request, and networks ban clients that keep doing this.
+const (
+	nickLossStopThreshold = 3
+	nickLossWindow        = time.Hour
+)
+
 // restartQuitTimeout bounds how long a restart waits for the server to close the
 // old connection after QUIT before connecting again.
 const restartQuitTimeout = 3 * time.Second
@@ -109,6 +117,7 @@ type Handler struct {
 	sse                sseServer
 	network            *domain.IrcNetwork
 	releaseSvc         releaseService
+	indexerSvc         indexerStatus
 	announceProcessors map[string]announce.Processor
 
 	// definitionsM serializes channel (re)builds: a reload from the service can
@@ -123,13 +132,20 @@ type Handler struct {
 	connectedSince   time.Time
 	haveDisconnected bool
 	shortSessionEnds []time.Time
-	authenticated    bool
-	saslauthed       bool
+	nickLosses       []time.Time
+	// channels whose JOIN got 473 on a fallback nick and that have not joined since:
+	// some servers join the client at connect only when it connects on its own nick,
+	// and a JOIN never opens the channel
+	refusedOnFallback map[string]bool
+	requestedNick     string // set by NickChange until the server acknowledges it
+	authenticated     bool
+	saslauthed        bool
 
 	identifyAttempt     identifyForm
 	identifyEscalated   bool
 	identifyFormLearned identifyForm
 	identifyOutstanding bool
+	identifySentAt      time.Time
 	identifyRetries     int    // IDENTIFYs this connection sent while NickServ was absent
 	identifyRetryGen    uint64 // bumped to cancel a scheduled identify retry
 
@@ -151,7 +167,7 @@ type Handler struct {
 	stateMachine *ConnectionStateMachine
 }
 
-func NewHandler(log zerolog.Logger, eventBus eventBus, sse sseServer, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc releaseService) *Handler {
+func NewHandler(log zerolog.Logger, eventBus eventBus, sse sseServer, network domain.IrcNetwork, definitions []*domain.IndexerDefinition, releaseSvc releaseService, indexerSvc indexerStatus) *Handler {
 	h := &Handler{
 		log:              log.With().Str("network", network.Server).Logger(),
 		eventBus:         eventBus,
@@ -160,6 +176,7 @@ func NewHandler(log zerolog.Logger, eventBus eventBus, sse sseServer, network do
 		clientState:      ircStopped,
 		network:          &network,
 		releaseSvc:       releaseSvc,
+		indexerSvc:       indexerSvc,
 		definitions:      map[string]*domain.IndexerDefinition{},
 		authenticated:    false,
 		saslauthed:       false,
@@ -260,7 +277,7 @@ func (h *Handler) initChannels(definitions []*domain.IndexerDefinition) {
 				skipCleanMessage = channel.Parse.SkipCleanMessage
 			}
 
-			ircChannel := NewChannel(h.log, network.ID, channelName, true, skipCleanMessage, announce.NewAnnounceProcessor(h.log.With().Str("channel", channelName).Logger(), h.releaseSvc, definition))
+			ircChannel := NewChannel(h.log, network.ID, channelName, true, skipCleanMessage, announce.NewAnnounceProcessor(h.log.With().Str("channel", channelName).Logger(), h.releaseSvc, h.indexerSvc, definition))
 			ircChannel.setInviteBot(inviteBot)
 			ircChannel.SetStateMachine(NewChannelStateMachine(ircChannel, h, inviteCommand))
 			ircChannel.syncInviteCommand(inviteCommand)
@@ -527,7 +544,6 @@ func (h *Handler) connect(connectGen uint64) (err error) {
 	}
 	h.client = client
 	h.cancelConnect = cancel
-	h.failedNickServAttempts = 0
 	h.resetSessionLocked()
 	h.m.Unlock()
 
@@ -840,8 +856,8 @@ func (h *Handler) stop() *ircevent.Connection {
 	h.m.Lock()
 	h.connectedSince = time.Time{}
 	h.haveDisconnected = false
-	h.failedNickServAttempts = 0
 	h.resetFlappingBreakerLocked()
+	h.nickLosses = nil
 	h.resetSessionLocked()
 	h.currentNick = ""
 	client := h.client
@@ -1153,6 +1169,12 @@ func (h *Handler) handleNickServ(msg ircmsg.Message) {
 		"please choose a different nick",
 		"choose a different nick",
 	) {
+		if h.identifyLost() {
+			h.log.Debug().Msg("NickServ greeted us long after our IDENTIFY, sending it again")
+			h.NickServIdentify()
+			return
+		}
+
 		h.authenticate()
 
 		h.m.Lock()
@@ -1431,8 +1453,27 @@ func (h *Handler) onNick(client *ircevent.Connection, msg ircmsg.Message) {
 	// to callback ordering while excluding unrelated users' nick changes.
 	h.m.Lock()
 	ours := h.client == client && (h.isOurCurrentNickLocked(oldNick) || h.isOurCurrentNickLocked(newNick))
+	regained := false
+	nickLoop := false
 	if ours {
 		h.currentNick = newNick
+		// an IDENTIFY sent as the old nick says nothing about this one, and while it
+		// stays unanswered authenticate would send no new one
+		h.resetIdentifyForm()
+
+		// a nick edited in the config is acknowledged before SetNetwork lands, so
+		// it would otherwise look like being moved off the nick
+		requested := h.requestedNick != "" && h.caseMapping.equal(newNick, h.requestedNick)
+		if requested {
+			h.requestedNick = ""
+		}
+
+		wasPreferred := h.caseMapping.equal(oldNick, h.network.Nick)
+		isPreferred := h.caseMapping.equal(newNick, h.network.Nick)
+		regained = !wasPreferred && isPreferred
+		if wasPreferred && !isPreferred && !requested {
+			nickLoop = h.recordNickLossLocked(time.Now())
+		}
 	}
 	h.m.Unlock()
 
@@ -1440,7 +1481,74 @@ func (h *Handler) onNick(client *ircevent.Connection, msg ircmsg.Message) {
 		return
 	}
 
+	if nickLoop {
+		h.stopForNickLoop(oldNick)
+		return
+	}
+
 	h.authenticate()
+
+	if !regained {
+		return
+	}
+
+	h.m.Lock()
+	authenticated := h.authenticated || h.saslauthed
+	refused := h.refusedOnFallback
+	h.refusedOnFallback = nil
+	h.m.Unlock()
+
+	reconnect := false
+	for key := range refused {
+		if channel, found := h.channels.Get(key); found && channel.IsEnabled() {
+			reconnect = true
+		}
+	}
+
+	if reconnect {
+		h.log.Info().Str("nick", newNick).Msg("regained nick after an invite-only refusal on a fallback nick, reconnecting")
+		client.Reconnect()
+		return
+	}
+
+	// unauthenticated, the channels have not started yet and join once we are
+	if authenticated {
+		h.retryRefusedInvites(newNick)
+	}
+}
+
+// recordNickLossLocked records that we were moved off our nick and reports
+// whether that happened often enough to stop the network. The caller must hold h.m.
+func (h *Handler) recordNickLossLocked(at time.Time) bool {
+	keepFrom := 0
+	for keepFrom < len(h.nickLosses) && at.Sub(h.nickLosses[keepFrom]) >= nickLossWindow {
+		keepFrom++
+	}
+	h.nickLosses = append(h.nickLosses[keepFrom:], at)
+
+	return len(h.nickLosses) >= nickLossStopThreshold
+}
+
+func (h *Handler) stopForNickLoop(nick string) {
+	errMsg := fmt.Sprintf("nick change loop: moved off nick %s %d times within %s; network stopped to avoid a ban. Check that the nick is registered or grouped to the NickServ account and that the password is correct", nick, nickLossStopThreshold, nickLossWindow)
+
+	h.log.Error().Str("nick", nick).Int("losses", nickLossStopThreshold).Dur("window", nickLossWindow).Msg("nick change loop; stopping network")
+
+	h.addConnectError(errMsg)
+	h.stateMachine.OnError(errMsg)
+	h.Stop()
+}
+
+// retryRefusedInvites requests again the invites a bot refused for another nick.
+// A reconnect can land on a fallback nick while the server still holds the old
+// connection, and bots that check the nick, like one requiring a |bot suffix,
+// refuse it. Nothing else retries a refused invite once the nick is back.
+func (h *Handler) retryRefusedInvites(nick string) {
+	for _, channel := range h.channels.Iterator() {
+		if sm := channel.StateMachine(); sm != nil {
+			sm.RetryRefusedInvite(nick)
+		}
+	}
 }
 
 func (h *Handler) onKick(msg ircmsg.Message) {
@@ -1856,6 +1964,10 @@ func (h *Handler) handleJoined(msg ircmsg.Message) {
 	// check if channel is valid and if not lets part
 	ircChannel, key, found := h.getChannel(channel)
 	if found {
+		h.m.Lock()
+		delete(h.refusedOnFallback, key)
+		h.m.Unlock()
+
 		if sm := ircChannel.StateMachine(); sm != nil {
 			sm.OnJoinSuccess()
 		}
@@ -2013,6 +2125,17 @@ func (h *Handler) handleJoinError(msg ircmsg.Message) {
 	}
 
 	h.log.Warn().Str("channel", channel).Str("numeric", msg.Command).Str("reason", serverReason).Msg("channel join rejected")
+
+	if _, key, found := h.getChannel(channel); found && msg.Command == ircevent.ERR_INVITEONLYCHAN {
+		h.m.Lock()
+		if !h.caseMapping.equal(msg.Params[0], h.network.Nick) {
+			if h.refusedOnFallback == nil {
+				h.refusedOnFallback = map[string]bool{}
+			}
+			h.refusedOnFallback[key] = true
+		}
+		h.m.Unlock()
+	}
 
 	// A JOIN rejection is channel-scoped: record it on the channel (deduped and
 	// cleared when the channel recovers) and let it gate network health via the
@@ -2177,6 +2300,7 @@ func (h *Handler) NickServIdentify() error {
 
 	command := h.identifyCommandLocked()
 	h.identifyOutstanding = true
+	h.identifySentAt = time.Now()
 	h.m.Unlock()
 
 	if err := h.Send("PRIVMSG", "NickServ", command); err != nil {
@@ -2188,6 +2312,19 @@ func (h *Handler) NickServIdentify() error {
 	}
 
 	return nil
+}
+
+const identifyLostAfter = 10 * time.Second
+
+// identifyLost reports whether a NickServ greeting means the outstanding IDENTIFY
+// will get no answer. Services greet an unidentified nick when they link, and an
+// IDENTIFY sent before that link went down with the old one. A greeting soon
+// after an IDENTIFY is the normal order at connect, and its answer is on the way.
+func (h *Handler) identifyLost() bool {
+	h.m.RLock()
+	defer h.m.RUnlock()
+
+	return h.identifyOutstanding && time.Since(h.identifySentAt) >= identifyLostAfter
 }
 
 // handleNickServAbsent schedules another IDENTIFY after the outstanding one got
@@ -2255,6 +2392,7 @@ func (h *Handler) retryIdentify(gen uint64) {
 	client := h.client
 	command := h.identifyCommandLocked()
 	h.identifyOutstanding = true
+	h.identifySentAt = time.Now()
 	h.m.Unlock()
 
 	if err := client.Send("PRIVMSG", "NickServ", command); err != nil {
@@ -2365,6 +2503,9 @@ func (h *Handler) escalateIdentify() {
 func (h *Handler) resetSessionLocked() {
 	h.authenticated = false
 	h.saslauthed = false
+	h.failedNickServAttempts = 0
+	h.requestedNick = ""
+	h.refusedOnFallback = nil
 	h.resetIdentifyForm()
 }
 
@@ -2400,6 +2541,10 @@ func (h *Handler) unlearnIdentifyForm() {
 // NickChange sets a new nick for our user
 func (h *Handler) NickChange(nick string) error {
 	h.log.Debug().Str("nick", nick).Msg("NICK change")
+
+	h.m.Lock()
+	h.requestedNick = nick
+	h.m.Unlock()
 
 	if client := h.getClient(); client != nil {
 		client.SetNick(nick)

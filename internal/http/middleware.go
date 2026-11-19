@@ -4,6 +4,7 @@
 package http
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"mime"
@@ -17,6 +18,10 @@ import (
 	"time"
 
 	"github.com/autobrr/autobrr/internal/domain"
+	"github.com/autobrr/autobrr/internal/irc"
+	"github.com/autobrr/autobrr/internal/logger"
+	"github.com/autobrr/autobrr/internal/matrix"
+	"github.com/autobrr/autobrr/internal/notification"
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rs/zerolog"
@@ -76,65 +81,232 @@ func (s *secureSessionResponseWriter) Unwrap() http.ResponseWriter {
 	return s.ResponseWriter
 }
 
+// Caller is who a request was authenticated as. IsAuthenticated sets it on every
+// request it lets through.
+type Caller struct {
+	Method         domain.AuthMethod `json:"auth_method"`
+	Username       string            `json:"username"`
+	ProfilePicture string            `json:"profile_picture,omitempty"`
+
+	// APIKey is set only when Method is domain.AuthMethodAPIKey.
+	APIKey *domain.APIKey `json:"-"`
+}
+
+// IsUser reports whether the caller is a person rather than an API key.
+func (c *Caller) IsUser() bool {
+	return c.Method != domain.AuthMethodAPIKey
+}
+
+// HasAccess reports whether the caller may use resource with access. Users have
+// full access; API keys are limited to their scopes.
+func (c *Caller) HasAccess(resource domain.APIResource, access domain.APIAccess) bool {
+	if c.IsUser() {
+		return true
+	}
+
+	return c.APIKey != nil && c.APIKey.HasAccess(resource, access)
+}
+
+type callerContextKey struct{}
+
+// callerSlot is shared by pointer so middlewares that run before IsAuthenticated,
+// such as LoggerMiddleware, can read the caller it resolves further down the chain.
+type callerSlot struct {
+	caller *Caller
+}
+
+// withCallerSlot gives the request an empty caller slot unless it already has one.
+func withCallerSlot(r *http.Request) *http.Request {
+	if _, ok := r.Context().Value(callerContextKey{}).(*callerSlot); ok {
+		return r
+	}
+
+	return r.WithContext(context.WithValue(r.Context(), callerContextKey{}, &callerSlot{}))
+}
+
+func withCaller(r *http.Request, caller *Caller) *http.Request {
+	r = withCallerSlot(r)
+	r.Context().Value(callerContextKey{}).(*callerSlot).caller = caller
+
+	return r
+}
+
+func callerFromContext(ctx context.Context) (*Caller, bool) {
+	slot, ok := ctx.Value(callerContextKey{}).(*callerSlot)
+	if !ok || slot.caller == nil {
+		return nil, false
+	}
+
+	return slot.caller, true
+}
+
+// IsAuthenticated resolves the caller of the request and rejects requests it cannot
+// resolve: an API key if one is sent, otherwise the login method of the auth mode,
+// a session or the forward auth header.
 func (s *Server) IsAuthenticated(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if s.config.Config.IsAuthDisabled() {
-			next.ServeHTTP(w, r)
+		caller, ok := s.resolveCaller(w, r)
+		if !ok {
 			return
 		}
 
-		if token := r.Header.Get("X-API-Token"); token != "" {
-			// check header
-			if !s.apiService.ValidateAPIKey(r.Context(), token) {
-				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
-				return
-			}
+		next.ServeHTTP(w, withCaller(r, caller))
+	})
+}
 
-		} else if key := r.URL.Query().Get("apikey"); key != "" {
-			// check query param like ?apikey=TOKEN
-			if !s.apiService.ValidateAPIKey(r.Context(), key) {
-				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
-				return
+// resolveCaller writes the error response itself when it returns false.
+func (s *Server) resolveCaller(w http.ResponseWriter, r *http.Request) (*Caller, bool) {
+	if s.config.Config.AuthMode() == domain.AuthModeDisabled {
+		return &Caller{Method: domain.AuthMethodDisabled, Username: "admin"}, true
+	}
+
+	if token := cmp.Or(r.Header.Get("X-API-Token"), r.URL.Query().Get("apikey")); token != "" {
+		apiKey, ok := s.apiService.ValidateAPIKey(r.Context(), token)
+		if !ok {
+			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			return nil, false
+		}
+
+		return &Caller{Method: domain.AuthMethodAPIKey, APIKey: apiKey}, true
+	}
+
+	if s.config.Config.AuthMode() == domain.AuthModeForward {
+		return s.forwardCaller(w, r)
+	}
+
+	return s.sessionCaller(w, r)
+}
+
+// forwardCaller resolves the user the reverse proxy vouches for in the trusted user
+// header. RequireAuthDisabledIPAllowlist has already limited the request to the
+// proxy's own address, which is what makes the header trustworthy. A missing header
+// means the proxy stopped authenticating, so it fails closed.
+func (s *Server) forwardCaller(w http.ResponseWriter, r *http.Request) (*Caller, bool) {
+	header := strings.TrimSpace(s.config.Config.AuthTrustedUserHeader)
+
+	// The last value is the one the proxy closest to us set; earlier ones may have
+	// come from the client if the proxy appends instead of overwriting.
+	var username string
+	if values := r.Header.Values(header); len(values) > 0 {
+		username = strings.TrimSpace(values[len(values)-1])
+	}
+
+	if username == "" {
+		s.log.Warn().Str("header", header).Str("url", r.URL.Path).Str("remote_addr", r.RemoteAddr).Msg("forward auth: rejected request without trusted user header")
+		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+		return nil, false
+	}
+
+	if !s.config.Config.IsTrustedUserAllowed(username) {
+		s.log.Warn().Str("username", username).Str("url", r.URL.Path).Msg("forward auth: rejected user other than authTrustedUser")
+		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+		return nil, false
+	}
+
+	return &Caller{Method: domain.AuthMethodForward, Username: username}, true
+}
+
+// sessionCaller resolves a password or OIDC login session. Failures answer 403 on
+// purpose, never 401: a 401 makes browsers holding cached reverse-proxy Basic Auth
+// credentials treat them as invalid and re-prompt, breaking those setups.
+func (s *Server) sessionCaller(w http.ResponseWriter, r *http.Request) (*Caller, bool) {
+	ctx := r.Context()
+
+	if !s.sessionManager.GetBool(ctx, "authenticated") {
+		s.log.Debug().Msg("session not authenticated")
+		if err := s.sessionManager.Destroy(ctx); err != nil {
+			s.log.Error().Err(err).Msg("failed to destroy session")
+		}
+		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+		return nil, false
+	}
+
+	caller := &Caller{
+		Method:         domain.AuthMethod(s.sessionManager.GetString(ctx, "auth_method")),
+		Username:       s.sessionManager.GetString(ctx, "username"),
+		ProfilePicture: s.sessionManager.GetString(ctx, "profile_picture"),
+	}
+
+	// sessions outlive restarts, so one created before the allowed OIDC user
+	// was set or changed must not keep a now-disallowed user logged in
+	if caller.Method == domain.AuthMethodOIDC {
+		subject := s.sessionManager.GetString(ctx, "oidc_subject")
+		if !s.config.Config.IsOIDCUserAllowed(subject, s.sessionManager.GetString(ctx, "oidc_verified_email")) {
+			s.log.Warn().Str("sub", subject).Str("remote_addr", r.RemoteAddr).Msg("OIDC session user is no longer allowed, destroying session")
+			if err := s.sessionManager.Destroy(ctx); err != nil {
+				s.log.Error().Err(err).Msg("failed to destroy session")
 			}
-		} else {
-			// check session
-			authenticated := s.sessionManager.GetBool(r.Context(), "authenticated")
-			if !authenticated {
-				s.log.Debug().Msg("session not authenticated")
-				if err := s.sessionManager.Destroy(r.Context()); err != nil {
-					s.log.Error().Err(err).Msg("failed to destroy session")
-				}
-				// 403 on purpose, never 401: a 401 makes browsers holding cached
-				// reverse-proxy Basic Auth credentials treat them as invalid and
-				// re-prompt, breaking those setups
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+			return nil, false
+		}
+	}
+
+	deadline := s.sessionManager.Deadline(ctx)
+	if time.Until(deadline) <= 7*24*time.Hour {
+		s.log.Trace().Time("deadline", deadline).Msg("session expiring in less than 7 days, extending")
+
+		if err := s.sessionManager.RenewToken(ctx); err != nil {
+			s.log.Error().Err(err).Str("username", caller.Username).Str("remote_addr", r.RemoteAddr).Msg("failed to renew session token")
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return nil, false
+		}
+	}
+
+	return caller, true
+}
+
+// requireScope limits the route to callers with access to resource. Requests without
+// a caller are rejected, so a route mounted outside IsAuthenticated stays closed.
+func requireScope(resource domain.APIResource, access domain.APIAccess) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			caller, ok := callerFromContext(r.Context())
+			if !ok || !caller.HasAccess(resource, access) {
 				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 				return
 			}
 
-			// sessions outlive restarts, so one created before the allowed OIDC user
-			// was set or changed must not keep a now-disallowed user logged in
-			if s.sessionManager.GetString(r.Context(), "auth_method") == "oidc" {
-				subject := s.sessionManager.GetString(r.Context(), "oidc_subject")
-				if !s.config.Config.IsOIDCUserAllowed(subject, s.sessionManager.GetString(r.Context(), "oidc_verified_email")) {
-					s.log.Warn().Str("sub", subject).Str("remote_addr", r.RemoteAddr).Msg("OIDC session user is no longer allowed, destroying session")
-					if err := s.sessionManager.Destroy(r.Context()); err != nil {
-						s.log.Error().Err(err).Msg("failed to destroy session")
-					}
-					http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
-					return
-				}
-			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
 
-			deadline := s.sessionManager.Deadline(r.Context())
-			if time.Until(deadline) <= 7*24*time.Hour {
-				s.log.Trace().Time("deadline", deadline).Msg("session expiring in less than 7 days, extending")
+// requireUser keeps API keys away from routes that could widen a key's own access, such as managing keys,
+// users or the config file.
+func requireUser(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		caller, ok := callerFromContext(r.Context())
+		if !ok || !caller.IsUser() {
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+			return
+		}
 
-				if err := s.sessionManager.RenewToken(r.Context()); err != nil {
-					s.log.Error().Err(err).Str("username", s.sessionManager.GetString(r.Context(), "username")).Str("remote_addr", r.RemoteAddr).Msg("failed to renew session token")
-					http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-					return
-				}
-			}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// eventStreamResources maps each server-sent event stream to the resource an API key needs read access to.
+var eventStreamResources = map[string]domain.APIResource{
+	logger.StreamLogs:           domain.APIResourceLogs,
+	irc.EventStreamKey:          domain.APIResourceIRC,
+	matrix.EventStreamKey:       domain.APIResourceMatrix,
+	notification.InboxStreamKey: domain.APIResourceNotifications,
+}
+
+// requireStreamAccess scopes the stream picked by the stream query param. Every stream is served by the same
+// SSE server, so the route alone does not say what is being read.
+func requireStreamAccess(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resource, ok := eventStreamResources[r.URL.Query().Get("stream")]
+		if !ok {
+			http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+			return
+		}
+
+		caller, ok := callerFromContext(r.Context())
+		if !ok || !caller.HasAccess(resource, domain.APIAccessRead) {
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+			return
 		}
 
 		next.ServeHTTP(w, r)
@@ -192,19 +364,19 @@ func parsePeerAddr(remoteAddr string) (netip.Addr, bool) {
 }
 
 // RequireAuthDisabledIPAllowlist restricts access to authAllowedPeerCIDRs
-// when authentication is disabled. It runs before middleware.RealIP so that
+// in disabled and forward authentication modes. It runs before middleware.RealIP so that
 // X-Forwarded-For/X-Real-IP headers cannot be used to spoof past the restriction -
 // it always checks the real TCP peer that opened the connection.
 func (s *Server) RequireAuthDisabledIPAllowlist(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !s.config.Config.IsAuthDisabled() {
+		if !s.config.Config.AuthCapabilities().ProxyGuards {
 			next.ServeHTTP(w, r)
 			return
 		}
 
 		addr, ok := parsePeerAddr(r.RemoteAddr)
 		if !ok {
-			s.log.Error().Str("remote_addr", r.RemoteAddr).Msg("auth disabled: could not parse remote address")
+			s.log.Error().Str("remote_addr", r.RemoteAddr).Msg("proxy guard: could not parse remote address")
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return
 		}
@@ -221,13 +393,14 @@ func (s *Server) RequireAuthDisabledIPAllowlist(next http.Handler) http.Handler 
 			}
 		}
 
-		s.log.Warn().Str("peer_ip", addr.String()).Msg("auth disabled: rejected request, peer not in authAllowedPeerCIDRs")
+		s.log.Warn().Str("peer_ip", addr.String()).Msg("proxy guard: rejected request, peer not in authAllowedPeerCIDRs")
 		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 	})
 }
 
 // RejectUntrustedBrowserRequests blocks cross-site and same-site browser requests
-// to the API while authentication is disabled. CORS cannot do that: it only
+// to the API in disabled and forward authentication modes, where the reverse
+// proxy's session authenticates whatever the browser sends. CORS cannot do that: it only
 // controls whether the browser may read the response, and rs/cors invokes the
 // handler regardless of origin, so a cross-site request still executes
 // server-side. Same-site is rejected too because a sibling subdomain under the
@@ -238,7 +411,7 @@ func (s *Server) RequireAuthDisabledIPAllowlist(next http.Handler) http.Handler 
 // handled by RequireAuthDisabledAllowedHost.
 func (s *Server) RejectUntrustedBrowserRequests(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !s.config.Config.IsAuthDisabled() {
+		if !s.config.Config.AuthCapabilities().ProxyGuards {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -247,7 +420,7 @@ func (s *Server) RejectUntrustedBrowserRequests(next http.Handler) http.Handler 
 		if origin := r.Header.Get("Origin"); origin != "" {
 			_, originAllowed = s.authAllowedOrigins[strings.ToLower(origin)]
 			if !originAllowed && !isSameOrigin(origin, r) {
-				s.log.Warn().Str("origin", origin).Str("url", r.URL.Path).Msg("auth disabled: rejected request, origin not in corsAllowedOrigins")
+				s.log.Warn().Str("origin", origin).Str("url", r.URL.Path).Msg("proxy guard: rejected request, origin not in corsAllowedOrigins")
 				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 				return
 			}
@@ -261,7 +434,7 @@ func (s *Server) RejectUntrustedBrowserRequests(next http.Handler) http.Handler 
 		// corsAllowedOrigins.
 		secFetchSite := r.Header.Get("Sec-Fetch-Site")
 		if (secFetchSite == "cross-site" || secFetchSite == "same-site") && !originAllowed {
-			s.log.Warn().Str("sec_fetch_site", secFetchSite).Str("url", r.URL.Path).Msg("auth disabled: rejected browser request from another site")
+			s.log.Warn().Str("sec_fetch_site", secFetchSite).Str("url", r.URL.Path).Msg("proxy guard: rejected browser request from another site")
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
 			return
 		}
@@ -273,7 +446,7 @@ func (s *Server) RejectUntrustedBrowserRequests(next http.Handler) http.Handler 
 			// for browsers that predate Origin and Sec-Fetch.
 			if r.ContentLength != 0 {
 				if mt, _, err := mime.ParseMediaType(r.Header.Get("Content-Type")); err != nil || mt != "application/json" {
-					s.log.Warn().Str("content_type", r.Header.Get("Content-Type")).Str("url", r.URL.Path).Msg("auth disabled: rejected mutation, content type must be application/json")
+					s.log.Warn().Str("content_type", r.Header.Get("Content-Type")).Str("url", r.URL.Path).Msg("proxy guard: rejected mutation, content type must be application/json")
 					http.Error(w, http.StatusText(http.StatusUnsupportedMediaType), http.StatusUnsupportedMediaType)
 					return
 				}
@@ -309,23 +482,23 @@ func isSameOrigin(origin string, r *http.Request) bool {
 }
 
 // RequireAuthDisabledAllowedHost rejects requests whose Host is not allowed
-// while authentication is disabled. A DNS-rebound browser is an allowlisted peer
+// in disabled and forward authentication modes. A DNS-rebound browser is an allowlisted peer
 // sending a same-origin request; only the Host header gives it away, and over
 // plain HTTP it carries neither Origin nor Sec-Fetch-Site, so every request is
 // checked regardless of browser markers.
 func (s *Server) RequireAuthDisabledAllowedHost(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !s.config.Config.IsAuthDisabled() {
+		if !s.config.Config.AuthCapabilities().ProxyGuards {
 			next.ServeHTTP(w, r)
 			return
 		}
 
 		if !s.isAllowedHost(r.Host) {
-			s.log.Error().Str("host", r.Host).Str("url", r.URL.Path).Msg("auth disabled: rejected request, host not in authAllowedHosts or corsAllowedOrigins")
+			s.log.Error().Str("host", r.Host).Str("url", r.URL.Path).Msg("proxy guard: rejected request, host not in authAllowedHosts or corsAllowedOrigins")
 			// The peer already passed the IP allowlist, so this is almost always a
 			// trusted client on an unlisted hostname; naming the fix beats a bare
 			// Forbidden page, and a rebinding attacker learns nothing new from it.
-			http.Error(w, "Forbidden: this hostname is not allowed while authentication is disabled, add it to authAllowedHosts in config.toml", http.StatusForbidden)
+			http.Error(w, "Forbidden: this hostname is not allowed, add it to authAllowedHosts in config.toml", http.StatusForbidden)
 			return
 		}
 
@@ -355,13 +528,13 @@ func (s *Server) isAllowedHost(host string) bool {
 	return ok
 }
 
-// RestrictAuthDisabledFraming limits which sites may frame autobrr while
-// authentication is disabled. With auth on, the SameSite=Lax session cookie
-// keeps a cross-site frame logged out; with auth off, any framing site would get
-// a fully working UI to clickjack.
+// RestrictAuthDisabledFraming limits which sites may frame autobrr in disabled and
+// forward authentication modes. With a login, the SameSite=Lax session cookie
+// keeps a cross-site frame logged out; when the proxy authenticates, any framing
+// site would get a fully working UI to clickjack.
 func (s *Server) RestrictAuthDisabledFraming(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !s.config.Config.IsAuthDisabled() {
+		if !s.config.Config.AuthCapabilities().ProxyGuards {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -426,6 +599,7 @@ func LoggerMiddleware(logger *zerolog.Logger, skipPaths []string) func(next http
 				log = logger.With().Logger()
 			}
 
+			r = withCallerSlot(r)
 			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
 
 			t1 := time.Now()
@@ -451,7 +625,11 @@ func LoggerMiddleware(logger *zerolog.Logger, skipPaths []string) func(next http
 						remoteIP = ip
 					}
 
-					// log end request
+					var username string
+					if caller, ok := callerFromContext(r.Context()); ok {
+						username = caller.Username
+					}
+
 					log.Trace().
 						Str("type", "access").
 						Timestamp().
@@ -465,6 +643,7 @@ func LoggerMiddleware(logger *zerolog.Logger, skipPaths []string) func(next http
 							"latency_ms": float64(t2.Sub(t1).Nanoseconds()) / 1000000.0,
 							"bytes_in":   r.Header.Get("Content-Length"),
 							"bytes_out":  ww.BytesWritten(),
+							"username":   username,
 						}).
 						Msg("incoming_request")
 				}
