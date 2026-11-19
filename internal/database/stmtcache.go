@@ -83,6 +83,12 @@ func (c *statementCache) get(ctx context.Context, query string) (*sql.Stmt, erro
 	c.m.Lock()
 	defer c.m.Unlock()
 
+	// close or disable may have run while preparing outside the lock
+	if c.disabled.Load() {
+		_ = stmt.Close()
+		return nil, errStatementCacheDisabled
+	}
+
 	if existing, ok := c.stmts[query]; ok {
 		_ = stmt.Close()
 		return existing, nil

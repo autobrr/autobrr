@@ -8,11 +8,17 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"time"
 
 	"github.com/autobrr/autobrr/internal/database/migrations"
 	"github.com/autobrr/autobrr/pkg/errors"
 
 	_ "github.com/lib/pq"
+)
+
+const (
+	postgresMaxConns        = 25
+	postgresConnMaxIdleTime = 10 * time.Minute
 )
 
 func (db *DB) openPostgres() error {
@@ -22,6 +28,12 @@ func (db *DB) openPostgres() error {
 	if db.Handler, err = sql.Open("postgres", db.DSN); err != nil {
 		return errors.Wrap(err, "could not open postgres connection")
 	}
+
+	// database/sql keeps only 2 idle connections by default, so an announce burst
+	// opens a new backend per query and re-prepares the cached statements on each.
+	db.Handler.SetMaxOpenConns(postgresMaxConns)
+	db.Handler.SetMaxIdleConns(postgresMaxConns)
+	db.Handler.SetConnMaxIdleTime(postgresConnMaxIdleTime)
 
 	err = db.Handler.Ping()
 	if err != nil {

@@ -22,8 +22,10 @@ import (
 func (db *DB) QueryPrepared(ctx context.Context, query string, args ...any) (rows *sql.Rows, err error) {
 	start := time.Now()
 
+	prepared := false
+
 	defer func() {
-		db.logPrepared(query, args, time.Since(start), err)
+		db.logPrepared(query, args, time.Since(start), prepared, err)
 	}()
 
 	stmt, err := db.statement(ctx, query)
@@ -35,6 +37,8 @@ func (db *DB) QueryPrepared(ctx context.Context, query string, args ...any) (row
 	if err != nil && db.isStalePreparedStatement(err) {
 		return db.Handler.QueryContext(ctx, query, args...)
 	}
+
+	prepared = true
 
 	return rows, err
 }
@@ -67,8 +71,10 @@ func (db *DB) QueryRowPrepared(ctx context.Context, query string, args []any, de
 func (db *DB) ExecPrepared(ctx context.Context, query string, args ...any) (result sql.Result, err error) {
 	start := time.Now()
 
+	prepared := false
+
 	defer func() {
-		db.logPrepared(query, args, time.Since(start), err)
+		db.logPrepared(query, args, time.Since(start), prepared, err)
 	}()
 
 	stmt, err := db.statement(ctx, query)
@@ -80,6 +86,8 @@ func (db *DB) ExecPrepared(ctx context.Context, query string, args ...any) (resu
 	if err != nil && db.isStalePreparedStatement(err) {
 		return db.Handler.ExecContext(ctx, query, args...)
 	}
+
+	prepared = true
 
 	return result, err
 }
@@ -97,19 +105,21 @@ func (db *DB) statement(ctx context.Context, query string) (*sql.Stmt, error) {
 	return stmt, err
 }
 
-// isStalePreparedStatement reports whether a named prepared statement vanished
-// from the server under us. A pooler in transaction mode such as PgBouncer
-// before 1.21 routes the execution to a different server connection than the
-// prepare, which only fails here, at execution time. The cache is turned off
-// for the rest of the process, and the failed call is safe to retry unprepared
-// since the statement never ran.
+// isStalePreparedStatement reports whether a named prepared statement did not
+// survive a pooler in transaction mode, such as PgBouncer without
+// max_prepared_statements. It routes the execution to a different server
+// connection than the prepare, which only fails here, at execution time: the
+// name is missing (26000), or lib/pq's per-connection names ("1", "2", ...)
+// collide with another client's statement taking a different number of
+// parameters (08P01). The cache is turned off for the rest of the process, and
+// the failed call is safe to retry unprepared since the statement never ran.
 func (db *DB) isStalePreparedStatement(err error) bool {
 	pqErr, ok := errors.AsType[*pq.Error](err)
 	if !ok {
 		return false
 	}
 
-	if pqErr.Code != "26000" && pqErr.Code != "42P05" {
+	if pqErr.Code != "26000" && pqErr.Code != "42P05" && pqErr.Code != "08P01" {
 		return false
 	}
 
@@ -120,8 +130,10 @@ func (db *DB) isStalePreparedStatement(err error) bool {
 	return true
 }
 
-func (db *DB) logPrepared(query string, args []any, duration time.Duration, err error) {
-	logEvent := db.log.Trace()
+// logPrepared keeps args at trace level only, release inserts bind download
+// urls that can carry a passkey.
+func (db *DB) logPrepared(query string, args []any, duration time.Duration, prepared bool, err error) {
+	logEvent := db.log.Trace().Interface("args", args)
 
 	if err != nil {
 		logEvent = db.log.Error().Err(err)
@@ -129,5 +141,5 @@ func (db *DB) logPrepared(query string, args []any, duration time.Duration, err 
 		logEvent = db.log.Warn().Bool("slow_query", true)
 	}
 
-	logEvent.Str("query", query).Interface("args", args).Dur("duration", duration).Bool("prepared", true).Msg("database query")
+	logEvent.Str("query", query).Dur("duration", duration).Bool("prepared", prepared).Msg("database query")
 }

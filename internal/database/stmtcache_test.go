@@ -4,7 +4,9 @@
 package database
 
 import (
+	"bytes"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"sync"
 	"testing"
@@ -145,4 +147,51 @@ func TestDB_QueryRowPrepared(t *testing.T) {
 
 	assert.Equal(t, []string{"first", "second"}, names)
 	assert.Len(t, db.stmts.stmts, 3)
+}
+
+func TestDB_LogPrepared(t *testing.T) {
+	db := newTestPreparedDB(t)
+
+	// the integration TestMain raises the global level through logger.New
+	globalLevel := zerolog.GlobalLevel()
+	zerolog.SetGlobalLevel(zerolog.TraceLevel)
+	t.Cleanup(func() { zerolog.SetGlobalLevel(globalLevel) })
+
+	var buf bytes.Buffer
+	db.log = zerolog.New(&buf).Level(zerolog.TraceLevel)
+
+	lastLine := func() map[string]any {
+		t.Helper()
+
+		lines := bytes.Split(bytes.TrimSpace(buf.Bytes()), []byte("\n"))
+
+		var entry map[string]any
+		require.NoError(t, json.Unmarshal(lines[len(lines)-1], &entry))
+
+		return entry
+	}
+
+	_, err := db.ExecPrepared(t.Context(), `INSERT INTO item (name) VALUES (?)`, "https://tracker/dl/passkey")
+	require.NoError(t, err)
+
+	entry := lastLine()
+	assert.Equal(t, "trace", entry["level"])
+	assert.Equal(t, true, entry["prepared"])
+	assert.Contains(t, entry, "args")
+
+	_, err = db.ExecPrepared(t.Context(), `INSERT INTO item (missing) VALUES (?)`, "https://tracker/dl/passkey")
+	require.Error(t, err)
+
+	entry = lastLine()
+	assert.Equal(t, "error", entry["level"])
+	assert.Equal(t, false, entry["prepared"])
+	assert.NotContains(t, entry, "args")
+
+	require.NoError(t, db.stmts.close())
+
+	_, err = db.ExecPrepared(t.Context(), `INSERT INTO item (name) VALUES (?)`, "after-close")
+	require.NoError(t, err)
+
+	entry = lastLine()
+	assert.Equal(t, false, entry["prepared"])
 }
