@@ -295,28 +295,38 @@ func TestService_IsEnabledFollowsToggle(t *testing.T) {
 type listIndexerRepo struct {
 	stubIndexerRepo
 	indexers []domain.Indexer
+	stored   bool
 }
 
 func (r *listIndexerRepo) List(_ context.Context) ([]domain.Indexer, error) {
 	return r.indexers, nil
 }
 
-func TestServiceStart_SkipsIndexerUnsupportedByDefinition(t *testing.T) {
-	repo := &listIndexerRepo{indexers: []domain.Indexer{
-		{ID: 1, Name: "Blutopia", Identifier: "blutopia", Implementation: domain.IndexerImplementationIRC, Enabled: true},
-		{ID: 2, Name: "Blutopia legacy", Identifier: "blutopia", Implementation: domain.IndexerImplementationLegacy, Enabled: true},
-		{ID: 3, Name: "TorrentLeech", Identifier: "torrentleech", Implementation: domain.IndexerImplementationIRC, Enabled: true},
-	}}
+func (r *listIndexerRepo) Store(_ context.Context, indexer domain.Indexer) (*domain.Indexer, error) {
+	r.stored = true
+	return &indexer, nil
+}
+
+func TestServiceStart_KeepsIndexerUnsupportedByDefinition(t *testing.T) {
+	stale := domain.Indexer{ID: 1, Name: "Blutopia", Identifier: "blutopia", Implementation: domain.IndexerImplementationIRC, Enabled: true, Settings: map[string]string{}}
+	repo := &listIndexerRepo{
+		stubIndexerRepo: stubIndexerRepo{current: &stale},
+		indexers: []domain.Indexer{
+			stale,
+			{ID: 2, Name: "TorrentLeech", Identifier: "torrentleech", Implementation: domain.IndexerImplementationIRC, Enabled: true},
+		},
+	}
 	service := NewService(zerolog.Nop(), &stubEventBus{}, &domain.Config{}, repo, nil, nil)
 
 	require.NoError(t, service.Start())
 
-	_, ok := service.GetMappedDefinitionByName("blutopia")
-	assert.False(t, ok)
+	indexers, err := service.GetAll()
+	require.NoError(t, err)
+	assert.Len(t, indexers, 2)
 
-	_, ok = service.GetMappedDefinitionByName("torrentleech")
-	assert.True(t, ok)
+	require.NoError(t, service.ToggleEnabled(t.Context(), 1, false))
 
-	_, err := service.Store(t.Context(), repo.indexers[0])
+	_, err = service.Store(t.Context(), domain.Indexer{Name: "Blutopia", Identifier: "blutopia", Implementation: domain.IndexerImplementationLegacy, Settings: map[string]string{}})
 	assert.Error(t, err)
+	assert.False(t, repo.stored)
 }
