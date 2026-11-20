@@ -353,6 +353,9 @@ func (s *Service) mapIndexers() (map[string]*domain.IndexerDefinition, error) {
 	for _, indexer := range indexers {
 		indexerDefinition, err := s.mapIndexer(indexer)
 		if err != nil {
+			if !errors.Is(err, domain.ErrIndexerNotFound) {
+				s.log.Warn().Err(err).Str("indexer", indexer.Identifier).Msg("could not map indexer, skipping")
+			}
 			continue
 		}
 
@@ -381,6 +384,12 @@ func (s *Service) mapIndexer(indexer domain.Indexer) (*domain.IndexerDefinition,
 	if !ok {
 		// if no indexerDefinition found, continue
 		return nil, domain.ErrIndexerNotFound
+	}
+
+	// the row keeps the implementation of the definition it was created from, e.g. an IRC row from a custom
+	// Blutopia definition now resolves to the bundled Matrix-only one
+	if !d.SupportsImplementation(indexer.Implementation) {
+		return nil, errors.New("indexer definition %s does not support implementation %s", definitionName, indexer.Implementation)
 	}
 
 	d.ID = int(indexer.ID)
@@ -429,6 +438,10 @@ func (s *Service) updateMapIndexer(indexer *domain.Indexer) (*domain.IndexerDefi
 	d, ok := s.mappedDefinitions[indexer.Identifier]
 	if !ok {
 		return nil, domain.ErrIndexerNotFound
+	}
+
+	if !d.SupportsImplementation(indexer.Implementation) {
+		return nil, errors.New("indexer definition %s does not support implementation %s", indexer.Identifier, indexer.Implementation)
 	}
 
 	d.ID = int(indexer.ID)

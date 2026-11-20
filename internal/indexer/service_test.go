@@ -291,3 +291,32 @@ func TestService_IsEnabledFollowsToggle(t *testing.T) {
 
 	assert.False(t, service.IsEnabled("unknown"))
 }
+
+type listIndexerRepo struct {
+	stubIndexerRepo
+	indexers []domain.Indexer
+}
+
+func (r *listIndexerRepo) List(_ context.Context) ([]domain.Indexer, error) {
+	return r.indexers, nil
+}
+
+func TestServiceStart_SkipsIndexerUnsupportedByDefinition(t *testing.T) {
+	repo := &listIndexerRepo{indexers: []domain.Indexer{
+		{ID: 1, Name: "Blutopia", Identifier: "blutopia", Implementation: domain.IndexerImplementationIRC, Enabled: true},
+		{ID: 2, Name: "Blutopia legacy", Identifier: "blutopia", Implementation: domain.IndexerImplementationLegacy, Enabled: true},
+		{ID: 3, Name: "TorrentLeech", Identifier: "torrentleech", Implementation: domain.IndexerImplementationIRC, Enabled: true},
+	}}
+	service := NewService(zerolog.Nop(), &stubEventBus{}, &domain.Config{}, repo, nil, nil)
+
+	require.NoError(t, service.Start())
+
+	_, ok := service.GetMappedDefinitionByName("blutopia")
+	assert.False(t, ok)
+
+	_, ok = service.GetMappedDefinitionByName("torrentleech")
+	assert.True(t, ok)
+
+	_, err := service.Store(t.Context(), repo.indexers[0])
+	assert.Error(t, err)
+}
