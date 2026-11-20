@@ -54,13 +54,15 @@ FROM nebulance_network m
 JOIN irc_network n ON n.id = m.network_id
 WHERE n.server = 'irc.nebulance.io';
 
--- 3. Keep the stronger transport: TLS when a merged row used it, and a merged row's proxy when the
---    Anthelion row connects directly.
+-- 3. Keep the stronger transport on an Anthelion row that connects directly: TLS when a merged row
+--    used it, and an enabled proxy of a merged row when it has none. A bouncer row keeps its own
+--    transport, since it dials the bouncer and not Anthelion.
 UPDATE irc_network
 SET tls        = true,
     port       = 6697,
     updated_at = CURRENT_TIMESTAMP
-WHERE NOT tls
+WHERE NOT COALESCE(tls, false)
+  AND NOT COALESCE(use_bouncer, false)
   AND id IN (
       SELECT t.target_id FROM nebulance_target t
       JOIN irc_network n ON n.id = t.network_id
@@ -72,16 +74,19 @@ SET use_proxy  = true,
     proxy_id   = (
         SELECT n.proxy_id FROM nebulance_target t
         JOIN irc_network n ON n.id = t.network_id
-        WHERE t.target_id = irc_network.id AND n.use_proxy AND n.proxy_id IS NOT NULL
+        JOIN proxy p ON p.id = n.proxy_id
+        WHERE t.target_id = irc_network.id AND n.use_proxy AND p.enabled
         ORDER BY CASE WHEN n.enabled THEN 0 ELSE 1 END, n.id
         LIMIT 1
     ),
     updated_at = CURRENT_TIMESTAMP
-WHERE NOT use_proxy
+WHERE NOT COALESCE(use_proxy, false)
+  AND NOT COALESCE(use_bouncer, false)
   AND id IN (
       SELECT t.target_id FROM nebulance_target t
       JOIN irc_network n ON n.id = t.network_id
-      WHERE n.use_proxy AND n.proxy_id IS NOT NULL
+      JOIN proxy p ON p.id = n.proxy_id
+      WHERE n.use_proxy AND p.enabled
   );
 
 -- 4. Fill in auth and server password on Anthelion rows that have neither, from an enabled source with
@@ -163,14 +168,28 @@ WHERE NOT EXISTS (
 DELETE FROM nebulance_channel WHERE rn > 1;
 
 -- 7. Channels the Anthelion row already has, whose nebulance copy is running. The Anthelion copy has
---    to run after the merge.
+--    to run after the merge, with the nebulance copy's key unless it was running already.
 CREATE TEMPORARY TABLE nebulance_duplicate AS
-SELECT DISTINCT ac.id AS channel_id, t.target_id
-FROM nebulance_target t
-JOIN irc_network n ON n.id = t.network_id
-JOIN irc_channel c ON c.network_id = n.id
-JOIN irc_channel ac ON ac.network_id = t.target_id AND LOWER(ac.name) = LOWER(c.name)
-WHERE n.enabled AND c.enabled;
+SELECT d.channel_id, d.target_id, d.target_running, d.password
+FROM (
+    SELECT
+        ac.id AS channel_id,
+        t.target_id,
+        CASE WHEN a.enabled AND ac.enabled THEN 1 ELSE 0 END AS target_running,
+        c.password,
+        ROW_NUMBER() OVER (PARTITION BY ac.id ORDER BY c.id) AS rn
+    FROM nebulance_target t
+    JOIN irc_network n ON n.id = t.network_id
+    JOIN irc_network a ON a.id = t.target_id
+    JOIN irc_channel c ON c.network_id = n.id
+    JOIN irc_channel ac ON ac.network_id = t.target_id AND LOWER(ac.name) = LOWER(c.name)
+    WHERE n.enabled AND c.enabled
+) d
+WHERE d.rn = 1;
+
+UPDATE irc_channel
+SET password = (SELECT d.password FROM nebulance_duplicate d WHERE d.channel_id = irc_channel.id)
+WHERE id IN (SELECT channel_id FROM nebulance_duplicate WHERE target_running = 0);
 
 -- 8. A disabled Anthelion row that has to run a channel is enabled, and the channels it already had
 --    are disabled instead so they stay off. The running duplicates are turned back on right after.
@@ -210,8 +229,9 @@ SET enabled    = CASE WHEN EXISTS (
 WHERE id IN (SELECT channel_id FROM nebulance_channel);
 
 -- 10. Merge the invite commands per bot, split the way the IRC handler reads them: on commas, without
---     /msg, keyed by the bot, the first word. The Anthelion row gets a command for every bot it has
---     none for, from an enabled merged row first. Muffit invites to #nbl-announce, so the merged row's
+--     /msg, keyed by the bot, the first word. A command without a message is ignored, as the handler
+--     does. The Anthelion row gets a command for every bot it has none for, from an enabled merged row
+--     first. Muffit invites to #nbl-announce, so the merged row's
 --     Muffit command replaces the Anthelion row's, unless that row already ran its own #nbl-announce.
 CREATE TEMPORARY TABLE nebulance_command AS
 WITH RECURSIVE split (network_id, rest, cmd, pos) AS (
@@ -228,7 +248,12 @@ WITH RECURSIVE split (network_id, rest, cmd, pos) AS (
     FROM split
     WHERE rest <> ''
 )
-SELECT network_id, cmd, pos, LOWER(substr(cmd, 1, strpos(cmd || ' ', ' ') - 1)) AS bot
+SELECT
+    network_id,
+    cmd,
+    pos,
+    LOWER(substr(cmd, 1, strpos(cmd || ' ', ' ') - 1)) AS bot,
+    CASE WHEN strpos(cmd, ' ') > 0 THEN 1 ELSE 0 END AS usable
 FROM split
 WHERE cmd <> '';
 
@@ -247,11 +272,14 @@ SELECT
 FROM nebulance_target t
 JOIN irc_network n ON n.id = t.network_id
 JOIN nebulance_command c ON c.network_id = t.network_id
-WHERE NOT EXISTS (
-    SELECT 1 FROM nebulance_command tc
-    WHERE tc.network_id = t.target_id AND tc.bot = c.bot
-)
-   OR (c.bot = 'muffit' AND t.target_id NOT IN (SELECT target_id FROM nebulance_target_nbl));
+WHERE c.usable = 1
+  AND (
+      NOT EXISTS (
+          SELECT 1 FROM nebulance_command tc
+          WHERE tc.network_id = t.target_id AND tc.bot = c.bot AND tc.usable = 1
+      )
+      OR (c.bot = 'muffit' AND t.target_id NOT IN (SELECT target_id FROM nebulance_target_nbl))
+  );
 
 DELETE FROM nebulance_invite WHERE rn > 1;
 
