@@ -89,8 +89,10 @@ WHERE NOT COALESCE(use_proxy, false)
       WHERE n.use_proxy AND p.enabled
   );
 
--- 4. Fill in auth and server password on Anthelion rows that have neither, from an enabled source with
---    usable credentials first. An empty mechanism with a password is NickServ, as the handler reads it.
+-- 4. Fill in auth and server password on Anthelion rows that have neither usable auth nor a server
+--    password, from an enabled source with usable credentials first. Usable follows the handler: SASL
+--    needs account and password, NickServ or an empty mechanism needs a password. A bouncer on either
+--    side keeps the server password and SASL login from crossing.
 CREATE TEMPORARY TABLE nebulance_auth AS
 SELECT
     s.target_id,
@@ -107,17 +109,18 @@ FROM (
         t.target_id,
         n.id AS network_id,
         n.enabled,
-        CASE WHEN n.use_bouncer THEN '' ELSE COALESCE(n.pass, '') END AS pass,
-        CASE WHEN n.use_bouncer AND n.auth_mechanism = 'SASL_PLAIN' THEN 'NONE' ELSE COALESCE(n.auth_mechanism, 'NONE') END AS auth_mechanism,
-        CASE WHEN n.use_bouncer AND n.auth_mechanism = 'SASL_PLAIN' THEN '' ELSE COALESCE(n.auth_account, '') END AS auth_account,
-        CASE WHEN n.use_bouncer AND n.auth_mechanism = 'SASL_PLAIN' THEN '' ELSE COALESCE(n.auth_password, '') END AS auth_password
+        CASE WHEN n.use_bouncer OR COALESCE(a.use_bouncer, false) THEN '' ELSE COALESCE(n.pass, '') END AS pass,
+        CASE WHEN (n.use_bouncer OR COALESCE(a.use_bouncer, false)) AND n.auth_mechanism = 'SASL_PLAIN' THEN 'NONE' ELSE COALESCE(n.auth_mechanism, 'NONE') END AS auth_mechanism,
+        CASE WHEN (n.use_bouncer OR COALESCE(a.use_bouncer, false)) AND n.auth_mechanism = 'SASL_PLAIN' THEN '' ELSE COALESCE(n.auth_account, '') END AS auth_account,
+        CASE WHEN (n.use_bouncer OR COALESCE(a.use_bouncer, false)) AND n.auth_mechanism = 'SASL_PLAIN' THEN '' ELSE COALESCE(n.auth_password, '') END AS auth_password
     FROM nebulance_target t
     JOIN irc_network n ON n.id = t.network_id
     JOIN irc_network a ON a.id = t.target_id
-    WHERE COALESCE(NULLIF(a.auth_mechanism, ''), 'NONE') = 'NONE'
-      AND COALESCE(a.auth_account, '') = ''
-      AND COALESCE(a.auth_password, '') = ''
-      AND COALESCE(a.pass, '') = ''
+    WHERE COALESCE(a.pass, '') = ''
+      AND NOT (
+          (COALESCE(a.auth_mechanism, '') IN ('NICKSERV', '') AND COALESCE(a.auth_password, '') <> '')
+          OR (a.auth_mechanism = 'SASL_PLAIN' AND COALESCE(a.auth_account, '') <> '' AND COALESCE(a.auth_password, '') <> '')
+      )
 ) s
 WHERE (s.auth_mechanism IN ('NICKSERV', '') AND s.auth_password <> '')
    OR (s.auth_mechanism = 'SASL_PLAIN' AND s.auth_account <> '' AND s.auth_password <> '')
@@ -133,7 +136,15 @@ SET pass           = (SELECT m.pass FROM nebulance_auth m WHERE m.target_id = ir
     updated_at     = CURRENT_TIMESTAMP
 WHERE id IN (SELECT target_id FROM nebulance_auth);
 
--- 5. Remember which Anthelion rows already run their own #nbl-announce, for the invite merge.
+-- 5. Remember, for the invite merge, which Anthelion rows already run their own #nbl-announce and
+--    which nebulance rows run a channel, before channels move.
+CREATE TEMPORARY TABLE nebulance_running_source AS
+SELECT DISTINCT n.id AS network_id
+FROM nebulance_target t
+JOIN irc_network n ON n.id = t.network_id
+JOIN irc_channel c ON c.network_id = n.id
+WHERE n.enabled AND c.enabled;
+
 CREATE TEMPORARY TABLE nebulance_target_nbl AS
 SELECT DISTINCT a.id AS target_id
 FROM irc_network a
@@ -230,8 +241,8 @@ WHERE id IN (SELECT channel_id FROM nebulance_channel);
 
 -- 10. Merge the invite commands per bot, split the way the IRC handler reads them: on commas, without
 --     /msg, keyed by the bot, the first word. A command without a message is ignored, as the handler
---     does. The Anthelion row gets a command for every bot it has none for, from an enabled merged row
---     first. Muffit invites to #nbl-announce, so the merged row's
+--     does. The Anthelion row gets a command for every bot it has none for, from a merged row with a
+--     running channel first, then an enabled one. Muffit invites to #nbl-announce, so the merged row's
 --     Muffit command replaces the Anthelion row's, unless that row already ran its own #nbl-announce.
 CREATE TEMPORARY TABLE nebulance_command AS
 WITH RECURSIVE split (network_id, rest, cmd, pos) AS (
@@ -267,7 +278,11 @@ SELECT
     c.pos,
     ROW_NUMBER() OVER (
         PARTITION BY t.target_id, c.bot
-        ORDER BY CASE WHEN n.enabled THEN 0 ELSE 1 END, n.id, c.pos
+        ORDER BY
+            CASE WHEN n.id IN (SELECT network_id FROM nebulance_running_source) THEN 0 ELSE 1 END,
+            CASE WHEN n.enabled THEN 0 ELSE 1 END,
+            n.id,
+            c.pos
     ) AS rn
 FROM nebulance_target t
 JOIN irc_network n ON n.id = t.network_id
@@ -318,6 +333,7 @@ DROP TABLE nebulance_wake;
 DROP TABLE nebulance_duplicate;
 DROP TABLE nebulance_channel;
 DROP TABLE nebulance_target_nbl;
+DROP TABLE nebulance_running_source;
 DROP TABLE nebulance_auth;
 DROP TABLE nebulance_target;
 DROP TABLE nebulance_network;

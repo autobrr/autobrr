@@ -463,6 +463,27 @@ func setupNebulanceMove(db *sql.DB) error {
 		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
 		(47, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, '', 'user|bot_x',
 		 'NONE', '', '', 'Sauron bot #ant-announce user_x key_x', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(48, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, '', 'user|bot_y',
+		 'SASL_PLAIN', 'acct_y', '', '', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(49, TRUE, 'Nebulance', 'irc.nebulance.io', 6667, FALSE, FALSE, '', 'user|bot_y',
+		 'SASL_PLAIN', 'acct_y2', 'secret_y', '', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(50, TRUE, 'Anthelion', 'irc.anthelion.me', 6697, TRUE, FALSE, '', 'user|bot_z',
+		 'NONE', '', '', 'Sauron bot #ant-announce user_z key_z', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(51, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, '', 'user|bot_z',
+		 'NONE', '', '', 'Muffit bot #nbl-announce user_z old_key', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(52, TRUE, 'Nebulance', 'irc.nebulance.io', 6667, FALSE, FALSE, '', 'user|bot_z',
+		 'NONE', '', '', 'Muffit bot #nbl-announce user_z new_key', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(53, TRUE, 'Anthelion', 'irc.anthelion.me', 6697, TRUE, FALSE, '', 'user|bot_aa',
+		 'NONE', '', '', '', TRUE, 'znc.local:6697', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(54, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, 'server_pw_aa', 'user|bot_aa',
+		 'SASL_PLAIN', 'acct_aa', 'secret_aa', '', FALSE, '', FALSE, FALSE, NULL,
 		 '2025-01-01 00:00:00', '2025-01-01 00:00:00')`); err != nil {
 		return err
 	}
@@ -508,7 +529,12 @@ func setupNebulanceMove(db *sql.DB) error {
 		(38, TRUE, '#nbl-announce', '', FALSE, 43),
 		(39, FALSE, '#nbl-announce', 'stale_key', FALSE, 44),
 		(40, TRUE, '#nbl-announce', 'fresh_key', FALSE, 45),
-		(41, TRUE, '#nbl-announce', '', FALSE, 47)`)
+		(41, TRUE, '#nbl-announce', '', FALSE, 47),
+		(42, TRUE, '#nbl-announce', '', FALSE, 48),
+		(43, TRUE, '#ant-announce', '', FALSE, 50),
+		(44, FALSE, '#nbl-announce', '', FALSE, 51),
+		(45, TRUE, '#nbl-announce', '', FALSE, 52),
+		(46, TRUE, '#nbl-announce', '', FALSE, 54)`)
 
 	return err
 }
@@ -519,7 +545,7 @@ func validateNebulanceMove(db *sql.DB, t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 0, count, "no rows may be left on irc.nebulance.io")
 
-	err = db.QueryRow(`SELECT COUNT(*) FROM irc_network WHERE id IN (1, 5, 6, 10, 13, 14, 16, 18, 21, 23, 25, 28, 30, 31, 33, 35, 37, 39, 41, 43, 45, 47)`).Scan(&count)
+	err = db.QueryRow(`SELECT COUNT(*) FROM irc_network WHERE id IN (1, 5, 6, 10, 13, 14, 16, 18, 21, 23, 25, 28, 30, 31, 33, 35, 37, 39, 41, 43, 45, 47, 49, 51, 52, 54)`).Scan(&count)
 	require.NoError(t, err)
 	assert.Equal(t, 0, count, "nebulance rows merged into an Anthelion row must be removed")
 
@@ -557,6 +583,9 @@ func validateNebulanceMove(db *sql.DB, t *testing.T) {
 		{42, true, "", "NONE", "", "", "", ""},
 		{44, true, "", "NONE", "", "", "", ""},
 		{46, true, "", "NONE", "", "", "Sauron bot #ant-announce user_x key_x", "a command without a message does not claim its bot"},
+		{48, true, "", "SASL_PLAIN", "acct_y2", "secret_y", "", "unusable auth on a row moved in place is filled in"},
+		{50, true, "", "NONE", "", "", "Sauron bot #ant-announce user_z key_z,Muffit bot #nbl-announce user_z new_key", "the Muffit command comes from the row with the running channel"},
+		{53, true, "", "NONE", "", "", "", "server password and SASL login are not sent to a bouncer"},
 	}
 
 	for _, tt := range networks {
@@ -651,6 +680,10 @@ func validateNebulanceMove(db *sql.DB, t *testing.T) {
 		{38, 42, true, ""},
 		{39, 44, true, "a duplicate runs when its nebulance copy ran"},
 		{41, 46, true, ""},
+		{42, 48, true, ""},
+		{43, 50, true, ""},
+		{45, 50, true, "the running copy wins a merge"},
+		{46, 53, true, ""},
 	}
 
 	for _, tt := range channels {
