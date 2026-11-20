@@ -4,8 +4,9 @@
 -- the Anthelion network migration left off rows whose Nebulance row is still around.
 --
 -- A merge never starts or stops a channel and never weakens a connection: the Anthelion row takes TLS
--- and a proxy from the rows merged into it. Bouncer rows drop their server password and SASL login,
--- which may belong to the bouncer, and are not sent to Anthelion. NickServ auth is kept.
+-- and a proxy from the rows merged into it. Anthelion uses no server password, so none is carried. A
+-- SASL login on a bouncer row may belong to the bouncer and is not sent to Anthelion. NickServ auth
+-- is kept.
 
 -- 0. Record the nebulance rows, ranked per nick so the row moved in place is an enabled one.
 CREATE TEMPORARY TABLE nebulance_network AS
@@ -25,13 +26,14 @@ WHERE n.server = 'irc.nebulance.io';
 
 -- 1. Move one row per nick in place when the nick has no Anthelion row yet. The bouncer is turned off
 --    since it still points at Nebulance; the address is kept for the user to re-point it. TLS is
---    verified again, since a skip was likely for the bouncer's certificate.
+--    verified again, since a skip was likely for the bouncer's certificate. The server password is
+--    cleared: Anthelion uses none, so one left on the row is the bouncer's or stale.
 UPDATE irc_network
 SET server         = 'irc.anthelion.me',
     port           = 6697,
     tls            = true,
     tls_skip_verify = CASE WHEN use_bouncer THEN false ELSE tls_skip_verify END,
-    pass           = CASE WHEN use_bouncer THEN '' ELSE pass END,
+    pass           = '',
     auth_mechanism = CASE WHEN use_bouncer AND auth_mechanism = 'SASL_PLAIN' THEN 'NONE' ELSE auth_mechanism END,
     auth_account   = CASE WHEN use_bouncer AND auth_mechanism = 'SASL_PLAIN' THEN '' ELSE auth_account END,
     auth_password  = CASE WHEN use_bouncer AND auth_mechanism = 'SASL_PLAIN' THEN '' ELSE auth_password END,
@@ -89,14 +91,12 @@ WHERE NOT COALESCE(use_proxy, false)
       WHERE n.use_proxy AND p.enabled
   );
 
--- 4. Fill in auth and server password on Anthelion rows that have neither usable auth nor a server
---    password, from an enabled source with usable credentials first. Usable follows the handler: SASL
---    needs account and password, NickServ or an empty mechanism needs a password. A bouncer on either
---    side keeps the server password and SASL login from crossing.
+-- 4. Fill in auth on Anthelion rows without usable auth, from an enabled source with usable auth first.
+--    Usable follows the handler: SASL needs account and password, NickServ or an empty mechanism needs
+--    a password. A bouncer on either side keeps the SASL login from crossing.
 CREATE TEMPORARY TABLE nebulance_auth AS
 SELECT
     s.target_id,
-    s.pass,
     s.auth_mechanism,
     s.auth_account,
     s.auth_password,
@@ -109,28 +109,24 @@ FROM (
         t.target_id,
         n.id AS network_id,
         n.enabled,
-        CASE WHEN n.use_bouncer OR COALESCE(a.use_bouncer, false) THEN '' ELSE COALESCE(n.pass, '') END AS pass,
         CASE WHEN (n.use_bouncer OR COALESCE(a.use_bouncer, false)) AND n.auth_mechanism = 'SASL_PLAIN' THEN 'NONE' ELSE COALESCE(n.auth_mechanism, 'NONE') END AS auth_mechanism,
         CASE WHEN (n.use_bouncer OR COALESCE(a.use_bouncer, false)) AND n.auth_mechanism = 'SASL_PLAIN' THEN '' ELSE COALESCE(n.auth_account, '') END AS auth_account,
         CASE WHEN (n.use_bouncer OR COALESCE(a.use_bouncer, false)) AND n.auth_mechanism = 'SASL_PLAIN' THEN '' ELSE COALESCE(n.auth_password, '') END AS auth_password
     FROM nebulance_target t
     JOIN irc_network n ON n.id = t.network_id
     JOIN irc_network a ON a.id = t.target_id
-    WHERE COALESCE(a.pass, '') = ''
-      AND NOT (
-          (COALESCE(a.auth_mechanism, '') IN ('NICKSERV', '') AND COALESCE(a.auth_password, '') <> '')
-          OR (a.auth_mechanism = 'SASL_PLAIN' AND COALESCE(a.auth_account, '') <> '' AND COALESCE(a.auth_password, '') <> '')
-      )
+    WHERE NOT (
+        (COALESCE(a.auth_mechanism, '') IN ('NICKSERV', '') AND COALESCE(a.auth_password, '') <> '')
+        OR (a.auth_mechanism = 'SASL_PLAIN' AND COALESCE(a.auth_account, '') <> '' AND COALESCE(a.auth_password, '') <> '')
+    )
 ) s
 WHERE (s.auth_mechanism IN ('NICKSERV', '') AND s.auth_password <> '')
-   OR (s.auth_mechanism = 'SASL_PLAIN' AND s.auth_account <> '' AND s.auth_password <> '')
-   OR s.pass <> '';
+   OR (s.auth_mechanism = 'SASL_PLAIN' AND s.auth_account <> '' AND s.auth_password <> '');
 
 DELETE FROM nebulance_auth WHERE rn > 1;
 
 UPDATE irc_network
-SET pass           = (SELECT m.pass FROM nebulance_auth m WHERE m.target_id = irc_network.id),
-    auth_mechanism = (SELECT m.auth_mechanism FROM nebulance_auth m WHERE m.target_id = irc_network.id),
+SET auth_mechanism = (SELECT m.auth_mechanism FROM nebulance_auth m WHERE m.target_id = irc_network.id),
     auth_account   = (SELECT m.auth_account FROM nebulance_auth m WHERE m.target_id = irc_network.id),
     auth_password  = (SELECT m.auth_password FROM nebulance_auth m WHERE m.target_id = irc_network.id),
     updated_at     = CURRENT_TIMESTAMP

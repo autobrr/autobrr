@@ -341,7 +341,7 @@ func setupNebulanceMove(db *sql.DB) error {
 		(6, FALSE, 'Nebulance', 'irc.nebulance.io', 6667, FALSE, FALSE, '', 'user|bot_d',
 		 'SASL_PLAIN', 'acct_old', 'secret_old', '', FALSE, '', FALSE, FALSE, NULL,
 		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
-		(7, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, '', 'user|bot_d',
+		(7, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, 'stale_pw', 'user|bot_d',
 		 'NICKSERV', 'acct_d', 'secret_d', '', FALSE, '', FALSE, FALSE, NULL,
 		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
 		(8, TRUE, 'Anthelion', 'irc.anthelion.me', 6697, TRUE, FALSE, '', 'user|bot_e',
@@ -365,7 +365,7 @@ func setupNebulanceMove(db *sql.DB) error {
 		(14, TRUE, 'Nebulance', 'irc.nebulance.io', 6667, FALSE, FALSE, '', 'user|bot_g',
 		 'NONE', '', '', 'Muffit bot #nbl-announce user_g key_g', FALSE, '', FALSE, FALSE, NULL,
 		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
-		(15, TRUE, 'Anthelion', 'irc.anthelion.me', 6697, TRUE, FALSE, '', 'user|bot_h',
+		(15, TRUE, 'Anthelion', 'irc.anthelion.me', 6697, TRUE, FALSE, 'own_pw', 'user|bot_h',
 		 'NONE', '', '', '', FALSE, '', FALSE, FALSE, NULL,
 		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
 		(16, FALSE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, '', 'user|bot_h',
@@ -559,15 +559,15 @@ func validateNebulanceMove(db *sql.DB, t *testing.T) {
 		inviteCommand string
 		msg           string
 	}{
-		{2, true, "server_pw", "SASL_PLAIN", "acct_a", "secret_a", "Sauron bot #ant-announce user_a key_a,Muffit bot #nbl-announce user_a key_a", "auth and invite are merged in"},
-		{3, true, "", "NICKSERV", "acct_b", "secret_b", "Muffit bot #nbl-announce user_b key_b", "an NBL-only row is moved in place without its bouncer password"},
+		{2, true, "", "SASL_PLAIN", "acct_a", "secret_a", "Sauron bot #ant-announce user_a key_a,Muffit bot #nbl-announce user_a key_a", "auth and invite are merged in"},
+		{3, true, "", "NICKSERV", "acct_b", "secret_b", "Muffit bot #nbl-announce user_b key_b", "an NBL-only row is moved in place without a server password"},
 		{4, true, "", "NICKSERV", "acct_manual", "secret_manual", "Muffit bot #nbl-announce user_c key_c", "manual auth is kept and a known invite is not repeated"},
 		{7, true, "", "NICKSERV", "acct_d", "secret_d", "", "the enabled nebulance row is the one moved in place"},
 		{8, true, "", "NONE", "", "", "", "an Anthelion row without a nebulance row is left alone"},
 		{9, true, "", "NONE", "", "", "", "a running channel enables the row it lands on"},
 		{11, true, "", "SASL_PLAIN", "acct_other", "secret_other", "", "other networks must not be touched"},
 		{12, true, "", "NONE", "", "", "Sauron bot #ant-announce user_g key_g,Muffit bot #nbl-announce user_g key_g", "the enabled row's Muffit command wins"},
-		{15, true, "", "SASL_PLAIN", "acct_h", "secret_h", "", "auth comes over from a disabled row too"},
+		{15, true, "own_pw", "SASL_PLAIN", "acct_h", "secret_h", "", "auth comes over from a disabled row too, past a server password the row already had"},
 		{17, true, "", "NONE", "", "", "", "a bouncer row's password and SASL login are not carried"},
 		{19, true, "", "NONE", "", "", "", "a bouncer row moved in place drops its password and SASL login"},
 		{20, true, "", "NONE", "", "", "Sauron bot #ant-announce user_k key_k,Muffit bot #nbl-announce user_k key_k", "a bot without an invite gets one even when its channel was a duplicate"},
@@ -778,7 +778,7 @@ func validateNebulanceAfterAnthelion(db *sql.DB, t *testing.T) {
 		inviteCommand string
 		channels      []string
 	}{
-		{"shared|bot", "server_pw", "SASL_PLAIN", "acct_shared", "secret_shared", "Sauron bot #ant-announce s k,Muffit bot #nbl-announce s k", []string{"#ant-announce", "#nbl-announce"}},
+		{"shared|bot", "", "SASL_PLAIN", "acct_shared", "secret_shared", "Sauron bot #ant-announce s k,Muffit bot #nbl-announce s k", []string{"#ant-announce", "#nbl-announce"}},
 		{"ant|bot", "", "NICKSERV", "acct_ant", "secret_ant", "Sauron bot #ant-announce a k", []string{"#ant-announce"}},
 		{"nbl|bot", "", "SASL_PLAIN", "acct_nbl", "secret_nbl", "Muffit bot #nbl-announce n k", []string{"#nbl-announce"}},
 		{"bnc|bot", "", "NONE", "", "", "Sauron bot #ant-announce b k,Muffit bot #nbl-announce b k", []string{"#ant-announce", "#nbl-announce"}},

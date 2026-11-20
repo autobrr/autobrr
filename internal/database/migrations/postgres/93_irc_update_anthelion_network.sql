@@ -21,11 +21,11 @@ WHERE n.server = 'irc.nebulance.io'
       SELECT 1 FROM irc_network n2 WHERE n2.server = 'irc.anthelion.me'
   );
 
--- 1. Mirror the source row as an Anthelion row. Auth and server password carry over since Anthelion
---    moved the Nebulance services over with their accounts. The bouncer is turned off since it still
---    points at Nebulance; the address is kept for the user to re-point it. Bouncer rows drop their
---    server password and SASL login, which may belong to the bouncer, and verify TLS again since a
---    skip was likely for the bouncer's certificate. NickServ auth is kept.
+-- 1. Mirror the source row as an Anthelion row. Auth carries over since Anthelion moved the Nebulance
+--    services over with their accounts. Anthelion uses no server password, so none is set. The bouncer
+--    is turned off since it still points at Nebulance; the address is kept for the user to re-point
+--    it. Bouncer rows drop their SASL login, which may belong to the bouncer, and verify TLS again since
+--    a skip was likely for the bouncer's certificate. NickServ auth is kept.
 INSERT INTO irc_network (
     enabled, name, server, port, tls, tls_skip_verify, pass, nick,
     auth_mechanism, auth_account, auth_password, invite_command,
@@ -35,7 +35,7 @@ INSERT INTO irc_network (
 SELECT
     n.enabled, 'Anthelion', 'irc.anthelion.me', 6697, true,
     CASE WHEN n.use_bouncer THEN false ELSE n.tls_skip_verify END,
-    CASE WHEN n.use_bouncer THEN '' ELSE n.pass END,
+    '',
     n.nick,
     CASE WHEN n.use_bouncer AND n.auth_mechanism = 'SASL_PLAIN' THEN 'NONE' ELSE n.auth_mechanism END,
     CASE WHEN n.use_bouncer AND n.auth_mechanism = 'SASL_PLAIN' THEN '' ELSE n.auth_account END,
