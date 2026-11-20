@@ -316,6 +316,10 @@ func validateAnthelionNotUsed(db *sql.DB, t *testing.T) {
 }
 
 func setupNebulanceMove(db *sql.DB) error {
+	if _, err := db.Exec(`INSERT INTO proxy (id, enabled, name, type, addr) VALUES (1, TRUE, 'proxy', 'SOCKS5', 'proxy.local:1080')`); err != nil {
+		return err
+	}
+
 	if _, err := db.Exec(insertIrcNetwork + `
 		(1, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, 'server_pw', 'user|bot_a',
 		 'SASL_PLAIN', 'acct_a', 'secret_a', 'Muffit bot #nbl-announce user_a key_a', FALSE, '', TRUE, FALSE, NULL,
@@ -373,6 +377,24 @@ func setupNebulanceMove(db *sql.DB) error {
 		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
 		(19, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, 'zncuser/nbl:zncpw', 'user|bot_j',
 		 'SASL_PLAIN', 'zncuser', 'zncpw', '', TRUE, 'znc.local:6697', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(20, TRUE, 'Anthelion', 'irc.anthelion.me', 6697, TRUE, FALSE, '', 'user|bot_k',
+		 'NONE', '', '', 'Sauron bot #ant-announce user_k key_k', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(21, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, '', 'user|bot_k',
+		 'NONE', '', '', '/msg Muffit bot #nbl-announce user_k key_k', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(22, FALSE, 'Anthelion', 'irc.anthelion.me', 6697, TRUE, FALSE, '', 'user|bot_m',
+		 'NONE', '', '', '', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(23, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, '', 'user|bot_m',
+		 'NONE', '', '', '', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(24, TRUE, 'Anthelion', 'irc.anthelion.me', 6667, FALSE, FALSE, '', 'user|bot_l',
+		 'NONE', '', '', '', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(25, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, '', 'user|bot_l',
+		 'SASL_PLAIN', 'acct_l', 'secret_l', '', FALSE, '', FALSE, TRUE, 1,
 		 '2025-01-01 00:00:00', '2025-01-01 00:00:00')`); err != nil {
 		return err
 	}
@@ -396,7 +418,15 @@ func setupNebulanceMove(db *sql.DB) error {
 		(16, TRUE, '#nbl-announce', '', FALSE, 16),
 		(17, TRUE, '#ant-announce', '', FALSE, 17),
 		(18, TRUE, '#nbl-announce', '', FALSE, 18),
-		(19, TRUE, '#nbl-announce', '', FALSE, 19)`)
+		(19, TRUE, '#nbl-announce', '', FALSE, 19),
+		(20, TRUE, '#ant-announce', '', FALSE, 20),
+		(21, FALSE, '#nbl-announce', '', FALSE, 20),
+		(22, TRUE, '#nbl-announce', '', FALSE, 21),
+		(23, TRUE, '#ant-announce', '', FALSE, 22),
+		(24, TRUE, '#nbl-announce', '', FALSE, 22),
+		(25, TRUE, '#NBL-announce', '', FALSE, 23),
+		(26, TRUE, '#ant-announce', '', FALSE, 24),
+		(27, TRUE, '#nbl-announce', '', FALSE, 25)`)
 
 	return err
 }
@@ -407,7 +437,7 @@ func validateNebulanceMove(db *sql.DB, t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 0, count, "no rows may be left on irc.nebulance.io")
 
-	err = db.QueryRow(`SELECT COUNT(*) FROM irc_network WHERE id IN (1, 5, 6, 10, 13, 14, 16, 18)`).Scan(&count)
+	err = db.QueryRow(`SELECT COUNT(*) FROM irc_network WHERE id IN (1, 5, 6, 10, 13, 14, 16, 18, 21, 23, 25)`).Scan(&count)
 	require.NoError(t, err)
 	assert.Equal(t, 0, count, "nebulance rows merged into an Anthelion row must be removed")
 
@@ -431,6 +461,9 @@ func validateNebulanceMove(db *sql.DB, t *testing.T) {
 		{15, true, "", "SASL_PLAIN", "acct_h", "", "auth comes over from a disabled row too"},
 		{17, true, "", "NONE", "", "", "a bouncer row's password and SASL login are not carried"},
 		{19, true, "", "NONE", "", "", "a bouncer row moved in place drops its password and SASL login"},
+		{20, true, "", "NONE", "", "Sauron bot #ant-announce user_k key_k,Muffit bot #nbl-announce user_k key_k", "a bot without an invite gets one even when its channel was a duplicate"},
+		{22, true, "", "NONE", "", "", "a running duplicate channel enables the row"},
+		{24, true, "", "SASL_PLAIN", "acct_l", "", "credentials only come over with TLS"},
 	}
 
 	for _, tt := range networks {
@@ -451,6 +484,13 @@ func validateNebulanceMove(db *sql.DB, t *testing.T) {
 			assert.True(t, tls, tt.msg)
 		}
 	}
+
+	var useProxy bool
+	var proxyID sql.NullInt64
+	err = db.QueryRow(`SELECT use_proxy, proxy_id FROM irc_network WHERE id = 24`).Scan(&useProxy, &proxyID)
+	require.NoError(t, err)
+	assert.True(t, useProxy, "a merged row's proxy must keep being used")
+	assert.Equal(t, int64(1), proxyID.Int64)
 
 	var useBouncer, tlsSkipVerify bool
 	var bouncerAddr string
@@ -484,6 +524,12 @@ func validateNebulanceMove(db *sql.DB, t *testing.T) {
 		{17, 17, true, ""},
 		{18, 17, true, ""},
 		{19, 19, true, ""},
+		{20, 20, true, ""},
+		{21, 20, true, "a duplicate runs when its nebulance copy ran"},
+		{23, 22, false, "channels already on a woken row stay off"},
+		{24, 22, true, "a duplicate on a woken row runs when its nebulance copy ran"},
+		{26, 24, true, ""},
+		{27, 24, true, ""},
 	}
 
 	for _, tt := range channels {

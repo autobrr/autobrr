@@ -3,8 +3,9 @@
 -- row for the same nick when there is one, changed in place otherwise. Merging also fills in the auth
 -- the Anthelion network migration left off rows whose Nebulance row is still around.
 --
--- Bouncer rows keep only NickServ auth: their server password, and possibly their SASL login, belong
--- to the bouncer and must not be sent to Anthelion directly.
+-- A merge never starts or stops a channel and never weakens a connection: the Anthelion row takes TLS
+-- and a proxy from the rows merged into it. Bouncer rows keep only NickServ auth: their server
+-- password, and possibly their SASL login, belong to the bouncer and must not be sent to Anthelion.
 
 -- 0. Record the nebulance rows, ranked per nick so the row moved in place is an enabled one.
 CREATE TEMPORARY TABLE nebulance_network AS
@@ -37,6 +38,7 @@ SET server         = 'irc.anthelion.me',
 WHERE id IN (SELECT network_id FROM nebulance_network WHERE rn = 1 AND has_anthelion = 0);
 
 -- 2. Pair every remaining nebulance row with the Anthelion row it merges into, preferring port 6697.
+--    The pick also guarantees no other Anthelion row for the nick sits on 6697 when the target does not.
 CREATE TEMPORARY TABLE nebulance_target AS
 SELECT
     m.network_id,
@@ -50,7 +52,37 @@ FROM nebulance_network m
 JOIN irc_network n ON n.id = m.network_id
 WHERE n.server = 'irc.nebulance.io';
 
--- 3. Fill in auth and server password on Anthelion rows that have neither, from an enabled source first.
+-- 3. Keep the stronger transport: TLS when a merged row used it, and a merged row's proxy when the
+--    Anthelion row connects directly.
+UPDATE irc_network
+SET tls        = true,
+    port       = 6697,
+    updated_at = CURRENT_TIMESTAMP
+WHERE NOT tls
+  AND id IN (
+      SELECT t.target_id FROM nebulance_target t
+      JOIN irc_network n ON n.id = t.network_id
+      WHERE n.tls
+  );
+
+UPDATE irc_network
+SET use_proxy  = true,
+    proxy_id   = (
+        SELECT n.proxy_id FROM nebulance_target t
+        JOIN irc_network n ON n.id = t.network_id
+        WHERE t.target_id = irc_network.id AND n.use_proxy AND n.proxy_id IS NOT NULL
+        ORDER BY CASE WHEN n.enabled THEN 0 ELSE 1 END, n.id
+        LIMIT 1
+    ),
+    updated_at = CURRENT_TIMESTAMP
+WHERE NOT use_proxy
+  AND id IN (
+      SELECT t.target_id FROM nebulance_target t
+      JOIN irc_network n ON n.id = t.network_id
+      WHERE n.use_proxy AND n.proxy_id IS NOT NULL
+  );
+
+-- 4. Fill in auth and server password on Anthelion rows that have neither, from an enabled source first.
 CREATE TEMPORARY TABLE nebulance_auth AS
 SELECT
     s.target_id,
@@ -91,12 +123,11 @@ SET pass           = (SELECT m.pass FROM nebulance_auth m WHERE m.target_id = ir
     updated_at     = CURRENT_TIMESTAMP
 WHERE id IN (SELECT target_id FROM nebulance_auth);
 
--- 4. Pick one channel per name to move, skipping names the Anthelion row already has, and record
---    whether it is running now so the merge neither stops nor starts anything.
+-- 5. Pick one channel per name to move, skipping names the Anthelion row already has, and record
+--    whether it is running now.
 CREATE TEMPORARY TABLE nebulance_channel AS
 SELECT
     c.id AS channel_id,
-    n.id AS network_id,
     t.target_id,
     CASE WHEN n.enabled THEN 1 ELSE 0 END AS network_enabled,
     CASE WHEN c.enabled THEN 1 ELSE 0 END AS channel_enabled,
@@ -116,12 +147,27 @@ WHERE NOT EXISTS (
 
 DELETE FROM nebulance_channel WHERE rn > 1;
 
--- 5. A disabled Anthelion row receiving a running channel is enabled, and the channels it already had
---    are disabled instead so they stay off.
+-- 6. Channels the Anthelion row already has, whose nebulance copy is running. The Anthelion copy has
+--    to run after the merge.
+CREATE TEMPORARY TABLE nebulance_duplicate AS
+SELECT DISTINCT ac.id AS channel_id, t.target_id
+FROM nebulance_target t
+JOIN irc_network n ON n.id = t.network_id
+JOIN irc_channel c ON c.network_id = n.id
+JOIN irc_channel ac ON ac.network_id = t.target_id AND LOWER(ac.name) = LOWER(c.name)
+WHERE n.enabled AND c.enabled;
+
+-- 7. A disabled Anthelion row that has to run a channel is enabled, and the channels it already had
+--    are disabled instead so they stay off. The running duplicates are turned back on right after.
 CREATE TEMPORARY TABLE nebulance_wake AS
-SELECT DISTINCT target_id
+SELECT target_id
 FROM nebulance_channel
-WHERE target_enabled = 0 AND network_enabled = 1 AND channel_enabled = 1;
+WHERE target_enabled = 0 AND network_enabled = 1 AND channel_enabled = 1
+UNION
+SELECT d.target_id
+FROM nebulance_duplicate d
+JOIN irc_network a ON a.id = d.target_id
+WHERE NOT a.enabled;
 
 UPDATE irc_channel
 SET enabled = false
@@ -132,7 +178,11 @@ SET enabled    = true,
     updated_at = CURRENT_TIMESTAMP
 WHERE id IN (SELECT target_id FROM nebulance_wake);
 
--- 6. Move the channels. One from a disabled nebulance row landing on an enabled Anthelion row is
+UPDATE irc_channel
+SET enabled = true
+WHERE id IN (SELECT channel_id FROM nebulance_duplicate);
+
+-- 8. Move the channels. One from a disabled nebulance row landing on an enabled Anthelion row is
 --    disabled so it does not start.
 UPDATE irc_channel
 SET enabled    = CASE WHEN EXISTS (
@@ -144,24 +194,60 @@ SET enabled    = CASE WHEN EXISTS (
     network_id = (SELECT m.target_id FROM nebulance_channel m WHERE m.channel_id = irc_channel.id)
 WHERE id IN (SELECT channel_id FROM nebulance_channel);
 
--- 7. Append the invite commands of the rows that gave up a channel, so the moved channels still get
---    invited. A command string the Anthelion row already carries is not added twice.
+-- 9. Give the Anthelion row an invite command for every bot it has none for, taken from the merged
+--    rows, enabled first. Commands are split the way the IRC handler reads them: on commas, without
+--    /msg, and keyed by the bot, the first word.
 CREATE TEMPORARY TABLE nebulance_invite AS
-SELECT m.target_id, n.invite_command, MIN(n.id) AS first_id
-FROM (SELECT DISTINCT network_id, target_id FROM nebulance_channel) m
-JOIN irc_network n ON n.id = m.network_id
-JOIN irc_network a ON a.id = m.target_id
-WHERE COALESCE(n.invite_command, '') <> ''
-  AND REPLACE(',' || COALESCE(a.invite_command, '') || ',', ',' || n.invite_command || ',', '') = ',' || COALESCE(a.invite_command, '') || ','
-GROUP BY m.target_id, n.invite_command;
+WITH RECURSIVE split (network_id, rest, cmd, pos) AS (
+    SELECT id, COALESCE(invite_command, '') || ',', CAST('' AS TEXT), 0
+    FROM irc_network
+    WHERE id IN (SELECT network_id FROM nebulance_target)
+       OR id IN (SELECT target_id FROM nebulance_target)
+    UNION ALL
+    SELECT
+        network_id,
+        substr(rest, strpos(rest, ',') + 1),
+        TRIM(REPLACE(substr(rest, 1, strpos(rest, ',') - 1), '/msg', '')),
+        pos + 1
+    FROM split
+    WHERE rest <> ''
+),
+command AS (
+    SELECT network_id, cmd, pos, LOWER(substr(cmd, 1, strpos(cmd || ' ', ' ') - 1)) AS bot
+    FROM split
+    WHERE cmd <> ''
+)
+SELECT
+    t.target_id,
+    c.cmd,
+    CASE WHEN n.enabled THEN 0 ELSE 1 END AS source_rank,
+    n.id AS network_id,
+    c.pos,
+    ROW_NUMBER() OVER (
+        PARTITION BY t.target_id, c.bot
+        ORDER BY CASE WHEN n.enabled THEN 0 ELSE 1 END, n.id, c.pos
+    ) AS rn
+FROM nebulance_target t
+JOIN irc_network n ON n.id = t.network_id
+JOIN command c ON c.network_id = t.network_id
+WHERE NOT EXISTS (
+    SELECT 1 FROM command tc
+    WHERE tc.network_id = t.target_id AND tc.bot = c.bot
+);
+
+DELETE FROM nebulance_invite WHERE rn > 1;
 
 UPDATE irc_network
-SET invite_command = CASE WHEN COALESCE(invite_command, '') = '' THEN '' ELSE invite_command || ',' END
-        || (SELECT string_agg(m.invite_command, ',' ORDER BY m.first_id) FROM nebulance_invite m WHERE m.target_id = irc_network.id),
+SET invite_command = CASE WHEN TRIM(COALESCE(invite_command, '')) = '' THEN '' ELSE invite_command || ',' END
+        || (
+            SELECT string_agg(m.cmd, ',' ORDER BY m.source_rank, m.network_id, m.pos)
+            FROM nebulance_invite m
+            WHERE m.target_id = irc_network.id
+        ),
     updated_at     = CURRENT_TIMESTAMP
 WHERE id IN (SELECT target_id FROM nebulance_invite);
 
--- 8. Drop the merged nebulance rows and the duplicate channels left on them.
+-- 10. Drop the merged nebulance rows and the duplicate channels left on them.
 DELETE FROM irc_channel
 WHERE network_id IN (SELECT network_id FROM nebulance_target);
 
@@ -170,6 +256,7 @@ WHERE id IN (SELECT network_id FROM nebulance_target);
 
 DROP TABLE nebulance_invite;
 DROP TABLE nebulance_wake;
+DROP TABLE nebulance_duplicate;
 DROP TABLE nebulance_channel;
 DROP TABLE nebulance_auth;
 DROP TABLE nebulance_target;
