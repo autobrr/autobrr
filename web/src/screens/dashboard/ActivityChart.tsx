@@ -9,7 +9,7 @@ import { useTranslation } from "react-i18next";
 import { Chart } from "@tanstack/react-charts";
 import { defineChart, lineY, d3Curve } from "@tanstack/charts";
 import { tooltip } from "@tanstack/charts/tooltip";
-import { scaleUtc, scaleLinear } from "d3-scale";
+import { scaleTime, scaleLinear } from "d3-scale";
 import { curveMonotoneX } from "d3-shape";
 import { format } from "date-fns";
 
@@ -51,7 +51,7 @@ export const ActivityChart = () => {
   const definition = useMemo(() => {
     const points: ActivityDatum[] = (data?.daily ?? []).flatMap((day) =>
       series.map((s) => ({
-        date: new Date(`${day.date}T00:00:00Z`),
+        date: new Date(`${day.date}T00:00:00`),
         series: s.label,
         count: day[s.key]
       }))
@@ -70,7 +70,7 @@ export const ActivityChart = () => {
       ],
       scales: {
         x: {
-          scale: scaleUtc,
+          scale: scaleTime,
           grid: false,
           axis: {
             ticks: {
