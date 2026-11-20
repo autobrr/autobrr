@@ -7,6 +7,7 @@ package migrations_test
 
 import (
 	"database/sql"
+	"io/fs"
 	"testing"
 
 	"github.com/autobrr/autobrr/internal/domain"
@@ -213,8 +214,8 @@ func validateAnthelionNotMigrated(db *sql.DB, t *testing.T) {
 	assert.True(t, tls)
 	assert.True(t, botMode)
 	assert.Equal(t, "Sauron bot #ant-announce user_a key_a", inviteCommand)
-	assert.Empty(t, pass, "Nebulance server password must not be sent to Anthelion")
-	assert.Equal(t, "NONE", mechanism, "Nebulance credentials must not be sent to Anthelion")
+	assert.Empty(t, pass, "a bouncer row's server password belongs to the bouncer")
+	assert.Equal(t, "NONE", mechanism, "a bouncer row's SASL login may belong to the bouncer")
 	assert.Empty(t, account)
 	assert.Empty(t, password)
 	assert.False(t, useBouncer, "the bouncer still points at Nebulance")
@@ -312,6 +313,296 @@ func validateAnthelionNotUsed(db *sql.DB, t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 2, networks, "nothing must change without Anthelion, including empty nebulance rows")
 	assert.Equal(t, 1, channels)
+}
+
+func setupNebulanceMove(db *sql.DB) error {
+	if _, err := db.Exec(insertIrcNetwork + `
+		(1, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, 'server_pw', 'user|bot_a',
+		 'SASL_PLAIN', 'acct_a', 'secret_a', 'Muffit bot #nbl-announce user_a key_a', FALSE, '', TRUE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(2, TRUE, 'Anthelion', 'irc.anthelion.me', 6697, TRUE, FALSE, '', 'user|bot_a',
+		 'NONE', '', '', 'Sauron bot #ant-announce user_a key_a', FALSE, '', TRUE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(3, TRUE, 'Nebulance', 'irc.nebulance.io', 6667, FALSE, TRUE, 'zncuser/nbl:zncpw', 'user|bot_b',
+		 'NICKSERV', 'acct_b', 'secret_b', 'Muffit bot #nbl-announce user_b key_b', TRUE, 'znc.local:6697', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(4, TRUE, 'Anthelion', 'irc.anthelion.me', 6697, TRUE, FALSE, '', 'user|bot_c',
+		 'NICKSERV', 'acct_manual', 'secret_manual', 'Muffit bot #nbl-announce user_c key_c', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(5, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, '', 'user|bot_c',
+		 'SASL_PLAIN', 'acct_c', 'secret_c', 'Muffit bot #nbl-announce user_c key_c', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(6, FALSE, 'Nebulance', 'irc.nebulance.io', 6667, FALSE, FALSE, '', 'user|bot_d',
+		 'SASL_PLAIN', 'acct_old', 'secret_old', '', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(7, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, '', 'user|bot_d',
+		 'NICKSERV', 'acct_d', 'secret_d', '', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(8, TRUE, 'Anthelion', 'irc.anthelion.me', 6697, TRUE, FALSE, '', 'user|bot_e',
+		 'NONE', '', '', '', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(9, FALSE, 'Anthelion', 'irc.anthelion.me', 6697, TRUE, FALSE, '', 'user|bot_f',
+		 'NONE', '', '', '', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(10, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, '', 'user|bot_f',
+		 'NONE', '', '', '', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(11, TRUE, 'Other', 'irc.other.net', 6697, TRUE, FALSE, '', 'user|bot_a',
+		 'SASL_PLAIN', 'acct_other', 'secret_other', '', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(12, TRUE, 'Anthelion', 'irc.anthelion.me', 6697, TRUE, FALSE, '', 'user|bot_g',
+		 'NONE', '', '', 'Sauron bot #ant-announce user_g key_g', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(13, FALSE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, '', 'user|bot_g',
+		 'NONE', '', '', 'Muffit bot #nbl-announce user_g old_key', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(14, TRUE, 'Nebulance', 'irc.nebulance.io', 6667, FALSE, FALSE, '', 'user|bot_g',
+		 'NONE', '', '', 'Muffit bot #nbl-announce user_g key_g', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(15, TRUE, 'Anthelion', 'irc.anthelion.me', 6697, TRUE, FALSE, '', 'user|bot_h',
+		 'NONE', '', '', '', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(16, FALSE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, '', 'user|bot_h',
+		 'SASL_PLAIN', 'acct_h', 'secret_h', '', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(17, TRUE, 'Anthelion', 'irc.anthelion.me', 6697, TRUE, FALSE, '', 'user|bot_i',
+		 'NONE', '', '', '', FALSE, '', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(18, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, 'zncuser/nbl:zncpw', 'user|bot_i',
+		 'SASL_PLAIN', 'zncuser', 'zncpw', '', TRUE, 'znc.local:6697', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+		(19, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, 'zncuser/nbl:zncpw', 'user|bot_j',
+		 'SASL_PLAIN', 'zncuser', 'zncpw', '', TRUE, 'znc.local:6697', FALSE, FALSE, NULL,
+		 '2025-01-01 00:00:00', '2025-01-01 00:00:00')`); err != nil {
+		return err
+	}
+
+	_, err := db.Exec(`INSERT INTO irc_channel (id, enabled, name, password, detached, network_id) VALUES
+		(1, TRUE, '#nbl-announce', 'chan_pw', FALSE, 1),
+		(2, TRUE, '#ant-announce', '', FALSE, 2),
+		(3, TRUE, '#nbl-announce', '', FALSE, 3),
+		(4, TRUE, '#ant-announce', '', FALSE, 4),
+		(5, TRUE, '#nbl-announce', '', FALSE, 5),
+		(6, TRUE, '#NBL-announce', '', FALSE, 6),
+		(7, TRUE, '#nbl-announce', '', FALSE, 7),
+		(8, TRUE, '#ant-announce', '', FALSE, 8),
+		(9, TRUE, '#ant-announce', '', FALSE, 9),
+		(10, TRUE, '#nbl-announce', '', FALSE, 10),
+		(11, TRUE, '#other', '', FALSE, 11),
+		(12, TRUE, '#ant-announce', '', FALSE, 12),
+		(13, TRUE, '#nbl-announce', '', FALSE, 13),
+		(14, TRUE, '#NBL-announce', '', FALSE, 14),
+		(15, TRUE, '#ant-announce', '', FALSE, 15),
+		(16, TRUE, '#nbl-announce', '', FALSE, 16),
+		(17, TRUE, '#ant-announce', '', FALSE, 17),
+		(18, TRUE, '#nbl-announce', '', FALSE, 18),
+		(19, TRUE, '#nbl-announce', '', FALSE, 19)`)
+
+	return err
+}
+
+func validateNebulanceMove(db *sql.DB, t *testing.T) {
+	var count int
+	err := db.QueryRow(`SELECT COUNT(*) FROM irc_network WHERE server = 'irc.nebulance.io'`).Scan(&count)
+	require.NoError(t, err)
+	assert.Equal(t, 0, count, "no rows may be left on irc.nebulance.io")
+
+	err = db.QueryRow(`SELECT COUNT(*) FROM irc_network WHERE id IN (1, 5, 6, 10, 13, 14, 16, 18)`).Scan(&count)
+	require.NoError(t, err)
+	assert.Equal(t, 0, count, "nebulance rows merged into an Anthelion row must be removed")
+
+	networks := []struct {
+		id            int
+		enabled       bool
+		pass          string
+		mechanism     string
+		account       string
+		inviteCommand string
+		msg           string
+	}{
+		{2, true, "server_pw", "SASL_PLAIN", "acct_a", "Sauron bot #ant-announce user_a key_a,Muffit bot #nbl-announce user_a key_a", "auth and invite are merged in"},
+		{3, true, "", "NICKSERV", "acct_b", "Muffit bot #nbl-announce user_b key_b", "an NBL-only row is moved in place without its bouncer password"},
+		{4, true, "", "NICKSERV", "acct_manual", "Muffit bot #nbl-announce user_c key_c", "manual auth is kept and a known invite is not repeated"},
+		{7, true, "", "NICKSERV", "acct_d", "", "the enabled nebulance row is the one moved in place"},
+		{8, true, "", "NONE", "", "", "an Anthelion row without a nebulance row is left alone"},
+		{9, true, "", "NONE", "", "", "a running channel enables the row it lands on"},
+		{11, true, "", "SASL_PLAIN", "acct_other", "", "other networks must not be touched"},
+		{12, true, "", "NONE", "", "Sauron bot #ant-announce user_g key_g,Muffit bot #nbl-announce user_g key_g", "only the invite of the row whose channel moved is added"},
+		{15, true, "", "SASL_PLAIN", "acct_h", "", "auth comes over from a disabled row too"},
+		{17, true, "", "NONE", "", "", "a bouncer row's password and SASL login are not carried"},
+		{19, true, "", "NONE", "", "", "a bouncer row moved in place drops its password and SASL login"},
+	}
+
+	for _, tt := range networks {
+		var enabled, tls bool
+		var port int
+		var server, pass, mechanism, account, inviteCommand string
+		err := db.QueryRow(`SELECT enabled, server, port, tls, pass, auth_mechanism, auth_account, invite_command FROM irc_network WHERE id = $1`, tt.id).
+			Scan(&enabled, &server, &port, &tls, &pass, &mechanism, &account, &inviteCommand)
+		require.NoError(t, err, tt.msg)
+		assert.Equal(t, tt.enabled, enabled, tt.msg)
+		assert.Equal(t, tt.pass, pass, tt.msg)
+		assert.Equal(t, tt.mechanism, mechanism, tt.msg)
+		assert.Equal(t, tt.account, account, tt.msg)
+		assert.Equal(t, tt.inviteCommand, inviteCommand, tt.msg)
+		if tt.id != 11 {
+			assert.Equal(t, "irc.anthelion.me", server, tt.msg)
+			assert.Equal(t, 6697, port, tt.msg)
+			assert.True(t, tls, tt.msg)
+		}
+	}
+
+	var useBouncer, tlsSkipVerify bool
+	var bouncerAddr string
+	err = db.QueryRow(`SELECT use_bouncer, bouncer_addr, tls_skip_verify FROM irc_network WHERE id = 3`).
+		Scan(&useBouncer, &bouncerAddr, &tlsSkipVerify)
+	require.NoError(t, err)
+	assert.False(t, useBouncer, "the bouncer still points at Nebulance")
+	assert.Equal(t, "znc.local:6697", bouncerAddr)
+	assert.True(t, tlsSkipVerify)
+
+	channels := []struct {
+		id        int
+		networkID int
+		enabled   bool
+		msg       string
+	}{
+		{1, 2, true, "a moved channel keeps its row"},
+		{2, 2, true, ""},
+		{3, 3, true, "channels of a row moved in place stay put"},
+		{4, 4, true, ""},
+		{5, 4, true, ""},
+		{7, 7, true, ""},
+		{8, 8, true, ""},
+		{9, 9, false, "channels already on a woken row stay off"},
+		{10, 9, true, ""},
+		{11, 11, true, ""},
+		{12, 12, true, ""},
+		{14, 12, true, "the channel from the enabled nebulance row wins a merge"},
+		{15, 15, true, ""},
+		{16, 15, false, "a channel from a disabled row must not start"},
+		{17, 17, true, ""},
+		{18, 17, true, ""},
+		{19, 19, true, ""},
+	}
+
+	for _, tt := range channels {
+		var networkID int
+		var enabled bool
+		err := db.QueryRow(`SELECT network_id, enabled FROM irc_channel WHERE id = $1`, tt.id).Scan(&networkID, &enabled)
+		require.NoError(t, err, "channel %d", tt.id)
+		assert.Equal(t, tt.networkID, networkID, "channel %d: %s", tt.id, tt.msg)
+		assert.Equal(t, tt.enabled, enabled, "channel %d: %s", tt.id, tt.msg)
+	}
+
+	var chanPassword string
+	err = db.QueryRow(`SELECT password FROM irc_channel WHERE id = 1`).Scan(&chanPassword)
+	require.NoError(t, err)
+	assert.Equal(t, "chan_pw", chanPassword)
+
+	err = db.QueryRow(`SELECT COUNT(*) FROM irc_channel`).Scan(&count)
+	require.NoError(t, err)
+	assert.Equal(t, len(channels), count, "only one channel per name may survive a merge")
+}
+
+func mustReadMigration(t *testing.T, fsys fs.FS, name string) string {
+	t.Helper()
+
+	data, err := fs.ReadFile(fsys, name)
+	require.NoError(t, err)
+
+	return string(data)
+}
+
+// setupNebulanceBeforeAnthelion stores rows as they were before v1.91.0 and runs the given Anthelion
+// network migration on them, so the Nebulance move is tested on what that migration leaves behind.
+// Ids start at 101 because Postgres sequences do not see explicit ids and the migration inserts rows.
+func setupNebulanceBeforeAnthelion(anthelionMigration string) func(db *sql.DB) error {
+	return func(db *sql.DB) error {
+		if _, err := db.Exec(insertIrcNetwork + `
+			(101, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, 'server_pw', 'shared|bot',
+			 'SASL_PLAIN', 'acct_shared', 'secret_shared', 'Sauron bot #ant-announce s k,Muffit bot #nbl-announce s k', FALSE, '', TRUE, FALSE, NULL,
+			 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+			(102, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, '', 'ant|bot',
+			 'NICKSERV', 'acct_ant', 'secret_ant', 'Sauron bot #ant-announce a k', FALSE, '', TRUE, FALSE, NULL,
+			 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+			(103, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, '', 'nbl|bot',
+			 'SASL_PLAIN', 'acct_nbl', 'secret_nbl', 'Muffit bot #nbl-announce n k', FALSE, '', TRUE, FALSE, NULL,
+			 '2025-01-01 00:00:00', '2025-01-01 00:00:00'),
+			(104, TRUE, 'Nebulance', 'irc.nebulance.io', 6697, TRUE, FALSE, 'zncuser/nbl:zncpw', 'bnc|bot',
+			 'SASL_PLAIN', 'zncuser', 'zncpw', 'Sauron bot #ant-announce b k,Muffit bot #nbl-announce b k', TRUE, 'znc.local:6697', TRUE, FALSE, NULL,
+			 '2025-01-01 00:00:00', '2025-01-01 00:00:00')`); err != nil {
+			return err
+		}
+
+		if _, err := db.Exec(`INSERT INTO irc_channel (id, enabled, name, password, detached, network_id) VALUES
+			(101, TRUE, '#ant-announce', '', FALSE, 101),
+			(102, TRUE, '#nbl-announce', '', FALSE, 101),
+			(103, TRUE, '#ant-announce', '', FALSE, 102),
+			(104, TRUE, '#nbl-announce', '', FALSE, 103),
+			(105, TRUE, '#ant-announce', '', FALSE, 104),
+			(106, TRUE, '#nbl-announce', '', FALSE, 104)`); err != nil {
+			return err
+		}
+
+		_, err := db.Exec(anthelionMigration)
+
+		return err
+	}
+}
+
+func validateNebulanceAfterAnthelion(db *sql.DB, t *testing.T) {
+	var count int
+	err := db.QueryRow(`SELECT COUNT(*) FROM irc_network WHERE server = 'irc.nebulance.io'`).Scan(&count)
+	require.NoError(t, err)
+	assert.Equal(t, 0, count)
+
+	networks := []struct {
+		nick          string
+		pass          string
+		mechanism     string
+		account       string
+		inviteCommand string
+		channels      []string
+	}{
+		{"shared|bot", "server_pw", "SASL_PLAIN", "acct_shared", "Sauron bot #ant-announce s k,Muffit bot #nbl-announce s k", []string{"#ant-announce", "#nbl-announce"}},
+		{"ant|bot", "", "NICKSERV", "acct_ant", "Sauron bot #ant-announce a k", []string{"#ant-announce"}},
+		{"nbl|bot", "", "SASL_PLAIN", "acct_nbl", "Muffit bot #nbl-announce n k", []string{"#nbl-announce"}},
+		{"bnc|bot", "", "NONE", "", "Sauron bot #ant-announce b k,Muffit bot #nbl-announce b k", []string{"#ant-announce", "#nbl-announce"}},
+	}
+
+	for _, tt := range networks {
+		var id int
+		var enabled, useBouncer bool
+		var pass, mechanism, account, inviteCommand string
+		err := db.QueryRow(`SELECT id, enabled, use_bouncer, pass, auth_mechanism, auth_account, invite_command FROM irc_network WHERE server = 'irc.anthelion.me' AND port = 6697 AND nick = $1`, tt.nick).
+			Scan(&id, &enabled, &useBouncer, &pass, &mechanism, &account, &inviteCommand)
+		require.NoError(t, err, tt.nick)
+		assert.True(t, enabled, tt.nick)
+		assert.False(t, useBouncer, tt.nick)
+		assert.Equal(t, tt.pass, pass, tt.nick)
+		assert.Equal(t, tt.mechanism, mechanism, tt.nick)
+		assert.Equal(t, tt.account, account, tt.nick)
+		assert.Equal(t, tt.inviteCommand, inviteCommand, tt.nick)
+
+		rows, err := db.Query(`SELECT name FROM irc_channel WHERE network_id = $1 AND enabled`, id)
+		require.NoError(t, err)
+
+		var names []string
+		for rows.Next() {
+			var name string
+			require.NoError(t, rows.Scan(&name))
+			names = append(names, name)
+		}
+		require.NoError(t, rows.Err())
+		rows.Close()
+
+		assert.ElementsMatch(t, tt.channels, names, tt.nick)
+	}
+
+	err = db.QueryRow(`SELECT COUNT(*) FROM irc_network`).Scan(&count)
+	require.NoError(t, err)
+	assert.Equal(t, len(networks), count)
 }
 
 func setupBuiltinNotificationExisting(db *sql.DB) error {
