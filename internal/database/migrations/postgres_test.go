@@ -583,6 +583,22 @@ func TestRunMigrationTest_Postgres(t *testing.T) {
 			SetupData:           setupAnthelionNotUsed,
 			ValidateResult:      validateAnthelionNotUsed,
 		},
+		{
+			Name:                "Nebulance IRC network move to Anthelion",
+			MigrationIndex:      93,
+			MigrationsUntilName: "93_irc_update_anthelion_network",
+			MigrationToRun:      "94_irc_move_nebulance_to_anthelion",
+			SetupData:           setupNebulanceMove,
+			ValidateResult:      validateNebulanceMove,
+		},
+		{
+			Name:                "Nebulance IRC network move after the Anthelion migration",
+			MigrationIndex:      92,
+			MigrationsUntilName: "92_create_matrix_tables",
+			MigrationToRun:      "94_irc_move_nebulance_to_anthelion",
+			SetupData:           setupNebulanceBeforeAnthelion(mustReadMigration(t, migrations.SchemaMigrationsPostgres, "postgres/93_irc_update_anthelion_network.sql")),
+			ValidateResult:      validateNebulanceAfterAnthelion,
+		},
 	}
 
 	for _, tc := range tests {
