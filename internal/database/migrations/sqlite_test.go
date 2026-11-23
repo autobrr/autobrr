@@ -698,6 +698,71 @@ func TestRunMigrationTest_SQLite(t *testing.T) {
 			},
 			want: "",
 		},
+		{
+			name:   "Anthelion IRC network migration: not migrated",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "Anthelion IRC network migration: not migrated",
+				MigrationIndex:      102,
+				MigrationsUntilName: "102_create_matrix_tables",
+				MigrationToRun:      "103_irc_update_anthelion_network",
+				SetupData:           setupAnthelionNotMigrated,
+				ValidateResult:      validateAnthelionNotMigrated,
+			},
+			want: "",
+		},
+		{
+			name:   "Anthelion IRC network migration: already migrated",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "Anthelion IRC network migration: already migrated",
+				MigrationIndex:      102,
+				MigrationsUntilName: "102_create_matrix_tables",
+				MigrationToRun:      "103_irc_update_anthelion_network",
+				SetupData:           setupAnthelionAlreadyMigrated,
+				ValidateResult:      validateAnthelionAlreadyMigrated,
+			},
+			want: "",
+		},
+		{
+			name:   "Anthelion IRC network migration: not used",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "Anthelion IRC network migration: not used",
+				MigrationIndex:      102,
+				MigrationsUntilName: "102_create_matrix_tables",
+				MigrationToRun:      "103_irc_update_anthelion_network",
+				SetupData:           setupAnthelionNotUsed,
+				ValidateResult:      validateAnthelionNotUsed,
+			},
+			want: "",
+		},
+		{
+			name:   "Nebulance IRC network move to Anthelion",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "Nebulance IRC network move to Anthelion",
+				MigrationIndex:      103,
+				MigrationsUntilName: "103_irc_update_anthelion_network",
+				MigrationToRun:      "104_irc_move_nebulance_to_anthelion",
+				SetupData:           setupNebulanceMove,
+				ValidateResult:      validateNebulanceMove,
+			},
+			want: "",
+		},
+		{
+			name:   "Nebulance IRC network move after the Anthelion migration",
+			fields: fields{},
+			args: MigrationTestCase{
+				Name:                "Nebulance IRC network move after the Anthelion migration",
+				MigrationIndex:      102,
+				MigrationsUntilName: "102_create_matrix_tables",
+				MigrationToRun:      "104_irc_move_nebulance_to_anthelion",
+				SetupData:           setupNebulanceBeforeAnthelion(mustReadMigration(t, migrations.SchemaMigrationsSQLite, "sqlite/103_irc_update_anthelion_network.sql")),
+				ValidateResult:      validateNebulanceAfterAnthelion,
+			},
+			want: "",
+		},
 	}
 
 	for _, tt := range tests {

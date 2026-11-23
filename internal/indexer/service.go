@@ -135,6 +135,10 @@ func (s *Service) Store(ctx context.Context, indexer domain.Indexer) (*domain.In
 		indexer.IdentifierExternal = indexer.Name
 	}
 
+	if d, ok := s.getDefinitionByName(indexer.Identifier); ok && !d.SupportsImplementation(indexer.Implementation) {
+		return nil, errors.New("indexer definition %s does not support implementation %s", indexer.Identifier, indexer.Implementation)
+	}
+
 	i, err := s.repo.Store(ctx, indexer)
 	if err != nil {
 		s.log.Error().Err(err).Interface("indexer", indexer).Msg("failed to store indexer")
@@ -563,7 +567,7 @@ func (s *Service) Start() error {
 		switch indexer.Implementation {
 		case domain.IndexerImplementationIRC:
 			// add to irc server lookup table
-			s.mapIRCServerDefinitionLookup(indexer.IRC.Server, indexer)
+			s.mapIRCServerDefinitionLookup(indexer)
 
 			// check if it has api and add to api service
 			if indexer.Enabled && indexer.HasApi() {
@@ -610,7 +614,7 @@ func (s *Service) addIndexer(indexer domain.Indexer) error {
 	switch indexer.Implementation {
 	case domain.IndexerImplementationIRC:
 		// add to irc server lookup table
-		s.mapIRCServerDefinitionLookup(indexerDefinition.IRC.Server, indexerDefinition)
+		s.mapIRCServerDefinitionLookup(indexerDefinition)
 
 		// check if it has api and add to api service
 		if indexerDefinition.HasApi() {
@@ -649,7 +653,7 @@ func (s *Service) updateIndexer(indexer *domain.Indexer) error {
 	switch indexer.Implementation {
 	case domain.IndexerImplementationIRC:
 		// add to irc server lookup table
-		s.mapIRCServerDefinitionLookup(indexerDefinition.IRC.Server, indexerDefinition)
+		s.mapIRCServerDefinitionLookup(indexerDefinition)
 
 		// check if it has api and add to api service
 		if indexerDefinition.HasApi() {
@@ -678,18 +682,25 @@ func (s *Service) updateIndexer(indexer *domain.Indexer) error {
 // mapIRCServerDefinitionLookup map irc stuff to indexer.name
 // map[irc.network.test][indexer1] = indexer1
 // map[irc.network.test][indexer2] = indexer2
-func (s *Service) mapIRCServerDefinitionLookup(ircServer string, indexerDefinition *domain.IndexerDefinition) {
-	if indexerDefinition.IRC != nil {
-		s.m.Lock()
-		defer s.m.Unlock()
-
-		_, exists := s.lookupIRCServerDefinition[ircServer]
-		if !exists {
-			s.lookupIRCServerDefinition[ircServer] = map[string]*domain.IndexerDefinition{}
-		}
-
-		s.lookupIRCServerDefinition[ircServer][indexerDefinition.Identifier] = indexerDefinition
+func (s *Service) mapIRCServerDefinitionLookup(indexerDefinition *domain.IndexerDefinition) {
+	// an IRC row can outlive its definition's IRC block, e.g. a custom IRC Blutopia replaced by the
+	// bundled Matrix-only one; it stays listed so it can be deleted, but never joins announces
+	if indexerDefinition.IRC == nil {
+		s.log.Warn().Str("indexer", indexerDefinition.Identifier).Msg("indexer is set up for IRC but its definition has no IRC config, recreate it to receive announces")
+		return
 	}
+
+	ircServer := indexerDefinition.IRC.Server
+
+	s.m.Lock()
+	defer s.m.Unlock()
+
+	_, exists := s.lookupIRCServerDefinition[ircServer]
+	if !exists {
+		s.lookupIRCServerDefinition[ircServer] = map[string]*domain.IndexerDefinition{}
+	}
+
+	s.lookupIRCServerDefinition[ircServer][indexerDefinition.Identifier] = indexerDefinition
 }
 
 // mapMatrixHomeserverDefinitionLookup indexes a Matrix definition by its homeserver.

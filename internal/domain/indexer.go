@@ -185,6 +185,18 @@ func (i *IndexerDefinition) Prepare() {
 	}
 }
 
+// SupportsImplementation reports whether the definition has the announce config an indexer of the given implementation needs.
+func (i *IndexerDefinition) SupportsImplementation(implementation IndexerImplementation) bool {
+	switch implementation {
+	case IndexerImplementationIRC, IndexerImplementationLegacy:
+		return i.IRC != nil
+	case IndexerImplementationMatrix:
+		return i.Matrix != nil
+	default:
+		return true
+	}
+}
+
 func announceParserFor(identifier string) IRCParser {
 	switch identifier {
 	case "ggn":

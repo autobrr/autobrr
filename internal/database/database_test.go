@@ -203,6 +203,22 @@ func TestPingDatabase(t *testing.T) {
 	}
 }
 
+func TestDB_StatementCacheIsSQLiteOnly(t *testing.T) {
+	for dbType, testDb := range testDBs {
+		db := testDb.db
+		t.Run(fmt.Sprintf("Test_statement_cache [%s]", dbType), func(t *testing.T) {
+			if db.Driver == DriverSQLite {
+				assert.NotNil(t, db.stmts)
+			} else {
+				assert.Nil(t, db.stmts)
+			}
+
+			_, err := db.ExecPrepared(t.Context(), `UPDATE release SET size = $1 WHERE id = $2`, 1, -1)
+			assert.NoError(t, err)
+		})
+	}
+}
+
 func TestMain(m *testing.M) {
 	if err := os.Setenv("IS_TEST_ENV", "true"); err != nil {
 		log.Fatalf("Could not set env variable: %v", err)

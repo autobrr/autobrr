@@ -291,3 +291,42 @@ func TestService_IsEnabledFollowsToggle(t *testing.T) {
 
 	assert.False(t, service.IsEnabled("unknown"))
 }
+
+type listIndexerRepo struct {
+	stubIndexerRepo
+	indexers []domain.Indexer
+	stored   bool
+}
+
+func (r *listIndexerRepo) List(_ context.Context) ([]domain.Indexer, error) {
+	return r.indexers, nil
+}
+
+func (r *listIndexerRepo) Store(_ context.Context, indexer domain.Indexer) (*domain.Indexer, error) {
+	r.stored = true
+	return &indexer, nil
+}
+
+func TestServiceStart_KeepsIndexerUnsupportedByDefinition(t *testing.T) {
+	stale := domain.Indexer{ID: 1, Name: "Blutopia", Identifier: "blutopia", Implementation: domain.IndexerImplementationIRC, Enabled: true, Settings: map[string]string{}}
+	repo := &listIndexerRepo{
+		stubIndexerRepo: stubIndexerRepo{current: &stale},
+		indexers: []domain.Indexer{
+			stale,
+			{ID: 2, Name: "TorrentLeech", Identifier: "torrentleech", Implementation: domain.IndexerImplementationIRC, Enabled: true},
+		},
+	}
+	service := NewService(zerolog.Nop(), &stubEventBus{}, &domain.Config{}, repo, nil, nil)
+
+	require.NoError(t, service.Start())
+
+	indexers, err := service.GetAll()
+	require.NoError(t, err)
+	assert.Len(t, indexers, 2)
+
+	require.NoError(t, service.ToggleEnabled(t.Context(), 1, false))
+
+	_, err = service.Store(t.Context(), domain.Indexer{Name: "Blutopia", Identifier: "blutopia", Implementation: domain.IndexerImplementationLegacy, Settings: map[string]string{}})
+	assert.Error(t, err)
+	assert.False(t, repo.stored)
+}

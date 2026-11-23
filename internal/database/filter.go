@@ -595,7 +595,7 @@ func (r *FilterRepo) findByIndexerIdentifier(ctx context.Context, indexer string
 		return nil, errors.Wrap(err, "error building query")
 	}
 
-	rows, err := r.db.Handler.QueryContext(ctx, query, args...)
+	rows, err := r.db.QueryPrepared(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "error executing query")
 	}

@@ -50,6 +50,8 @@ type DB struct {
 	DSN    string
 
 	squirrel sq.StatementBuilderType
+
+	stmts *statementCache
 }
 
 func NewDB(cfg *domain.Config, log zerolog.Logger) (*DB, error) {
@@ -121,6 +123,12 @@ func (db *DB) Open() error {
 			return errors.Wrap(err, "could not open sqlite db connection")
 		}
 
+		// SQLite only: lib/pq names statements "1", "2", ... per connection, so
+		// behind a Postgres transaction pooler that does not track prepared
+		// statements a cached statement can bind to another client's statement of
+		// the same name and run its SQL instead
+		db.stmts = newStatementCache(db.Handler)
+
 	case DriverPostgres:
 		if err := db.openPostgres(); err != nil {
 			return errors.Wrap(err, "could not open postgres db connection")
@@ -148,6 +156,12 @@ func (db *DB) Migrate() error {
 
 func (db *DB) Close() error {
 	db.log.Debug().Msg("closing database..")
+
+	if db.stmts != nil {
+		if err := db.stmts.close(); err != nil {
+			db.log.Error().Err(err).Msg("could not close prepared statements")
+		}
+	}
 
 	switch db.Driver {
 	case DriverSQLite:

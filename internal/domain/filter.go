@@ -1203,6 +1203,8 @@ func checkFreeleechPercent(announcePercent int, filterPercent string) bool {
 						return true
 					}
 				}
+
+				continue
 			}
 		}
 

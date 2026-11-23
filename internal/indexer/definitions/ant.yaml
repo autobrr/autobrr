@@ -21,8 +21,8 @@ settings:
     help: Right click DL on a torrent and get the torrent_pass.
 
 irc:
-  network: Nebulance
-  server: irc.nebulance.io
+  network: Anthelion
+  server: irc.anthelion.me
   port: 6697
   tls: true
   settings:
@@ -58,60 +58,261 @@ irc:
       parse:
         type: single
         lines:
-          - pattern: '\[(?P<category>.*?)\] .* \((?P<year>.*)\) \[(?P<releaseTags>.*?)(?: \/ (?P<freeleech>Freeleech!))? \/ Filename: (?P<releaseName>.*)\] \[(?P<torrentSize>.*) - Uploader: (?P<uploader>.*)\] (?P<baseUrl>https?\:\/\/.*\/).*id=(?P<torrentId>\d+).* - (?P<tags>.*)'
+          # <type>:<category>:<origin>:<leech>:<groupId>:<torrentId>:<tm|tv><metaId>:<sizeBytes>:<uploadedEpoch>|<releaseTags>|<year>|<title>|<releaseName>|<uploader>|<tags>
+          - pattern: '(?P<announceTypeEnum>\d+):(?P<categoryEnum>\d+):(?P<originEnum>\d+):(?P<freeleechEnum>\d+):(?P<groupId>\d+):(?P<torrentId>\d+):(?:tm(?P<tmdb>\d+)|tv(?P<tvdb>\d+))?:(?P<torrentSizeBytes>\d+):(?P<uploadedDate>\d+)\|(?P<releaseTags>[^|]*)\|(?P<year>\d*)\|(?P<title>[^|]*)\|(?P<releaseName>[^|]+)\|(?P<uploader>[^|]*)\|(?P<tags>[^|]*)'
             tests:
-              - line: '[Feature Film] Tremar (1897) [H264 / MKV / Blu-ray / 1080p / DTS / Subs / Freeleech! / Filename: Tremar.1897.1080p.BluRay.DTS.x264-GROUP] [12.84 GiB - Uploader: user] https://anthelion.me/torrents.php?action=download&id=110 - action,horror,subtitles'
+              - line: '0:1:0:0:1398964:208661:tm394026:4588431360:1792882627|SD / DVD / MPEG2 / AC3 / French / VOBIFO / PEPiTE|1989|Try This One for Size|Sauf.votre.respect.1989.PAL.DVD.COMPLETE-PEPiTE|Uploader|comedy,crime,mystery'
                 expect:
-                  category: Feature Film
-                  year: "1897"
-                  releaseTags: H264 / MKV / Blu-ray / 1080p / DTS / Subs
-                  freeleech: Freeleech!
-                  releaseName: Tremar.1897.1080p.BluRay.DTS.x264-GROUP
-                  torrentSize: 12.84 GiB
-                  uploader: user
-                  baseUrl: https://anthelion.me/
-                  torrentId: "110"
-                  tags: action,horror,subtitles
+                  announceTypeEnum: "0"
+                  categoryEnum: "1"
+                  originEnum: "0"
+                  freeleechEnum: "0"
+                  groupId: "1398964"
+                  torrentId: "208661"
+                  tmdb: "394026"
+                  tvdb: ""
+                  torrentSizeBytes: "4588431360"
+                  uploadedDate: "1792882627"
+                  releaseTags: SD / DVD / MPEG2 / AC3 / French / VOBIFO / PEPiTE
+                  year: "1989"
+                  title: Try This One for Size
+                  releaseName: Sauf.votre.respect.1989.PAL.DVD.COMPLETE-PEPiTE
+                  uploader: Uploader
+                  tags: comedy,crime,mystery
 
-              - line: '[Feature Film] Circus Du (1928) [H264 / MKV / Blu-ray / 1080p / AC3 / Scene / Freeleech! / Filename: Circus.Du.1928.1080p.BluRay.ACC.x264-GROUP] [8.24 GiB - Uploader: anon] https://anthelion.me/torrents.php?action=download&id=85 - comedy,romance'
+              - line: '0:1:1:0:642235:208605:tm46908:34895407201:1792850419|2160p / BluRay / H265 / FLAC / HDR10 / DV / Commentary / Scene / Estonian / Subs / MKV / LWRTD|1979|Dead Mountaineer''s Hotel|lwrtd-dead.mountaineers.hotel.1979.2160p.uhd.bluray.x265.mkv|Uploader|crime,drama,horror,sci.fi,subtitles'
                 expect:
-                  category: Feature Film
-                  year: "1928"
-                  releaseTags: H264 / MKV / Blu-ray / 1080p / AC3 / Scene
-                  freeleech: Freeleech!
-                  releaseName: Circus.Du.1928.1080p.BluRay.ACC.x264-GROUP
-                  torrentSize: 8.24 GiB
-                  uploader: anon
-                  baseUrl: https://anthelion.me/
-                  torrentId: "85"
-                  tags: comedy,romance
+                  announceTypeEnum: "0"
+                  categoryEnum: "1"
+                  originEnum: "1"
+                  freeleechEnum: "0"
+                  groupId: "642235"
+                  torrentId: "208605"
+                  tmdb: "46908"
+                  tvdb: ""
+                  torrentSizeBytes: "34895407201"
+                  uploadedDate: "1792850419"
+                  releaseTags: 2160p / BluRay / H265 / FLAC / HDR10 / DV / Commentary / Scene / Estonian / Subs / MKV / LWRTD
+                  year: "1979"
+                  title: Dead Mountaineer's Hotel
+                  releaseName: lwrtd-dead.mountaineers.hotel.1979.2160p.uhd.bluray.x265.mkv
+                  uploader: Uploader
+                  tags: crime,drama,horror,sci.fi,subtitles
 
-              - line: '[Feature Film] Judo (1918) [H264 / MKV / Blu-ray / 1080p / DTS / Subs / Freeleech! / Filename: Judo.1918.1080p.BluRay.DTS.x264-GROUP] [7.40 GiB - Uploader: user1] https://anthelion.me/torrents.php?action=download&id=117 - crime,drama,thriller,action,subtitles'
+              - line: '0:1:2:0:655291:73555:tm288988:1553141281:1704748707|SD / WEB / H264 / AAC / Norwegian / MKV / ANTHELiA|1985|Wives - Ten Years After|Hustruer.Ti.År.Etter.576p.WEB-DL.AAC.2.0.H.264-Anthelia.mkv|Uploader|comedy,drama'
                 expect:
-                  category: Feature Film
-                  year: "1918"
-                  releaseTags: H264 / MKV / Blu-ray / 1080p / DTS / Subs
-                  freeleech: Freeleech!
-                  releaseName: Judo.1918.1080p.BluRay.DTS.x264-GROUP
-                  torrentSize: 7.40 GiB
-                  uploader: user1
-                  baseUrl: https://anthelion.me/
-                  torrentId: "117"
-                  tags: crime,drama,thriller,action,subtitles
+                  announceTypeEnum: "0"
+                  categoryEnum: "1"
+                  originEnum: "2"
+                  freeleechEnum: "0"
+                  groupId: "655291"
+                  torrentId: "73555"
+                  tmdb: "288988"
+                  tvdb: ""
+                  torrentSizeBytes: "1553141281"
+                  uploadedDate: "1704748707"
+                  releaseTags: SD / WEB / H264 / AAC / Norwegian / MKV / ANTHELiA
+                  year: "1985"
+                  title: Wives - Ten Years After
+                  releaseName: Hustruer.Ti.År.Etter.576p.WEB-DL.AAC.2.0.H.264-Anthelia.mkv
+                  uploader: Uploader
+                  tags: comedy,drama
 
-              - line: '[Feature Film] Non-Freeleech Movie (1997) [H264 / MKV / WEB / 1080p / AC3 / Subs / ReleaseGrp / Filename: Non-Freeleech.Movie.1997.1080p.AMZN.WEB-DL.DDP5.1.x264-ReleaseGrp.mkv] [6.68 GiB - Uploader: user2] https://anthelion.me/torrents.php?action=download&id=70000 - comedy,drama,romance,subtitles'
+              - line: '0:2:0:0:1398956:208650:tm65585:618745245:1792880631|1080p / BluRay / H264 / AC3 / Remux / Subs / MKV / KAE|1967|Batgirl|Batgirl.1967.1080p.BluRay.DD2.0.AVC.REMUX-KAE.mkv|Anonymous|action,adventure,subtitles'
                 expect:
-                  category: Feature Film
-                  year: "1997"
-                  releaseTags: H264 / MKV / WEB / 1080p / AC3 / Subs / ReleaseGrp
-                  freeleech: ""
-                  releaseName: Non-Freeleech.Movie.1997.1080p.AMZN.WEB-DL.DDP5.1.x264-ReleaseGrp.mkv
-                  torrentSize: 6.68 GiB
-                  uploader: user2
-                  baseUrl: https://anthelion.me/
-                  torrentId: "70000"
-                  tags: comedy,drama,romance,subtitles
+                  announceTypeEnum: "0"
+                  categoryEnum: "2"
+                  originEnum: "0"
+                  freeleechEnum: "0"
+                  groupId: "1398956"
+                  torrentId: "208650"
+                  tmdb: "65585"
+                  tvdb: ""
+                  torrentSizeBytes: "618745245"
+                  uploadedDate: "1792880631"
+                  releaseTags: 1080p / BluRay / H264 / AC3 / Remux / Subs / MKV / KAE
+                  year: "1967"
+                  title: Batgirl
+                  releaseName: Batgirl.1967.1080p.BluRay.DD2.0.AVC.REMUX-KAE.mkv
+                  uploader: Anonymous
+                  tags: action,adventure,subtitles
+
+              - line: '0:1:0:0:1397222:205703::2406164389:1791053838|1080p / WEB / H265 / EAC3 / Subs / MKV / SC|2026|In My Pain|In.My.Pain.2026.1080p.AMZN.WEB-DL.DD+.H.265-SC.mkv|Uploader|drama,subtitles'
+                expect:
+                  announceTypeEnum: "0"
+                  categoryEnum: "1"
+                  originEnum: "0"
+                  freeleechEnum: "0"
+                  groupId: "1397222"
+                  torrentId: "205703"
+                  tmdb: ""
+                  tvdb: ""
+                  torrentSizeBytes: "2406164389"
+                  uploadedDate: "1791053838"
+                  releaseTags: 1080p / WEB / H265 / EAC3 / Subs / MKV / SC
+                  year: "2026"
+                  title: In My Pain
+                  releaseName: In.My.Pain.2026.1080p.AMZN.WEB-DL.DD+.H.265-SC.mkv
+                  uploader: Uploader
+                  tags: drama,subtitles
+
+              - line: '2:1:0:1:6257:8359:tm546554:9938728119:1581103480|1080p / WEB / H264 / EAC3 / Subs / MKV / NTG|2019|Knives Out|Knives.Out.2019.1080p.AMZN.WEB-DL.DDP5.1.H.264-NTG.mkv|Uploader|comedy,crime,mystery,whodunit,investigation,subtitles'
+                expect:
+                  announceTypeEnum: "2"
+                  categoryEnum: "1"
+                  originEnum: "0"
+                  freeleechEnum: "1"
+                  groupId: "6257"
+                  torrentId: "8359"
+                  tmdb: "546554"
+                  tvdb: ""
+                  torrentSizeBytes: "9938728119"
+                  uploadedDate: "1581103480"
+                  releaseTags: 1080p / WEB / H264 / EAC3 / Subs / MKV / NTG
+                  year: "2019"
+                  title: Knives Out
+                  releaseName: Knives.Out.2019.1080p.AMZN.WEB-DL.DDP5.1.H.264-NTG.mkv
+                  uploader: Uploader
+                  tags: comedy,crime,mystery,whodunit,investigation,subtitles
+
+              - line: '4:1:0:0:2712:15161:tm4232:6825908835:1637230699|720p / BluRay / H264 / EAC3 / Remastered / Commentary / Subs / MKV / ILCY|1996|Scream|Scream.1996.REMASTERED.720p.BluRay.DDP5.1.x264-ILCY.mkv|Uploader|crime,mystery,horror,slasher,small.town,serial.killer,whodunit,halloween,school,subtitles'
+                expect:
+                  announceTypeEnum: "4"
+                  categoryEnum: "1"
+                  originEnum: "0"
+                  freeleechEnum: "0"
+                  groupId: "2712"
+                  torrentId: "15161"
+                  tmdb: "4232"
+                  tvdb: ""
+                  torrentSizeBytes: "6825908835"
+                  uploadedDate: "1637230699"
+                  releaseTags: 720p / BluRay / H264 / EAC3 / Remastered / Commentary / Subs / MKV / ILCY
+                  year: "1996"
+                  title: Scream
+                  releaseName: Scream.1996.REMASTERED.720p.BluRay.DDP5.1.x264-ILCY.mkv
+                  uploader: Uploader
+                  tags: crime,mystery,horror,slasher,small.town,serial.killer,whodunit,halloween,school,subtitles
+
+              - line: '0:3:0:0:1410667:259842:tv471481:40141081087:1792501309|2160p / WEB / H265 / EAC3 / Subs / MKV / FLUX|2026|The CEO Club|The.CEO.Club.S01.2160p.AMZN.WEB-DL.DDP5.1.H.265-FLUX|Uploader|amzn.sourced,season,documentary,prime.video,subtitles'
+                expect:
+                  announceTypeEnum: "0"
+                  categoryEnum: "3"
+                  originEnum: "0"
+                  freeleechEnum: "0"
+                  groupId: "1410667"
+                  torrentId: "259842"
+                  tmdb: ""
+                  tvdb: "471481"
+                  torrentSizeBytes: "40141081087"
+                  uploadedDate: "1792501309"
+                  releaseTags: 2160p / WEB / H265 / EAC3 / Subs / MKV / FLUX
+                  year: "2026"
+                  title: The CEO Club
+                  releaseName: The.CEO.Club.S01.2160p.AMZN.WEB-DL.DDP5.1.H.265-FLUX
+                  uploader: Uploader
+                  tags: amzn.sourced,season,documentary,prime.video,subtitles
+
+              - line: '0:4:0:0:1409463:259743:tv482425:1294424860:1792527480|1080p / WEB / H264 / AAC / Subs / MKV / RAWR|2026|The Great British Bake Off: Second Helpings|The.Great.British.Bake.Off.Second.Helpings.S01E05.1080p.ALL4.WEB-DL.AAC2.0.H.264-RAWR.mkv|Uploader|all4.sourced,episode,comedy,channel4,subtitles'
+                expect:
+                  announceTypeEnum: "0"
+                  categoryEnum: "4"
+                  originEnum: "0"
+                  freeleechEnum: "0"
+                  groupId: "1409463"
+                  torrentId: "259743"
+                  tmdb: ""
+                  tvdb: "482425"
+                  torrentSizeBytes: "1294424860"
+                  uploadedDate: "1792527480"
+                  releaseTags: 1080p / WEB / H264 / AAC / Subs / MKV / RAWR
+                  year: "2026"
+                  title: "The Great British Bake Off: Second Helpings"
+                  releaseName: The.Great.British.Bake.Off.Second.Helpings.S01E05.1080p.ALL4.WEB-DL.AAC2.0.H.264-RAWR.mkv
+                  uploader: Uploader
+                  tags: all4.sourced,episode,comedy,channel4,subtitles
+
+              - line: '0:4:0:0:1409611:259745::1806733181:1792530103|1080p / WEB / H264 / AAC / Subs / MKV / RAWR|2026|Matt Baker: Our Barn in the Dales|Matt.Baker.Our.Barn.in.the.Dales.S01E02.1080p.ALL4.WEB-DL.AAC2.0.H.264-RAWR.mkv|Uploader|all4.sourced,episode,more4,subtitles'
+                expect:
+                  announceTypeEnum: "0"
+                  categoryEnum: "4"
+                  originEnum: "0"
+                  freeleechEnum: "0"
+                  groupId: "1409611"
+                  torrentId: "259745"
+                  tmdb: ""
+                  tvdb: ""
+                  torrentSizeBytes: "1806733181"
+                  uploadedDate: "1792530103"
+                  releaseTags: 1080p / WEB / H264 / AAC / Subs / MKV / RAWR
+                  year: "2026"
+                  title: "Matt Baker: Our Barn in the Dales"
+                  releaseName: Matt.Baker.Our.Barn.in.the.Dales.S01E02.1080p.ALL4.WEB-DL.AAC2.0.H.264-RAWR.mkv
+                  uploader: Uploader
+                  tags: all4.sourced,episode,more4,subtitles
+
+        mappings:
+          announceTypeEnum:
+            "0":
+              announceType: NEW
+            "2":
+              announceType: PROMO # freeleech, discount, neutral leech or double upload added, or re-announced by staff
+            "4":
+              announceType: RESURRECTED # seeded again after 7+ days without a seeder
+
+          categoryEnum:
+            "1":
+              category: "Feature Film"
+            "2":
+              category: "Short Film"
+            "3":
+              category: "TV Season"
+            "4":
+              category: "TV Episode"
+
+          originEnum:
+            "0":
+              origin: "P2P"
+            "1":
+              origin: "SCENE"
+            "2":
+              origin: "INTERNAL"
+
+          freeleechEnum:
+            "0": # Normal
+              downloadVolumeFactor: 1
+              uploadVolumeFactor: 1
+            "1": # Freeleech
+              downloadVolumeFactor: 0
+              uploadVolumeFactor: 1
+            "2": # 75% off
+              downloadVolumeFactor: 0.25
+              uploadVolumeFactor: 1
+            "3": # 50% off
+              downloadVolumeFactor: 0.5
+              uploadVolumeFactor: 1
+            "4": # 25% off
+              downloadVolumeFactor: 0.75
+              uploadVolumeFactor: 1
+            "5": # Double upload
+              downloadVolumeFactor: 1
+              uploadVolumeFactor: 2
+            "6": # Freeleech + double upload
+              downloadVolumeFactor: 0
+              uploadVolumeFactor: 2
+            "7": # 75% off + double upload
+              downloadVolumeFactor: 0.25
+              uploadVolumeFactor: 2
+            "8": # 50% off + double upload
+              downloadVolumeFactor: 0.5
+              uploadVolumeFactor: 2
+            "9": # 25% off + double upload
+              downloadVolumeFactor: 0.75
+              uploadVolumeFactor: 2
+            "10": # Neutral leech, sent with or without double upload
+              downloadVolumeFactor: 0
+              uploadVolumeFactor: 0
 
         match:
-          infourl: "/torrents.php?torrentid={{ .torrentId }}"
+          infourl: "/torrents.php?id={{ .groupId }}&torrentid={{ .torrentId }}"
           downloadurl: "/torrents.php?action=download&id={{ .torrentId }}&torrent_pass={{ .torrent_pass }}"
