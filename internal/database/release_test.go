@@ -1708,6 +1708,72 @@ func TestReleaseRepo_CheckIsDuplicateRelease(t *testing.T) {
 				},
 				isDuplicate: true,
 			},
+			{
+				name: "40",
+				fields: fields{
+					releaseTitles: []string{
+						"The.Best.Show.2020.S04E10.1080p.AMZN.WEB-DL.DDP.5.1.H.264-GROUP1",
+					},
+					releaseTitle: "The Best Show 2020 S04E10 1080p AMZN WEB-DL DDP 5.1 H.264-GROUP1",
+					profile:      &domain.DuplicateReleaseProfile{ReleaseName: true, Hash: true},
+				},
+				isDuplicate: false, // same normalized hash but the release name differs
+			},
+			{
+				name: "41",
+				fields: fields{
+					releaseTitles: []string{
+						"The.Best.Show.2020.S04E10.1080p.AMZN.WEB-DL.DDP.5.1.H.264-GROUP",
+					},
+					releaseTitle: "The.Best.Show.2020.S04E10.1080p.AMZN.WEB-DL.DDP.5.1.H.264-GROUP",
+					profile:      &domain.DuplicateReleaseProfile{ReleaseName: true, Hash: true},
+				},
+				isDuplicate: true,
+			},
+			{
+				name: "42",
+				fields: fields{
+					releaseTitles: []string{
+						"The.Best.Show.2020.S04E10.1080p.AMZN.WEB-DL.DDP.5.1.H.264-GROUP",
+					},
+					releaseTitle: "The.Best.Show.2020.S04E11.1080p.AMZN.WEB-DL.DDP.5.1.H.264-GROUP",
+					profile:      &domain.DuplicateReleaseProfile{ReleaseName: true},
+				},
+				isDuplicate: false,
+			},
+			{
+				name: "43",
+				fields: fields{
+					releaseTitles: []string{
+						"The.Best.Show.2020.S04E10.1080p.AMZN.WEB-DL.DDP.5.1.H.264-GROUP",
+					},
+					releaseTitle: "The.Best.Show.2020.S04E11.1080p.AMZN.WEB-DL.DDP.5.1.H.264-GROUP",
+					profile:      &domain.DuplicateReleaseProfile{Hash: true},
+				},
+				isDuplicate: false,
+			},
+			{
+				name: "44",
+				fields: fields{
+					releaseTitles: []string{
+						"The.Best.Show.2020.S04E10.1080p.AMZN.WEB-DL.DDP.5.1.H.264-GROUP",
+					},
+					releaseTitle: "The_Best_Show.2020.S04E10.1080p.AMZN.WEB-DL.DDP.5.1.H.264-GROUP",
+					profile:      &domain.DuplicateReleaseProfile{ReleaseName: true},
+				},
+				isDuplicate: false, // '_' is a literal character, not a LIKE wildcard
+			},
+			{
+				name: "45",
+				fields: fields{
+					releaseTitles: []string{
+						"The.Best.Show.2020.S04E10.1080p.AMZN.WEB-DL.DDP.5.1.H.264-GROUP",
+					},
+					releaseTitle: "the.best.show.2020.s04e10.1080p.amzn.web-dl.ddp.5.1.h.264-GROUP",
+					profile:      &domain.DuplicateReleaseProfile{ReleaseName: true},
+				},
+				isDuplicate: true, // case-only difference still matches
+			},
 		}
 
 		for _, tt := range tests {
