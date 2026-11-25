@@ -40,10 +40,10 @@ func newTestService(dl rlsDownloadService) *Service {
 	return &Service{log: zerolog.Nop(), rlsDownloadSvc: dl}
 }
 
-// A release with several download client actions must only be fetched from the
-// indexer once. The executors take the release by value, so the download has to
-// land on the shared release here or every action refetches the same torrent.
-func TestCheckActionPreconditions_DownloadsOncePerRelease(t *testing.T) {
+// Torrent-client actions without torrent-content macros must defer downloading
+// until after the client executor checks rules (such as max active downloads),
+// so rejected releases do not burn indexer download quota.
+func TestCheckActionPreconditions_DefersDownloadForClientActionsWithoutTorrentMacros(t *testing.T) {
 	t.Parallel()
 
 	dl := &fakeDownloadService{}
@@ -54,6 +54,33 @@ func TestCheckActionPreconditions_DownloadsOncePerRelease(t *testing.T) {
 	actions := []*domain.Action{
 		{Name: "qbit", Type: domain.ActionTypeQbittorrent},
 		{Name: "deluge", Type: domain.ActionTypeDelugeV2},
+		{Name: "transmission", Type: domain.ActionTypeTransmission},
+		{Name: "porla", Type: domain.ActionTypePorla},
+		{Name: "aria2", Type: domain.ActionTypeAria2},
+		{Name: "rtorrent", Type: domain.ActionTypeRTorrent},
+	}
+
+	for _, action := range actions {
+		err := svc.CheckActionPreconditions(t.Context(), action, release)
+		assert.NoError(t, err)
+	}
+
+	assert.Equal(t, 0, dl.fetches, "client actions without torrent macros must not pre-download before client rule checks")
+	assert.Empty(t, release.TorrentDataRawBytes)
+}
+
+// Watch-folder actions and actions whose macros reference torrent bytes/hash
+// still fetch the torrent once onto the shared release before ParseMacros runs.
+func TestCheckActionPreconditions_DownloadsOncePerRelease(t *testing.T) {
+	t.Parallel()
+
+	dl := &fakeDownloadService{}
+	svc := newTestService(dl)
+
+	release := &domain.Release{TorrentName: "Test.Release-GRP", Protocol: domain.ReleaseProtocolTorrent}
+
+	actions := []*domain.Action{
+		{Name: "qbit-hash-macro", Type: domain.ActionTypeQbittorrent, SavePath: "/data/{{.TorrentHash}}"},
 		{Name: "watch", Type: domain.ActionTypeWatchFolder},
 	}
 
