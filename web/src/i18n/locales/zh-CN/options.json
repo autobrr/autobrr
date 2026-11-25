@@ -69,6 +69,10 @@
       "label": "Readarr",
       "description": "发送到 Readarr，由它决定如何处理"
     },
+    "SPORTARR": {
+      "label": "Sportarr",
+      "description": "发送到 Sportarr 并由其决定"
+    },
     "SABNZBD": {
       "label": "SABnzbd",
       "description": "直接添加 nzb 到 SABnzbd"
@@ -146,6 +150,10 @@
     "READARR": {
       "label": "Readarr",
       "description": "发送到 Readarr，由它决定如何处理"
+    },
+    "SPORTARR": {
+      "label": "Sportarr",
+      "description": "发送到 Sportarr 并由其决定"
     },
     "SABNZBD": {
       "label": "SABnzbd",
