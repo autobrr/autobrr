@@ -40,10 +40,10 @@ func newTestService(dl rlsDownloadService) *Service {
 	return &Service{log: zerolog.Nop(), rlsDownloadSvc: dl}
 }
 
-// A release with several download client actions must only be fetched from the
-// indexer once. The executors take the release by value, so the download has to
-// land on the shared release here or every action refetches the same torrent.
-func TestCheckActionPreconditions_DownloadsOncePerRelease(t *testing.T) {
+// Torrent-client actions without torrent-content macros must defer downloading
+// until after the client executor checks rules (such as max active downloads),
+// so rejected releases do not burn indexer download quota.
+func TestCheckActionPreconditions_DefersDownloadForClientActionsWithoutTorrentMacros(t *testing.T) {
 	t.Parallel()
 
 	dl := &fakeDownloadService{}
@@ -54,7 +54,35 @@ func TestCheckActionPreconditions_DownloadsOncePerRelease(t *testing.T) {
 	actions := []*domain.Action{
 		{Name: "qbit", Type: domain.ActionTypeQbittorrent},
 		{Name: "deluge", Type: domain.ActionTypeDelugeV2},
+		{Name: "transmission", Type: domain.ActionTypeTransmission},
+		{Name: "porla", Type: domain.ActionTypePorla},
+		{Name: "aria2", Type: domain.ActionTypeAria2},
+		{Name: "rtorrent", Type: domain.ActionTypeRTorrent},
+	}
+
+	for _, action := range actions {
+		err := svc.CheckActionPreconditions(t.Context(), action, release)
+		assert.NoError(t, err)
+	}
+
+	assert.Equal(t, 0, dl.fetches, "client actions without torrent macros must not pre-download before client rule checks")
+	assert.Empty(t, release.TorrentDataRawBytes)
+}
+
+// Watch-folder actions and actions whose macros reference torrent bytes/hash
+// still fetch the torrent once onto the shared release before ParseMacros runs.
+func TestCheckActionPreconditions_DownloadsOncePerRelease(t *testing.T) {
+	t.Parallel()
+
+	dl := &fakeDownloadService{}
+	svc := newTestService(dl)
+
+	release := &domain.Release{TorrentName: "Test.Release-GRP", Protocol: domain.ReleaseProtocolTorrent}
+
+	// Watch-folder runs first on the fresh release so watch-folder pre-download is directly exercised.
+	actions := []*domain.Action{
 		{Name: "watch", Type: domain.ActionTypeWatchFolder},
+		{Name: "qbit-hash-macro", Type: domain.ActionTypeQbittorrent, SavePath: "/data/{{.TorrentHash}}"},
 	}
 
 	for _, action := range actions {
@@ -64,6 +92,36 @@ func TestCheckActionPreconditions_DownloadsOncePerRelease(t *testing.T) {
 
 	assert.Equal(t, 1, dl.fetches, "torrent should be fetched from the indexer once for all actions")
 	assert.NotEmpty(t, release.TorrentDataRawBytes, "torrent should land on the shared release")
+}
+
+// Client actions whose Category, Tags, or Label expand torrent-content macros
+// must pre-download before ParseMacros runs so the hash/bytes are populated.
+func TestCheckActionPreconditions_DownloadsForTorrentMacroInMetadataFields(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		name   string
+		action *domain.Action
+	}{
+		{name: "category", action: &domain.Action{Type: domain.ActionTypeQbittorrent, Category: "cat-{{.TorrentHash}}"}},
+		{name: "tags", action: &domain.Action{Type: domain.ActionTypeQbittorrent, Tags: "hash-{{.TorrentHash}}"}},
+		{name: "label", action: &domain.Action{Type: domain.ActionTypeDelugeV2, Label: "lbl-{{.TorrentHash}}"}},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			dl := &fakeDownloadService{}
+			svc := newTestService(dl)
+			release := &domain.Release{TorrentName: "Test.Release-GRP", Protocol: domain.ReleaseProtocolTorrent}
+
+			err := svc.CheckActionPreconditions(t.Context(), tc.action, release)
+			assert.NoError(t, err)
+			assert.Equal(t, 1, dl.fetches)
+			assert.NotEmpty(t, release.TorrentHash)
+		})
+	}
 }
 
 // Magnet releases carry no torrent to fetch, the client is handed the URI.

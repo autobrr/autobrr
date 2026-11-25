@@ -102,11 +102,12 @@ func (s *Service) CheckActionPreconditions(ctx context.Context, action *domain.A
 		return errors.Wrap(err, "could not resolve magnet uri: %s", release.MagnetURI)
 	}
 
-	// Fetch the torrent once, here, onto the shared release. The action executors
-	// take the release by value, so a download started inside one of them lands
-	// on a copy and the next action would fetch the same torrent again.
-	// Magnets carry no torrent to fetch, the clients get the URI instead.
-	if !release.HasMagnetUri() && (action.NeedsTorrentDownloaded() || action.CheckMacrosNeedRawDataBytes(release)) {
+	// Only pre-download here when a watch-folder action or macro expansion
+	// (ParseMacros) requires the torrent bytes before entering the executor.
+	// Torrent-client executors take release by pointer and call DownloadRelease
+	// after checking client rules (e.g. max active downloads) so rejected
+	// releases do not burn indexer download quota.
+	if !release.HasMagnetUri() && action.CheckMacrosNeedRawDataBytes(release) {
 		if err := s.rlsDownloadSvc.DownloadRelease(ctx, release); err != nil {
 			return errors.Wrap(err, "could not download torrent file for release: %s", release.TorrentName)
 		}
