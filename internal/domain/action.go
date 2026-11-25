@@ -65,7 +65,7 @@ func (a *Action) NeedsTorrentDownloaded() bool {
 // macroFields returns the action fields that get macro expanded and could
 // reference the torrent file. Keep in sync with ParseMacros.
 func (a *Action) macroFields() []string {
-	return []string{a.ExecArgs, a.WatchFolder, a.SavePath, a.DownloadPath, a.WebhookData}
+	return []string{a.ExecArgs, a.WatchFolder, a.Category, a.Tags, a.Label, a.SavePath, a.DownloadPath, a.WebhookData}
 }
 
 // CheckMacrosNeedTorrentTmpFile check if macros need the torrent written to disk.
