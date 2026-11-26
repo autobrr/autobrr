@@ -147,6 +147,7 @@ the [docs](https://quickbox.io/knowledge-base/v3/applications-v3/autobrr-applica
 - SeedHost.eu
 - Ultra.cc
 - Whatbox.ca - has built-in integration with their apps, have to enable their "Expert" mode for external connections
+- Bytesized Hosting - one-click install from the panel
 
 ##### Installation Scripts
 
@@ -157,13 +158,7 @@ The scripts require some input, but do most of the work.
 #### Feralhosting
 
 ```bash
-wget https://gobrr.sh/install_feral && bash install_feral
-```
-
-#### Bytesized Hosting
-
-```bash
-wget https://gobrr.sh/install_bytesized && bash install_bytesized
+wget https://get.autobrr.com/autobrr/feral && bash ./feral
 ```
 
 #### Other providers
