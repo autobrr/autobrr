@@ -51,7 +51,7 @@ irc:
       parse:
         type: single
         lines:
-          - pattern: '^\[NEW\]\s+(?P<releaseName>.+?)\s+\|\s+(?P<category>.+?)\s+\|\s+(?P<releaseTags>.+?)\s+\|\s+(?P<resolution>.+?)\s+\|\s+(?P<torrentSize>.+?)\s+\|\s+(?P<uploader>.+?)(?:\s+\|\s+(?P<origin>[^|]+))?\s+\|\s+DL:\s+(?P<baseUrl>https?\:\/\/.*?\/).*\/(?P<torrentId>\d+)$'
+          - pattern: '^\[NEW\]\s+(?P<releaseName>.+?)\s+\|\s+(?P<category>.+?)\s+\|\s+(?P<releaseTags>.+?)\s+\|\s+(?P<resolution>.+?)\s+\|\s+(?P<torrentSize>.+?)\s+\|\s+(?P<uploader>.+?)(?:\s+\|\s+(?P<origin>[^|]+))??(?:\s+\|\s+(?P<freeleechPercent>\d+)%\s+FL)?\s+\|\s+DL:\s+(?P<baseUrl>https?\:\/\/.*?\/).*\/(?P<torrentId>\d+)$'
             tests:
               - line: '[NEW] Baking Championship: Next Gen S01E05 1080p WEB-DL DD+ 2.0 H.264-EDITH | TV | WEB-DL | 1080p | 2.81 GiB | STCBOT | SCENE | DL: https://skipthecommercials.xyz/torrents/27653'
                 expect:
@@ -62,6 +62,7 @@ irc:
                   torrentSize: 2.81 GiB
                   uploader: STCBOT
                   origin: SCENE
+                  freeleechPercent: ""
                   baseUrl: https://skipthecommercials.xyz/
                   torrentId: "27653"
 
@@ -74,6 +75,7 @@ irc:
                   torrentSize: 23.41 GiB
                   uploader: STCBOT
                   origin: INTERNAL
+                  freeleechPercent: ""
                   baseUrl: https://skipthecommercials.xyz/
                   torrentId: "27848"
 
@@ -86,8 +88,35 @@ irc:
                   torrentSize: 36.81 GiB
                   uploader: STCBOT
                   origin: ""
+                  freeleechPercent: ""
                   baseUrl: https://skipthecommercials.xyz/
                   torrentId: "27884"
+
+              - line: '[NEW] The Lincoln Lawyer S04 1080p NF WEB-DL DD+ 5.1 Atmos H.264-STC | TV | Seasons-HD | 1080p | 23.41 GiB | STCBOT | INTERNAL | 100% FL | DL: https://skipthecommercials.xyz/torrents/27849'
+                expect:
+                  releaseName: "The Lincoln Lawyer S04 1080p NF WEB-DL DD+ 5.1 Atmos H.264-STC"
+                  category: TV
+                  releaseTags: Seasons-HD
+                  resolution: 1080p
+                  torrentSize: 23.41 GiB
+                  uploader: STCBOT
+                  origin: INTERNAL
+                  freeleechPercent: "100"
+                  baseUrl: https://skipthecommercials.xyz/
+                  torrentId: "27849"
+
+              - line: '[NEW] The Cleaner S02 1080p AMZN WEB-DL DD+ 5.1 H.264-TEPES | TV | WEB-DL | 1080p | 36.81 GiB | danman | 50% FL | DL: https://skipthecommercials.xyz/torrents/27885'
+                expect:
+                  releaseName: "The Cleaner S02 1080p AMZN WEB-DL DD+ 5.1 H.264-TEPES"
+                  category: TV
+                  releaseTags: WEB-DL
+                  resolution: 1080p
+                  torrentSize: 36.81 GiB
+                  uploader: danman
+                  origin: ""
+                  freeleechPercent: "50"
+                  baseUrl: https://skipthecommercials.xyz/
+                  torrentId: "27885"
 
         match:
           infourl: "/torrents/{{ .torrentId }}"
