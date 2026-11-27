@@ -9,28 +9,106 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"unicode"
+
+	"golang.org/x/text/unicode/norm"
 )
 
 var (
-	/*
-		replaceRegexp replaces various character classes/categories such as
-		\p{P} Unicode punctuation category characters
-		\p{S} Unicode symbol category characters
-		\p{Z) Unicode seperator category characters
-		\x{0080}-\x{017F} Unicode block "Latin-1 Supplement" and "Latin Extended-A" characters
-		https://www.unicode.org/reports/tr44/#General_Category_Values
-		https://www.regular-expressions.info/unicode.html#category
-		https://www.compart.com/en/unicode/block/U+0080
-		https://www.compart.com/en/unicode/block/U+0100
-	*/
-	replaceRegexp      = regexp.MustCompile(`[\p{P}\p{S}\p{Z}\x{0080}-\x{017F}]`)
+	// replaceRegexp replaces Unicode punctuation, symbols, and separators with wildcards.
+	replaceRegexp      = regexp.MustCompile(`[\p{P}\p{S}\p{Z}]`)
 	questionmarkRegexp = regexp.MustCompile(`[?]{2,}`)
-	// cleans titles from years and region codes in parentheses, for example (2024) or (US)
+	// parentheticalRegexp strips parenthesized tokens such as (2024) or (US).
 	parentheticalRegexp  = regexp.MustCompile(`\(\S+\)`)
 	parenthesesEndRegexp = regexp.MustCompile(`\)$`)
 
 	apostropheReplacer = strings.NewReplacer("'", "", "´", "", "`", "", "‘", "", "’", "")
 )
+
+// foldLatin returns s with Latin diacritics stripped and non-decomposing Latin letters folded to ASCII.
+// Non-Latin scripts (such as Japanese kana with dakuten) are left untouched.
+func foldLatin(s string) string {
+	ascii := true
+	for i := 0; i < len(s); i++ {
+		if s[i] >= 0x80 {
+			ascii = false
+			break
+		}
+	}
+	if ascii {
+		return s
+	}
+
+	normalized := s
+	if !norm.NFC.IsNormalString(s) {
+		normalized = norm.NFC.String(s)
+	}
+	var b strings.Builder
+	b.Grow(len(normalized))
+
+	prevLatin := false
+	for _, r := range normalized {
+		if unicode.Is(unicode.Mn, r) {
+			if !prevLatin {
+				b.WriteRune(r)
+			}
+			continue
+		}
+
+		prevLatin = unicode.Is(unicode.Latin, r)
+		if r < 0x80 || !prevLatin {
+			b.WriteRune(r)
+			continue
+		}
+
+		for _, dr := range norm.NFD.String(string(r)) {
+			if unicode.Is(unicode.Mn, dr) {
+				continue
+			}
+
+			switch dr {
+			case 'Ø':
+				b.WriteByte('O')
+			case 'ø':
+				b.WriteByte('o')
+			case 'Ł':
+				b.WriteByte('L')
+			case 'ł':
+				b.WriteByte('l')
+			case 'Đ', 'Ð':
+				b.WriteByte('D')
+			case 'đ', 'ð':
+				b.WriteByte('d')
+			case 'ß':
+				b.WriteString("ss")
+			case 'ẞ':
+				b.WriteString("SS")
+			case 'Æ':
+				b.WriteString("AE")
+			case 'æ':
+				b.WriteString("ae")
+			case 'Œ':
+				b.WriteString("OE")
+			case 'œ':
+				b.WriteString("oe")
+			case 'Þ':
+				b.WriteString("TH")
+			case 'þ':
+				b.WriteString("th")
+			case 'ı':
+				b.WriteByte('i')
+			case 'ª':
+				b.WriteByte('a')
+			case 'º':
+				b.WriteByte('o')
+			default:
+				b.WriteRune(dr)
+			}
+		}
+	}
+
+	return b.String()
+}
 
 // generateVariations returns variations of the title with optionally removing apostrophes and info in parentheses.
 func generateVariations(title string, removeApostrophes, removeParenthetical bool) []string {
@@ -55,36 +133,38 @@ func generateVariations(title string, removeApostrophes, removeParenthetical boo
 	}
 }
 
-// yearRegexp = regexp.MustCompile(`\(\d{4}\)$`)
+func titleVariations(title string) []string {
+	if replaceRegexp.ReplaceAllString(title, "") == "" {
+		return []string{title}
+	}
+
+	variants := []string{title}
+	if folded := foldLatin(title); folded != title {
+		variants = append(variants, folded)
+	}
+
+	var result []string
+	for _, v := range variants {
+		result = slices.Concat(
+			result,
+			generateVariations(v, false, false),
+			generateVariations(v, true, false),
+			generateVariations(v, false, true),
+			generateVariations(v, true, true),
+		)
+	}
+
+	return result
+}
+
 func processTitle(title string, matchRelease bool) []string {
-	// Checking if the title is empty.
 	if strings.TrimSpace(title) == "" {
 		return nil
 	}
 
-	// cleans year like (2020) from arr title
-	// var re = regexp.MustCompile(`(?m)\s(\(\d+\))`)
-	// title = re.ReplaceAllString(title, "")
-
 	t := NewTitleSet()
-
-	if replaceRegexp.ReplaceAllString(title, "") == "" {
-		t.Add(title, matchRelease)
-	} else {
-		titles := slices.Concat(
-			// don't remove apostrophes and info in parentheses
-			generateVariations(title, false, false),
-			// remove apostrophes but don't remove info in parentheses
-			generateVariations(title, true, false),
-			// don't remove apostrophes but remove info in parentheses
-			generateVariations(title, false, true),
-			// remove apostrophes and info in parentheses
-			generateVariations(title, true, true),
-		)
-
-		for _, titleVar := range titles {
-			t.Add(titleVar, matchRelease)
-		}
+	for _, titleVar := range titleVariations(title) {
+		t.Add(titleVar, matchRelease)
 	}
 
 	return t.Titles()
@@ -106,68 +186,63 @@ func (ts *Titles) Len() int {
 	return len(ts.tm)
 }
 
+func isOverbroadWildcard(title string) bool {
+	if !strings.ContainsRune(title, '*') {
+		return false
+	}
+
+	literals := 0
+	for _, r := range title {
+		if r != '*' && r != '?' && r != ' ' {
+			literals++
+			if literals >= 2 {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
 func (ts *Titles) Add(title string, matchRelease bool) {
-	if title == "" || title == "*" {
+	if strings.Trim(title, "?* ") == "" || isOverbroadWildcard(title) {
 		return
 	}
 
 	if matchRelease {
 		title = strings.Trim(title, "?* ")
 		title = fmt.Sprintf("*%v*", title)
+		if isOverbroadWildcard(title) {
+			return
+		}
 	}
 
-	_, ok := ts.tm[title]
-	if !ok {
-		ts.tm[title] = struct{}{}
-	}
+	ts.tm[title] = struct{}{}
 }
 
 func (ts *Titles) add(title string) {
-	if title == "" || title == "*" {
+	if strings.Trim(title, "?* ") == "" || isOverbroadWildcard(title) {
 		return
 	}
 
 	if ts.matchReleases {
 		title = strings.Trim(title, "?* ")
-		//title = fmt.Sprintf("*%v*", title)
+		if isOverbroadWildcard("*" + title + "*") {
+			return
+		}
 	}
 
-	_, ok := ts.tm[title]
-	if !ok {
-		ts.tm[title] = struct{}{}
-	}
+	ts.tm[title] = struct{}{}
 }
 
-// AddTitle yearRegexp = regexp.MustCompile(`\(\d{4}\)$`)
+// AddTitle adds normalized matching variations of title to the set.
 func (ts *Titles) AddTitle(title string) bool {
-	// Checking if the title is empty.
 	if strings.TrimSpace(title) == "" {
 		return false
 	}
 
-	// cleans year like (2020) from arr title
-	// var re = regexp.MustCompile(`(?m)\s(\(\d+\))`)
-	// title = re.ReplaceAllString(title, "")
-
-	//t := NewTitleSet()
-
-	if replaceRegexp.ReplaceAllString(title, "") == "" {
-		ts.add(title)
-	} else {
-		titles := slices.Concat(
-			// don't remove apostrophes and info in parentheses
-			generateVariations(title, false, false),
-			// remove apostrophes but don't remove info in parentheses
-			generateVariations(title, true, false),
-			// don't remove apostrophes but remove info in parentheses
-			generateVariations(title, false, true),
-			// remove apostrophes and info in parentheses
-			generateVariations(title, true, true),
-		)
-
-		for _, titleVar := range titles {
-			ts.add(titleVar)
-		}
+	for _, titleVar := range titleVariations(title) {
+		ts.add(titleVar)
 	}
 
 	return true
@@ -193,7 +268,3 @@ func (ts *Titles) FilterString() string {
 func (ts *Titles) Titles() []string {
 	return slices.Collect(maps.Keys(ts.tm))
 }
-
-//func concat(strs ...string) string {
-//	return strings.Join(strs, " ")
-//}
