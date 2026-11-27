@@ -161,7 +161,7 @@ func Test_processTitle(t *testing.T) {
 				title:        "90 Day Fiancé: Pillow Talk",
 				matchRelease: false,
 			},
-			want: []string{"90?Day?Fianc*Pillow?Talk"},
+			want: []string{"90?Day?Fiancé*Pillow?Talk", "90?Day?Fiance*Pillow?Talk"},
 		},
 		{
 			name: "test_19",
@@ -217,7 +217,7 @@ func Test_processTitle(t *testing.T) {
 				title:        "Shōgun (2024)",
 				matchRelease: false,
 			},
-			want: []string{"Sh?gun*2024?", "Sh?gun*2024", "Sh?gun"},
+			want: []string{"Shōgun*2024?", "Shōgun*2024", "Shōgun", "Shogun*2024?", "Shogun*2024", "Shogun"},
 		},
 		{
 			name: "test_26",
@@ -267,7 +267,12 @@ func Test_processTitle(t *testing.T) {
 				title:        "solo leveling 2ª temporada -ergam-se das sombras-",
 				matchRelease: false,
 			},
-			want: []string{"solo?leveling?2*temporada*ergam?se?das?sombras", "solo?leveling?2*temporada*ergam?se?das?sombras?"},
+			want: []string{
+				"solo?leveling?2ª?temporada*ergam?se?das?sombras",
+				"solo?leveling?2ª?temporada*ergam?se?das?sombras?",
+				"solo?leveling?2a?temporada*ergam?se?das?sombras",
+				"solo?leveling?2a?temporada*ergam?se?das?sombras?",
+			},
 		},
 		{
 			name: "test_32",
@@ -275,7 +280,7 @@ func Test_processTitle(t *testing.T) {
 				title:        "pokémon",
 				matchRelease: false,
 			},
-			want: []string{"pok?mon"},
+			want: []string{"pokémon", "pokemon"},
 		},
 		{
 			name: "test_33",
@@ -285,6 +290,86 @@ func Test_processTitle(t *testing.T) {
 			},
 			want: []string{"*What?If*"},
 		},
+		{
+			name: "consecutive_accented_latin_does_not_collapse_to_wildcard",
+			args: args{
+				title:        "Düşüş",
+				matchRelease: false,
+			},
+			want: []string{"Düşüş", "Dusus"},
+		},
+		{
+			name: "consecutive_accented_latin_match_release",
+			args: args{
+				title:        "Düşüş",
+				matchRelease: true,
+			},
+			want: []string{"*Düşüş*", "*Dusus*"},
+		},
+		{
+			name: "all_accented_latin",
+			args: args{
+				title:        "Été",
+				matchRelease: false,
+			},
+			want: []string{"Été", "Ete"},
+		},
+		{
+			name: "non_decomposing_latin",
+			args: args{
+				title:        "København & Łódź & Ǽther & Fǿnix",
+				matchRelease: false,
+			},
+			want: []string{"København*Łódź*Ǽther*Fǿnix", "Kobenhavn*Lodz*AEther*Fonix"},
+		},
+		{
+			name: "japanese_dakuten_untouched",
+			args: args{
+				title:        "ドラゴンボール",
+				matchRelease: false,
+			},
+			want: []string{"ドラゴンボール"},
+		},
+		{
+			name: "uncomposed_latin_combining_mark",
+			args: args{
+				title:        "Spın̈al Tap",
+				matchRelease: false,
+			},
+			want: []string{"Spın̈al?Tap", "Spinal?Tap"},
+		},
+		{
+			name: "wildcard_only_title_ignored_in_match_release",
+			args: args{
+				title:        "?",
+				matchRelease: true,
+			},
+			want: []string{},
+		},
+		{
+			name: "single_char_with_punctuation_drops_wildcard",
+			args: args{
+				title:        "D...",
+				matchRelease: false,
+			},
+			want: []string{"D"},
+		},
+		{
+			name: "single_char_with_punctuation_dropped_in_match_release",
+			args: args{
+				title:        "D...",
+				matchRelease: true,
+			},
+			want: []string{},
+		},
+		{
+			name: "single_char_with_punctuation_and_parenthetical",
+			args: args{
+				title:        "D - (2024)",
+				matchRelease: false,
+			},
+			want: []string{"D", "D*2024", "D*2024?"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -292,4 +377,26 @@ func Test_processTitle(t *testing.T) {
 			assert.ElementsMatch(t, tt.want, processTitle(tt.args.title, tt.args.matchRelease))
 		})
 	}
+}
+
+func TestTitles_AddTitleAndFilterString(t *testing.T) {
+	t.Run("shows", func(t *testing.T) {
+		ts := NewTitleSet()
+		ts.AddTitle("D'amour et de sang")
+		ts.AddTitle("Düşüş")
+		ts.AddTitle("D...")
+
+		assert.Equal(t, "D,D?amour?et?de?sang,Damour?et?de?sang,Dusus,Düşüş", ts.FilterString())
+	})
+
+	t.Run("match_releases", func(t *testing.T) {
+		ts := NewTitleSet()
+		ts.matchReleases = true
+		ts.AddTitle("D'amour et de sang")
+		ts.AddTitle("Düşüş")
+		ts.AddTitle("D...")
+		ts.AddTitle("?")
+
+		assert.Equal(t, "*D?amour?et?de?sang*,*Damour?et?de?sang*,*Dusus*,*Düşüş*", ts.FilterString())
+	})
 }
