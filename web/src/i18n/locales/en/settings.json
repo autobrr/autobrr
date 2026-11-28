@@ -12,6 +12,8 @@
     "test": "Test",
     "ok": "OK!",
     "error": "ERROR",
+    "testing": "Testing",
+    "testPassed": "Test passed",
     "cancel": "Cancel",
     "create": "Create",
     "save": "Save"
@@ -327,9 +329,6 @@
   "forms": {
     "downloadClient": {
       "remove": "Remove",
-      "test": "Test",
-      "ok": "OK!",
-      "error": "ERROR",
       "cancel": "Cancel",
       "create": "Create",
       "save": "Save",
@@ -540,7 +539,6 @@
       "userHelp": "auth: username",
       "pass": "Pass",
       "passHelp": "auth: password",
-      "test": "Test",
       "cancel": "Cancel",
       "save": "Save",
       "usageTitle": "This proxy is still in use",
@@ -696,7 +694,6 @@
       "perFilterEventsDesc": "This notification is used in these filters.",
       "notUsedInFilters": "Not used in any filters",
       "muted": "Muted",
-      "test": "Test",
       "cancel": "Cancel",
       "save": "Save",
       "notificationsLegend": "Notifications",
@@ -962,8 +959,6 @@
       "fetchToSelect": "Fetch categories to select.",
       "testApi": "Test API",
       "testApiSuccess": "API test successful!",
-      "ok": "OK!",
-      "error": "ERROR",
       "externalIdentifier": "External Identifier",
       "externalIdentifierHelp": "External Identifier for ARRs. If using Prowlarr set like: {{name}} (Prowlarr)",
       "externalIdentifierTooltip1": "External Identifier for use with ARRs to get features like seed limits working.",

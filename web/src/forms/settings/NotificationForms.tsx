@@ -16,9 +16,11 @@ import { NotificationKeys } from "@api/query_keys";
 import { PushoverSoundsQueryOptions } from "@api/queries";
 import { ExternalFilterWebhookMethodOptions, getEventOptions, getNotificationTypeOptions, OptionBasicTyped, PushoverSoundOptions, SelectOption } from "@domain/constants";
 import { useAppForm, useFormContext, useFormValue, fieldErrors } from "@hooks/form";
+import { useTestAction } from "@hooks/useTestAction";
 import type { FormFieldErrors } from "@hooks/form";
 import { FormDebug } from "@components/debug";
 import { SlideOver, SlideOverShell, SlideOverTitle } from "@components/panels";
+import { TestButton } from "@components/buttons/TestButton";
 import { ExternalLink } from "@components/ExternalLink";
 import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
@@ -594,11 +596,10 @@ function NotificationAddFormPanel({ toggle }: NotificationAddFormPanelProps) {
 
   const onSubmit = (formData: unknown) => createMutation.mutate(formData as ServiceNotification);
 
-  const testMutation = useMutation({
-    mutationFn: (n: ServiceNotification) => APIClient.notifications.test(n)
-  });
-
-  const testNotification = (data: unknown) => testMutation.mutate(data as ServiceNotification);
+  const test = useTestAction(
+    (values: NotificationFormValues) => APIClient.notifications.test(values as ServiceNotification),
+    t("settings:panel.testPassed")
+  );
 
   const validate = (values: NotificationFormValues) => validateNotification(
     values,
@@ -707,13 +708,7 @@ function NotificationAddFormPanel({ toggle }: NotificationAddFormPanelProps) {
 
         <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-4 sm:px-6">
           <div className="space-x-3 flex justify-end">
-            <button
-              type="button"
-              className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 cursor-pointer"
-              onClick={() => testNotification(form.state.values)}
-            >
-              {t("settings:forms.notification.test")}
-            </button>
+            <TestButton status={test.status} onClick={() => test.run(form.state.values)} />
             <button
               type="button"
               className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 cursor-pointer"
@@ -964,11 +959,6 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
 
   const deleteAction = () => deleteMutation.mutate(notification.id);
 
-  const testMutation = useMutation({
-    mutationFn: (n: ServiceNotification) => APIClient.notifications.test(n)
-  });
-
-  const testNotification = (data: unknown) => testMutation.mutate(data as ServiceNotification);
 
   const initialValues: InitialValues = {
     id: notification.id,
@@ -1007,7 +997,7 @@ export function NotificationUpdateForm({ isOpen, toggle, data: notification }: U
         t("settings:forms.notification.notifiarrApiKeyInvalid"),
         t("settings:forms.notification.barkServerUrlInvalid")
       )}
-      testFn={testNotification}
+      test={{ fn: (values) => APIClient.notifications.test(values as ServiceNotification), successMessage: t("settings:panel.testPassed") }}
     >
       {(values) => (
         <div>

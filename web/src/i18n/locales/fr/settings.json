@@ -12,6 +12,8 @@
     "test": "Tester",
     "ok": "OK !",
     "error": "ERREUR",
+    "testing": "Test en cours",
+    "testPassed": "Test réussi",
     "cancel": "Annuler",
     "create": "Créer",
     "save": "Enregistrer"
@@ -326,9 +328,6 @@
   "forms": {
     "downloadClient": {
       "remove": "Supprimer",
-      "test": "Tester",
-      "ok": "OK !",
-      "error": "ERREUR",
       "cancel": "Annuler",
       "create": "Créer",
       "save": "Enregistrer",
@@ -539,7 +538,6 @@
       "userHelp": "Auth : nom d'utilisateur",
       "pass": "Mot de passe",
       "passHelp": "Auth : mot de passe",
-      "test": "Tester",
       "cancel": "Annuler",
       "save": "Enregistrer",
       "usageTitle": "Ce proxy est encore utilisé",
@@ -694,7 +692,6 @@
       "perFilterEventsDesc": "Cette notification est utilisée dans ces filtres.",
       "notUsedInFilters": "Non utilisé dans aucun filtre",
       "muted": "En sourdine",
-      "test": "Tester",
       "cancel": "Annuler",
       "save": "Enregistrer",
       "notificationsLegend": "Notifications",
@@ -960,8 +957,6 @@
       "fetchToSelect": "Récupérer les catégories pour les sélectionner.",
       "testApi": "Tester l'API",
       "testApiSuccess": "Test de l'API réussi !",
-      "ok": "OK !",
-      "error": "ERREUR",
       "externalIdentifier": "Identifiant externe",
       "externalIdentifierHelp": "Identifiant externe pour les ARRs. Si tu utilises Prowlarr, définir comme : {{name}} (Prowlarr)",
       "externalIdentifierTooltip1": "Identifiant externe pour les ARRs afin d'activer des fonctionnalités comme les limites de seed.",

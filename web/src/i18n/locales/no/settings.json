@@ -12,6 +12,8 @@
     "test": "Test",
     "ok": "OK!",
     "error": "FEIL",
+    "testing": "Tester",
+    "testPassed": "Testen var vellykket",
     "cancel": "Avbryt",
     "create": "Opprett",
     "save": "Lagre"
@@ -326,9 +328,6 @@
   "forms": {
     "downloadClient": {
       "remove": "Fjern",
-      "test": "Test",
-      "ok": "OK!",
-      "error": "FEIL",
       "cancel": "Avbryt",
       "create": "Opprett",
       "save": "Lagre",
@@ -539,7 +538,6 @@
       "userHelp": "Autentisering: brukernavn",
       "pass": "Passord",
       "passHelp": "Autentisering: passord",
-      "test": "Test",
       "cancel": "Avbryt",
       "save": "Lagre",
       "usageTitle": "Denne proxyen er fortsatt i bruk",
@@ -694,7 +692,6 @@
       "perFilterEventsDesc": "Dette varselet brukes i disse filtrene.",
       "notUsedInFilters": "Brukes ikke i noen filtre",
       "muted": "Dempet",
-      "test": "Test",
       "cancel": "Avbryt",
       "save": "Lagre",
       "notificationsLegend": "Varsler",
@@ -960,8 +957,6 @@
       "fetchToSelect": "Hent kategorier for å velge.",
       "testApi": "Test API",
       "testApiSuccess": "API-test vellykket!",
-      "ok": "OK!",
-      "error": "FEIL",
       "externalIdentifier": "Ekstern identifikator",
       "externalIdentifierHelp": "Ekstern identifikator for arr-applikasjoner. Hvis du bruker Prowlarr, sett det slik: {{name}} (Prowlarr)",
       "externalIdentifierTooltip1": "Ekstern identifikator for bruk med arr-applikasjoner for å få funksjoner som seed-grenser til å fungere.",

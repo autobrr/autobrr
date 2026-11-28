@@ -12,6 +12,8 @@
     "test": "Тест",
     "ok": "OK!",
     "error": "ОШИБКА",
+    "testing": "Тестирование",
+    "testPassed": "Тест пройден",
     "cancel": "Отмена",
     "create": "Создать",
     "save": "Сохранить"
@@ -326,9 +328,6 @@
   "forms": {
       "downloadClient": {
       "remove": "Удалить",
-      "test": "Тест",
-      "ok": "OK!",
-      "error": "ОШИБКА",
       "cancel": "Отмена",
       "create": "Создать",
       "save": "Сохранить",
@@ -539,7 +538,6 @@
       "userHelp": "авторизация: имя пользователя",
       "pass": "Пароль",
       "passHelp": "авторизация: пароль",
-      "test": "Тест",
       "cancel": "Отмена",
       "save": "Сохранить",
       "usageTitle": "Этот прокси всё ещё используется",
@@ -694,7 +692,6 @@
       "perFilterEventsDesc": "Это уведомление используется в этих фильтрах.",
       "notUsedInFilters": "Не используется ни в одном фильтре",
       "muted": "Отключено",
-      "test": "Тест",
       "cancel": "Отмена",
       "save": "Сохранить",
       "notificationsLegend": "Уведомления",
@@ -960,8 +957,6 @@
       "fetchToSelect": "Получите категории для выбора.",
       "testApi": "Тест API",
       "testApiSuccess": "Тест API прошел успешно!",
-      "ok": "OK!",
-      "error": "ОШИБКА",
       "externalIdentifier": "Внешний идентификатор",
       "externalIdentifierHelp": "Внешний идентификатор для ARR-приложений. Если используете Prowlarr: {{name}} (Prowlarr)",
       "externalIdentifierTooltip1": "Внешний идентификатор для использования с ARR, чтобы работали лимиты сидирования.",

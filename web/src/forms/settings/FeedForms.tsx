@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
@@ -14,7 +14,6 @@ import Toast from "@components/notifications/Toast";
 import { SlideOver } from "@components/panels";
 import { NumberFieldWide, PasswordFieldWide, SecretFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import { SelectFieldBasic } from "@components/inputs/select_wide";
-import { sleep } from "@utils";
 import { ImplementationBadge } from "@screens/settings/Indexer";
 import { FeedDownloadTypeOptions } from "@domain/constants";
 import { UpdateFormProps } from "@forms/_shared";
@@ -44,9 +43,6 @@ interface InitialValues {
 export function FeedUpdateForm({ isOpen, toggle, data}: UpdateFormProps<Feed>) {
   const { t } = useTranslation("settings");
   const feed = data;
-  const [isTesting, setIsTesting] = useState(false);
-  const [isTestSuccessful, setIsSuccessfulTest] = useState(false);
-  const [isTestError, setIsErrorTest] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -73,37 +69,6 @@ export function FeedUpdateForm({ isOpen, toggle, data}: UpdateFormProps<Feed>) {
 
   const deleteAction = () => deleteMutation.mutate(feed.id);
 
-  const testFeedMutation = useMutation({
-    mutationFn: (feed: Feed) => APIClient.feeds.test(feed),
-    onMutate: () => {
-      setIsTesting(true);
-      setIsErrorTest(false);
-      setIsSuccessfulTest(false);
-    },
-    onSuccess: () => {
-      toast.custom((toastInstance) => <Toast type="success" body={t("forms.feed.testOk", { name: feed.name })} t={toastInstance} />);
-
-      sleep(1000)
-        .then(() => {
-          setIsTesting(false);
-          setIsSuccessfulTest(true);
-        })
-        .then(() => {
-          sleep(2500).then(() => {
-            setIsSuccessfulTest(false);
-          });
-        });
-    },
-    onError: () => {
-      setIsTesting(false);
-      setIsErrorTest(true);
-      sleep(2500).then(() => {
-        setIsErrorTest(false);
-      });
-    }
-  });
-
-  const testFeed = (data: unknown) => testFeedMutation.mutate(data as Feed);
 
   const initialValues: InitialValues = {
     id: feed.id,
@@ -138,10 +103,7 @@ export function FeedUpdateForm({ isOpen, toggle, data}: UpdateFormProps<Feed>) {
       onSubmit={onSubmit}
       deleteAction={deleteAction}
       initialValues={initialValues}
-      testFn={testFeed}
-      isTesting={isTesting}
-      isTestSuccessful={isTestSuccessful}
-      isTestError={isTestError}
+      test={{ fn: (values) => APIClient.feeds.test(values as Feed), successMessage: t("forms.feed.testOk", { name: feed.name }) }}
     >
       {(values) => (
         <div>

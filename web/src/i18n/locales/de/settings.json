@@ -12,6 +12,8 @@
     "test": "Testen",
     "ok": "OK!",
     "error": "FEHLER",
+    "testing": "Wird getestet",
+    "testPassed": "Test erfolgreich",
     "cancel": "Abbrechen",
     "create": "Erstellen",
     "save": "Speichern"
@@ -326,9 +328,6 @@
   "forms": {
     "downloadClient": {
       "remove": "Entfernen",
-      "test": "Testen",
-      "ok": "OK!",
-      "error": "FEHLER",
       "cancel": "Abbrechen",
       "create": "Erstellen",
       "save": "Speichern",
@@ -539,7 +538,6 @@
       "userHelp": "Auth: Benutzername",
       "pass": "Passwort",
       "passHelp": "Auth: Passwort",
-      "test": "Testen",
       "cancel": "Abbrechen",
       "save": "Speichern",
       "usageTitle": "Dieser Proxy wird noch verwendet",
@@ -694,7 +692,6 @@
       "perFilterEventsDesc": "Diese Benachrichtigung wird in diesen Filtern verwendet.",
       "notUsedInFilters": "In keinen Filtern verwendet",
       "muted": "Stummgeschaltet",
-      "test": "Testen",
       "cancel": "Abbrechen",
       "save": "Speichern",
       "notificationsLegend": "Benachrichtigungen",
@@ -960,8 +957,6 @@
       "fetchToSelect": "Kategorien zum Auswählen abrufen.",
       "testApi": "API testen",
       "testApiSuccess": "API-Test erfolgreich!",
-      "ok": "OK!",
-      "error": "FEHLER",
       "externalIdentifier": "Externer Bezeichner",
       "externalIdentifierHelp": "Externer Bezeichner für ARRs. Bei Verwendung von Prowlarr wie folgt einstellen: {{name}} (Prowlarr)",
       "externalIdentifierTooltip1": "Externer Bezeichner für ARRs, um Funktionen wie Seedlimits zum Laufen zu bringen.",
