@@ -12,6 +12,8 @@
       "test": "Test",
       "ok": "OK!",
       "error": "CHYBA",
+      "testing": "Testování",
+      "testPassed": "Test proběhl úspěšně",
       "cancel": "Zrušit",
       "create": "Vytvořit",
       "save": "Uložit"
@@ -326,9 +328,6 @@
     "forms": {
       "downloadClient": {
         "remove": "Odstranit",
-        "test": "Test",
-        "ok": "OK!",
-        "error": "CHYBA",
         "cancel": "Zrušit",
         "create": "Vytvořit",
         "save": "Uložit",
@@ -539,7 +538,6 @@
         "userHelp": "auth: uživatelské jméno",
         "pass": "Heslo",
         "passHelp": "auth: heslo",
-        "test": "Testovat",
         "cancel": "Zrušit",
         "save": "Uložit",
         "usageTitle": "Tento proxy server se stále používá",
@@ -694,7 +692,6 @@
         "perFilterEventsDesc": "Tato notifikace je použita v těchto filtrech.",
         "notUsedInFilters": "Není použita v žádném filtru",
         "muted": "Ztlumeno",
-        "test": "Test",
         "cancel": "Zrušit",
         "save": "Uložit",
         "notificationsLegend": "Notifikace",
@@ -960,8 +957,6 @@
         "fetchToSelect": "Stáhnout kategorie pro výběr.",
         "testApi": "Test API",
         "testApiSuccess": "API test úspěšný!",
-        "ok": "OK!",
-        "error": "CHYBA",
         "externalIdentifier": "Externí identifikátor",
         "externalIdentifierHelp": "Externí identifikátor pro ARRs. Pokud používáte Prowlarr, nastavte jako: {{name}} (Prowlarr)",
         "externalIdentifierTooltip1": "Externí identifikátor pro použití s ARRs k získání funkcí jako jsou seed limity.",

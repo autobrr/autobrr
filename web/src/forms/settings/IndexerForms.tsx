@@ -10,9 +10,11 @@ import Select from "react-select";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { useTranslation } from "react-i18next";
 
-import { classNames, sleep } from "@utils";
+import { sleep } from "@utils";
 import { extractCategoryTreeFromCaps, flattenCategoryIds, parseCapabilitiesPayload } from "@utils/caps";
 import { useAppForm, useFormContext, useFormValue } from "@hooks/form";
+import { useTestAction } from "@hooks/useTestAction";
+import { TestButton } from "@components/buttons/TestButton";
 import { FormDebug } from "@components/debug";
 import { APIClient } from "@api/APIClient";
 import { FeedKeys, IndexerKeys, MatrixKeys, ReleaseKeys } from "@api/query_keys";
@@ -927,41 +929,7 @@ interface TestApiButtonProps {
 
 function TestApiButton({ values, show }: TestApiButtonProps) {
   const { t } = useTranslation("settings");
-  const [isTesting, setIsTesting] = useState(false);
-  const [isSuccessfulTest, setIsSuccessfulTest] = useState(false);
-  const [isErrorTest, setIsErrorTest] = useState(false);
-
-  const testApiMutation = useMutation({
-    mutationFn: (req: IndexerTestApiReq) => APIClient.indexers.testApi(req),
-    onMutate: () => {
-      setIsTesting(true);
-      setIsErrorTest(false);
-      setIsSuccessfulTest(false);
-    },
-    onSuccess: () => {
-      toast.custom((toastInstance) => <Toast type="success" body={t("forms.indexer.testApiSuccess")} t={toastInstance} />);
-
-      sleep(1000)
-        .then(() => {
-          setIsTesting(false);
-          setIsSuccessfulTest(true);
-        })
-        .then(() => {
-          sleep(2500).then(() => {
-            setIsSuccessfulTest(false);
-          });
-        });
-    },
-    onError: (error: Error) => {
-      toast.custom((t) => <Toast type="error" body={error.message} t={t} />);
-
-      setIsTesting(false);
-      setIsErrorTest(true);
-      sleep(2500).then(() => {
-        setIsErrorTest(false);
-      });
-    }
-  });
+  const test = useTestAction((req: IndexerTestApiReq) => APIClient.indexers.testApi(req), t("forms.indexer.testApiSuccess"));
 
   const testApi = () => {
     if (!show) {
@@ -977,58 +945,14 @@ function TestApiButton({ values, show }: TestApiButtonProps) {
       req.api_user = values.settings.api_user;
     }
 
-    testApiMutation.mutate(req);
+    test.run(req);
   };
 
   if (!show) {
     return null;
   }
 
-  return (
-    <button
-      type="button"
-      className={classNames(
-        isSuccessfulTest
-          ? "text-green-500 border-green-500 bg-green-50"
-          : isErrorTest
-            ? "text-red-500 border-red-500 bg-red-50"
-            : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:border-rose-700 active:bg-rose-700",
-        isTesting ? "cursor-not-allowed" : "cursor-pointer",
-        "mr-2 float-left items-center px-4 py-2 border font-medium rounded-md shadow-xs text-sm transition ease-in-out duration-150 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-      )}
-      disabled={isTesting}
-      onClick={testApi}
-    >
-      {isTesting ? (
-        <svg
-          className="animate-spin h-5 w-5 text-green-500"
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-        >
-          <circle
-            className="opacity-25"
-            cx="12"
-            cy="12"
-            r="10"
-            stroke="currentColor"
-            strokeWidth="4"
-          ></circle>
-          <path
-            className="opacity-75"
-            fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-          ></path>
-        </svg>
-      ) : isSuccessfulTest ? (
-        t("forms.indexer.ok")
-      ) : isErrorTest ? (
-        t("forms.indexer.error")
-      ) : (
-        t("forms.indexer.testApi")
-      )}
-    </button>
-  );
+  return <TestButton status={test.status} onClick={testApi} label={t("forms.indexer.testApi")} />;
 }
 
 interface IndexerUpdateInitialValues {

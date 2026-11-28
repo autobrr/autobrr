@@ -12,6 +12,8 @@
     "test": "测试",
     "ok": "成功",
     "error": "错误",
+    "testing": "正在测试",
+    "testPassed": "测试通过",
     "cancel": "取消",
     "create": "创建",
     "save": "保存"
@@ -326,9 +328,6 @@
   "forms": {
     "downloadClient": {
       "remove": "移除",
-      "test": "测试",
-      "ok": "成功",
-      "error": "错误",
       "cancel": "取消",
       "create": "创建",
       "save": "保存",
@@ -539,7 +538,6 @@
       "userHelp": "认证：用户名",
       "pass": "密码",
       "passHelp": "认证：密码",
-      "test": "测试",
       "cancel": "取消",
       "save": "保存",
       "usageTitle": "此代理仍在使用中",
@@ -694,7 +692,6 @@
       "perFilterEventsDesc": "此通知当前被以下过滤器使用。",
       "notUsedInFilters": "未被任何过滤器使用",
       "muted": "静音",
-      "test": "测试",
       "cancel": "取消",
       "save": "保存",
       "notificationsLegend": "通知",
@@ -960,8 +957,6 @@
       "fetchToSelect": "先抓取分类再进行选择。",
       "testApi": "测试 API",
       "testApiSuccess": "API 测试成功！",
-      "ok": "成功",
-      "error": "错误",
       "externalIdentifier": "外部标识符",
       "externalIdentifierHelp": "供 ARR 使用的外部标识符。如果使用 Prowlarr，请设置为：{{name}} (Prowlarr)",
       "externalIdentifierTooltip1": "供 ARR 使用的外部标识符，可支持做种限制等功能。",

@@ -9,9 +9,11 @@ import { useTranslation } from "react-i18next";
 
 import { AddFormProps } from "@forms/_shared";
 import { useAppForm } from "@hooks/form";
+import { useTestAction } from "@hooks/useTestAction";
 import { FormDebug } from "@components/debug";
 import { PasswordFieldWide, SwitchGroupWide, TextFieldWide } from "@components/inputs";
 import { SelectFieldBasic } from "@components/inputs/select_wide";
+import { TestButton } from "@components/buttons/TestButton";
 import { ProxyTypeOptions } from "@domain/constants";
 import { APIClient } from "@api/APIClient";
 import { FeedKeys, IndexerKeys, IrcKeys, ProxyKeys } from "@api/query_keys";
@@ -53,14 +55,7 @@ function ProxyAddFormPanel({ toggle }: ProxyAddFormPanelProps) {
     createMutation.mutate(formData);
   }
 
-  const testMutation = useMutation({
-    mutationFn: (data: Proxy) => APIClient.proxy.test(data),
-    onError: (err) => {
-      console.error(err);
-    }
-  });
-
-  const testProxy = (data: unknown) => testMutation.mutate(data as Proxy);
+  const test = useTestAction((proxy: Proxy) => APIClient.proxy.test(proxy), t("panel.testPassed"));
 
   const initialValues: ProxyCreate = {
     enabled: true,
@@ -133,13 +128,7 @@ function ProxyAddFormPanel({ toggle }: ProxyAddFormPanelProps) {
 
         <div className="shrink-0 px-4 border-t border-gray-200 dark:border-gray-700 py-5 sm:px-6">
           <div className="space-x-3 flex justify-end">
-            <button
-              type="button"
-              className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 cursor-pointer"
-              onClick={() => testProxy(form.state.values)}
-            >
-              {t("forms.proxy.test")}
-            </button>
+            <TestButton status={test.status} onClick={() => test.run(form.state.values as Proxy)} />
             <button
               type="button"
               className="bg-white dark:bg-gray-700 py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-xs text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500 cursor-pointer"
@@ -203,15 +192,6 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
 
   const deleteFn = () => deleteMutation.mutate(data.id);
 
-  const testMutation = useMutation({
-    mutationFn: (data: Proxy) => APIClient.proxy.test(data),
-    onError: (err) => {
-      console.error(err);
-    }
-  });
-
-  const testProxy = (data: unknown) => testMutation.mutate(data as Proxy);
-
   const initialValues: Proxy = {
     id: data.id,
     enabled: data.enabled,
@@ -229,7 +209,7 @@ export function ProxyUpdateForm({ isOpen, toggle, data }: UpdateFormProps<Proxy>
       onSubmit={onSubmit}
       deleteAction={deleteFn}
       deleteWarning={<ProxyUsageWarning proxyId={data.id} text={t("forms.proxy.usageText")} />}
-      testFn={testProxy}
+      test={{ fn: (proxy) => APIClient.proxy.test(proxy), successMessage: t("panel.testPassed") }}
       isOpen={isOpen}
       toggle={toggle}
       type="UPDATE"

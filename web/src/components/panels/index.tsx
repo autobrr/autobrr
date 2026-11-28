@@ -14,6 +14,8 @@ import { useToggle } from "@hooks/hooks";
 import { useAppForm, fieldErrors } from "@hooks/form";
 import type { FormFieldErrors } from "@hooks/form";
 import { DeleteModal } from "@components/modals";
+import { TestButton } from "@components/buttons/TestButton";
+import { useTestAction } from "@hooks/useTestAction";
 import { classNames } from "@utils";
 
 interface SlideOverShellProps {
@@ -95,11 +97,24 @@ interface SlideOverProps<DataType> {
   deleteAction?: () => void;
   deleteWarning?: ReactNode;
   type: "CREATE" | "UPDATE";
-  testFn?: (data: unknown) => void;
-  isTesting?: boolean;
-  isTestSuccessful?: boolean;
-  isTestError?: boolean;
+  test?: SlideOverTest<DataType>;
   extraButtons?: (values: DataType) => ReactNode;
+}
+
+interface SlideOverTest<DataType> {
+  fn: (values: DataType) => Promise<unknown>;
+  successMessage: string;
+}
+
+interface SlideOverTestButtonProps<DataType> {
+  test: SlideOverTest<DataType>;
+  values: DataType;
+}
+
+function SlideOverTestButton<DataType>({ test, values }: SlideOverTestButtonProps<DataType>) {
+  const { run, status } = useTestAction(test.fn, test.successMessage);
+
+  return <TestButton status={status} onClick={() => run(values)} />;
 }
 
 function SlideOver<DataType>({
@@ -125,10 +140,7 @@ function SlideOverForm<DataType>({
   toggle,
   type,
   children,
-  testFn,
-  isTesting,
-  isTestSuccessful,
-  isTestError,
+  test,
   extraButtons
 }: Omit<SlideOverProps<DataType>, "isOpen">): ReactElement {
   const { t } = useTranslation("settings");
@@ -151,7 +163,7 @@ function SlideOverForm<DataType>({
       {deleteAction && (
         <DeleteModal
           isOpen={deleteModalIsOpen}
-          isLoading={isTesting || false}
+          isLoading={false}
           toggle={toggleDeleteModal}
           buttonRef={cancelModalButtonRef}
           deleteAction={deleteAction}
@@ -222,54 +234,7 @@ function SlideOverForm<DataType>({
                   extraButtons(values)
                 )}
 
-                {testFn && (
-                  <button
-                    type="button"
-                    className={classNames(
-                      isTestSuccessful
-                        ? "text-green-500 border-green-500 bg-green-50"
-                        : isTestError
-                          ? "text-red-500 border-red-500 bg-red-50"
-                          : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:border-rose-700 active:bg-rose-700",
-                      isTesting ? "cursor-not-allowed" : "cursor-pointer",
-                      "mr-2 inline-flex items-center px-4 py-2 border font-medium rounded-md shadow-xs text-sm transition ease-in-out duration-150 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-                    )}
-                    disabled={isTesting}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      testFn(values);
-                    }}
-                  >
-                    {isTesting ? (
-                      <svg
-                        className="animate-spin h-5 w-5 text-green-500"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                    ) : isTestSuccessful ? (
-                      t("panel.ok")
-                    ) : isTestError ? (
-                      t("panel.error")
-                    ) : (
-                      t("panel.test")
-                    )}
-                  </button>
-                )}
+                {test && <SlideOverTestButton test={test} values={values} />}
 
                 <button
                   type="button"

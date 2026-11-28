@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: GPL-2.0-or-later
  */
 
-import { useRef, useState, ReactElement } from "react";
+import { useRef, ReactElement } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { XMarkIcon } from "@heroicons/react/24/solid";
 import { useSelector } from "@tanstack/react-form";
 import { useTranslation } from "react-i18next";
 
-import { classNames, sleep } from "@utils";
+import { classNames } from "@utils";
 import { FormDebug } from "@components/debug";
 import { APIClient } from "@api/APIClient";
 import { DownloaderKeys } from "@api/query_keys";
@@ -18,6 +18,9 @@ import { toast } from "@components/hot-toast";
 import Toast from "@components/notifications/Toast";
 import { useToggle } from "@hooks/hooks";
 import { useAppForm, useFormValue } from "@hooks/form";
+import { useTestAction } from "@hooks/useTestAction";
+import type { TestStatus } from "@hooks/useTestAction";
+import { TestButton } from "@components/buttons/TestButton";
 import { DeleteModal } from "@components/modals";
 import { SlideOverShell, SlideOverTitle } from "@components/panels";
 import {
@@ -671,9 +674,7 @@ const rulesComponentMap: componentMapType = {
 };
 
 interface formButtonsProps {
-  isSuccessfulTest: boolean;
-  isErrorTest: boolean;
-  isTesting: boolean;
+  testStatus: TestStatus;
   cancelFn: () => void;
   testFn: () => void;
   type: "CREATE" | "UPDATE";
@@ -682,9 +683,7 @@ interface formButtonsProps {
 
 function DownloaderFormButtons({
   type,
-  isSuccessfulTest,
-  isErrorTest,
-  isTesting,
+  testStatus,
   cancelFn,
   testFn,
   toggleDeleteModal
@@ -704,50 +703,7 @@ function DownloaderFormButtons({
           </button>
         )}
         <div className="flex">
-          <button
-            type="button"
-            className={classNames(
-              isSuccessfulTest
-                ? "text-green-500 border-green-500 bg-green-50"
-                : isErrorTest
-                  ? "text-red-500 border-red-500 bg-red-50"
-                  : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-400 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:border-rose-700 active:bg-rose-700",
-              isTesting ? "cursor-not-allowed" : "cursor-pointer",
-              "mr-2 inline-flex items-center px-4 py-2 border font-medium rounded-md shadow-xs text-sm transition ease-in-out duration-150 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-blue-500"
-            )}
-            disabled={isTesting}
-            // onClick={() => testClient(values)}
-            onClick={testFn}
-          >
-            {isTesting ? (
-              <svg
-                className="animate-spin h-5 w-5 text-green-500"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-            ) : isSuccessfulTest ? (
-              t("forms.downloadClient.ok")
-            ) : isErrorTest ? (
-              t("forms.downloadClient.error")
-            ) : (
-              t("forms.downloadClient.test")
-            )}
-          </button>
+          <TestButton status={testStatus} onClick={testFn} />
 
           <button
             type="button"
@@ -783,9 +739,6 @@ interface DownloaderAddFormPanelProps {
 function DownloaderAddFormPanel({ toggle }: DownloaderAddFormPanelProps) {
   const { t } = useTranslation(["options", "settings"]);
   const downloaderTypeOptions = getDownloaderTypeOptions(t);
-  const [isTesting, setIsTesting] = useState(false);
-  const [isSuccessfulTest, setIsSuccessfulTest] = useState(false);
-  const [isErrorTest, setIsErrorTest] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -804,35 +757,7 @@ function DownloaderAddFormPanel({ toggle }: DownloaderAddFormPanelProps) {
 
   const onSubmit = (data: unknown) => addMutation.mutate(data as Downloader);
 
-  const testClientMutation = useMutation({
-    mutationFn: (client: Downloader) => APIClient.downloaders.test(client),
-    onMutate: () => {
-      setIsTesting(true);
-      setIsErrorTest(false);
-      setIsSuccessfulTest(false);
-    },
-    onSuccess: () => {
-      sleep(1000)
-        .then(() => {
-          setIsTesting(false);
-          setIsSuccessfulTest(true);
-        })
-        .then(() => {
-          sleep(2500).then(() => {
-            setIsSuccessfulTest(false);
-          });
-        });
-    },
-    onError: () => {
-      setIsTesting(false);
-      setIsErrorTest(true);
-      sleep(2500).then(() => {
-        setIsErrorTest(false);
-      });
-    }
-  });
-
-  const testClient = (data: unknown) => testClientMutation.mutate(data as Downloader);
+  const test = useTestAction((client: Downloader) => APIClient.downloaders.test(client), t("settings:panel.testPassed"));
 
   const initialValues: InitialValues = {
     name: "",
@@ -909,11 +834,9 @@ function DownloaderAddFormPanel({ toggle }: DownloaderAddFormPanelProps) {
 
         <DownloaderFormButtons
           type="CREATE"
-          isTesting={isTesting}
-          isSuccessfulTest={isSuccessfulTest}
-          isErrorTest={isErrorTest}
+          testStatus={test.status}
           cancelFn={toggle}
-          testFn={() => testClient(form.state.values)}
+          testFn={() => test.run(form.state.values as Downloader)}
         />
       </form>
     </form.AppForm>
@@ -938,9 +861,6 @@ interface DownloaderUpdateFormPanelProps {
 function DownloaderUpdateFormPanel({ toggle, data: client }: DownloaderUpdateFormPanelProps) {
   const { t } = useTranslation(["options", "settings"]);
   const downloaderTypeOptions = getDownloaderTypeOptions(t);
-  const [isTesting, setIsTesting] = useState(false);
-  const [isSuccessfulTest, setIsSuccessfulTest] = useState(false);
-  const [isErrorTest, setIsErrorTest] = useState(false);
   const [deleteModalIsOpen, toggleDeleteModal] = useToggle(false);
 
   const cancelModalButtonRef = useRef(null);
@@ -974,35 +894,7 @@ function DownloaderUpdateFormPanel({ toggle, data: client }: DownloaderUpdateFor
   const deleteAction = () => deleteMutation.mutate(client.id);
 
 
-  const testClientMutation = useMutation({
-    mutationFn: (client: Downloader) => APIClient.downloaders.test(client),
-    onMutate: () => {
-      setIsTesting(true);
-      setIsErrorTest(false);
-      setIsSuccessfulTest(false);
-    },
-    onSuccess: () => {
-      sleep(1000)
-        .then(() => {
-          setIsTesting(false);
-          setIsSuccessfulTest(true);
-        })
-        .then(() => {
-          sleep(2500).then(() => {
-            setIsSuccessfulTest(false);
-          });
-        });
-    },
-    onError: () => {
-      setIsTesting(false);
-      setIsErrorTest(true);
-      sleep(2500).then(() => {
-        setIsErrorTest(false);
-      });
-    }
-  });
-
-  const testClient = (data: unknown) => testClientMutation.mutate(data as Downloader);
+  const test = useTestAction((client: Downloader) => APIClient.downloaders.test(client), t("settings:panel.testPassed"));
 
   const initialValues = {
     id: client.id,
@@ -1091,11 +983,9 @@ function DownloaderUpdateFormPanel({ toggle, data: client }: DownloaderUpdateFor
           <DownloaderFormButtons
             type="UPDATE"
             toggleDeleteModal={toggleDeleteModal}
-            isTesting={isTesting}
-            isSuccessfulTest={isSuccessfulTest}
-            isErrorTest={isErrorTest}
+            testStatus={test.status}
             cancelFn={toggle}
-            testFn={() => testClient(form.state.values)}
+            testFn={() => test.run(form.state.values as Downloader)}
           />
         </form>
       </form.AppForm>
