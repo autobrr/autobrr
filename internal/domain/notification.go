@@ -162,11 +162,13 @@ func (n Notification) MarshalJSON() ([]byte, error) {
 	type Alias Notification
 	return json.Marshal(&struct {
 		*Alias
+		Webhook  string `json:"webhook"`
 		Token    string `json:"token"`
 		APIKey   string `json:"api_key"`
 		Password string `json:"password"`
 	}{
 		Alias:    (*Alias)(&n),
+		Webhook:  RedactString(n.Webhook),
 		Token:    RedactString(n.Token),
 		APIKey:   RedactString(n.APIKey),
 		Password: RedactString(n.Password),

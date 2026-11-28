@@ -522,6 +522,9 @@ func (s *Service) Update(ctx context.Context, notification *domain.Notification)
 		return domain.ErrNotificationBuiltin
 	}
 
+	if domain.IsRedactedString(notification.Webhook) {
+		notification.Webhook = existing.Webhook
+	}
 	if domain.IsRedactedString(notification.Password) {
 		notification.Password = existing.Password
 	}
@@ -721,6 +724,9 @@ func (s *Service) Test(ctx context.Context, notification *domain.Notification) e
 			return err
 		}
 
+		if domain.IsRedactedString(notification.Webhook) {
+			notification.Webhook = existing.Webhook
+		}
 		if domain.IsRedactedString(notification.Password) {
 			notification.Password = existing.Password
 		}

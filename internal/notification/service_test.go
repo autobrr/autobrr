@@ -2,10 +2,13 @@ package notification
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"slices"
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -872,4 +875,53 @@ func TestServiceValidation(t *testing.T) {
 
 	missingKey.APIKey = "0b6c2a3e-9f1d-4c8a-b7e2-5d4f3a2b1c0d"
 	require.NoError(t, service.Update(ctx, &missingKey))
+}
+
+func TestServiceUpdateKeepsRedactedWebhook(t *testing.T) {
+	ctx := t.Context()
+
+	repo := newTestNotificationRepo(nil, nil)
+	service := newTestService(repo)
+	require.NoError(t, service.Start())
+
+	const webhook = "https://discord.com/api/webhooks/1/secret"
+	notification := domain.Notification{Name: "discord", Type: domain.NotificationTypeDiscord, Enabled: true, Webhook: webhook}
+	require.NoError(t, service.Store(ctx, &notification))
+
+	notification.Name = "discord renamed"
+	notification.Webhook = domain.RedactedStr
+	require.NoError(t, service.Update(ctx, &notification))
+
+	stored, err := repo.FindByID(ctx, notification.ID)
+	require.NoError(t, err)
+	assert.Equal(t, webhook, stored.Webhook)
+	assert.Equal(t, "discord renamed", stored.Name)
+}
+
+func TestServiceTestKeepsRedactedWebhook(t *testing.T) {
+	ctx := t.Context()
+
+	var received atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		received.Add(1)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	repo := newTestNotificationRepo(nil, nil)
+	service := newTestService(repo)
+	require.NoError(t, service.Start())
+
+	notification := domain.Notification{
+		Name:    "webhook",
+		Type:    domain.NotificationTypeWebhook,
+		Enabled: true,
+		Events:  []string{string(domain.NotificationEventTest)},
+		Webhook: server.URL,
+	}
+	require.NoError(t, service.Store(ctx, &notification))
+
+	notification.Webhook = domain.RedactedStr
+	require.NoError(t, service.Test(ctx, &notification))
+	assert.Equal(t, int32(1), received.Load())
 }
