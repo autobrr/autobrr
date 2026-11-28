@@ -858,6 +858,28 @@ func TestFilter_CheckFilter(t *testing.T) {
 			want: false,
 		},
 		{
+			name: "match_except_tags_all_3",
+			fields: &Release{
+				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP2",
+				Category:    "TV",
+				Uploader:    "Uploader1",
+				Tags:        []string{"foreign"},
+			},
+			args: args{
+				filter: Filter{
+					Enabled:              true,
+					MatchCategories:      "*tv*",
+					MatchUploaders:       "Uploader1,Uploader2",
+					ExceptUploaders:      "Anonymous",
+					Shows:                "Good show",
+					ExceptTags:           "foreign,tv",
+					ExceptTagsMatchLogic: "ALL",
+				},
+				rejectionReasons: &RejectionReasons{data: []Rejection{}},
+			},
+			want: true,
+		},
+		{
 			name: "match_group_1",
 			fields: &Release{
 				TorrentName: "Good show S02 2160p ATVP WEB-DL DDP 5.1 Atmos DV HEVC-GROUP",

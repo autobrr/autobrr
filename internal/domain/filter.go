@@ -651,8 +651,10 @@ func (f *Filter) CheckFilter(r *Release) (*RejectionReasons, bool) {
 	}
 
 	if f.ExceptTags != "" {
-		if f.ExceptTagsMatchLogic == "ALL" && containsAll(r.Tags, f.ExceptTags) {
-			f.RejectReasons.Add("except tags: ALL", r.Tags, f.ExceptTags)
+		if f.ExceptTagsMatchLogic == "ALL" {
+			if containsAll(r.Tags, f.ExceptTags) {
+				f.RejectReasons.Add("except tags: ALL", r.Tags, f.ExceptTags)
+			}
 		} else if containsAny(r.Tags, f.ExceptTags) { // ExceptTagsMatchLogic is set to "" by default, this makes sure that "" and "ANY" are treated the same way.
 			f.RejectReasons.Add("except tags: ANY", r.Tags, f.ExceptTags)
 		}
