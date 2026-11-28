@@ -873,3 +873,24 @@ func TestServiceValidation(t *testing.T) {
 	missingKey.APIKey = "0b6c2a3e-9f1d-4c8a-b7e2-5d4f3a2b1c0d"
 	require.NoError(t, service.Update(ctx, &missingKey))
 }
+
+func TestServiceUpdateKeepsRedactedWebhook(t *testing.T) {
+	ctx := t.Context()
+
+	repo := newTestNotificationRepo(nil, nil)
+	service := newTestService(repo)
+	require.NoError(t, service.Start())
+
+	const webhook = "https://discord.com/api/webhooks/1/secret"
+	notification := domain.Notification{Name: "discord", Type: domain.NotificationTypeDiscord, Enabled: true, Webhook: webhook}
+	require.NoError(t, service.Store(ctx, &notification))
+
+	notification.Name = "discord renamed"
+	notification.Webhook = domain.RedactedStr
+	require.NoError(t, service.Update(ctx, &notification))
+
+	stored, err := repo.FindByID(ctx, notification.ID)
+	require.NoError(t, err)
+	assert.Equal(t, webhook, stored.Webhook)
+	assert.Equal(t, "discord renamed", stored.Name)
+}

@@ -4,6 +4,7 @@
 package domain
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -253,4 +254,30 @@ func TestNewWebhookEvent_IRC(t *testing.T) {
 			assert.Equal(t, &WebhookIRC{Network: "P2P-Network", Message: tt.message}, result.Data.IRC)
 		})
 	}
+}
+
+func TestNotification_MarshalJSON_RedactsSecrets(t *testing.T) {
+	t.Parallel()
+
+	n := Notification{
+		Type:     NotificationTypeDiscord,
+		Webhook:  "https://discord.com/api/webhooks/1/secret",
+		Token:    "token",
+		APIKey:   "api-key",
+		Password: "password",
+	}
+
+	data, err := json.Marshal(n)
+	require.NoError(t, err)
+
+	var got map[string]any
+	require.NoError(t, json.Unmarshal(data, &got))
+	for _, field := range []string{"webhook", "token", "api_key", "password"} {
+		assert.Equal(t, RedactedStr, got[field], field)
+	}
+
+	data, err = json.Marshal(Notification{Type: NotificationTypeDiscord})
+	require.NoError(t, err)
+	require.NoError(t, json.Unmarshal(data, &got))
+	assert.Equal(t, "", got["webhook"])
 }
